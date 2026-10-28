@@ -237,11 +237,12 @@ Keep application data and credentials separate from personal accounts, signing
 keys, other projects, and Mobile Maia release infrastructure. Containers organize
 services but do not replace host and network isolation.
 
-The initial host is a repurposed Intel Mac mini. Retire its previous OpenClaw
-installation, service account, credentials, histories, and local recovery copies
-before preparing it for public service. Decide whether to wipe and reinstall the
-OS to address deleted-data remnants. Network isolation and public exposure are
-separate deployment steps; neither is implied by retiring the old agent.
+The initial host is a repurposed Intel Mac mini, starting from a fresh Ubuntu
+installation after reformatting both disks. The previous OpenClaw account,
+configuration, histories, and local recovery copies are not restored. This is an
+ordinary reformat, not forensic erasure of deleted disk contents. Network isolation
+and public exposure remain separate deployment steps; neither is implied by
+retiring the old agent.
 
 The initial deployment should:
 
