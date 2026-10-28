@@ -1,6 +1,6 @@
 {
   "recorded_date": "2026-10-28",
-  "status": "source inventory and confirmed architecture; full Lila integration not yet built",
+  "status": "native Lila/lila-ws with Maia and Nostr adapters; unrated two-game alpha; augmented analysis and full wrapper remain work",
   "lichess": {
     "repository": "https://github.com/lichess-org/lila",
     "revision": "b551752d2a0e7a63459d9812825d95a633a98737",
@@ -26,6 +26,13 @@
       "ui/lib/src/ceval"
     ]
   },
+  "lichess_websocket": {
+    "repository": "https://github.com/lichess-org/lila-ws",
+    "revision": "5089b84b5fe2da3f3e9e69d29363115cfddfc758",
+    "license": "AGPL-3.0, retain upstream LICENSE",
+    "local_patch": "deploy/lila/patches/lila-ws-bind-address.patch",
+    "scope": "Configurable HTTP bind host; private development override binds to loopback"
+  },
   "mobile_maia": {
     "repository": "https://github.com/Dash1971/maia-chess-android-preview",
     "revision": "8563954429c2fb53ce0fe0e16c73c5d8a73ccfe0",
@@ -44,14 +51,20 @@
       "test/fixtures/classification",
       "THIRD_PARTY_NOTICES.md"
     ],
-    "feature_issues": [200, 26]
+    "feature_issues": [
+      200,
+      26
+    ]
   },
   "en_croissant": {
     "repository": "https://github.com/franciscoBSalgueiro/en-croissant",
     "reference_tag": "v0.15.0",
     "tag_object": "3a3dbc5911dd0cd4997c30ea3e8932045e314830",
     "revision": "6f2d2628f0fbe11cb62a7dd2f9c102bb52907d53",
-    "paths": ["src/utils/score.ts", "src-tauri/src/chess.rs"],
+    "paths": [
+      "src/utils/score.ts",
+      "src-tauri/src/chess.rs"
+    ],
     "license": "GPL-3.0; retain upstream notices and Mobile Maia adaptation provenance"
   },
   "maia_platform": {

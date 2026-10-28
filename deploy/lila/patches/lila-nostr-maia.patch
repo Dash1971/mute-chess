@@ -1,0 +1,2408 @@
+diff --git a/app/Env.scala b/app/Env.scala
+index 7150974..90991e8 100644
+--- a/app/Env.scala
++++ b/app/Env.scala
+@@ -108,6 +108,7 @@ final class Env(
+   val recap: lila.recap.Env = wire[lila.recap.Env]
+   val cms: lila.cms.Env = wire[lila.cms.Env]
+   val web: lila.web.Env = wire[lila.web.Env]
++  val noSweat: NoSweatService = new NoSweatService(this, summon[StandaloneWSClient])
+   val api: lila.api.Env = wire[lila.api.Env]
+ 
+   val preloader = wire[mashup.Preload]
+diff --git a/app/Lila.scala b/app/Lila.scala
+index b3d33a8..a9c67c8 100644
+--- a/app/Lila.scala
++++ b/app/Lila.scala
+@@ -101,7 +101,8 @@ final class LilaComponents(
+       httpErrorHandler,
+       httpConfiguration,
+       httpFilters,
+-      controllerComponents
++      controllerComponents,
++      configuration.getOptional[Boolean]("nosweat.enabled").getOrElse(false)
+     )
+ 
+   lazy val devAssetsController =
+@@ -112,6 +113,7 @@ final class LilaComponents(
+   lazy val api: Api = wire[Api]
+   lazy val appealC: appeal.Appeal = wire[appeal.Appeal]
+   lazy val auth: Auth = wire[Auth]
++  lazy val noSweat: controllers.NoSweat = wire[controllers.NoSweat]
+   lazy val feed: Feed = wire[Feed]
+   lazy val playApi: PlayApi = wire[PlayApi]
+   lazy val challenge: Challenge = wire[Challenge]
+diff --git a/app/http/HttpRequestHandler.scala b/app/http/HttpRequestHandler.scala
+index a6875eb..82b5a3d 100644
+--- a/app/http/HttpRequestHandler.scala
++++ b/app/http/HttpRequestHandler.scala
+@@ -10,12 +10,20 @@ final class HttpRequestHandler(
+     errorHandler: HttpErrorHandler,
+     configuration: HttpConfiguration,
+     filters: Seq[EssentialFilter],
+-    controllerComponents: ControllerComponents
++    controllerComponents: ControllerComponents,
++    noSweatEnabled: Boolean = false
+ ) extends DefaultHttpRequestHandler(() => router, errorHandler, configuration, filters)
+     with lila.web.ResponseHeaders:
+ 
+   override def routeRequest(request: RequestHeader): Option[Handler] =
+-    if request.method == "OPTIONS"
++    if noSweatEnabled && request.method == "GET" && Set("/", "/login", "/signup").contains(request.path) then
++      Some(controllerComponents.actionBuilder(_ => Results.Redirect("/club")))
++    else if noSweatEnabled && request.method == "POST" &&
++        (request.path == "/login" || request.path.startsWith("/signup") ||
++          request.path.startsWith("/setup/") || request.path.startsWith("/api/challenge") ||
++          request.path == "/api/bot/account/upgrade") then
++      Some(controllerComponents.actionBuilder(_ => Results.Forbidden("Use Nostr sign-in and the human-versus-Maia club pool.")))
++    else if request.method == "OPTIONS"
+     then optionsHandler.some
+     else router.handlerFor(request)
+ 
+diff --git a/conf/routes b/conf/routes
+index f2a7ab2..238ee98 100644
+--- a/conf/routes
++++ b/conf/routes
+@@ -1,6 +1,16 @@
+ # Run `./lila.sh playRoutes` after modifying this file
+ 
+ # Lobby
++GET   /club                            controllers.NoSweat.home
++GET   /club/me                         controllers.NoSweat.me
++GET   /club/roster                     controllers.NoSweat.roster
++POST  /club/challenge                  controllers.NoSweat.challenge
++POST  /club/login                      controllers.NoSweat.login
++POST  /club/play                       controllers.NoSweat.play
++GET   /club/internal/games             controllers.NoSweat.games
++POST  /club/internal/:id/move           controllers.NoSweat.move(id: GameId)
++POST  /club/internal/:id/failure        controllers.NoSweat.failure(id: GameId)
++GET   /club/game/:id                    controllers.NoSweat.game(id: GameId)
+ GET   /                                controllers.Lobby.home
+ GET   /lobby/seeks                     controllers.Lobby.seeks
+ 
+diff --git a/modules/game/src/main/Env.scala b/modules/game/src/main/Env.scala
+index 43d76ae..f074d1e 100644
+--- a/modules/game/src/main/Env.scala
++++ b/modules/game/src/main/Env.scala
+@@ -34,7 +34,24 @@ final class Env(
+ )(using scheduler: Scheduler)(using Executor, Materializer):
+   private val config = appConfig.get[GameConfig]("game")(using AutoConfig.loader)
+ 
+-  val gameRepo = GameRepo(db(config.gameColl))
++  private val noSweatGames = db(CollName("nosweat_game"))
++  private val noSweatOnly = appConfig.getOptional[Boolean]("nosweat.enabled").getOrElse(false)
++  private def admitNoSweat(game: lila.core.game.Game): Funit =
++    import lila.db.dsl.{ *, given }
++    if !noSweatOnly || !game.playable then funit
++    else
++      val clockAllowed = game.clock.exists: clock =>
++        Set((300, 3), (600, 5)).contains((clock.config.limitSeconds.value, clock.config.incrementSeconds.value))
++      if !game.variant.standard || game.rated.yes || game.userIds.distinct.size != 2 || !clockAllowed then
++        fufail("No Sweat Chess admits only reserved, unrated human-versus-Maia games")
++      else
++        noSweatGames
++          .exists(bdoc("_id" -> game.id, "human" -> bdoc("$in" -> game.userIds),
++            "bot" -> bdoc("$in" -> game.userIds), "state" -> "reserved"))
++          .flatMap:
++            if _ then funit else fufail("Game has no No Sweat Chess admission reservation")
++
++  val gameRepo = GameRepo(db(config.gameColl), admitNoSweat)
+ 
+   given idGenerator: IdGenerator = wire[IdGenerator]
+ 
+diff --git a/modules/game/src/main/GameRepo.scala b/modules/game/src/main/GameRepo.scala
+index 45a3103..6fb1b4b 100644
+--- a/modules/game/src/main/GameRepo.scala
++++ b/modules/game/src/main/GameRepo.scala
+@@ -15,7 +15,8 @@ import lila.db.dsl.{ *, given }
+ import lila.db.isDuplicateKey
+ import lila.game.GameExt.*
+ 
+-final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c):
++final class GameRepo(c: Coll, admit: Game => Funit = _ => funit)(using Executor)
++    extends lila.core.game.GameRepo(c):
+ 
+   export BSONHandlers.{ statusHandler, gameHandler }
+   import BSONHandlers.given
+@@ -428,11 +429,12 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
+       F.checkAt -> checkInHours.map(nowInstant.plusHours(_)),
+       F.playingUids -> (g2.started && userIds.nonEmpty).option(userIds)
+     )
+-    coll.insert
+-      .one(bson)
+-      .addFailureEffect:
+-        case wr: WriteResult if isDuplicateKey(wr) => lila.mon.game.idCollision.increment()
+-      .void
++    admit(g2).flatMap: _ =>
++      coll.insert
++        .one(bson)
++        .addFailureEffect:
++          case wr: WriteResult if isDuplicateKey(wr) => lila.mon.game.idCollision.increment()
++        .void
+ 
+   def removeRecentChallengesOf(userId: UserId) =
+     coll.delete.one:
+diff --git a/modules/user/src/main/UserRepo.scala b/modules/user/src/main/UserRepo.scala
+index 45fd497..c9c385f 100644
+--- a/modules/user/src/main/UserRepo.scala
++++ b/modules/user/src/main/UserRepo.scala
+@@ -236,6 +236,22 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+       coll.insert.one(doc) >> byId(name.id)
+ 
+   def existsPri[U: UserIdOf](u: U): Fu[Boolean] = coll.exists(bid(u.id))
++
++  // Nostr is an identity credential, never a password or an email recovery path.
++  def byNostr(pubkey: String): Fu[Option[User]] = coll.one[User](bdoc("nostr" -> pubkey))
++
++  def createNostr(name: UserName, pubkey: String): Fu[Option[User]] =
++    val doc = newUser(
++      name, HashedPassword(Array.emptyByteArray),
++      EmailAddress(s"$pubkey@nostr.invalid"), false, false, None, KidMode.No
++    ) ++ bdoc("nostr" -> pubkey, "len" -> name.value.length)
++    coll.insert.one(doc).flatMap(_ => byNostr(pubkey))
++
++  def createNoSweatBot(name: UserName): Fu[Option[User]] =
++    val doc = newUser(name, HashedPassword(Array.emptyByteArray),
++      EmailAddress(s"bot-${name.id}@nosweat.invalid"), false, false, None, KidMode.No) ++
++      bdoc("len" -> name.value.length, "title" -> PlayerTitle.BOT, "noSweatBot" -> true)
++    coll.insert.one(doc).flatMap(_ => byId(name.id))
+   def existsSec[U: UserIdOf](u: U): Fu[Boolean] = coll.secondary.exists(bid(u.id))
+ 
+   def filterExists(ids: Set[UserId]): Fu[List[UserId]] =
+diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
+new file mode 100644
+index 0000000..eca4f0a
+--- /dev/null
++++ b/app/NoSweatService.scala
+@@ -0,0 +1,221 @@
++package lila.app
++
++import java.nio.file.Files
++import java.util.concurrent.atomic.{ AtomicLong, AtomicReference }
++import play.api.libs.json.*
++import play.api.libs.ws.StandaloneWSClient
++import play.api.libs.ws.DefaultBodyWritables.writeableOf_String
++import chess.{ ByColor, Clock, Color, Rated }
++import lila.core.config.CollName
++import lila.core.game.{ GameRule, Source, WithInitialFen }
++import lila.core.perf.PerfKey
++import lila.db.dsl.{ *, given }
++
++final case class NoSweatError(status: Int, reason: String) extends RuntimeException(reason)
++
++/** Identity and bot admission adapters. Round state remains authoritative in Lila. */
++final class NoSweatService(env: Env, ws: StandaloneWSClient)(using ec: Executor):
++  private given Scheduler = env.system.scheduler
++  val enabled = env.config.getOptional[Boolean]("nosweat.enabled").getOrElse(false)
++  private lazy val adapterUrl = env.config.get[String]("nosweat.adapterUrl")
++  private lazy val token = env.config.get[String]("nosweat.adapterToken")
++  private val records = env.mongo.mainDb(CollName("nosweat_game"))
++  private val lastPoll = AtomicLong(System.currentTimeMillis())
++  private val lastOnline = AtomicLong(0L)
++  private val adapterInstance = AtomicReference("")
++  private val connectedBots = java.util.concurrent.ConcurrentHashMap.newKeySet[GameId]()
++  private val queue = scalalib.actor.AsyncActorSequencer(
++    maxSize = Max(32), timeout = 20.seconds, "noSweatAdmission", lila.mon.asyncActorMonitor.full
++  )
++  lazy val roster: List[JsObject] = Json.parse(
++    Files.readString(env.getFile.exec("public/nosweat-roster.json").toPath)
++  ).as[List[JsObject]]
++  private def botId(bot: JsObject): UserId = UserId((bot \ "username").as[String].toLowerCase)
++  private def requireThat(ok: Boolean, status: Int, message: String): Unit =
++    if !ok then throw NoSweatError(status, message)
++
++  def internalAuthorized(header: Option[String]): Boolean = enabled && header.exists: value =>
++    java.security.MessageDigest.isEqual(
++      value.getBytes(java.nio.charset.StandardCharsets.UTF_8),
++      s"Bearer $token".getBytes(java.nio.charset.StandardCharsets.UTF_8)
++    )
++
++  def adapter(path: String, body: JsValue): Fu[JsValue] =
++    ws.url(s"$adapterUrl$path").withHttpHeaders("Authorization" -> s"Bearer $token", "Content-Type" -> "application/json")
++      .withRequestTimeout(5.seconds).post(Json.stringify(body)).map: response =>
++        val result = Json.parse(response.body)
++        if response.status != 200 then
++          throw NoSweatError(response.status, (result \ "error").asOpt[String].getOrElse("Adapter unavailable"))
++        result
++
++  private def initialize(): Funit =
++    roster.foldLeft(funit): (previous, bot) =>
++      previous.flatMap: _ =>
++        val name = UserName((bot \ "username").as[String])
++        for
++          existing <- env.user.repo.byId(name.id)
++          loaded <- existing.fold(env.user.repo.createNoSweatBot(name))(u => fuccess(u.some))
++          user = loaded.getOrElse(throw NoSweatError(503, "Could not provision bot"))
++          doc <- env.user.repo.withColl(_.byId[Bdoc](name.id))
++          _ = requireThat(user.isBot && doc.exists(_.getAsOpt[Boolean]("noSweatBot").contains(true)),
++            503, "A roster name is occupied by an account outside the club roster")
++          _ <- if doc.exists(_.getAsOpt[String]("noSweatSeedVersion").isDefined) then funit
++            else
++              List(("blitz", PerfKey.blitz), ("rapid", PerfKey.rapid)).foldLeft(funit): (prev, entry) =>
++                prev.flatMap: _ =>
++                  val prior = (bot \ "ratings" \ entry._1)
++                  val perf = lila.rating.Perf.default.copy(
++                    glicko = new chess.rating.glicko.Glicko(
++                      (prior \ "initial_rating").as[Double], (prior \ "initial_rd").as[Double], 0.09
++                    ), latest = nowInstant.some)
++                  env.user.perfsRepo.setPerf(user.id, entry._2, perf)
++              .flatMap(_ => env.user.repo.withColl(_.update.one(bid(name.id), set("noSweatSeedVersion" -> "roster-priors-v1")).void))
++        yield env.user.lightUserApi.invalidate(user.id)
++    .flatMap: _ =>
++      // A process restart never guesses how much time unfinished games lost.
++      records.find(bdoc("state" -> bdoc("$in" -> List("reserved", "active"))))
++        .cursor[Bdoc]().list(100).flatMap: docs =>
++          docs.foldLeft(funit)((prev, doc) => prev.flatMap(_ => failGame(doc.getAsOpt[GameId]("_id").get, "application_restart")))
++
++  val ready: Funit = if enabled then initialize() else funit
++
++  if enabled then
++    env.system.scheduler.scheduleWithFixedDelay(5.seconds, 5.seconds): () =>
++      if System.currentTimeMillis() - lastPoll.get() > 15000 then
++        ready.flatMap(_ => current()).foreach: games =>
++          games.foreach((doc, game) => failGame(game.id, "maia_adapter_unavailable"))
++
++  def nostrUser(pubkey: String, requested: Option[String]): Fu[UserModel] = queue:
++    ready.flatMap: _ =>
++      requireThat(pubkey.matches("[0-9a-f]{64}"), 401, "Invalid verified identity")
++      env.user.repo.byNostr(pubkey).flatMap:
++        case Some(user) =>
++          requireThat(user.enabled.yes && !user.isBot, 403, "Account unavailable")
++          fuccess(user)
++        case None =>
++          val name = requested.filter(_.nonEmpty).getOrElse("n" + pubkey.take(19))
++          requireThat(name.matches("[A-Za-z][A-Za-z0-9_-]{2,19}"), 400, "Use a 3–20 character username")
++          val reserved = Set("lichess", "ghost", "openingexplorer", "broadcaster", "irwin", "kaladin", "ai",
++            "lichess4545", "challengermode", "watcherbot", "taketaketakeapp", "undefined", "anonymous", "admin", "system", "nosweatchess")
++          requireThat(!reserved.contains(name.toLowerCase), 409, "That is a reserved system name")
++          requireThat(!roster.exists(botId(_).value == name.toLowerCase), 409, "That name belongs to a Maia opponent")
++          env.user.repo.existsPri(UserName(name).id).flatMap: occupied =>
++            requireThat(!occupied, 409, "Username already taken")
++            env.user.repo.createNostr(UserName(name), pubkey).map:
++              _.getOrElse(throw NoSweatError(503, "Could not create identity"))
++
++  def isNostr(user: UserModel): Fu[Boolean] =
++    env.user.repo.withColl(_.exists(bdoc("_id" -> user.id, "nostr" -> bdoc("$exists" -> true))))
++
++  private def current(): Fu[List[(Bdoc, GameModel)]] =
++    records.find(bdoc("state" -> "active")).cursor[Bdoc]().list(100).flatMap: docs =>
++      docs.traverse: doc =>
++        env.round.proxyRepo.game(doc.getAsOpt[GameId]("_id").get).flatMap:
++          case Some(game) if game.playable => fuccess((doc -> game).some)
++          case _ =>
++            connectedBots.remove(doc.getAsOpt[GameId]("_id").get)
++            records.update.one(bid(doc.getAsOpt[GameId]("_id").get), set("state" -> "finished")).map(_ => none)
++      .map(_.flatten)
++
++  def play(user: UserModel, data: JsValue): Fu[JsObject] = queue:
++    for
++      _ <- ready
++      identity <- isNostr(user)
++      _ = requireThat(identity && !user.isBot, 403, "Sign in with Nostr first")
++      games <- current()
++      existing = games.find(_._1.getAsOpt[UserId]("human").contains(user.id))
++      result <- existing match
++        case Some((_, game)) => fuccess(playerLink(game, user.id))
++        case None =>
++          requireThat(games.size < 2, 503, "Private alpha is full; try again after a game finishes")
++          val slug = (data \ "bot").asOpt[String].getOrElse("")
++          val bot = roster.find(b => (b \ "id").as[String] == slug)
++            .getOrElse(throw NoSweatError(400, "Choose a club opponent"))
++          val control = (data \ "control").asOpt[String].getOrElse("blitz")
++          requireThat(Set("blitz", "rapid").contains(control), 400, "Choose 5+3 or 10+5")
++          val color = (data \ "color").asOpt[String].getOrElse("random")
++          requireThat(Set("white", "black", "random").contains(color), 400, "Invalid color")
++          val humanColor = if color == "random" then Color.fromWhite(scalalib.SecureRandom.nextInt(2) == 0)
++            else Color.fromWhite(color == "white")
++          val clock = Clock.Config(Clock.LimitSeconds(if control == "blitz" then 300 else 600),
++            Clock.IncrementSeconds(if control == "blitz" then 3 else 5))
++          val perfKey = if control == "blitz" then PerfKey.blitz else PerfKey.rapid
++          for
++            policy <- adapter("/freeze", Json.obj("bot" -> slug))
++            human <- env.user.api.byIdWithPerf(user.id, perfKey)
++            opponent <- env.user.api.byIdWithPerf(botId(bot), perfKey)
++            _ = requireThat(opponent.exists(_.user.isBot), 503, "Opponent is unavailable")
++            id <- env.game.idGenerator.game
++            game = lila.core.game.newGame(
++              chess = chess.Game(position = chess.variant.Standard.initialPosition, clock = clock.toClock.start.some),
++              players = ByColor(c => lila.game.Player.make(c, if c == humanColor then human else opponent)),
++              rated = Rated.No, source = Source.Friend, pgnImport = None,
++              rules = Set(GameRule.noRematch, GameRule.noGiveTime, GameRule.noClaimWin)
++            ).withId(id).start
++            _ <- records.insert.one(bdoc("_id" -> id, "human" -> user.id, "bot" -> botId(bot),
++              "slug" -> slug, "state" -> "reserved", "snapshot" -> Json.stringify(policy),
++              "createdAt" -> nowInstant, "control" -> control, "prior" -> Json.stringify((bot \ "ratings" \ control).get)))
++            _ <- env.game.gameRepo.insertDenormalized(game)
++            _ <- env.round.onStart.exec(id)
++            _ <- records.update.one(bid(id), set("state" -> "active"))
++          yield playerLink(game, user.id)
++    yield result
++
++  private def playerLink(game: GameModel, userId: UserId): JsObject =
++    Json.obj("id" -> game.id.value, "url" -> s"/${game.fullIdOf(game.player(userId).get.color).value}", "rated" -> false)
++
++  def games(instance: Option[String]): Fu[JsValue] =
++    val restarted = instance.filter(_.matches("[0-9a-f-]{36}")).exists: next =>
++      lastPoll.set(System.currentTimeMillis())
++      val previous = adapterInstance.getAndSet(next)
++      previous.nonEmpty && previous != next
++    if System.currentTimeMillis() - lastOnline.get() > 5000 then
++      lastOnline.set(System.currentTimeMillis())
++      roster.foreach(bot => env.bot.onlineApiUsers.setOnline(botId(bot)))
++    val recover = if !restarted then funit else ready.flatMap(_ => current()).flatMap: games =>
++      games.foldLeft(funit)((prev, entry) => prev.flatMap(_ => failGame(entry._2.id, "maia_adapter_restart")))
++    ready.flatMap(_ => recover).flatMap(_ => current()).flatMap: games =>
++      games.traverse: (doc, game) =>
++        env.bot.jsonView.gameState(WithInitialFen(game, None)).map: state =>
++          val bot = doc.getAsOpt[UserId]("bot").get
++          if connectedBots.add(game.id) then
++            env.round.roundApi.tell(game.id, lila.core.round.RoundBus.BotConnected(game.player(bot).get.color, true))
++          Json.obj("id" -> game.id.value, "ply" -> game.ply.value,
++            "botToMove" -> game.player.userId.contains(bot), "botColor" -> game.player(bot).get.color.name,
++            "policy" -> Json.parse(doc.getAsOpt[String]("snapshot").get), "state" -> state)
++      .map(Json.toJson(_))
++
++  def move(id: GameId, ply: Int, uci: String, timing: JsObject): Funit =
++    for
++      record <- records.byId[Bdoc](id)
++      doc = record.getOrElse(throw NoSweatError(404, "No club game"))
++      botId = doc.getAsOpt[UserId]("bot").get
++      bot <- env.user.repo.byId(botId)
++      pov <- env.round.proxyRepo.pov(id, botId)
++      p = pov.getOrElse(throw NoSweatError(404, "No bot seat"))
++      _ = requireThat(doc.getAsOpt[String]("state").contains("active") && p.game.playable &&
++        p.game.ply.value == ply && p.isMyTurn && bot.exists(_.isBot), 409, "Game position changed")
++      _ <- env.bot.player.apply(p, uci, Some(false))(using Me(bot.get))
++      _ <- records.update.one(bid(id), set(s"moves.$ply" -> Json.stringify(
++        Json.obj("move" -> uci, "timing" -> timing, "at" -> nowInstant.toString))))
++    yield ()
++
++  def failGame(id: GameId, reason: String): Funit =
++    records.byId[Bdoc](id).flatMap:
++      case None => funit
++      case Some(doc) if !doc.getAsOpt[String]("state").exists(Set("active", "reserved").contains) => funit
++      case Some(_) =>
++        env.round.proxyRepo.game(id).flatMap:
++          case Some(game) if !game.playable =>
++            connectedBots.remove(id)
++            records.update.one(bid(id), set("state" -> "finished")).void
++          case _ =>
++            connectedBots.remove(id)
++            env.round.roundApi.tell(id, lila.core.round.RoundBus.AbortForce)
++            records.update.one(bid(id), set("state" -> "service_failure", "failure" -> reason.take(80))).void
++
++  def details(id: GameId, user: UserModel): Fu[Option[JsValue]] =
++    records.one[Bdoc](bid(id) ++ bdoc("human" -> user.id)).map2: doc =>
++      Json.obj("id" -> id.value, "state" -> doc.getAsOpt[String]("state"),
++        "failure" -> doc.getAsOpt[String]("failure"),
++        "policy" -> (Json.parse(doc.getAsOpt[String]("snapshot").get).as[JsObject] - "samplingSeed"))
+diff --git a/app/controllers/NoSweat.scala b/app/controllers/NoSweat.scala
+new file mode 100644
+index 0000000..64e90cb
+--- /dev/null
++++ b/app/controllers/NoSweat.scala
+@@ -0,0 +1,86 @@
++package controllers
++
++import play.api.libs.json.*
++import play.api.mvc.*
++import scala.util.control.NonFatal
++import lila.app.{ *, given }
++import lila.security.IsPwned
++
++final class NoSweat(env: Env) extends LilaController(env):
++  private val club = env.noSweat
++  private def handle(f: => Fu[Result]): Fu[Result] =
++    def error(e: Throwable): Result = e match
++      case NoSweatError(status, reason) => Status(status)(Json.obj("error" -> reason)).withHeaders("Cache-Control" -> "no-store")
++      case _: JsResultException => BadRequest(Json.obj("error" -> "Invalid request"))
++      case _ =>
++        lila.log("nosweat").error("Club adapter request failed", e)
++        ServiceUnavailable(Json.obj("error" -> "The club is temporarily unavailable"))
++    try
++      if !club.enabled then fuccess(NotFound)
++      else f.map(_.withHeaders("Cache-Control" -> "no-store")).recover { case NonFatal(e) => error(e) }
++    catch case NonFatal(e) => fuccess(error(e))
++
++  private def sameOrigin(using req: RequestHeader): Unit =
++    if !req.headers.get("Origin").contains(env.net.baseUrl.value) then
++      throw NoSweatError(403, "Origin mismatch")
++
++  private def internal(using req: RequestHeader): Unit =
++    if !club.internalAuthorized(req.headers.get("Authorization")) then
++      throw NoSweatError(403, "Private adapter authentication required")
++
++  def home = Open:
++    handle:
++      fuccess(Ok(java.nio.file.Files.readString(env.getFile.exec("public/nosweat/index.html").toPath)).as(HTML))
++
++  def roster = Open:
++    handle(club.ready.map(_ => Ok(Json.toJson(club.roster))))
++
++  def me = Open:
++    handle(fuccess(Ok(Json.obj("user" -> ctx.me.map(u => Json.obj("id" -> u.userId.value, "username" -> u.username.value))))))
++
++  def challenge = OpenBodyOf(parse.tolerantText(4096)):
++    context ?=>
++      handle:
++        sameOrigin
++        club.adapter("/challenge", Json.parse(context.body.body)).map(Ok(_))
++
++  def login = OpenBodyOf(parse.tolerantText(16384)):
++    context ?=>
++      handle:
++        sameOrigin
++        val raw = context.body.body
++        for
++          verified <- club.adapter("/verify", Json.obj("authorization" -> context.req.headers.get("Authorization"), "rawBody" -> raw))
++          user <- club.nostrUser((verified \ "pubkey").as[String], (Json.parse(raw) \ "username").asOpt[String])
++          session <- env.security.api.saveAuthentication(user.id, None, IsPwned(false))
++        yield Ok(Json.obj("username" -> user.username.value, "url" -> "/club"))
++          .withCookies(env.security.lilaCookie.withSession(remember = true) { s =>
++            s + (env.security.api.sessionIdKey -> session.value)
++          })
++
++  def play = AuthBody(parse.tolerantText(4096)):
++    context ?=> user ?=>
++      handle:
++        sameOrigin
++        club.play(user.value, Json.parse(context.body.body)).map(Ok(_))
++
++  def games = Anon:
++    handle:
++      internal
++      club.games(req.headers.get("X-NoSweat-Instance")).map(Ok(_))
++
++  def move(id: GameId) = AnonBodyOf(parse.tolerantText(4096)): body =>
++    handle:
++      internal
++      val json = Json.parse(body)
++      club.move(id, (json \ "ply").as[Int], (json \ "move").as[String],
++        (json \ "timing").asOpt[JsObject].getOrElse(Json.obj())).map(_ => Ok(Json.obj("ok" -> true)))
++
++  def failure(id: GameId) = AnonBodyOf(parse.tolerantText(4096)): body =>
++    handle:
++      internal
++      club.failGame(id, "maia_service_failure").map(_ => Ok(Json.obj("ok" -> true)))
++
++  def game(id: GameId) = Auth:
++    context ?=> user ?=>
++      handle(club.details(id, user.value).map(_.fold(NotFound)(Ok(_))))
+diff --git a/public/nosweat-roster.json b/public/nosweat-roster.json
+new file mode 100644
+index 0000000..f8dcde1
+--- /dev/null
++++ b/public/nosweat-roster.json
+@@ -0,0 +1,1806 @@
++[
++  {
++    "id": "pixel-moth",
++    "name": "Pixel Moth",
++    "conditioning_self": 600,
++    "conditioning_opponent": 600,
++    "sampling_profile": "full",
++    "temperature_after_opening": 1.0,
++    "top_p_after_opening": 1.0,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": null
++    },
++    "assumed_sampling_strength_adjustment": 0,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 900,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 46
++      },
++      "rapid": {
++        "initial_rating": 950,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      }
++    },
++    "reference_account": "maia3-79m_600",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "PixelMoth"
++  },
++  {
++    "id": "glitch-cat",
++    "name": "Glitch Cat",
++    "conditioning_self": 600,
++    "conditioning_opponent": 600,
++    "sampling_profile": "balanced",
++    "temperature_after_opening": 1.0,
++    "top_p_after_opening": 0.95,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 75,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 975,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 46
++      },
++      "rapid": {
++        "initial_rating": 1025,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      }
++    },
++    "reference_account": "maia3-79m_600",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "GlitchCat"
++  },
++  {
++    "id": "pocket-static",
++    "name": "Pocket Static",
++    "conditioning_self": 600,
++    "conditioning_opponent": 600,
++    "sampling_profile": "focused",
++    "temperature_after_opening": 0.5,
++    "top_p_after_opening": 0.9,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 250,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1150,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 46
++      },
++      "rapid": {
++        "initial_rating": 1200,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      }
++    },
++    "reference_account": "maia3-79m_600",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "PocketStatic"
++  },
++  {
++    "id": "cassette-kid",
++    "name": "Cassette Kid",
++    "conditioning_self": 600,
++    "conditioning_opponent": 600,
++    "sampling_profile": "argmax",
++    "temperature_after_opening": 0.0,
++    "top_p_after_opening": 1.0,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 300,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1200,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 46
++      },
++      "rapid": {
++        "initial_rating": 1250,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      }
++    },
++    "reference_account": "maia3-79m_600",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "CassetteKid"
++  },
++  {
++    "id": "copper-byte",
++    "name": "Copper Byte",
++    "conditioning_self": 800,
++    "conditioning_opponent": 800,
++    "sampling_profile": "full",
++    "temperature_after_opening": 1.0,
++    "top_p_after_opening": 1.0,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": null
++    },
++    "assumed_sampling_strength_adjustment": 0,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1150,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      },
++      "rapid": {
++        "initial_rating": 1150,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      }
++    },
++    "reference_account": "maia3-79m_800",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "CopperByte"
++  },
++  {
++    "id": "neon-finch",
++    "name": "Neon Finch",
++    "conditioning_self": 800,
++    "conditioning_opponent": 800,
++    "sampling_profile": "balanced",
++    "temperature_after_opening": 1.0,
++    "top_p_after_opening": 0.95,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 75,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1225,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      },
++      "rapid": {
++        "initial_rating": 1225,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      }
++    },
++    "reference_account": "maia3-79m_800",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "NeonFinch"
++  },
++  {
++    "id": "patchwork",
++    "name": "Patchwork",
++    "conditioning_self": 800,
++    "conditioning_opponent": 800,
++    "sampling_profile": "focused",
++    "temperature_after_opening": 0.5,
++    "top_p_after_opening": 0.9,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 250,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1400,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      },
++      "rapid": {
++        "initial_rating": 1400,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      }
++    },
++    "reference_account": "maia3-79m_800",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "Patchwork"
++  },
++  {
++    "id": "velvet-circuit",
++    "name": "Velvet Circuit",
++    "conditioning_self": 800,
++    "conditioning_opponent": 800,
++    "sampling_profile": "argmax",
++    "temperature_after_opening": 0.0,
++    "top_p_after_opening": 1.0,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 300,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1450,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      },
++      "rapid": {
++        "initial_rating": 1450,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      }
++    },
++    "reference_account": "maia3-79m_800",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "VelvetCircuit"
++  },
++  {
++    "id": "cobalt-mist",
++    "name": "Cobalt Mist",
++    "conditioning_self": 1000,
++    "conditioning_opponent": 1000,
++    "sampling_profile": "full",
++    "temperature_after_opening": 1.0,
++    "top_p_after_opening": 1.0,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": null
++    },
++    "assumed_sampling_strength_adjustment": 0,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1300,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      },
++      "rapid": {
++        "initial_rating": 1250,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      }
++    },
++    "reference_account": "maia3-79m_1000",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "CobaltMist"
++  },
++  {
++    "id": "sideband",
++    "name": "Sideband",
++    "conditioning_self": 1000,
++    "conditioning_opponent": 1000,
++    "sampling_profile": "balanced",
++    "temperature_after_opening": 1.0,
++    "top_p_after_opening": 0.95,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 75,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1375,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      },
++      "rapid": {
++        "initial_rating": 1325,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      }
++    },
++    "reference_account": "maia3-79m_1000",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "Sideband"
++  },
++  {
++    "id": "chrome-sparrow",
++    "name": "Chrome Sparrow",
++    "conditioning_self": 1000,
++    "conditioning_opponent": 1000,
++    "sampling_profile": "focused",
++    "temperature_after_opening": 0.5,
++    "top_p_after_opening": 0.9,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 250,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1550,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      },
++      "rapid": {
++        "initial_rating": 1500,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      }
++    },
++    "reference_account": "maia3-79m_1000",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "ChromeSparrow"
++  },
++  {
++    "id": "chrome-alley",
++    "name": "Chrome Alley",
++    "conditioning_self": 1000,
++    "conditioning_opponent": 1000,
++    "sampling_profile": "argmax",
++    "temperature_after_opening": 0.0,
++    "top_p_after_opening": 1.0,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 300,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1600,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      },
++      "rapid": {
++        "initial_rating": 1550,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      }
++    },
++    "reference_account": "maia3-79m_1000",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "ChromeAlley"
++  },
++  {
++    "id": "violet-metro",
++    "name": "Violet Metro",
++    "conditioning_self": 1200,
++    "conditioning_opponent": 1200,
++    "sampling_profile": "full",
++    "temperature_after_opening": 1.0,
++    "top_p_after_opening": 1.0,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": null
++    },
++    "assumed_sampling_strength_adjustment": 0,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1400,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 59
++      },
++      "rapid": {
++        "initial_rating": 1450,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      }
++    },
++    "reference_account": "maia3-79m_1200",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "VioletMetro"
++  },
++  {
++    "id": "static-rain",
++    "name": "Static Rain",
++    "conditioning_self": 1200,
++    "conditioning_opponent": 1200,
++    "sampling_profile": "balanced",
++    "temperature_after_opening": 1.0,
++    "top_p_after_opening": 0.95,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 75,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1475,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 59
++      },
++      "rapid": {
++        "initial_rating": 1525,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      }
++    },
++    "reference_account": "maia3-79m_1200",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "StaticRain"
++  },
++  {
++    "id": "rooftop-echo",
++    "name": "Rooftop Echo",
++    "conditioning_self": 1200,
++    "conditioning_opponent": 1200,
++    "sampling_profile": "focused",
++    "temperature_after_opening": 0.5,
++    "top_p_after_opening": 0.9,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 250,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1650,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 59
++      },
++      "rapid": {
++        "initial_rating": 1700,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      }
++    },
++    "reference_account": "maia3-79m_1200",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "RooftopEcho"
++  },
++  {
++    "id": "carbon-kite",
++    "name": "Carbon Kite",
++    "conditioning_self": 1200,
++    "conditioning_opponent": 1200,
++    "sampling_profile": "argmax",
++    "temperature_after_opening": 0.0,
++    "top_p_after_opening": 1.0,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 300,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1700,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 59
++      },
++      "rapid": {
++        "initial_rating": 1750,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      }
++    },
++    "reference_account": "maia3-79m_1200",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "CarbonKite"
++  },
++  {
++    "id": "neon-rook",
++    "name": "Neon Rook",
++    "conditioning_self": 1400,
++    "conditioning_opponent": 1400,
++    "sampling_profile": "full",
++    "temperature_after_opening": 1.0,
++    "top_p_after_opening": 1.0,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": null
++    },
++    "assumed_sampling_strength_adjustment": 0,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1500,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 47
++      },
++      "rapid": {
++        "initial_rating": 1650,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      }
++    },
++    "reference_account": "maia3-79m_1400",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "NeonRook"
++  },
++  {
++    "id": "quiet-proxy",
++    "name": "Quiet Proxy",
++    "conditioning_self": 1400,
++    "conditioning_opponent": 1400,
++    "sampling_profile": "balanced",
++    "temperature_after_opening": 1.0,
++    "top_p_after_opening": 0.95,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 75,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1575,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 47
++      },
++      "rapid": {
++        "initial_rating": 1725,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      }
++    },
++    "reference_account": "maia3-79m_1400",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "QuietProxy"
++  },
++  {
++    "id": "night-courier",
++    "name": "Night Courier",
++    "conditioning_self": 1400,
++    "conditioning_opponent": 1400,
++    "sampling_profile": "focused",
++    "temperature_after_opening": 0.5,
++    "top_p_after_opening": 0.9,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 250,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1750,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 47
++      },
++      "rapid": {
++        "initial_rating": 1900,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      }
++    },
++    "reference_account": "maia3-79m_1400",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "NightCourier"
++  },
++  {
++    "id": "rust-halo",
++    "name": "Rust Halo",
++    "conditioning_self": 1400,
++    "conditioning_opponent": 1400,
++    "sampling_profile": "argmax",
++    "temperature_after_opening": 0.0,
++    "top_p_after_opening": 1.0,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 300,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1800,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 47
++      },
++      "rapid": {
++        "initial_rating": 1950,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      }
++    },
++    "reference_account": "maia3-79m_1400",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "RustHalo"
++  },
++  {
++    "id": "cipher-fox",
++    "name": "Cipher Fox",
++    "conditioning_self": 1600,
++    "conditioning_opponent": 1600,
++    "sampling_profile": "full",
++    "temperature_after_opening": 1.0,
++    "top_p_after_opening": 1.0,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": null
++    },
++    "assumed_sampling_strength_adjustment": 0,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1650,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      },
++      "rapid": {
++        "initial_rating": 1700,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 49
++      }
++    },
++    "reference_account": "maia3-79m_1600",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "CipherFox"
++  },
++  {
++    "id": "analog-ghost",
++    "name": "Analog Ghost",
++    "conditioning_self": 1600,
++    "conditioning_opponent": 1600,
++    "sampling_profile": "balanced",
++    "temperature_after_opening": 1.0,
++    "top_p_after_opening": 0.95,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 75,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1725,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      },
++      "rapid": {
++        "initial_rating": 1775,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 49
++      }
++    },
++    "reference_account": "maia3-79m_1600",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "AnalogGhost"
++  },
++  {
++    "id": "switchback",
++    "name": "Switchback",
++    "conditioning_self": 1600,
++    "conditioning_opponent": 1600,
++    "sampling_profile": "focused",
++    "temperature_after_opening": 0.5,
++    "top_p_after_opening": 0.9,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 250,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1900,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      },
++      "rapid": {
++        "initial_rating": 1950,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 49
++      }
++    },
++    "reference_account": "maia3-79m_1600",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "Switchback"
++  },
++  {
++    "id": "static-bishop",
++    "name": "Static Bishop",
++    "conditioning_self": 1600,
++    "conditioning_opponent": 1600,
++    "sampling_profile": "argmax",
++    "temperature_after_opening": 0.0,
++    "top_p_after_opening": 1.0,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 300,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1950,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 45
++      },
++      "rapid": {
++        "initial_rating": 2000,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 49
++      }
++    },
++    "reference_account": "maia3-79m_1600",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "StaticBishop"
++  },
++  {
++    "id": "ghost-relay",
++    "name": "Ghost Relay",
++    "conditioning_self": 1800,
++    "conditioning_opponent": 1800,
++    "sampling_profile": "full",
++    "temperature_after_opening": 1.0,
++    "top_p_after_opening": 1.0,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": null
++    },
++    "assumed_sampling_strength_adjustment": 0,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1800,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 46
++      },
++      "rapid": {
++        "initial_rating": 1700,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 105
++      }
++    },
++    "reference_account": "maia3-79m_1800",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "GhostRelay"
++  },
++  {
++    "id": "night-current",
++    "name": "Night Current",
++    "conditioning_self": 1800,
++    "conditioning_opponent": 1800,
++    "sampling_profile": "balanced",
++    "temperature_after_opening": 1.0,
++    "top_p_after_opening": 0.95,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 75,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 1875,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 46
++      },
++      "rapid": {
++        "initial_rating": 1775,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 105
++      }
++    },
++    "reference_account": "maia3-79m_1800",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "NightCurrent"
++  },
++  {
++    "id": "neon-knight",
++    "name": "Neon Knight",
++    "conditioning_self": 1800,
++    "conditioning_opponent": 1800,
++    "sampling_profile": "focused",
++    "temperature_after_opening": 0.5,
++    "top_p_after_opening": 0.9,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 250,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 2050,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 46
++      },
++      "rapid": {
++        "initial_rating": 1950,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 105
++      }
++    },
++    "reference_account": "maia3-79m_1800",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "NeonKnight"
++  },
++  {
++    "id": "ghost-gambit",
++    "name": "Ghost Gambit",
++    "conditioning_self": 1800,
++    "conditioning_opponent": 1800,
++    "sampling_profile": "argmax",
++    "temperature_after_opening": 0.0,
++    "top_p_after_opening": 1.0,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 300,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 2100,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 46
++      },
++      "rapid": {
++        "initial_rating": 2000,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 105
++      }
++    },
++    "reference_account": "maia3-79m_1800",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "GhostGambit"
++  },
++  {
++    "id": "chrome-castle",
++    "name": "Chrome Castle",
++    "conditioning_self": 2000,
++    "conditioning_opponent": 2000,
++    "sampling_profile": "full",
++    "temperature_after_opening": 1.0,
++    "top_p_after_opening": 1.0,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": null
++    },
++    "assumed_sampling_strength_adjustment": 0,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 2000,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 59
++      },
++      "rapid": {
++        "initial_rating": 2050,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 53
++      }
++    },
++    "reference_account": "maia3-79m_2000",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "ChromeCastle"
++  },
++  {
++    "id": "midnight-signal",
++    "name": "Midnight Signal",
++    "conditioning_self": 2000,
++    "conditioning_opponent": 2000,
++    "sampling_profile": "balanced",
++    "temperature_after_opening": 1.0,
++    "top_p_after_opening": 0.95,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 75,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 2075,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 59
++      },
++      "rapid": {
++        "initial_rating": 2125,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 53
++      }
++    },
++    "reference_account": "maia3-79m_2000",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "MidnightSignal"
++  },
++  {
++    "id": "circuit-saint",
++    "name": "Circuit Saint",
++    "conditioning_self": 2000,
++    "conditioning_opponent": 2000,
++    "sampling_profile": "focused",
++    "temperature_after_opening": 0.5,
++    "top_p_after_opening": 0.9,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 250,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 2250,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 59
++      },
++      "rapid": {
++        "initial_rating": 2300,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 53
++      }
++    },
++    "reference_account": "maia3-79m_2000",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "CircuitSaint"
++  },
++  {
++    "id": "null-echo",
++    "name": "Null Echo",
++    "conditioning_self": 2000,
++    "conditioning_opponent": 2000,
++    "sampling_profile": "argmax",
++    "temperature_after_opening": 0.0,
++    "top_p_after_opening": 1.0,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 300,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 2300,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 59
++      },
++      "rapid": {
++        "initial_rating": 2350,
++        "initial_rd": 200,
++        "status": "provisional_alpha",
++        "source_rd": 53
++      }
++    },
++    "reference_account": "maia3-79m_2000",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "NullEcho"
++  },
++  {
++    "id": "neon-drift",
++    "name": "Neon Drift",
++    "conditioning_self": 2200,
++    "conditioning_opponent": 2200,
++    "sampling_profile": "full",
++    "temperature_after_opening": 1.0,
++    "top_p_after_opening": 1.0,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": null
++    },
++    "assumed_sampling_strength_adjustment": 0,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 2250,
++        "initial_rd": 300,
++        "status": "experimental_unrated",
++        "source_rd": 119
++      },
++      "rapid": {
++        "initial_rating": 2100,
++        "initial_rd": 300,
++        "status": "experimental_unrated",
++        "source_rd": 158
++      }
++    },
++    "reference_account": "maia3-79m_2200",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "NeonDrift"
++  },
++  {
++    "id": "signal-weaver",
++    "name": "Signal Weaver",
++    "conditioning_self": 2200,
++    "conditioning_opponent": 2200,
++    "sampling_profile": "balanced",
++    "temperature_after_opening": 1.0,
++    "top_p_after_opening": 0.95,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 75,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 2325,
++        "initial_rd": 300,
++        "status": "experimental_unrated",
++        "source_rd": 119
++      },
++      "rapid": {
++        "initial_rating": 2175,
++        "initial_rd": 300,
++        "status": "experimental_unrated",
++        "source_rd": 158
++      }
++    },
++    "reference_account": "maia3-79m_2200",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "SignalWeaver"
++  },
++  {
++    "id": "quantum-shade",
++    "name": "Quantum Shade",
++    "conditioning_self": 2200,
++    "conditioning_opponent": 2200,
++    "sampling_profile": "focused",
++    "temperature_after_opening": 0.5,
++    "top_p_after_opening": 0.9,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 250,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 2500,
++        "initial_rd": 300,
++        "status": "experimental_unrated",
++        "source_rd": 119
++      },
++      "rapid": {
++        "initial_rating": 2350,
++        "initial_rd": 300,
++        "status": "experimental_unrated",
++        "source_rd": 158
++      }
++    },
++    "reference_account": "maia3-79m_2200",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "QuantumShade"
++  },
++  {
++    "id": "blackout",
++    "name": "Blackout",
++    "conditioning_self": 2200,
++    "conditioning_opponent": 2200,
++    "sampling_profile": "argmax",
++    "temperature_after_opening": 0.0,
++    "top_p_after_opening": 1.0,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 300,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 2550,
++        "initial_rd": 300,
++        "status": "experimental_unrated",
++        "source_rd": 119
++      },
++      "rapid": {
++        "initial_rating": 2400,
++        "initial_rd": 300,
++        "status": "experimental_unrated",
++        "source_rd": 158
++      }
++    },
++    "reference_account": "maia3-79m_2200",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "Blackout"
++  },
++  {
++    "id": "indigo-pulse",
++    "name": "Indigo Pulse",
++    "conditioning_self": 2400,
++    "conditioning_opponent": 2400,
++    "sampling_profile": "full",
++    "temperature_after_opening": 1.0,
++    "top_p_after_opening": 1.0,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": null
++    },
++    "assumed_sampling_strength_adjustment": 0,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 2150,
++        "initial_rd": 300,
++        "status": "experimental_unrated",
++        "source_rd": 130
++      },
++      "rapid": {
++        "initial_rating": 2350,
++        "initial_rd": 458,
++        "status": "experimental_unrated",
++        "source_rd": 458
++      }
++    },
++    "reference_account": "maia3-79m_2400",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "IndigoPulse"
++  },
++  {
++    "id": "holo-raven",
++    "name": "Holo Raven",
++    "conditioning_self": 2400,
++    "conditioning_opponent": 2400,
++    "sampling_profile": "balanced",
++    "temperature_after_opening": 1.0,
++    "top_p_after_opening": 0.95,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 75,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 2225,
++        "initial_rd": 300,
++        "status": "experimental_unrated",
++        "source_rd": 130
++      },
++      "rapid": {
++        "initial_rating": 2425,
++        "initial_rd": 458,
++        "status": "experimental_unrated",
++        "source_rd": 458
++      }
++    },
++    "reference_account": "maia3-79m_2400",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "HoloRaven"
++  },
++  {
++    "id": "chrome-oracle",
++    "name": "Chrome Oracle",
++    "conditioning_self": 2400,
++    "conditioning_opponent": 2400,
++    "sampling_profile": "focused",
++    "temperature_after_opening": 0.5,
++    "top_p_after_opening": 0.9,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 250,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 2400,
++        "initial_rd": 300,
++        "status": "experimental_unrated",
++        "source_rd": 130
++      },
++      "rapid": {
++        "initial_rating": 2600,
++        "initial_rd": 458,
++        "status": "experimental_unrated",
++        "source_rd": 458
++      }
++    },
++    "reference_account": "maia3-79m_2400",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "ChromeOracle"
++  },
++  {
++    "id": "zero-day",
++    "name": "Zero Day",
++    "conditioning_self": 2400,
++    "conditioning_opponent": 2400,
++    "sampling_profile": "argmax",
++    "temperature_after_opening": 0.0,
++    "top_p_after_opening": 1.0,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 300,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 2450,
++        "initial_rd": 300,
++        "status": "experimental_unrated",
++        "source_rd": 130
++      },
++      "rapid": {
++        "initial_rating": 2650,
++        "initial_rd": 458,
++        "status": "experimental_unrated",
++        "source_rd": 458
++      }
++    },
++    "reference_account": "maia3-79m_2400",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "ZeroDay"
++  },
++  {
++    "id": "ultraviolet",
++    "name": "Ultraviolet",
++    "conditioning_self": 2600,
++    "conditioning_opponent": 2600,
++    "sampling_profile": "full",
++    "temperature_after_opening": 1.0,
++    "top_p_after_opening": 1.0,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": null
++    },
++    "assumed_sampling_strength_adjustment": 0,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 2500,
++        "initial_rd": 300,
++        "status": "experimental_unrated",
++        "source_rd": 143
++      },
++      "rapid": {
++        "initial_rating": 2250,
++        "initial_rd": 300,
++        "status": "experimental_unrated",
++        "source_rd": 204
++      }
++    },
++    "reference_account": "maia3-79m_2600",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "Ultraviolet"
++  },
++  {
++    "id": "prism-wraith",
++    "name": "Prism Wraith",
++    "conditioning_self": 2600,
++    "conditioning_opponent": 2600,
++    "sampling_profile": "balanced",
++    "temperature_after_opening": 1.0,
++    "top_p_after_opening": 0.95,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 75,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 2575,
++        "initial_rd": 300,
++        "status": "experimental_unrated",
++        "source_rd": 143
++      },
++      "rapid": {
++        "initial_rating": 2325,
++        "initial_rd": 300,
++        "status": "experimental_unrated",
++        "source_rd": 204
++      }
++    },
++    "reference_account": "maia3-79m_2600",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "PrismWraith"
++  },
++  {
++    "id": "event-horizon",
++    "name": "Event Horizon",
++    "conditioning_self": 2600,
++    "conditioning_opponent": 2600,
++    "sampling_profile": "focused",
++    "temperature_after_opening": 0.5,
++    "top_p_after_opening": 0.9,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 250,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 2750,
++        "initial_rd": 300,
++        "status": "experimental_unrated",
++        "source_rd": 143
++      },
++      "rapid": {
++        "initial_rating": 2500,
++        "initial_rd": 300,
++        "status": "experimental_unrated",
++        "source_rd": 204
++      }
++    },
++    "reference_account": "maia3-79m_2600",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "EventHorizon"
++  },
++  {
++    "id": "kernel-ghost",
++    "name": "Kernel Ghost",
++    "conditioning_self": 2600,
++    "conditioning_opponent": 2600,
++    "sampling_profile": "argmax",
++    "temperature_after_opening": 0.0,
++    "top_p_after_opening": 1.0,
++    "opening": {
++      "temperature": 1.0,
++      "top_p": 1.0,
++      "full_moves": 5
++    },
++    "assumed_sampling_strength_adjustment": 300,
++    "history_policy": {
++      "selection": "independent fair draw once before each game",
++      "probability_on": 0.5,
++      "freeze_for_game": true,
++      "on": "current board plus up to seven previous positions",
++      "off": "current board repeated in eight slots"
++    },
++    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
++    "ratings": {
++      "blitz": {
++        "initial_rating": 2800,
++        "initial_rd": 300,
++        "status": "experimental_unrated",
++        "source_rd": 143
++      },
++      "rapid": {
++        "initial_rating": 2550,
++        "initial_rd": 300,
++        "status": "experimental_unrated",
++        "source_rd": 204
++      }
++    },
++    "reference_account": "maia3-79m_2600",
++    "baseline_assumption": "reference is comparable to full sampling; unverified",
++    "configuration_status": "private-unrated-alpha-v1",
++    "username": "KernelGhost"
++  }
++]
+diff --git a/public/nosweat/club.js b/public/nosweat/club.js
+new file mode 100644
+index 0000000..1e0ebae
+--- /dev/null
++++ b/public/nosweat/club.js
+@@ -0,0 +1,63 @@
++'use strict';
++const $ = id => document.getElementById(id);
++let bots = [];
++let signedIn = false;
++async function request(path, body, headers = {}) {
++  const response = await fetch(path, { method: body ? 'POST' : 'GET', credentials: 'same-origin',
++    headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...headers },
++    body: body ? JSON.stringify(body) : undefined });
++  const result = await response.json();
++  if (!response.ok) throw Error(result.error || 'The club is temporarily unavailable.');
++  return result;
++}
++function profile() {
++  const bot = bots.find(b => b.id === $('bot').value);
++  if (!bot) return;
++  const prior = bot.ratings[$('control').value];
++  $('profile').textContent = `${bot.name} · estimated ${prior.initial_rating}? (RD ${prior.initial_rd}). ` +
++    `Maia3 79M · both conditioning inputs ${bot.conditioning_self} · ${bot.sampling_profile} sampling` +
++    (bot.opening.full_moves ? ' after five full-sampling opening moves' : '') +
++    '. History is chosen 50/50 once per game. Variable human timing. ' +
++    (bot.conditioning_self >= 2200 ? 'Experimental, unvalidated policy.' : 'Provisional, unvalidated policy.');
++}
++async function session() {
++  const { user } = await request('/club/me');
++  signedIn = !!user;
++  $('signin').hidden = signedIn; $('account').hidden = !signedIn; $('play').disabled = !signedIn;
++  if (user) { $('welcome').textContent = 'Welcome, ' + user.username; $('history').href = '/@/' + encodeURIComponent(user.username); }
++}
++$('login').addEventListener('click', async () => {
++  $('status').textContent = '';
++  if (!window.nostr) { $('status').textContent = 'Open this page in a desktop browser with a NIP-07 Nostr signer to sign in.'; return; }
++  $('login').disabled = true;
++  try {
++    const pubkey = await window.nostr.getPublicKey();
++    const challenge = await request('/club/challenge', { pubkey });
++    const body = { challenge: challenge.challenge };
++    if ($('username').value.trim()) body.username = $('username').value.trim();
++    const raw = JSON.stringify(body);
++    const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
++    const payload = [...new Uint8Array(hash)].map(byte => byte.toString(16).padStart(2, '0')).join('');
++    const event = await window.nostr.signEvent({ kind: 27235, created_at: Math.floor(Date.now() / 1000), content: '',
++      tags: [['u', challenge.url], ['method', 'POST'], ['challenge', challenge.challenge], ['payload', payload]] });
++    await request('/club/login', body, { Authorization: 'Nostr ' + btoa(JSON.stringify(event)) });
++    await session(); $('status').textContent = 'Signed in. Choose an opponent to play.';
++  } catch (error) { $('status').textContent = error.message; }
++  finally { $('login').disabled = false; }
++});
++$('play').addEventListener('click', async () => {
++  if (!signedIn) return;
++  $('play').disabled = true; $('status').textContent = 'Finding your seat…';
++  try {
++    const game = await request('/club/play', { bot: $('bot').value, control: $('control').value, color: $('color').value });
++    location.assign(game.url);
++  } catch (error) { $('status').textContent = error.message; $('play').disabled = false; }
++});
++$('bot').addEventListener('change', profile); $('control').addEventListener('change', profile);
++(async () => {
++  try {
++    bots = await request('/club/roster');
++    for (const bot of bots) { const option = document.createElement('option'); option.value = bot.id; option.textContent = bot.name; $('bot').append(option); }
++    profile(); await session();
++  } catch (error) { $('status').textContent = error.message; }
++})();
+diff --git a/public/nosweat/index.html b/public/nosweat/index.html
+new file mode 100644
+index 0000000..3a4a4c7
+--- /dev/null
++++ b/public/nosweat/index.html
+@@ -0,0 +1,24 @@
++<!doctype html>
++<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
++<title>No Sweat Chess · Alpha</title><link rel="stylesheet" href="/assets/nosweat/club.css">
++<script defer src="/assets/nosweat/club.js"></script></head>
++<body><main>
++<header><a class="brand" href="/club">No Sweat Chess</a><span>Unrated alpha</span></header>
++<h1>Stay human. Play bots.</h1>
++<p class="lead">Choose a Maia opponent. Play on the Lichess board. Review with browser Stockfish.</p>
++<p class="notice">All games are unrated. Opponent ratings are provisional estimates, not measured strength.</p>
++<section id="signin"><h2>Enter the club</h2><p>Use your Nostr browser signer. Your private key stays with your signer; signing in does not publish anything.</p>
++<p class="small">We store your public key, club handle, games and session security information. Games are not published to Nostr relays. Public network connections pass through Cloudflare.</p>
++<label>New username <span>(optional; first sign-in only)</span><input id="username" maxlength="20" autocomplete="off" placeholder="Choose a club handle"></label>
++<button id="login">Sign in with Nostr</button></section>
++<section id="account" hidden><h2 id="welcome"></h2><p>Choose an opponent or return to your saved games.</p>
++<nav><a id="history" href="/club">Your games</a><a href="/analysis">Analysis board</a>
++<form action="/logout" method="post"><button class="secondary" type="submit">Sign out</button></form></nav></section>
++<section><h2>Find a familiar opponent</h2>
++<label>Opponent<select id="bot"></select></label><p id="profile" class="profile"></p>
++<div class="choices"><label>Clock<select id="control"><option value="blitz">5 + 3 · Blitz</option><option value="rapid">10 + 5 · Rapid</option></select></label>
++<label>Your pieces<select id="color"><option value="random">Random</option><option value="white">White</option><option value="black">Black</option></select></label></div>
++<button id="play" disabled>Play Maia</button><p class="small">One game per account. The alpha admits two games at a time. Select Play Maia again to return to an unfinished game.</p></section>
++<p id="status" role="status" aria-live="polite"></p>
++<footer>Desktop browsers · Human versus Maia only · <a href="/analysis">Open analysis</a> · <a href="/source.tar.gz">Source &amp; licenses</a></footer>
++</main></body></html>
+diff --git a/public/nosweat/club.css b/public/nosweat/club.css
+new file mode 100644
+index 0000000..bba055e
+--- /dev/null
++++ b/public/nosweat/club.css
+@@ -0,0 +1 @@
++:root{color-scheme:dark;font:16px/1.55 system-ui,sans-serif;background:#171c1b;color:#e7e9df}*{box-sizing:border-box}body{margin:0}main{max-width:820px;margin:38px auto;padding:0 30px 30px}header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #46534c;padding-bottom:18px}header span,.small,footer{color:#b0bbb1;font-size:13px}.brand{font-size:24px;font-weight:750;color:#d6e9c2;text-decoration:none}h1{font-size:46px;letter-spacing:-1.8px;line-height:1.15;margin-bottom:14px}h2{font-size:21px;margin:0 0 12px}.lead{color:#c5cec2}.notice{padding:12px 16px;background:#333525;border-left:3px solid #b5ae6f}section{padding:24px;margin:20px 0;background:#242c27;border:1px solid #46534c;border-radius:8px}label{display:block;font-size:14px;margin-bottom:16px}label span{color:#aeb8ac}input,select{display:block;width:100%;font:inherit;color:#f0f3e8;background:#171e19;border:1px solid #65705f;border-radius:4px;padding:10px;margin-top:5px}input{max-width:420px}button{font:inherit;font-weight:650;border:0;border-radius:4px;padding:12px 22px;cursor:pointer;color:#18231b;background:#c6dfa9}button:disabled{opacity:.5;cursor:default}.secondary{font-size:14px;padding:6px 12px;background:#475447;color:#fff}.choices{display:grid;grid-template-columns:1fr 1fr;gap:18px}.profile{min-height:72px;color:#bfcbb8;font-size:14px}nav{display:flex;align-items:center;gap:24px}a{color:#c7dfae}form{margin:0}#status{min-height:28px;color:#e1c47a}footer{border-top:1px solid #46534c;padding-top:16px}[hidden]{display:none!important}@media(max-width:800px){main{min-width:760px;margin:20px}header span{font-size:12px}}

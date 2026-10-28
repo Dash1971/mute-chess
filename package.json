@@ -1,0 +1,42 @@
+{
+  "name": "nosweatchess",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "tsx src/main.ts",
+    "preview": "node scripts/preview.mjs",
+    "build": "tsc && tsc -p tsconfig.web.json && node scripts/build-web.mjs",
+    "start": "node dist/main.js",
+    "check": "tsc --noEmit && tsc -p tsconfig.web.json",
+    "test": "MAIA_MODEL=test-only tsx --test test/*.test.ts",
+    "smoke": "tsx test/smoke.ts"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11",
+    "@fastify/rate-limit": "^10",
+    "@fastify/static": "^10.1.7",
+    "@fastify/websocket": "^11",
+    "@lichess-org/chessground": "10.5.0",
+    "chessops": "0.15.1",
+    "fastify": "^5",
+    "nostr-tools": "^2",
+    "pg": "^8",
+    "zod": "^4"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "@types/pg": "^8",
+    "@types/ws": "^8",
+    "esbuild": "^0.28",
+    "prettier": "^3.9.10",
+    "tsx": "^4",
+    "typescript": "^6",
+    "ws": "^8"
+  },
+  "packageManager": "pnpm@11.25.0"
+}

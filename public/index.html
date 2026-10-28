@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#ccc9bc" />
+    <meta
+      name="description"
+      content="The No Sweat Chess Club. Est. 2097. A desktop refuge for imperfect chess against human-like Maia3 bots. Stay human. Play bots."
+    />
+    <title>nosweatchess — The No Sweat Chess Club</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/chessground.base.css" />
+    <link rel="stylesheet" href="/chessground.brown.css" />
+    <link rel="stylesheet" href="/chessground.cburnett.css" />
+    <link rel="stylesheet" href="/style.css" />
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#chess-room">Skip to chess room</a>
+    <div class="desktop-notice" role="note">
+      <strong>Best enjoyed at a desk.</strong>nosweatchess is built for desktop
+      browsers. Please use a window at least 1160 pixels wide to enter the chess
+      room.
+    </div>
+    <div class="club-site">
+      <div class="browser-strip">
+        <span
+          ><span class="tiny-board" aria-hidden="true">▦</span> The No Sweat
+          Chess Club</span
+        ><span
+          >Independent since 2097 <span aria-hidden="true">▪</span> Desktop
+          edition</span
+        >
+      </div>
+      <header class="masthead">
+        <a class="brand" href="/" aria-label="nosweatchess home"
+          ><span class="brand-piece" aria-hidden="true">♞</span
+          ><span
+            ><strong>nosweatchess</strong
+            ><span class="brand-subtitle"
+              >THE NO SWEAT CHESS CLUB · EST. 2097</span
+            ></span
+          ></a
+        >
+        <div class="masthead-note">
+          <strong>Stay human. Play bots.</strong
+          ><span>A small refuge for a very old game.</span>
+        </div>
+      </header>
+      <nav class="menu-bar" aria-label="Main navigation">
+        <div>
+          <a class="current" href="#chess-room" aria-current="page"
+            >Chess room</a
+          ><a href="#noticeboard">Noticeboard</a
+          ><a href="#club-story">About the club</a
+          ><a href="https://github.com/Dash1971/club-maia"
+            >Source &amp; licenses ↗</a
+          >
+        </div>
+        <span class="menu-status"
+          ><span class="status-dot" aria-hidden="true"></span> PRIVATE
+          ALPHA</span
+        >
+      </nav>
+      <main id="chess-room">
+        <div class="welcome">
+          <div>
+            <h1>There’s a place for you at the board.</h1>
+            <p>
+              No perfect moves required. Just a little time and your own mind.
+            </p>
+          </div>
+          <div class="welcome-label">
+            HUMAN SPIRIT<br /><strong>machine opponents</strong>
+          </div>
+        </div>
+        <div class="chess-layout">
+          <aside class="left-column" aria-label="Club information">
+            <section class="window" id="noticeboard">
+              <h2 class="title-bar">
+                <span aria-hidden="true">▤</span> Club noticeboard
+              </h2>
+              <div class="window-body noticeboard">
+                <p class="pinned-label">PLEASE READ</p>
+                <h3>Leave the future<br />at the door.</h3>
+                <p>
+                  The world has enough perfect chess. Here, a missed mate is
+                  just something to talk about.
+                </p>
+                <hr />
+                <p class="small-heading">A NOTE FROM THE CLUB</p>
+                <p>
+                  All opponents are openly identified bots. No mystery engines.
+                  No pretending.
+                </p>
+                <p class="handwritten">Make a tea.<br />Pull up a chair.</p>
+                <div class="notice-pin" aria-hidden="true">✳</div>
+              </div>
+            </section>
+            <section class="window club-rules">
+              <h2 class="title-bar">House rules</h2>
+              <div class="window-body">
+                <ol>
+                  <li>Bring your own brain.</li>
+                  <li>Let the bots be bots.</li>
+                  <li>It’s only a game.</li>
+                </ol>
+                <a href="#club-story">Why a club for bots?</a>
+              </div>
+            </section>
+            <div class="desktop-badge">
+              <span aria-hidden="true">▣</span
+              ><span>BEST VIEWED<br /><strong>at your own pace.</strong></span>
+            </div>
+          </aside>
+          <section class="window game-window" aria-labelledby="board-title">
+            <h2 class="title-bar">
+              <span id="board-title">Chess room / board 01</span
+              ><span class="window-decoration" aria-hidden="true">▰</span>
+            </h2>
+            <div class="game-content">
+              <div class="player opponent-row">
+                <span class="player-avatar" aria-hidden="true">♞</span>
+                <div class="player-details">
+                  <strong id="opponent">Cloud Knight</strong
+                  ><span id="opponent-detail">MAIA3 BOT · UNRATED</span>
+                </div>
+                <span id="top-clock" class="clock">5:00</span>
+              </div>
+              <div class="board-border">
+                <div id="board" class="cg-wrap" aria-label="Chessboard"></div>
+              </div>
+              <div class="player human-row">
+                <span class="player-avatar human-avatar" aria-hidden="true"
+                  >♙</span
+                >
+                <div class="player-details">
+                  <strong id="player">You, just as you are.</strong
+                  ><span>HUMAN MEMBER</span>
+                </div>
+                <span id="bottom-clock" class="clock">5:00</span>
+              </div>
+              <div class="board-status">
+                <span class="status-dot" aria-hidden="true"></span
+                ><span id="connection">Sign in to take your seat</span
+                ><button
+                  id="flip-board"
+                  class="small-button"
+                  type="button"
+                  aria-label="Flip board"
+                >
+                  Flip board ⇅
+                </button>
+              </div>
+              <div class="actions">
+                <button id="resign" disabled>Resign</button
+                ><button id="draw" disabled>Claim draw</button
+                ><button id="rematch" disabled>Rematch</button
+                ><a id="pgn" hidden>Download PGN</a>
+              </div>
+            </div>
+          </section>
+          <aside class="right-column" aria-label="Game controls">
+            <section class="window">
+              <h2 class="title-bar">
+                <span aria-hidden="true">♟</span> Take a seat
+              </h2>
+              <div class="window-body game-setup">
+                <p class="setup-intro">
+                  A familiar game.<br />A little less pressure.
+                </p>
+                <label for="bot">Your opponent</label
+                ><select id="bot">
+                  <option value="quiet-knight">Quiet Knight</option>
+                  <option value="amber-pawn">Amber Pawn</option>
+                  <option value="cloud-knight" selected>
+                    Cloud Knight
+                  </option></select
+                ><label for="control">Time to think</label
+                ><select id="control">
+                  <option value="blitz">5 + 3 · Blitz</option>
+                  <option value="rapid">10 + 5 · Rapid</option></select
+                ><button id="play" class="primary" disabled>
+                  Play a game <span aria-hidden="true">→</span>
+                </button>
+                <div class="account-box">
+                  <span id="account">You’re visiting the club.</span
+                  ><button id="login">Sign in with Nostr</button
+                  ><button id="logout" hidden>Sign out</button>
+                </div>
+                <p id="notice" class="notice" role="status">
+                  Private, unrated alpha. A Nostr browser signer is required to
+                  play. Nothing is published to relays.
+                </p>
+              </div>
+            </section>
+            <section class="window moves-window">
+              <h2 class="title-bar">The moves so far</h2>
+              <div id="moves" class="moves">
+                A blank scoresheet.<br />Every game starts somewhere.
+              </div>
+            </section>
+            <section class="window history-window">
+              <h2 class="title-bar">Your recent games</h2>
+              <div id="history" class="history">
+                Sign in to open your game archive.
+              </div>
+            </section>
+          </aside>
+        </div>
+        <section
+          class="club-story"
+          id="club-story"
+          aria-labelledby="story-title"
+        >
+          <div class="story-label">
+            <span aria-hidden="true">✉</span
+            ><span>A LETTER FROM<br />THE BEFORE TIMES</span>
+          </div>
+          <div class="story-copy">
+            <h2 id="story-title">It’s 2097. We went back a little further.</h2>
+            <p>
+              Neural implants put Stockfish 99 and 4750 Elo in every head. A few
+              nonchippers missed the days when a game could surprise you. So
+              they formed the No Sweat Chess Club: a refuge of old computers,
+              unhurried evenings, and bots trained on human games from 2023.
+            </p>
+            <p class="story-ending">
+              To keep human chess alive, we stopped playing humans.
+            </p>
+            <details>
+              <summary>A note about the fiction and the real project</summary>
+              <p>
+                2097, Stockfish 99, the nonchippers, and the 2023 archive are
+                our fictional setting. The real application uses Maia3 bots
+                trained to predict human moves; this alpha does not claim an
+                exclusively 2023 training set or calibrated ratings. It is an
+                independent, noncommercial, open-source project.
+              </p>
+            </details>
+          </div>
+        </section>
+      </main>
+      <footer>
+        <span>nosweatchess · A little club at the end of the future.</span
+        ><span
+          ><a href="https://github.com/Dash1971/club-maia"
+            >Open source / AGPL-3.0</a
+          ><span class="footer-divider">|</span
+          ><a href="/source.tar.gz">Source &amp; licenses</a></span
+        >
+      </footer>
+    </div>
+    <dialog id="promotion">
+      <form method="dialog">
+        <p>Promote to</p>
+        <button value="q">Queen</button><button value="r">Rook</button
+        ><button value="b">Bishop</button><button value="n">Knight</button>
+      </form>
+    </dialog>
+  </body>
+</html>

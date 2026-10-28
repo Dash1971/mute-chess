@@ -1,0 +1,91 @@
+import assert from 'node:assert/strict';
+import { randomBytes } from 'node:crypto';
+import { setTimeout as delay } from 'node:timers/promises';
+import { generateSecretKey, getPublicKey, finalizeEvent } from 'nostr-tools/pure';
+import WebSocket from 'ws';
+import { digest } from '../nostr-auth.mjs';
+import http from 'node:http';
+import https from 'node:https';
+
+const origin = 'https://nosweatchess.org';
+const transport = process.env.SMOKE_TRANSPORT ?? origin;
+const run = randomBytes(3).toString('hex');
+let cookie, game, socket;
+async function call(path, body, authorization, expected = 200) {
+  const { status, headers, text } = await new Promise((resolve, reject) => {
+    const request = (transport.startsWith('https:') ? https : http).request(transport + path, { method: body !== undefined ? 'POST' : 'GET',
+    headers: { Accept: path.startsWith('/game/export/') ? 'application/x-chess-pgn' : 'application/json',
+      'Content-Type': 'application/json', Host: 'nosweatchess.org', Origin: origin,
+      ...(cookie ? { Cookie: cookie } : {}), ...(authorization ? { Authorization: authorization } : {}) },
+    timeout: 15000 }, response => {
+      let text = ''; response.setEncoding('utf8');
+      response.on('data', chunk => { text += chunk; });
+      response.on('error', reject);
+      response.on('end', () => resolve({ status: response.statusCode, headers: response.headers, text }));
+    });
+    request.on('error', reject);
+    request.on('timeout', () => request.destroy(Error('Request timeout')));
+    request.end(body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body));
+  });
+  assert.equal(status, expected, `${path}: ${status} ${text.slice(0, 200)}`);
+  let data; try { data = JSON.parse(text); } catch { data = text; }
+  return { response: { headers: { get: name => headers[name.toLowerCase()]?.toString() } }, data };
+}
+async function waitFor(predicate, label) {
+  for (let i = 0; i < 70; i++) { const result = await predicate(); if (result) return result; await delay(200); }
+  throw Error('Timed out: ' + label);
+}
+async function round() { return (await call('/game/' + game.url.slice(1))).data; }
+async function connect() {
+  const data = await round();
+  const base = transport.replace(/^http/, 'ws');
+  socket = new WebSocket(`${base}/play/${game.url.slice(1)}/v5?sri=public${run}&v=${data.player.version}`, {
+    headers: { Host: 'nosweatchess.org', Origin: origin, Cookie: cookie },
+  });
+  const events = [];
+  socket.on('message', raw => { try { events.push(JSON.parse(String(raw))); } catch {} });
+  await new Promise((resolve, reject) => { socket.once('open', resolve); socket.once('error', reject); });
+  return events;
+}
+try {
+  await call('/club/internal/games', undefined, undefined, 404);
+  const roster = (await call('/club/roster')).data;
+  assert.equal(roster.length, 44);
+  const key = generateSecretKey(), pubkey = getPublicKey(key);
+  const challenge = (await call('/club/challenge', { pubkey })).data.challenge;
+  const body = JSON.stringify({ challenge, username: 'AlphaCheck' + run });
+  const event = finalizeEvent({ kind: 27235, created_at: Math.floor(Date.now() / 1000), content: '', tags: [
+    ['u', origin + '/club/login'], ['method', 'POST'], ['challenge', challenge], ['payload', digest(body)],
+  ] }, key);
+  const authorization = 'Nostr ' + Buffer.from(JSON.stringify(event)).toString('base64');
+  const login = await call('/club/login', body, authorization);
+  const session = login.response.headers.get('set-cookie');
+  assert.ok(/httponly/i.test(session) && /secure/i.test(session) && /samesite=lax/i.test(session));
+  cookie = session.split(';')[0];
+  assert.ok(cookie.startsWith('nosweat_session='));
+  await call('/club/login', body, authorization, 401);
+  assert.equal((await call('/club/me')).data.user.username, login.data.username);
+  game = (await call('/club/play', { bot: 'pixel-moth', control: 'blitz', color: 'white' })).data;
+  assert.equal(game.rated, false);
+  const events = await connect();
+  socket.send(JSON.stringify({ t: 'move', d: { u: 'e2e4', a: 1 } }));
+  await waitFor(async () => (await round()).steps.at(-1).ply >= 2, 'first Maia reply');
+  assert.ok(events.some(e => e.t === 'move'));
+  socket.close();
+  await connect();
+  socket.send(JSON.stringify({ t: 'move', d: { u: 'g1f3', a: 2 } }));
+  await waitFor(async () => (await round()).steps.at(-1).ply >= 4, 'reply after reconnect');
+  socket.send(JSON.stringify({ t: 'resign' }));
+  await waitFor(async () => (await round()).game.status.id >= 30, 'native resignation');
+  const pgn = (await call('/game/export/' + game.id)).data;
+  assert.match(pgn, /1\. e4/);
+  await call('/logout', {});
+  assert.equal((await call('/club/me')).data.user, null);
+  console.log(JSON.stringify({ ok: true, transport, run, game: game.id, checks: [
+    '44 opponents', 'private routes blocked', 'signed Nostr login and replay rejection',
+    'Secure HttpOnly session', 'Maia replies through native WebSocket', 'reconnect', 'resignation', 'PGN', 'logout',
+  ] }, null, 2));
+} finally {
+  if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ t: 'resign' }));
+  socket?.close();
+}

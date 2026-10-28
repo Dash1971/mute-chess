@@ -8,3 +8,14 @@ node_modules/
 __pycache__/
 dist/
 coverage/
+public/app.js
+public/chessground.*.css
+source.tar.gz
+*.onnx
+
+public/alpha.js
+
+# Private operational material must never be published.
+.private-secrets/
+.private-backups/
+*.enc

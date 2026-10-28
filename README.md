@@ -2,6 +2,8 @@
 
 **Stay human. Play bots.**
 
+[Play the unrated alpha at nosweatchess.org](https://nosweatchess.org/club).
+
 The No Sweat Chess Club is an independent, noncommercial, open-source chess
 project licensed under GNU AGPL v3.0. This project was previously called Club
 Maia. The GitHub repository is now [`Dash1971/no-sweat-chess`](https://github.com/Dash1971/no-sweat-chess).
@@ -29,26 +31,33 @@ En Croissant-derived Mobile Maia move classification, combined Stockfish/Maia
 candidate arrows, and the maiachess.com-style candidate and Moves by rating
 explorers. See [the confirmed foundation and source map](docs/chess-foundation.md).
 
-The existing custom Node server is an infrastructure prototype. A complete
-Lila-based replacement has not yet been built or deployed.
+The native Lila application now integrates Maia3 opponents and Nostr identity.
+See [development setup](deploy/lila/README.md) and [public deployment](deploy/public/README.md).
+The earlier Node/Fastify prototype is stopped and disabled.
 
 ## Implementation status — 28 October 2026
 
-A private infrastructure prototype is running with Maia3 inference, signed Nostr
-login, timed unrated games, reconnection, history and PGN export. It uses a custom
-Node/Fastify/PostgreSQL service. This is prototype evidence, not the final Lichess
-chess application. See [the historical prototype architecture](docs/architecture.md).
+The alpha supports the confirmed 44 opponents, 5+3 and 10+5, either color,
+native Lichess moves/clocks/reconnect/resignation, game history, PGN and analysis.
+NIP-07 signs a short-lived, one-use NIP-98 login challenge; the server verifies
+signatures and issues native HttpOnly sessions. Private keys stay in the signer;
+no relay publication is required. NIP-46 and key import are not implemented.
 
-A pinned Lila source checkout has been prepared for the replacement. Its full
-build, private runtime, Maia/Nostr integration, ratings and augmented analysis
-remain implementation work. The earlier ten-game benchmark establishes Maia
-inference performance, not the capacity of the complete Lila stack.
+All games are unrated. Bot displayed priors remain estimates; experimental
+conditioning is explicitly labelled. Admission allows one active game per human
+and at most two games overall. The complete stack has not been benchmarked for
+ten concurrent games. Policy/model/history metadata are frozen per game; worker
+failure voids affected active games. Server inference consumes the native clock.
 
-This repository currently publishes the product plan, design proposal, confirmed
-architecture and [source inventory](docs/chess-sources.json). Prototype and local
-mockup code are still being prepared separately; this documentation update does
-not publish or deploy them. See [the design proposal](docs/design.md) and its
-clearly labelled mockup.
+Automated checks cover signed login/replay protection, stable identity, sessions,
+the roster, admission, both colors and controls, Maia replies, native WebSocket
+moves, reconnect, stale retry rejection, resignation, PGN and worker crash
+recovery. Seven adapter tests, three encoder tests and 83 selected upstream UI
+tests pass. This records automated verification, not human manual acceptance.
+
+The full retro wrapper, En Croissant/Mobile Maia classification, simultaneous
+Stockfish/Maia candidate analysis, Moves by rating and rating calibration remain
+work. Browser Stockfish and native Lichess analysis are available now.
 
 The remaining sections describe the intended product and operational plan.
 
