@@ -81,3 +81,9 @@ Pin sources, preserve licenses/attribution and keep our changes clearly separate
 ## Stacked premoves
 
 Add Mobile Maia-style multiple queued premoves as an explicit gameplay enhancement to native Lichess round controls. Port the behavior with source provenance rather than adding another rules engine. Each queued move must be validated against the authoritative position when its turn arrives. Clear the remaining queue on an illegal move, server resync, takeback, terminal game or loss of ownership; never replay queued commands after reconnect. Cover castling, en passant, promotion, branching captures, cancellation and fast bot replies. Preserve the native single-premove option and input feedback. This is enhancement scope, not an assertion that the feature is already shipped.
+
+## 29 October implementation
+
+The native extension implements projected multiple premoves with Mobile Maia's last-use square tints and native promotion picker. The owner explicitly requires no extra enabled label, queue count, move strip or Clear button. Preserve desktop Escape/right-click cancellation and the single/multiple preference in the native board menu. Authoritative server destinations validate execution, including the acknowledgement gap after a human move. No unsent queue is replayed after socket closure/resync.
+
+The selected-move analysis increment includes local Maia3 5M/79M, raw legal policy, same-move SF candidate comparison, preview/return in the native tree, conditioning/history controls and on-demand rating samples. EC/Mobile Maia selected-move classification uses the independent scoring/material references and whole-window corroboration. Full-game batch review and persisted computed annotations remain later increments.

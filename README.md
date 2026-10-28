@@ -58,13 +58,13 @@ failure voids affected active games. Server inference consumes the native clock.
 Automated checks cover signed login/replay protection, stable identity, sessions,
 the roster, admission, both colors and controls, Maia replies, native WebSocket
 moves, reconnect, stale retry rejection, resignation, PGN and worker crash
-recovery. Nine adapter/storage tests and all 251 native frontend tests pass; the
+recovery. Nine adapter/storage tests and all 266 native frontend tests pass; the
 three model/encoder checks and private/public game-flow checks are recorded in
 the deployment notes. This records automated verification, not human manual acceptance.
 
-The full retro wrapper, En Croissant/Mobile Maia classification, simultaneous
-Stockfish/Maia candidate analysis, Moves by rating, stacked premoves and rating
-calibration remain work. Browser Stockfish and native Lichess analysis are available now.
+Native rounds now include Mobile Maia-style projected multiple premoves, with board-square highlights and native cancellation/promotion. No extra premove labels, count or Clear controls are added. The board menu retains a single/multiple-premove choice.
+
+Post-game and standalone analysis now offer browser-local Maia3 5M/79M probabilities beside Stockfish, candidate previews/return, bounded same-move Stockfish comparisons, 600–2600 rating exploration and EC/Mobile Maia review of the selected move. Computed classifications stay separate from PGN glyphs. Whole-game batch review, persisted computed annotations, rating calibration and the broader wrapper remain work.
 
 Release discipline is **checks and review → merge to main → deploy main**.
 `main` is the only permanent branch. See the [release runbook](deploy/public/README.md).
