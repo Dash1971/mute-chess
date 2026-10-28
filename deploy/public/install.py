@@ -35,11 +35,20 @@ if (release_info.get('branch') != 'main' or release_info.get('sourceVerified') i
 spec = importlib.util.spec_from_file_location('native_source', payload / 'deployment/public/native-source.py')
 source_checker = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(source_checker)
+for repository, field in (('lila', 'upstreamLila'), ('lila-ws', 'upstreamWs')):
+    actual = subprocess.check_output(['git', '-c', f'safe.directory={dev}/sources/{repository}',
+        '-C', str(dev / 'sources' / repository), 'rev-parse', 'HEAD'], text=True).strip()
+    if actual != release_info.get(field):
+        raise SystemExit('Native upstream revision differs from the verified main release: ' + repository)
 expected_patch = (payload / 'lila-nostr-maia.patch').read_bytes()
 if source_checker.patch_for(dev / 'sources/lila') != expected_patch:
     raise SystemExit('Native build source differs from the merged main patch')
 if hashlib.sha256(expected_patch).hexdigest() != release_info.get('nativePatchSha256'):
     raise SystemExit('Native patch provenance hash mismatch')
+analysis_spec = importlib.util.spec_from_file_location('analysis_assets', payload / 'deployment/public/analysis-assets.py')
+analysis_checker = importlib.util.module_from_spec(analysis_spec)
+analysis_spec.loader.exec_module(analysis_checker)
+analysis_checker.verify(payload / 'analysis/browser', dev / 'sources/lila/public/nosweat/analysis')
 # Reject parse failures before creating a release or changing the active symlink.
 checker = base / 'tools/node'
 if not checker.exists():
@@ -193,6 +202,7 @@ for name in ('lila-nostr-maia.patch', 'lila-ws-bind-address.patch', 'BUILD.md', 
 shutil.copytree(payload / 'third-party', source_dir / 'third-party')
 shutil.copytree(release / 'lila-adapter', source_dir / 'lila-adapter', ignore=shutil.ignore_patterns('node_modules'))
 shutil.copytree(payload / 'deployment', source_dir / 'deployment')
+shutil.copytree(payload / 'analysis', source_dir / 'analysis')
 with tarfile.open(release / 'source.tar.gz', 'w:gz') as archive:
     archive.add(source_dir, arcname='nosweatchess-source')
 (release / 'source.tar.gz').chmod(0o644)

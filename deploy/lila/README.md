@@ -110,5 +110,4 @@ tests and `test/integration.mjs`; `--worker-failure` kills only that private
 worker and checks native failure handling. Live moves, both clocks/colors,
 reconnect, Nostr replay protection, resignation, PGN and crash recovery pass.
 The public alpha admits at most two games, one per browser/account. Anonymous games are casual; Nostr accounts use native provisional 1500 and Glicko updates. The native quick-pair grid and custom time controls assign an available opponent within ±200, with no manual challenges. Build `lila-adapter/browser/login.mjs` with `node build-browser.mjs /path/to/lila/public/nosweat/nostr.js` before packaging assets.
-Classification, dual-engine analysis, the full wrapper and capacity calibration
-remain future work. No ten-game full-stack capacity claim is made.
+The native stacked-premove and browser analysis extensions are documented in `../../analysis/PROVENANCE.md` and `../public/README.md`. Run `prepare-analysis.py` from the main repository to prepare pinned browser assets. Whole-game batch review, persistent computed annotations and capacity calibration remain future work. No ten-game full-stack capacity claim is made.

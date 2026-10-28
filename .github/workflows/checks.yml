@@ -20,6 +20,7 @@ jobs:
         working-directory: lila-adapter
       - run: npm test
         working-directory: lila-adapter
+      - run: node analysis/test-client.mjs
       - name: Parse runtime JavaScript and build the browser login
         run: |
           node --check deploy/public/gateway.mjs
@@ -48,7 +49,7 @@ jobs:
         run: python -m unittest discover -s deploy/public -p 'test_*.py'
   upstream-patches:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       GIT_LFS_SKIP_SMUDGE: '1'
     steps:
@@ -58,8 +59,19 @@ jobs:
           git init /tmp/lila
           git -C /tmp/lila fetch --depth=1 https://github.com/lichess-org/lila.git b551752d2a0e7a63459d9812825d95a633a98737
           git -C /tmp/lila checkout --detach FETCH_HEAD
-          git -C /tmp/lila apply --check "$GITHUB_WORKSPACE/deploy/lila/patches/lila-nostr-maia.patch"
+          git -C /tmp/lila apply "$GITHUB_WORKSPACE/deploy/lila/patches/lila-nostr-maia.patch"
           git init /tmp/lila-ws
           git -C /tmp/lila-ws fetch --depth=1 https://github.com/lichess-org/lila-ws.git 5089b84b5fe2da3f3e9e69d29363115cfddfc758
           git -C /tmp/lila-ws checkout --detach FETCH_HEAD
           git -C /tmp/lila-ws apply --check "$GITHUB_WORKSPACE/deploy/lila/patches/lila-ws-bind-address.patch"
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24.22.1
+      - name: Build and test the native board and analysis extensions
+        working-directory: /tmp/lila
+        run: |
+          npm install --global pnpm@12.9.0
+          pnpm install --frozen-lockfile
+          (cd ui/.build && pnpm install --frozen-lockfile)
+          node ui/test
+          ./ui/build --no-install analyse round
