@@ -1,3 +1,5 @@
+> **28 October follow-up:** restore the native Lichess homepage and interaction model. Defer the retro wrapper. Replace only the logo after the owner chooses a concept. Anonymous play is casual; Nostr accounts use provisional 1500 and native rating updates. Pair automatically with a random available opponent within ±200, using the native quick-pair controls and custom dialog. Keep NIP-07 recommended and add generated/imported browser keys. This overrides earlier unrated/manual-opponent alpha UX below.
+
 # Confirmed foundation: Lichess chess, augmented analysis, desktop club wrapper
 
 Decision confirmed by the owner on 28 October 2026. This supersedes the provisional focused-service direction in `docs/architecture.md` and the earlier proposal to choose between a custom chess service and Lila.
@@ -14,11 +16,11 @@ This means an adapted **Lila-based chess application**, rather than a stand-alon
 
 ## Current state versus target
 
-The running private alpha is still the earlier Node/Fastify/PostgreSQL prototype using Chessground/Chessops and a shared Maia79M worker. It is useful infrastructure/inference evidence, **not** the final chess foundation. Its clocks, round controller and persistence are custom code. No full Lila playing or analysis application has been built/deployed in this project yet.
+The owner retired the earlier Node/Fastify/PostgreSQL prototype on 28 October 2026. Its service is stopped and disabled, with a rollback backup of its deployed source, configuration and database. Its Chessground/Chessops implementation and shared Maia79M worker remain useful infrastructure/inference references; its custom clocks, round controller and persistence are **not** the chess foundation. The pinned native Lila application and lila-ws service build and run privately with separate MongoDB/Redis data. The native Maia/Nostr adapters now work with the confirmed roster, one active game per human, a two-game global cap and unrated 5+3/10+5 play. See the current deployment notes.
 
-Keep that prototype intact while bringing up the Lichess base separately. Reuse the verified Maia model/runtime, worker resource limits, hardware measurements, private administration and Nostr protocol work where suitable. Do not let sunk implementation work choose the chess architecture. Lila's existing server/data contracts may mean using its native services; retaining the prototype's Node/PostgreSQL architecture is not a requirement.
+Continue with the separate Lichess base; do not restart or expand the retired prototype by default. Reuse the verified Maia model/runtime, worker resource limits, hardware measurements, private administration and Nostr protocol work where suitable. Do not let sunk implementation work choose the chess architecture. Lila's existing server/data contracts may mean using its native services; retaining the prototype's Node/PostgreSQL architecture is not a requirement.
 
-The pinned upstream source is prepared locally for adaptation. Dependency installation, a successful Lila build, the Lila WebSocket/MongoDB/Redis runtime and a full playing-to-analysis smoke test remain implementation work. The previous ten-game inference benchmark is not a benchmark of this larger stack.
+The private baseline has passed its frontend/backend builds, 83 selected upstream frontend tests, and HTTP/WebSocket checks including PGN replay, built assets and origin rejection. Browser inspection verified native legal moves, variation navigation, PGN output and Stockfish 19 analysis. Build/runtime helpers and the isolated WebSocket bind-address patch are in [deploy/lila](../deploy/lila/README.md). Automated adapter integration now covers live Maia replies, both native clocks/colors, reconnect, stale retries, resignation/PGN, Nostr replay rejection and worker-crash voiding. Further human acceptance and broader ending/promotion coverage remain useful. The previous ten-game inference benchmark is not a benchmark of this larger stack.
 
 ## Source map
 
@@ -75,3 +77,7 @@ Post-game analysis should run in browser workers where practical, keeping expens
 ## Upstream maintenance
 
 Pin sources, preserve licenses/attribution and keep our changes clearly separated from upstream. Our AGPL source distribution must include the relevant corresponding sources and build instructions. Upstream Lichess contributions, if proposed later, must follow its AI disclosure and human review/testing policy; no upstream messages or pull requests were sent by this preparation step.
+
+## Stacked premoves
+
+Add Mobile Maia-style multiple queued premoves as an explicit gameplay enhancement to native Lichess round controls. Port the behavior with source provenance rather than adding another rules engine. Each queued move must be validated against the authoritative position when its turn arrives. Clear the remaining queue on an illegal move, server resync, takeback, terminal game or loss of ownership; never replay queued commands after reconnect. Cover castling, en passant, promotion, branching captures, cancellation and fast bot replies. Preserve the native single-premove option and input feedback. This is enhancement scope, not an assertion that the feature is already shipped.

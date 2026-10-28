@@ -1,0 +1,1806 @@
+[
+  {
+    "id": "pixel-moth",
+    "name": "Pixel Moth",
+    "conditioning_self": 600,
+    "conditioning_opponent": 600,
+    "sampling_profile": "full",
+    "temperature_after_opening": 1.0,
+    "top_p_after_opening": 1.0,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": null
+    },
+    "assumed_sampling_strength_adjustment": 0,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 900,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 46
+      },
+      "rapid": {
+        "initial_rating": 950,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      }
+    },
+    "reference_account": "maia3-79m_600",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "PixelMoth"
+  },
+  {
+    "id": "glitch-cat",
+    "name": "Glitch Cat",
+    "conditioning_self": 600,
+    "conditioning_opponent": 600,
+    "sampling_profile": "balanced",
+    "temperature_after_opening": 1.0,
+    "top_p_after_opening": 0.95,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 75,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 975,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 46
+      },
+      "rapid": {
+        "initial_rating": 1025,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      }
+    },
+    "reference_account": "maia3-79m_600",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "GlitchCat"
+  },
+  {
+    "id": "pocket-static",
+    "name": "Pocket Static",
+    "conditioning_self": 600,
+    "conditioning_opponent": 600,
+    "sampling_profile": "focused",
+    "temperature_after_opening": 0.5,
+    "top_p_after_opening": 0.9,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 250,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1150,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 46
+      },
+      "rapid": {
+        "initial_rating": 1200,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      }
+    },
+    "reference_account": "maia3-79m_600",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "PocketStatic"
+  },
+  {
+    "id": "cassette-kid",
+    "name": "Cassette Kid",
+    "conditioning_self": 600,
+    "conditioning_opponent": 600,
+    "sampling_profile": "argmax",
+    "temperature_after_opening": 0.0,
+    "top_p_after_opening": 1.0,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 300,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1200,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 46
+      },
+      "rapid": {
+        "initial_rating": 1250,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      }
+    },
+    "reference_account": "maia3-79m_600",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "CassetteKid"
+  },
+  {
+    "id": "copper-byte",
+    "name": "Copper Byte",
+    "conditioning_self": 800,
+    "conditioning_opponent": 800,
+    "sampling_profile": "full",
+    "temperature_after_opening": 1.0,
+    "top_p_after_opening": 1.0,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": null
+    },
+    "assumed_sampling_strength_adjustment": 0,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1150,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      },
+      "rapid": {
+        "initial_rating": 1150,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      }
+    },
+    "reference_account": "maia3-79m_800",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "CopperByte"
+  },
+  {
+    "id": "neon-finch",
+    "name": "Neon Finch",
+    "conditioning_self": 800,
+    "conditioning_opponent": 800,
+    "sampling_profile": "balanced",
+    "temperature_after_opening": 1.0,
+    "top_p_after_opening": 0.95,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 75,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1225,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      },
+      "rapid": {
+        "initial_rating": 1225,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      }
+    },
+    "reference_account": "maia3-79m_800",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "NeonFinch"
+  },
+  {
+    "id": "patchwork",
+    "name": "Patchwork",
+    "conditioning_self": 800,
+    "conditioning_opponent": 800,
+    "sampling_profile": "focused",
+    "temperature_after_opening": 0.5,
+    "top_p_after_opening": 0.9,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 250,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1400,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      },
+      "rapid": {
+        "initial_rating": 1400,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      }
+    },
+    "reference_account": "maia3-79m_800",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "Patchwork"
+  },
+  {
+    "id": "velvet-circuit",
+    "name": "Velvet Circuit",
+    "conditioning_self": 800,
+    "conditioning_opponent": 800,
+    "sampling_profile": "argmax",
+    "temperature_after_opening": 0.0,
+    "top_p_after_opening": 1.0,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 300,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1450,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      },
+      "rapid": {
+        "initial_rating": 1450,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      }
+    },
+    "reference_account": "maia3-79m_800",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "VelvetCircuit"
+  },
+  {
+    "id": "cobalt-mist",
+    "name": "Cobalt Mist",
+    "conditioning_self": 1000,
+    "conditioning_opponent": 1000,
+    "sampling_profile": "full",
+    "temperature_after_opening": 1.0,
+    "top_p_after_opening": 1.0,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": null
+    },
+    "assumed_sampling_strength_adjustment": 0,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1300,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      },
+      "rapid": {
+        "initial_rating": 1250,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      }
+    },
+    "reference_account": "maia3-79m_1000",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "CobaltMist"
+  },
+  {
+    "id": "sideband",
+    "name": "Sideband",
+    "conditioning_self": 1000,
+    "conditioning_opponent": 1000,
+    "sampling_profile": "balanced",
+    "temperature_after_opening": 1.0,
+    "top_p_after_opening": 0.95,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 75,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1375,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      },
+      "rapid": {
+        "initial_rating": 1325,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      }
+    },
+    "reference_account": "maia3-79m_1000",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "Sideband"
+  },
+  {
+    "id": "chrome-sparrow",
+    "name": "Chrome Sparrow",
+    "conditioning_self": 1000,
+    "conditioning_opponent": 1000,
+    "sampling_profile": "focused",
+    "temperature_after_opening": 0.5,
+    "top_p_after_opening": 0.9,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 250,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1550,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      },
+      "rapid": {
+        "initial_rating": 1500,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      }
+    },
+    "reference_account": "maia3-79m_1000",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "ChromeSparrow"
+  },
+  {
+    "id": "chrome-alley",
+    "name": "Chrome Alley",
+    "conditioning_self": 1000,
+    "conditioning_opponent": 1000,
+    "sampling_profile": "argmax",
+    "temperature_after_opening": 0.0,
+    "top_p_after_opening": 1.0,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 300,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1600,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      },
+      "rapid": {
+        "initial_rating": 1550,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      }
+    },
+    "reference_account": "maia3-79m_1000",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "ChromeAlley"
+  },
+  {
+    "id": "violet-metro",
+    "name": "Violet Metro",
+    "conditioning_self": 1200,
+    "conditioning_opponent": 1200,
+    "sampling_profile": "full",
+    "temperature_after_opening": 1.0,
+    "top_p_after_opening": 1.0,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": null
+    },
+    "assumed_sampling_strength_adjustment": 0,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1400,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 59
+      },
+      "rapid": {
+        "initial_rating": 1450,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      }
+    },
+    "reference_account": "maia3-79m_1200",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "VioletMetro"
+  },
+  {
+    "id": "static-rain",
+    "name": "Static Rain",
+    "conditioning_self": 1200,
+    "conditioning_opponent": 1200,
+    "sampling_profile": "balanced",
+    "temperature_after_opening": 1.0,
+    "top_p_after_opening": 0.95,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 75,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1475,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 59
+      },
+      "rapid": {
+        "initial_rating": 1525,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      }
+    },
+    "reference_account": "maia3-79m_1200",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "StaticRain"
+  },
+  {
+    "id": "rooftop-echo",
+    "name": "Rooftop Echo",
+    "conditioning_self": 1200,
+    "conditioning_opponent": 1200,
+    "sampling_profile": "focused",
+    "temperature_after_opening": 0.5,
+    "top_p_after_opening": 0.9,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 250,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1650,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 59
+      },
+      "rapid": {
+        "initial_rating": 1700,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      }
+    },
+    "reference_account": "maia3-79m_1200",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "RooftopEcho"
+  },
+  {
+    "id": "carbon-kite",
+    "name": "Carbon Kite",
+    "conditioning_self": 1200,
+    "conditioning_opponent": 1200,
+    "sampling_profile": "argmax",
+    "temperature_after_opening": 0.0,
+    "top_p_after_opening": 1.0,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 300,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1700,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 59
+      },
+      "rapid": {
+        "initial_rating": 1750,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      }
+    },
+    "reference_account": "maia3-79m_1200",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "CarbonKite"
+  },
+  {
+    "id": "neon-rook",
+    "name": "Neon Rook",
+    "conditioning_self": 1400,
+    "conditioning_opponent": 1400,
+    "sampling_profile": "full",
+    "temperature_after_opening": 1.0,
+    "top_p_after_opening": 1.0,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": null
+    },
+    "assumed_sampling_strength_adjustment": 0,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1500,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 47
+      },
+      "rapid": {
+        "initial_rating": 1650,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      }
+    },
+    "reference_account": "maia3-79m_1400",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "NeonRook"
+  },
+  {
+    "id": "quiet-proxy",
+    "name": "Quiet Proxy",
+    "conditioning_self": 1400,
+    "conditioning_opponent": 1400,
+    "sampling_profile": "balanced",
+    "temperature_after_opening": 1.0,
+    "top_p_after_opening": 0.95,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 75,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1575,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 47
+      },
+      "rapid": {
+        "initial_rating": 1725,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      }
+    },
+    "reference_account": "maia3-79m_1400",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "QuietProxy"
+  },
+  {
+    "id": "night-courier",
+    "name": "Night Courier",
+    "conditioning_self": 1400,
+    "conditioning_opponent": 1400,
+    "sampling_profile": "focused",
+    "temperature_after_opening": 0.5,
+    "top_p_after_opening": 0.9,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 250,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1750,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 47
+      },
+      "rapid": {
+        "initial_rating": 1900,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      }
+    },
+    "reference_account": "maia3-79m_1400",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "NightCourier"
+  },
+  {
+    "id": "rust-halo",
+    "name": "Rust Halo",
+    "conditioning_self": 1400,
+    "conditioning_opponent": 1400,
+    "sampling_profile": "argmax",
+    "temperature_after_opening": 0.0,
+    "top_p_after_opening": 1.0,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 300,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1800,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 47
+      },
+      "rapid": {
+        "initial_rating": 1950,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      }
+    },
+    "reference_account": "maia3-79m_1400",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "RustHalo"
+  },
+  {
+    "id": "cipher-fox",
+    "name": "Cipher Fox",
+    "conditioning_self": 1600,
+    "conditioning_opponent": 1600,
+    "sampling_profile": "full",
+    "temperature_after_opening": 1.0,
+    "top_p_after_opening": 1.0,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": null
+    },
+    "assumed_sampling_strength_adjustment": 0,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1650,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      },
+      "rapid": {
+        "initial_rating": 1700,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 49
+      }
+    },
+    "reference_account": "maia3-79m_1600",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "CipherFox"
+  },
+  {
+    "id": "analog-ghost",
+    "name": "Analog Ghost",
+    "conditioning_self": 1600,
+    "conditioning_opponent": 1600,
+    "sampling_profile": "balanced",
+    "temperature_after_opening": 1.0,
+    "top_p_after_opening": 0.95,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 75,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1725,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      },
+      "rapid": {
+        "initial_rating": 1775,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 49
+      }
+    },
+    "reference_account": "maia3-79m_1600",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "AnalogGhost"
+  },
+  {
+    "id": "switchback",
+    "name": "Switchback",
+    "conditioning_self": 1600,
+    "conditioning_opponent": 1600,
+    "sampling_profile": "focused",
+    "temperature_after_opening": 0.5,
+    "top_p_after_opening": 0.9,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 250,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1900,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      },
+      "rapid": {
+        "initial_rating": 1950,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 49
+      }
+    },
+    "reference_account": "maia3-79m_1600",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "Switchback"
+  },
+  {
+    "id": "static-bishop",
+    "name": "Static Bishop",
+    "conditioning_self": 1600,
+    "conditioning_opponent": 1600,
+    "sampling_profile": "argmax",
+    "temperature_after_opening": 0.0,
+    "top_p_after_opening": 1.0,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 300,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1950,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 45
+      },
+      "rapid": {
+        "initial_rating": 2000,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 49
+      }
+    },
+    "reference_account": "maia3-79m_1600",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "StaticBishop"
+  },
+  {
+    "id": "ghost-relay",
+    "name": "Ghost Relay",
+    "conditioning_self": 1800,
+    "conditioning_opponent": 1800,
+    "sampling_profile": "full",
+    "temperature_after_opening": 1.0,
+    "top_p_after_opening": 1.0,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": null
+    },
+    "assumed_sampling_strength_adjustment": 0,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1800,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 46
+      },
+      "rapid": {
+        "initial_rating": 1700,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 105
+      }
+    },
+    "reference_account": "maia3-79m_1800",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "GhostRelay"
+  },
+  {
+    "id": "night-current",
+    "name": "Night Current",
+    "conditioning_self": 1800,
+    "conditioning_opponent": 1800,
+    "sampling_profile": "balanced",
+    "temperature_after_opening": 1.0,
+    "top_p_after_opening": 0.95,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 75,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 1875,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 46
+      },
+      "rapid": {
+        "initial_rating": 1775,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 105
+      }
+    },
+    "reference_account": "maia3-79m_1800",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "NightCurrent"
+  },
+  {
+    "id": "neon-knight",
+    "name": "Neon Knight",
+    "conditioning_self": 1800,
+    "conditioning_opponent": 1800,
+    "sampling_profile": "focused",
+    "temperature_after_opening": 0.5,
+    "top_p_after_opening": 0.9,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 250,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 2050,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 46
+      },
+      "rapid": {
+        "initial_rating": 1950,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 105
+      }
+    },
+    "reference_account": "maia3-79m_1800",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "NeonKnight"
+  },
+  {
+    "id": "ghost-gambit",
+    "name": "Ghost Gambit",
+    "conditioning_self": 1800,
+    "conditioning_opponent": 1800,
+    "sampling_profile": "argmax",
+    "temperature_after_opening": 0.0,
+    "top_p_after_opening": 1.0,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 300,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 2100,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 46
+      },
+      "rapid": {
+        "initial_rating": 2000,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 105
+      }
+    },
+    "reference_account": "maia3-79m_1800",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "GhostGambit"
+  },
+  {
+    "id": "chrome-castle",
+    "name": "Chrome Castle",
+    "conditioning_self": 2000,
+    "conditioning_opponent": 2000,
+    "sampling_profile": "full",
+    "temperature_after_opening": 1.0,
+    "top_p_after_opening": 1.0,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": null
+    },
+    "assumed_sampling_strength_adjustment": 0,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 2000,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 59
+      },
+      "rapid": {
+        "initial_rating": 2050,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 53
+      }
+    },
+    "reference_account": "maia3-79m_2000",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "ChromeCastle"
+  },
+  {
+    "id": "midnight-signal",
+    "name": "Midnight Signal",
+    "conditioning_self": 2000,
+    "conditioning_opponent": 2000,
+    "sampling_profile": "balanced",
+    "temperature_after_opening": 1.0,
+    "top_p_after_opening": 0.95,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 75,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 2075,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 59
+      },
+      "rapid": {
+        "initial_rating": 2125,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 53
+      }
+    },
+    "reference_account": "maia3-79m_2000",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "MidnightSignal"
+  },
+  {
+    "id": "circuit-saint",
+    "name": "Circuit Saint",
+    "conditioning_self": 2000,
+    "conditioning_opponent": 2000,
+    "sampling_profile": "focused",
+    "temperature_after_opening": 0.5,
+    "top_p_after_opening": 0.9,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 250,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 2250,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 59
+      },
+      "rapid": {
+        "initial_rating": 2300,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 53
+      }
+    },
+    "reference_account": "maia3-79m_2000",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "CircuitSaint"
+  },
+  {
+    "id": "null-echo",
+    "name": "Null Echo",
+    "conditioning_self": 2000,
+    "conditioning_opponent": 2000,
+    "sampling_profile": "argmax",
+    "temperature_after_opening": 0.0,
+    "top_p_after_opening": 1.0,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 300,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 2300,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 59
+      },
+      "rapid": {
+        "initial_rating": 2350,
+        "initial_rd": 200,
+        "status": "provisional_alpha",
+        "source_rd": 53
+      }
+    },
+    "reference_account": "maia3-79m_2000",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "NullEcho"
+  },
+  {
+    "id": "neon-drift",
+    "name": "Neon Drift",
+    "conditioning_self": 2200,
+    "conditioning_opponent": 2200,
+    "sampling_profile": "full",
+    "temperature_after_opening": 1.0,
+    "top_p_after_opening": 1.0,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": null
+    },
+    "assumed_sampling_strength_adjustment": 0,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 2250,
+        "initial_rd": 300,
+        "status": "experimental_unrated",
+        "source_rd": 119
+      },
+      "rapid": {
+        "initial_rating": 2100,
+        "initial_rd": 300,
+        "status": "experimental_unrated",
+        "source_rd": 158
+      }
+    },
+    "reference_account": "maia3-79m_2200",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "NeonDrift"
+  },
+  {
+    "id": "signal-weaver",
+    "name": "Signal Weaver",
+    "conditioning_self": 2200,
+    "conditioning_opponent": 2200,
+    "sampling_profile": "balanced",
+    "temperature_after_opening": 1.0,
+    "top_p_after_opening": 0.95,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 75,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 2325,
+        "initial_rd": 300,
+        "status": "experimental_unrated",
+        "source_rd": 119
+      },
+      "rapid": {
+        "initial_rating": 2175,
+        "initial_rd": 300,
+        "status": "experimental_unrated",
+        "source_rd": 158
+      }
+    },
+    "reference_account": "maia3-79m_2200",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "SignalWeaver"
+  },
+  {
+    "id": "quantum-shade",
+    "name": "Quantum Shade",
+    "conditioning_self": 2200,
+    "conditioning_opponent": 2200,
+    "sampling_profile": "focused",
+    "temperature_after_opening": 0.5,
+    "top_p_after_opening": 0.9,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 250,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 2500,
+        "initial_rd": 300,
+        "status": "experimental_unrated",
+        "source_rd": 119
+      },
+      "rapid": {
+        "initial_rating": 2350,
+        "initial_rd": 300,
+        "status": "experimental_unrated",
+        "source_rd": 158
+      }
+    },
+    "reference_account": "maia3-79m_2200",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "QuantumShade"
+  },
+  {
+    "id": "blackout",
+    "name": "Blackout",
+    "conditioning_self": 2200,
+    "conditioning_opponent": 2200,
+    "sampling_profile": "argmax",
+    "temperature_after_opening": 0.0,
+    "top_p_after_opening": 1.0,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 300,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 2550,
+        "initial_rd": 300,
+        "status": "experimental_unrated",
+        "source_rd": 119
+      },
+      "rapid": {
+        "initial_rating": 2400,
+        "initial_rd": 300,
+        "status": "experimental_unrated",
+        "source_rd": 158
+      }
+    },
+    "reference_account": "maia3-79m_2200",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "Blackout"
+  },
+  {
+    "id": "indigo-pulse",
+    "name": "Indigo Pulse",
+    "conditioning_self": 2400,
+    "conditioning_opponent": 2400,
+    "sampling_profile": "full",
+    "temperature_after_opening": 1.0,
+    "top_p_after_opening": 1.0,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": null
+    },
+    "assumed_sampling_strength_adjustment": 0,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 2150,
+        "initial_rd": 300,
+        "status": "experimental_unrated",
+        "source_rd": 130
+      },
+      "rapid": {
+        "initial_rating": 2350,
+        "initial_rd": 458,
+        "status": "experimental_unrated",
+        "source_rd": 458
+      }
+    },
+    "reference_account": "maia3-79m_2400",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "IndigoPulse"
+  },
+  {
+    "id": "holo-raven",
+    "name": "Holo Raven",
+    "conditioning_self": 2400,
+    "conditioning_opponent": 2400,
+    "sampling_profile": "balanced",
+    "temperature_after_opening": 1.0,
+    "top_p_after_opening": 0.95,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 75,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 2225,
+        "initial_rd": 300,
+        "status": "experimental_unrated",
+        "source_rd": 130
+      },
+      "rapid": {
+        "initial_rating": 2425,
+        "initial_rd": 458,
+        "status": "experimental_unrated",
+        "source_rd": 458
+      }
+    },
+    "reference_account": "maia3-79m_2400",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "HoloRaven"
+  },
+  {
+    "id": "chrome-oracle",
+    "name": "Chrome Oracle",
+    "conditioning_self": 2400,
+    "conditioning_opponent": 2400,
+    "sampling_profile": "focused",
+    "temperature_after_opening": 0.5,
+    "top_p_after_opening": 0.9,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 250,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 2400,
+        "initial_rd": 300,
+        "status": "experimental_unrated",
+        "source_rd": 130
+      },
+      "rapid": {
+        "initial_rating": 2600,
+        "initial_rd": 458,
+        "status": "experimental_unrated",
+        "source_rd": 458
+      }
+    },
+    "reference_account": "maia3-79m_2400",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "ChromeOracle"
+  },
+  {
+    "id": "zero-day",
+    "name": "Zero Day",
+    "conditioning_self": 2400,
+    "conditioning_opponent": 2400,
+    "sampling_profile": "argmax",
+    "temperature_after_opening": 0.0,
+    "top_p_after_opening": 1.0,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 300,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 2450,
+        "initial_rd": 300,
+        "status": "experimental_unrated",
+        "source_rd": 130
+      },
+      "rapid": {
+        "initial_rating": 2650,
+        "initial_rd": 458,
+        "status": "experimental_unrated",
+        "source_rd": 458
+      }
+    },
+    "reference_account": "maia3-79m_2400",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "ZeroDay"
+  },
+  {
+    "id": "ultraviolet",
+    "name": "Ultraviolet",
+    "conditioning_self": 2600,
+    "conditioning_opponent": 2600,
+    "sampling_profile": "full",
+    "temperature_after_opening": 1.0,
+    "top_p_after_opening": 1.0,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": null
+    },
+    "assumed_sampling_strength_adjustment": 0,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 2500,
+        "initial_rd": 300,
+        "status": "experimental_unrated",
+        "source_rd": 143
+      },
+      "rapid": {
+        "initial_rating": 2250,
+        "initial_rd": 300,
+        "status": "experimental_unrated",
+        "source_rd": 204
+      }
+    },
+    "reference_account": "maia3-79m_2600",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "Ultraviolet"
+  },
+  {
+    "id": "prism-wraith",
+    "name": "Prism Wraith",
+    "conditioning_self": 2600,
+    "conditioning_opponent": 2600,
+    "sampling_profile": "balanced",
+    "temperature_after_opening": 1.0,
+    "top_p_after_opening": 0.95,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 75,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 2575,
+        "initial_rd": 300,
+        "status": "experimental_unrated",
+        "source_rd": 143
+      },
+      "rapid": {
+        "initial_rating": 2325,
+        "initial_rd": 300,
+        "status": "experimental_unrated",
+        "source_rd": 204
+      }
+    },
+    "reference_account": "maia3-79m_2600",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "PrismWraith"
+  },
+  {
+    "id": "event-horizon",
+    "name": "Event Horizon",
+    "conditioning_self": 2600,
+    "conditioning_opponent": 2600,
+    "sampling_profile": "focused",
+    "temperature_after_opening": 0.5,
+    "top_p_after_opening": 0.9,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 250,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 2750,
+        "initial_rd": 300,
+        "status": "experimental_unrated",
+        "source_rd": 143
+      },
+      "rapid": {
+        "initial_rating": 2500,
+        "initial_rd": 300,
+        "status": "experimental_unrated",
+        "source_rd": 204
+      }
+    },
+    "reference_account": "maia3-79m_2600",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "EventHorizon"
+  },
+  {
+    "id": "kernel-ghost",
+    "name": "Kernel Ghost",
+    "conditioning_self": 2600,
+    "conditioning_opponent": 2600,
+    "sampling_profile": "argmax",
+    "temperature_after_opening": 0.0,
+    "top_p_after_opening": 1.0,
+    "opening": {
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "full_moves": 5
+    },
+    "assumed_sampling_strength_adjustment": 300,
+    "history_policy": {
+      "selection": "independent fair draw once before each game",
+      "probability_on": 0.5,
+      "freeze_for_game": true,
+      "on": "current board plus up to seven previous positions",
+      "off": "current board repeated in eight slots"
+    },
+    "timing_policy": "variable human timing on; independent RNG; inference included; clock-aware cap; no extra search",
+    "ratings": {
+      "blitz": {
+        "initial_rating": 2800,
+        "initial_rd": 300,
+        "status": "experimental_unrated",
+        "source_rd": 143
+      },
+      "rapid": {
+        "initial_rating": 2550,
+        "initial_rd": 300,
+        "status": "experimental_unrated",
+        "source_rd": 204
+      }
+    },
+    "reference_account": "maia3-79m_2600",
+    "baseline_assumption": "reference is comparable to full sampling; unverified",
+    "configuration_status": "private-unrated-alpha-v1",
+    "username": "KernelGhost"
+  }
+]

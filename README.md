@@ -2,6 +2,8 @@
 
 **Stay human. Play bots.**
 
+[Play the unrated alpha at nosweatchess.org](https://nosweatchess.org/club).
+
 The No Sweat Chess Club is an independent, noncommercial, open-source chess
 project licensed under GNU AGPL v3.0. This project was previously called Club
 Maia. The GitHub repository is now [`Dash1971/no-sweat-chess`](https://github.com/Dash1971/no-sweat-chess).
@@ -29,26 +31,43 @@ En Croissant-derived Mobile Maia move classification, combined Stockfish/Maia
 candidate arrows, and the maiachess.com-style candidate and Moves by rating
 explorers. See [the confirmed foundation and source map](docs/chess-foundation.md).
 
-The existing custom Node server is an infrastructure prototype. A complete
-Lila-based replacement has not yet been built or deployed.
+The native Lila application now integrates Maia3 opponents and Nostr identity.
+See [development setup](deploy/lila/README.md) and [public deployment](deploy/public/README.md).
+The earlier Node/Fastify prototype is stopped and disabled.
 
 ## Implementation status — 28 October 2026
 
-A private infrastructure prototype is running with Maia3 inference, signed Nostr
-login, timed unrated games, reconnection, history and PGN export. It uses a custom
-Node/Fastify/PostgreSQL service. This is prototype evidence, not the final Lichess
-chess application. See [the historical prototype architecture](docs/architecture.md).
+The alpha uses the native Lichess homepage, quick-pair grid, custom time-control
+dialog, rounds, clocks, reconnect, game history, PGN and analysis. It automatically
+assigns one of the confirmed 44 Maia opponents; there is no bot chooser or direct
+challenge flow. The selected violet cyber-rook replaces the logo; the surrounding
+interface keeps its native styling.
+NIP-07 signs a short-lived, one-use NIP-98 login challenge; the server verifies
+signatures and issues native HttpOnly sessions. Private keys stay in the signer;
+no relay publication is required. The browser signer is recommended. Generating
+or importing an nsec and remembering it in this browser is also supported with
+encrypted IndexedDB storage. NIP-46 remains work.
 
-A pinned Lila source checkout has been prepared for the replacement. Its full
-build, private runtime, Maia/Nostr integration, ratings and augmented analysis
-remain implementation work. The earlier ten-game benchmark establishes Maia
-inference performance, not the capacity of the complete Lila stack.
+Anonymous games are casual. Nostr accounts start at native provisional 1500 and
+use native Glicko updates, with automatic pairing within ±200 of the current
+rating for that speed. Bot priors remain estimates. Admission allows one active
+game per browser/account and at most two games overall. The complete stack has not been benchmarked for
+ten concurrent games. Policy/model/history metadata are frozen per game; worker
+failure voids affected active games. Server inference consumes the native clock.
 
-This repository currently publishes the product plan, design proposal, confirmed
-architecture and [source inventory](docs/chess-sources.json). Prototype and local
-mockup code are still being prepared separately; this documentation update does
-not publish or deploy them. See [the design proposal](docs/design.md) and its
-clearly labelled mockup.
+Automated checks cover signed login/replay protection, stable identity, sessions,
+the roster, admission, both colors and controls, Maia replies, native WebSocket
+moves, reconnect, stale retry rejection, resignation, PGN and worker crash
+recovery. Nine adapter/storage tests and all 251 native frontend tests pass; the
+three model/encoder checks and private/public game-flow checks are recorded in
+the deployment notes. This records automated verification, not human manual acceptance.
+
+The full retro wrapper, En Croissant/Mobile Maia classification, simultaneous
+Stockfish/Maia candidate analysis, Moves by rating, stacked premoves and rating
+calibration remain work. Browser Stockfish and native Lichess analysis are available now.
+
+Release discipline is **checks and review → merge to main → deploy main**.
+`main` is the only permanent branch. See the [release runbook](deploy/public/README.md).
 
 The remaining sections describe the intended product and operational plan.
 

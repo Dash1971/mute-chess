@@ -1,4 +1,4 @@
-> **Historical prototype architecture.** The owner has now confirmed Lichess/Lila as the base for all chess play and analysis. See [the current foundation decision](chess-foundation.md). The implementation below describes the still-running infrastructure prototype, not the target architecture.
+> **Historical prototype architecture.** The owner has now confirmed Lichess/Lila as the base for all chess play and analysis. See [the current foundation decision](chess-foundation.md). The implementation below describes the retired infrastructure prototype. Its service is stopped and disabled; the native alpha is documented in [deploy/public](../deploy/public/README.md).
 
 # Private server alpha: initial reuse decision
 
