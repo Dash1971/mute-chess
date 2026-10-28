@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Install a separate, loopback-only public alpha. Run as root on the mini."""
 import base64
+import fcntl
 import importlib.util
 import re
 import grp
@@ -17,8 +18,13 @@ import tarfile
 
 if os.geteuid() != 0:
     raise SystemExit('Run this installer as root')
+maintenance_lock = open('/run/lock/nosweatchess-maintenance.lock', 'a')
+fcntl.flock(maintenance_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
 payload = Path(sys.argv[1]).resolve()
 dev = Path('/home/dash/no-sweat-lila')
+for role in ('gateway', 'app', 'ws', 'adapter', 'mongo', 'redis'):
+    if subprocess.run(['systemctl', 'is-active', '--quiet', 'nosweatchess-' + role]).returncode == 0:
+        raise SystemExit('Stop the public stack in a checked maintenance window before installation')
 base = Path('/opt/nosweatchess')
 data = Path('/srv/nosweatchess')
 etc = Path('/etc/nosweatchess')
@@ -197,41 +203,14 @@ replacement = base / 'current.new'
 replacement.symlink_to(release)
 replacement.replace(current)
 
-common = '''User=nosweatchess
-Group=nosweatchess
-Restart=on-failure
-RestartSec=5
-NoNewPrivileges=yes
-PrivateTmp=yes
-ProtectSystem=strict
-ProtectHome=yes
-ProtectKernelTunables=yes
-ProtectKernelModules=yes
-ProtectControlGroups=yes
-RestrictSUIDSGID=yes
-RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
-CapabilityBoundingSet=
-IPAddressDeny=any
-IPAddressAllow=localhost
-UMask=0077
-TasksMax=512
-'''
-java = '/usr/lib/jvm/java-21-openjdk-amd64/bin/java'
-services = {
-    'mongo': ('1G', f'{base}/tools/mongodb/bin/mongod --bind_ip 127.0.0.1 --port 27019 --dbpath {data}/mongo --wiredTigerCacheSizeGB 0.25', '', str(data / 'mongo')),
-    'redis': ('256M', f'{base}/tools/redis/usr/bin/redis-server {etc}/redis.conf', f'Environment=LD_LIBRARY_PATH={base}/tools/redis/usr/lib/x86_64-linux-gnu\n', str(data / 'redis')),
-    'app': ('3G', f'{java} -Xms256m -Xmx2g -XX:ActiveProcessorCount=3 -Dlogger.file={etc}/logback.xml -Dconfig.file={etc}/application.conf -Dplay.server.dir={current}/lila -Dplay.mode=prod -cp {current}/lila/lib/* lila.app.Lila {current}/lila', '', str(current / 'lila')),
-    'ws': ('768M', f'{java} -Xms64m -Xmx384m -XX:ActiveProcessorCount=2 -Dlogback.configurationFile={etc}/logback.xml -Dconfig.file={etc}/ws.conf -cp {current}/ws/lib/* lila.ws.LilaWs', '', str(current / 'ws')),
-    'adapter': ('1536M', f'{base}/tools/node --max-old-space-size=256 {current}/lila-adapter/server.mjs', f'EnvironmentFile={etc}/adapter.env\n', str(current / 'lila-adapter')),
-    'gateway': ('192M', f'{base}/tools/node --max-old-space-size=96 {current}/gateway.mjs', '', str(current)),
-}
-for name, (memory, command, extra, working) in services.items():
-    dependencies = 'After=network.target\n'
-    if name not in ('mongo', 'redis'):
-        dependencies += 'After=nosweatchess-mongo.service nosweatchess-redis.service\nRequires=nosweatchess-mongo.service nosweatchess-redis.service\n'
-    unit = f'[Unit]\nDescription=No Sweat Chess public alpha {name}\n{dependencies}\n[Service]\n{common}WorkingDirectory={working}\nReadWritePaths={data}\nMemoryMax={memory}\n{extra}ExecStart={command}\n\n[Install]\nWantedBy=multi-user.target\n'
-    Path(f'/etc/systemd/system/nosweatchess-{name}.service').write_text(unit)
-    Path(f'/etc/systemd/system/nosweatchess-{name}.service').chmod(0o644)
+# Keep account/filesystem/network policy in the same reviewed operations module.
+subprocess.run(['python3', str(payload / 'deployment/public/service-isolation.py')], check=True)
+subprocess.run(['nft', '-c', '-f', '/etc/nosweatchess/isolation.nft'], check=True)
+subprocess.run(['systemd-analyze', 'verify', *[
+    '/etc/systemd/system/nosweatchess-' + role + '.service'
+    for role in ('isolation', 'gateway', 'app', 'ws', 'adapter', 'mongo', 'redis')
+]], check=True)
 subprocess.run(['systemctl', 'daemon-reload'], check=True)
+subprocess.run(['systemctl', 'enable', '--now', 'nosweatchess-isolation'], check=True)
 subprocess.run(['systemctl', 'enable', '--now', 'nosweatchess-mongo', 'nosweatchess-redis'], check=True)
 print(json.dumps({'release': str(release), 'source_sha256': hashlib.sha256((release / 'source.tar.gz').read_bytes()).hexdigest(), 'application_exposed': False}))

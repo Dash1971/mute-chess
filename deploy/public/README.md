@@ -12,7 +12,8 @@ Node prototype. Codex assisted implementation and automated verification; no
 human manual acceptance or upstream contribution is claimed.
 
 `install.py PAYLOAD` runs as root on the dedicated Ubuntu host. It creates the
-`nosweatchess` service account, root-owned releases under `/opt/nosweatchess`,
+separate `nosweat-{gateway,app,ws,adapter,mongo,redis}` service accounts,
+root-owned releases under `/opt/nosweatchess`,
 separate secrets under `/etc/nosweatchess`, and data under `/srv/nosweatchess`.
 Prepare/build the pinned sources using `../lila/README.md`. The payload includes
 both patches, adapter code with `npm ci --omit=dev`, the public club assets,
@@ -29,6 +30,52 @@ accepting logins. Redis is on 16380. Native HTTP/WS/adapter ports are
 `nosweatchess-*` system services use restart-on-failure, memory limits, a read-only
 release, restricted writes and loopback-only network access. Enable them for boot.
 The existing Cloudflare connector is a separate service and owns tunnel credentials.
+
+## Service isolation and migration
+
+Stop the complete public stack in a checked maintenance window before running
+the installer. It refuses to reassign ownership while any public service is active.
+`service-isolation.py` owns the shared account, file and systemd network policy;
+the installer uses the exact same module. It may also be applied as a configuration
+migration to an existing application release after review/checks/merge on main.
+Record the operations commit separately from the unchanged application RELEASE.json.
+
+Each service has a distinct non-login identity. Only Mongo and Redis receive
+persistent write paths, confined to their own directories. The gateway has no
+configuration/secret access; the adapter receives its environment through systemd
+and can read the model but cannot read the application/session secrets. The app
+and WebSocket services receive separate configuration, and the latter gets only
+its own signing configuration. Backup key/storage remain root-only.
+
+The `nosweatchess-isolation` unit atomically loads only its own nftables table;
+it does not replace UFW rules. It is required by the six services and by the
+Cloudflare connector at boot. Established connections/replies are allowed.
+New connections from each identity are limited as follows:
+
+| Identity | New outbound connections |
+| --- | --- |
+| Gateway | Loopback native HTTP 29663 and WebSockets 29664 |
+| Application | Loopback Mongo 27019, Redis 16380 and adapter 29665 |
+| WebSockets | Loopback Mongo 27019 and Redis 16380 |
+| Adapter | Loopback native HTTP 29663 |
+| Mongo / Redis | None; replies to clients remain allowed |
+| Cloudflare connector | Loopback gateway 29660, local stub DNS, Cloudflare tunnel endpoints on 7844 |
+
+New connections to the public databases are rejected from other local identities,
+including private development processes; root keeps an administration path. The
+private adapter accepts new connections only from the app or root. This phase
+enforces the local database boundary through Linux UIDs/network policy; it does
+not add database passwords or per-collection database roles. App and WebSocket
+services retain the database access required by native Lichess, including seen-at
+updates. Kernel/root compromise and abuse through an authorized app connection
+remain outside that boundary.
+
+Before migration, block new admissions, verify zero active games, stop app writers
+and make a consistent encrypted database/configuration rollback snapshot. Keep
+the previous units, file ownership and configuration for rollback. Verify the
+account/access matrix, nftables persistence and successful real native Maia/Nostr
+play, WebSocket reconnect, analysis, PGN and source delivery after migration.
+Do not mark a live game finished merely to make maintenance proceed.
 
 The gateway handles HTTPS-origin forwarding, same-host static assets, native
 WebSocket upgrades and the corresponding-source download. It blocks internal

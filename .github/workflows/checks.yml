@@ -44,6 +44,8 @@ jobs:
               for source in Path(directory).rglob('*.py'):
                   ast.parse(source.read_text(), filename=str(source))
           PY
+      - name: Service boundary contracts
+        run: python -m unittest discover -s deploy/public -p 'test_*.py'
   upstream-patches:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
