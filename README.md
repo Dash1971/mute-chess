@@ -1,8 +1,8 @@
-# Maia Club
+# Club Maia
 
 **Lichess-style online chess, played exclusively against human-like Maia3 bots.**
 
-Maia Club is a working name. This repository currently contains the project vision
+Club Maia is a working name. This repository currently contains the project vision
 and MVP plan; the application has not been implemented. The final name and domain
 are undecided. `play.mobilemaia.org` is one possible home.
 
@@ -191,19 +191,89 @@ version requiring validation. Preserve the policy and rating snapshots used by
 each historical game. Test reproducible inference and chess correctness without
 creating a separate bot match pool.
 
-## Hosting and cost
+## Self-hosting and infrastructure
+
+**Start on our own hardware behind Cloudflare Tunnel.** A rented cloud server is
+an option for later growth or availability, not a prerequisite for the MVP.
+
+```mermaid
+flowchart LR
+    Players[Players] <-->|HTTPS and secure WebSocket| Edge[Cloudflare edge]
+    Connector[cloudflared on isolated host] <-->|Tunnel initiated outbound from our host| Edge
+    Connector <--> Gateway[Local application gateway]
+    Gateway <--> App[Game service]
+    App <--> DB[(Private PostgreSQL)]
+    App <--> Maia[Private Maia workers]
+```
+
+Use a dedicated machine or isolated VM, preferably on a separate network segment
+with firewall rules preventing access to personal devices and shared file stores.
+Keep application data and credentials separate from personal accounts, signing
+keys, other projects, and Mobile Maia release infrastructure. Containers organize
+services but do not replace host and network isolation.
+
+The initial deployment should:
+
+- Use a persistent named tunnel and a custom hostname. The connector establishes
+  outbound connections, so no inbound router port forwarding or public origin
+  address is needed. Publish only the web application through the tunnel.
+- Keep PostgreSQL, inference endpoints, and management interfaces private. Allow
+  administration only through an authenticated private access path. Players use
+  the application's Nostr login; they do not need Cloudflare accounts.
+- Bind the local gateway to loopback or an isolated service network. If the
+  connector-to-gateway connection crosses machines or an untrusted network, use
+  HTTPS with certificate verification.
+- Use HTTPS/WSS, application authentication, origin checks, request validation,
+  connection limits, and per-message rate limits. Cloudflare protects the edge;
+  the application still validates all game commands.
+- Keep tunnel credentials outside Git, minimize personal information in logs,
+  and retain encrypted backups off the serving machine. Test restoring them.
+
+[Cloudflare Tunnel](https://developers.cloudflare.com/tunnel/) provides the
+outbound origin connection. [Cloudflare supports WebSockets on all plans](https://developers.cloudflare.com/network/websockets/),
+but connections can close during network updates or idle periods. Heartbeats,
+reconnection, and authoritative game snapshots remain necessary. Its WebSocket
+WAF inspection covers the initial upgrade, not subsequent game messages.
+
+### Security, privacy, and availability boundaries
+
+This setup reduces direct exposure of our network and keeps the serving address
+out of normal public DNS. It cannot undo an address disclosed through another
+service or guarantee anonymity. Audit alternative origin routes before launch.
+
+Cloudflare knows the connector's origin address and the visitors' IP addresses.
+Its [TLS proxy terminates browser connections at its edge](https://developers.cloudflare.com/ssl/concepts/),
+so it can process application traffic. This is origin shielding and encrypted
+transport, not end-to-end privacy from Cloudflare. Nostr private keys must remain
+local to the player or their signer.
+
+Our power supply, ISP, hardware, and upload bandwidth become availability limits.
+Cloudflare does not host the game process or Maia model for us, repair a vulnerable
+application, or keep games running through an origin outage. Measure latency from
+the intended player regions, load-test the actual machine, and start with a small
+admission cap. Consider a UPS and automatic service recovery for the beta.
+
+### Costs and migration
 
 GitHub hosts source, issues, CI, and deployment workflows. GitHub Pages cannot run
 the persistent game server, database, or Maia workers. Its [published limits and
 use restrictions](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits)
 also make it unsuitable as the foundation for a commercial hosted application.
 
-Start with one VM for a private technical alpha, with separate application,
-database, and inference processes and off-host backups. For a public beta, separate
-live application processing from inference and consider managed PostgreSQL.
+Initial self-hosting costs depend on existing hardware, electricity, the domain,
+backup storage, and the Cloudflare features selected. Check the current plan and
+usage limits before launch; we should not describe the entire service as free.
+There is no initial requirement to rent a GPU or a cloud database.
 
-As of 28 October 2026, rough planning allowances are **US$55–75/month** for a small
-single-VM alpha and **US$100–160/month** for an initial separated beta deployment.
+Keep application, database, inference, and tunnel configuration portable so we can
+move to a rented server or split inference onto another host without changing
+accounts or the player experience. Database migrations and tested backup/restore
+procedures are part of that portability. Consider managed PostgreSQL when the
+operational benefit justifies it.
+
+For a later cloud deployment, as of 28 October 2026 rough planning allowances are
+**US$55–75/month** for a small single-VM alpha and **US$100–160/month** for an initial
+separated beta deployment.
 These are estimates based on [VM](https://www.digitalocean.com/pricing/droplets)
 and [database](https://www.digitalocean.com/pricing/managed-databases) pricing, not
 capacity guarantees. They exclude tax, engineering, separate staging, and any
@@ -223,7 +293,7 @@ weights out of ordinary Git history and disposable build output out of the repo.
 
 | Milestone | Deliverable |
 | --- | --- |
-| 1. Reuse and hosting spike | Decide how much Lichess code to reuse; benchmark Maia on a candidate host; demonstrate the full playing-to-analysis slice |
+| 1. Reuse and hosting spike | Decide how much Lichess code to reuse; benchmark our isolated self-hosted machine; validate Cloudflare Tunnel and demonstrate the full playing-to-analysis slice |
 | 2. Playable alpha | Nostr onboarding and recovery, pool entry, named bots, clocks, reconnects, saved games, and post-game analysis |
 | 3. Human calibration | Connected alpha cohort, provisional ratings, policy versions, held-out checks, and documented calibration uncertainty |
 | 4. Public beta | Rating history, rematches, capacity controls, monitoring, tested backups, and optional Nostr PGN sharing |
