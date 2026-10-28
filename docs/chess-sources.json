@@ -1,0 +1,72 @@
+{
+  "recorded_date": "2026-10-28",
+  "status": "source inventory and confirmed architecture; full Lila integration not yet built",
+  "lichess": {
+    "repository": "https://github.com/lichess-org/lila",
+    "revision": "b551752d2a0e7a63459d9812825d95a633a98737",
+    "license": "AGPL-3.0-or-later, with component/asset notices in upstream COPYING.md",
+    "scalachess_dependency_version": "18.0.1",
+    "paths": [
+      "modules/round/src/main/MovePlayer.scala",
+      "modules/round/src/main/Finisher.scala",
+      "modules/game/src/main",
+      "modules/analyse/src/main",
+      "ui/round/src/round.ts",
+      "ui/round/src/ctrl.ts",
+      "ui/round/src/premove.ts",
+      "ui/round/src/socket.ts",
+      "ui/lib/src/game/clock/clockCtrl.ts",
+      "ui/lib/src/game/promotion.ts",
+      "ui/analyse/src/start.ts",
+      "ui/analyse/src/ctrl.ts",
+      "ui/analyse/src/autoShape.ts",
+      "ui/analyse/src/pgnImport.ts",
+      "ui/analyse/src/pgnExport.ts",
+      "ui/lib/src/tree",
+      "ui/lib/src/ceval"
+    ]
+  },
+  "mobile_maia": {
+    "repository": "https://github.com/Dash1971/maia-chess-android-preview",
+    "revision": "8563954429c2fb53ce0fe0e16c73c5d8a73ccfe0",
+    "status": "inspected clean local source; no application modifications",
+    "paths": [
+      "lib/src/review_widgets.dart",
+      "lib/src/review.dart",
+      "lib/src/stockfish.dart",
+      "lib/src/analysis_board.dart",
+      "tool/hardening/classification/README.md",
+      "tool/hardening/classification/reference/score.ts",
+      "tool/hardening/classification/reference/src/main.rs",
+      "test/move_classifier_benchmark_test.dart",
+      "test/move_classifier_cancellation_test.dart",
+      "test/stockfish_snapshot_test.dart",
+      "test/fixtures/classification",
+      "THIRD_PARTY_NOTICES.md"
+    ],
+    "feature_issues": [200, 26]
+  },
+  "en_croissant": {
+    "repository": "https://github.com/franciscoBSalgueiro/en-croissant",
+    "reference_tag": "v0.15.0",
+    "tag_object": "3a3dbc5911dd0cd4997c30ea3e8932045e314830",
+    "revision": "6f2d2628f0fbe11cb62a7dd2f9c102bb52907d53",
+    "paths": ["src/utils/score.ts", "src-tauri/src/chess.rs"],
+    "license": "GPL-3.0; retain upstream notices and Mobile Maia adaptation provenance"
+  },
+  "maia_platform": {
+    "repository": "https://github.com/CSSLab/maia-platform-frontend",
+    "revision": "a6e52f5c811ee18863cb2f0e81f2433a5b9905de",
+    "license": "GPL-3.0",
+    "paths": [
+      "src/components/Analysis/MovesByRating.tsx",
+      "src/components/Analysis/MoveTooltip.tsx",
+      "src/components/Analysis/AnalysisSidebar.tsx",
+      "src/hooks/useAnalysisController/useEngineAnalysis.ts",
+      "src/contexts/MaiaEngineContext.tsx",
+      "src/contexts/StockfishEngineContext.tsx",
+      "src/lib/engine/maia.ts",
+      "src/lib/engine/stockfish.ts"
+    ]
+  }
+}

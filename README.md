@@ -1,12 +1,55 @@
-# Club Maia
+# nosweatchess
 
-**Lichess-style online chess, played exclusively against human-like Maia3 bots.**
+**Stay human. Play bots.**
 
-A noncommercial, open-source project licensed under GNU AGPL v3.0.
+The No Sweat Chess Club is an independent, noncommercial, open-source chess
+project licensed under GNU AGPL v3.0. This project was previously called Club
+Maia; the checkout and GitHub repository retain the name `club-maia` for now.
 
-Club Maia is a working name. This repository currently contains the project vision
-and MVP plan; the application has not been implemented. The final name and domain
-are undecided. `play.mobilemaia.org` is one possible home.
+## The club
+
+In the fictional year 2097, neural implants give everyone access to Stockfish 99
+at 4750 Elo. A few nonchippers form a club to preserve the spirit of human chess,
+ironically by playing only bots trained on human games from the before times, 2023. They build themselves a little corner of the early web.
+
+The interface is an early-1990s desktop chess room: warm paper, muted green,
+beveled controls, a club noticeboard, and the board at the center. It is designed
+for **desktop browsers**, with a fixed-width layout and a narrow-window notice,
+without a separate mobile interface or mobile app. See [design notes](docs/design.md).
+
+The lore is fiction. The real implementation uses human-like Maia3 bots. It does
+not claim a 2023-only training dataset, calibrated bot ratings, or Stockfish 99.
+
+## Confirmed chess foundation
+
+**Desktop browsers only. Lichess is the base for all chess play and analysis.**
+The retro club is the wrapper and branding. Analysis will add the existing
+En Croissant-derived Mobile Maia move classification, combined Stockfish/Maia
+candidate arrows, and the maiachess.com-style candidate and Moves by rating
+explorers. See [the confirmed foundation and source map](docs/chess-foundation.md).
+
+The existing custom Node server is an infrastructure prototype. A complete
+Lila-based replacement has not yet been built or deployed.
+
+## Implementation status — 28 October 2026
+
+A private infrastructure prototype is running with Maia3 inference, signed Nostr
+login, timed unrated games, reconnection, history and PGN export. It uses a custom
+Node/Fastify/PostgreSQL service. This is prototype evidence, not the final Lichess
+chess application. See [the historical prototype architecture](docs/architecture.md).
+
+A pinned Lila source checkout has been prepared for the replacement. Its full
+build, private runtime, Maia/Nostr integration, ratings and augmented analysis
+remain implementation work. The earlier ten-game benchmark establishes Maia
+inference performance, not the capacity of the complete Lila stack.
+
+This repository currently publishes the product plan, design proposal, confirmed
+architecture and [source inventory](docs/chess-sources.json). Prototype and local
+mockup code are still being prepared separately; this documentation update does
+not publish or deploy them. See [the design proposal](docs/design.md) and its
+clearly labelled mockup.
+
+The remaining sections describe the intended product and operational plan.
 
 ## Vision
 
@@ -14,9 +57,10 @@ Give people who enjoy online chess a familiar place to play, improve, and track
 their progress without worrying about an opponent secretly using an engine,
 abandoning a losing game, or behaving badly.
 
-The central experience should feel almost exactly like Lichess: choose a time
-control, join the pool, get paired with an opponent of similar playing strength,
-play a complete game, see the rating change, and analyze the game afterward.
+Use familiar chess controls within the nostalgic desktop club interface: choose
+a time control, join the pool, get paired with an opponent of similar playing
+strength, play a complete game, see the rating change, and analyze the game
+afterward. Ratings and analysis describe the finished product, not this alpha.
 
 Every opponent is an openly identified Maia3-powered bot with a persistent
 username and a calibrated rating. Bots wait for human matchmaking requests.
@@ -37,14 +81,18 @@ part of the MVP.
 4. Play using familiar board controls, clocks, premoves, promotion, resignation,
    draw handling, and reconnection behavior.
 5. Receive a result and rating update, then choose another game or a rematch.
-6. Open a Lichess-style analysis board to replay moves, inspect Stockfish
+6. Open the Lichess-based analysis board to replay moves, inspect Stockfish
    evaluations and variations, and compare Maia's human-move predictions at
    selected rating levels.
 7. Return to saved games and rating history, or download a PGN.
 
-Start with standard chess, a small pool of roughly 24–32 named bots, and two
-proposed time controls: **5+3 blitz and 10+5 rapid**. Maintain separate ratings
-for blitz and rapid. Human testing will determine the supported strength range.
+Use standard chess and the [confirmed 44-bot roster](https://github.com/Dash1971/club-maia/issues/1):
+32 core identities at conditioning 600–2000 and 12 experimental identities at
+2200–2600. Policy mappings, provisional Blitz/Rapid estimates and human
+calibration are tracked in [issue #2](https://github.com/Dash1971/club-maia/issues/2).
+Initial clocks remain **5+3 blitz and 10+5 rapid**, with separate ratings. Human
+testing will determine the supported strength range. Conditioning is not a
+measured rating.
 
 All bots are clearly labelled. They continue playing until a legal ending or
 the human's resignation; they do not deliberately disconnect or stall. Humans
@@ -55,33 +103,26 @@ Familiar opponents, rematches, and personal head-to-head records can give the
 pool a sense of continuity. Bots need not play background games or pretend to be
 humans to make the club feel active.
 
-## Reuse the parts of Lichess we need
+## Lichess as the chess foundation
 
-The goal is to reproduce the familiar playing and analysis experience while
-adapting matchmaking to human-versus-bot play. We do not need every Lichess feature.
+Use **Lila**, the server and web application powering Lichess, as the base for
+our supported chess play and analysis. Retain its mature round, clock, premove,
+promotion, reconnect, replay, variation, PGN and analysis behavior. Chessground,
+scalachess and the existing Lichess client-evaluation machinery stay within that
+base. We do not need unrelated Lichess product features such as tournaments,
+forums or human matchmaking.
 
-Lichess's main server repository is named **Lila**. This is the name of its server
-code, not a separate product or a required architectural choice.
+Add explicit adapters for Nostr identity, the human-versus-Maia pool, pinned bot
+policies and calibration. The custom Node/Fastify alpha is a working infrastructure
+prototype; it is not the target chess implementation. The earlier choice between
+a custom chess service and Lila has been superseded by this owner decision.
 
-The initial preference is to reuse focused components:
-
-| Component | Intended use |
-| --- | --- |
-| [Chessground](https://github.com/lichess-org/chessground) | Familiar interactive board, input, premoves, and move display |
-| [Chessops](https://github.com/lichess-org/chessops) | Chess rules and FEN, SAN, and PGN operations |
-| [Lichess server and analysis code](https://github.com/lichess-org/lila) | Evaluate reusable game, clock, replay, analysis, and rating behavior |
-| [Stockfish](https://github.com/official-stockfish/Stockfish) | Post-game evaluations and analysis lines |
-| [Maia web platform](https://github.com/CSSLab/maia-platform-frontend) | Evaluate reuse of its browser-side Maia and Stockfish integration and analysis experience |
-
-Before choosing the implementation, time-box a comparison of a minimal Lichess
-server adaptation and a smaller service built around these components. Test the
-same slice: Nostr login, pool entry, one timed Maia game, reconnection, persistence,
-rating update, and post-game analysis.
-
-Choose the approach that delivers the required experience with the least total
-implementation and maintenance burden. Component reuse is a preference, not a
-reason to rebuild mature functionality unnecessarily. Preserve upstream licenses
-and attribution, and use our own project identity and branding.
+Extend Lichess analysis with the existing En Croissant-derived Mobile Maia move
+classification, simultaneous Stockfish/Maia candidates and arrows, and the Maia
+platform's candidate comparison and Moves by rating interactions. Keep the club
+wrapper and branding separate from the chess behavior. Source pins, integration
+order and acceptance details are in [the foundation decision](docs/chess-foundation.md).
+Preserve upstream licenses, notices and corresponding sources.
 
 ## Nostr integration
 
@@ -93,14 +134,14 @@ ordering, duplicated messages, conflicting moves, and reconnects. It adds work
 without removing our need for an authoritative game service. It is outside the
 MVP, and no new live-chess NIP is required to launch.
 
-| Function | Plan |
-| --- | --- |
-| Account identity | Nostr public key, with a site-specific unique username |
-| Existing signers | [NIP-07](https://github.com/nostr-protocol/nips/blob/master/07.md) browser signers and [NIP-46](https://github.com/nostr-protocol/nips/blob/master/46.md) remote signers |
-| New identities | Local key generation with encrypted backup and a tested restore flow; use [NIP-49](https://github.com/nostr-protocol/nips/blob/master/49.md) where supported |
-| Login | [NIP-98](https://github.com/nostr-protocol/nips/blob/master/98.md) signed authentication, then a revocable application session |
-| Live games | Authenticated HTTPS/WebSocket connection; no per-move signer prompts |
-| Optional game sharing | Publish a completed PGN using [NIP-64](https://github.com/nostr-protocol/nips/blob/master/64.md) |
+| Function              | Plan                                                                                                                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Account identity      | Nostr public key, with a site-specific unique username                                                                                                                   |
+| Existing signers      | [NIP-07](https://github.com/nostr-protocol/nips/blob/master/07.md) browser signers and [NIP-46](https://github.com/nostr-protocol/nips/blob/master/46.md) remote signers |
+| New identities        | Local key generation with encrypted backup and a tested restore flow; use [NIP-49](https://github.com/nostr-protocol/nips/blob/master/49.md) where supported             |
+| Login                 | [NIP-98](https://github.com/nostr-protocol/nips/blob/master/98.md) signed authentication, then a revocable application session                                           |
+| Live games            | Authenticated HTTPS/WebSocket connection; no per-move signer prompts                                                                                                     |
+| Optional game sharing | Publish a completed PGN using [NIP-64](https://github.com/nostr-protocol/nips/blob/master/64.md)                                                                         |
 
 Human private keys stay with the player's browser or signer. Login must validate
 signatures, request binding, expiry, and a one-time server challenge. Ordinary
@@ -110,25 +151,28 @@ implications. Relay outages must not interrupt an authenticated live game.
 
 ## Backend architecture
 
-The following is the proposed small-service architecture, subject to the Lichess
-reuse comparison.
+The target is a Lichess/Lila-based chess application with Maia and identity
+adapters. The current Node/PostgreSQL prototype remains running while this base
+is brought up and tested separately; its infrastructure choices do not constrain
+the Lila integration.
 
 ```mermaid
 flowchart LR
-    Browser[Browser and Nostr signer] -->|Signed login over HTTPS| App[Account and game service]
-    Browser <-->|Moves and clocks over WebSocket| App
-    App <--> DB[(PostgreSQL)]
-    App <-->|Private inference requests| Maia[Shared Maia workers]
-    DB --> Publisher[Publication worker]
-    Publisher -->|Opt-in completed PGN| Relays[Nostr relays]
-    Browser --> Analysis[Browser workers: Maia and Stockfish analysis]
+    Browser[Desktop browser and Nostr signer] -->|Signed login| Identity[Nostr identity adapter]
+    Identity --> Lila[Lichess chess application]
+    Browser <-->|Moves and clocks| Socket[Lichess WebSocket service]
+    Socket <--> Redis[Redis]
+    Redis <--> Lila
+    Lila <--> DB[(Lichess data store)]
+    Lila <-->|Private inference requests| Maia[Shared Maia workers]
+    Browser --> Analysis[Lichess analysis with Stockfish and Maia workers]
 ```
 
-- **Web client:** TypeScript, Chessground, and a familiar playing and analysis UI.
-- **Application:** proposed TypeScript/Node.js service handling accounts, pool
-  matching, authoritative games, clocks, ratings, and history.
-- **Database:** PostgreSQL for users, bot identities, versioned policies,
-  calibration records, games, move events, rating history, and background jobs.
+- **Web client:** the Lichess playing and analysis surfaces within our desktop
+  club wrapper. Retain native chess interaction and shared tree/navigation state.
+- **Application and chess state:** adapt Lila and its native services, retaining
+  authoritative rules, clocks, results and persistence. Integrate Nostr, bot
+  admission and policy/calibration metadata through narrow adapters.
 - **Maia workers:** proposed Python/ONNX Runtime service with shared loaded models
   and bounded concurrency. A bot identity is configuration and state, not a
   dedicated process or a separate model copy.
@@ -138,15 +182,15 @@ flowchart LR
   acceleration with a supported fallback for Maia. Model and engine downloads
   should be versioned, verified, cached locally, and accompanied by clear
   download progress and cache controls. Benchmark slower devices before choosing
-  the default browser model. This keeps post-game work separate from live server
+  the desktop browser model. This keeps post-game work separate from live server
   inference; any server fallback needs its own bounded background queue.
 - **Operations:** TLS reverse proxy, containers, one initial hosting region,
   backups, structured logs, metrics, and error reporting.
 
-The game server validates every move and controls the clocks. Commands carry
-unique IDs and an expected game version; retries cannot apply a move twice.
-Reconnection restores authoritative state. Results and rating updates are
-transactional and idempotent. Bot inference counts toward its total thinking time.
+The Lichess-based game server validates every move and controls the clocks.
+Preserve its versioning, acknowledgement and reconnect behavior; verify that
+retries cannot apply a move twice. New identity, bot and rating adapters must be
+idempotent. Bot queueing and inference count toward its total thinking time.
 
 Player disconnects leave their clocks running. A genuine clock loss follows the
 published chess rules. Identified service failures void affected games without
@@ -165,7 +209,7 @@ Both engines should support the selected game position and analysis variations.
 Pin Maia's model, encoder, history handling, and conditioning inputs, and preserve
 the original game's bot policy metadata. Browser analysis is available after the
 game; server-side validation and inference remain authoritative during rated
-play. The technical spike should test both engines on desktop and mobile browsers,
+play. The integration must test both engines in supported desktop browsers,
 including loading, memory use, cancellation, cache updates, and compatibility of
 threaded WebAssembly headers with Nostr login flows.
 
@@ -226,8 +270,8 @@ flowchart LR
     Players[Players] <-->|HTTPS and secure WebSocket| Edge[Cloudflare edge]
     Connector[cloudflared on isolated host] <-->|Tunnel initiated outbound from our host| Edge
     Connector <--> Gateway[Local application gateway]
-    Gateway <--> App[Game service]
-    App <--> DB[(Private PostgreSQL)]
+    Gateway <--> App[Lichess-based game service]
+    App <--> DB[(Private Lichess data services)]
     App <--> Maia[Private Maia workers]
 ```
 
@@ -249,7 +293,7 @@ The initial deployment should:
 - Use a persistent named tunnel and a custom hostname. The connector establishes
   outbound connections, so no inbound router port forwarding or public origin
   address is needed. Publish only the web application through the tunnel.
-- Keep PostgreSQL, inference endpoints, and management interfaces private. Allow
+- Keep database, Redis, inference endpoints, and management interfaces private. Allow
   administration only through an authenticated private access path. Players use
   the application's Nostr login; they do not need Cloudflare accounts.
 - Bind the local gateway to loopback or an isolated service network. If the
@@ -299,9 +343,9 @@ There is no initial requirement to rent a GPU or a cloud database.
 
 Keep application, database, inference, and tunnel configuration portable so we can
 move to a rented server or split inference onto another host without changing
-accounts or the player experience. Database migrations and tested backup/restore
-procedures are part of that portability. Consider managed PostgreSQL when the
-operational benefit justifies it.
+accounts or the player experience. Data migrations and tested backup/restore procedures are part of that portability.
+Choose storage and managed-service options compatible with the Lichess base;
+the prototype's PostgreSQL choice is not a constraint on the final architecture.
 
 For a later cloud deployment, as of 28 October 2026 rough planning allowances are
 **US$55–75/month** for a small single-VM alpha and **US$100–160/month** for an initial
@@ -323,19 +367,19 @@ weights out of ordinary Git history and disposable build output out of the repo.
 
 ## Implementation milestones
 
-| Milestone | Deliverable |
-| --- | --- |
-| 1. Reuse and hosting spike | Decide how much Lichess code to reuse; benchmark our isolated self-hosted machine; validate Cloudflare Tunnel and demonstrate the full playing-to-analysis slice |
-| 2. Playable alpha | Nostr onboarding and recovery, pool entry, named bots, clocks, reconnects, saved games, and post-game analysis |
-| 3. Human calibration | Connected alpha cohort, provisional ratings, policy versions, held-out checks, and documented calibration uncertainty |
-| 4. Public beta | Rating history, rematches, capacity controls, monitoring, tested backups, and optional Nostr PGN sharing |
+| Milestone                  | Deliverable                                                                                                                                                      |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Reuse and hosting spike | Run the Lichess base with Maia/Nostr adapters; benchmark the complete private stack and demonstrate the playing-to-analysis slice |
+| 2. Playable alpha          | Nostr onboarding and recovery, pool entry, named bots, clocks, reconnects, saved games, and post-game analysis                                                   |
+| 3. Human calibration       | Connected alpha cohort, provisional ratings, policy versions, held-out checks, and documented calibration uncertainty                                            |
+| 4. Public beta             | Rating history, rematches, capacity controls, monitoring, tested backups, and optional Nostr PGN sharing                                                         |
 
 Measure second-game conversion, completed games, return visits, perceived fairness,
 repeat encounters with named bots, calibration accuracy, and hosting cost per
 completed game. Use those results to choose the next features and pool expansion.
 
-This plan covers a separate online project. It does not require changes to the
-existing Mobile Maia Stable or Preview applications or their release processes.
+This is an independent project. All implementation and design changes stay in
+this repository; no other application or release process is part of this work.
 
 ## License
 
