@@ -46,25 +46,24 @@ if not checker.exists():
     checker = Path('/opt/club-maia/node-v24.22.1-linux-x64/bin/node')
 for script in ('gateway.mjs', 'lila-adapter/server.mjs', 'lila-adapter/policy.mjs', 'nosweat/nostr.js'):
     subprocess.run([str(checker), '--check', str(payload / script)], check=True)
-try:
-    account = pwd.getpwnam('nosweatchess')
-except KeyError:
-    subprocess.run(['useradd', '--system', '--user-group', '--home-dir', str(data), '--shell', '/usr/sbin/nologin', 'nosweatchess'], check=True)
-    account = pwd.getpwnam('nosweatchess')
+isolation_spec = importlib.util.spec_from_file_location('service_isolation', payload / 'deployment/public/service-isolation.py')
+isolation = importlib.util.module_from_spec(isolation_spec)
+isolation_spec.loader.exec_module(isolation)
+service_accounts = isolation.accounts()
 for directory in (base / 'releases', base / 'tools', data, etc):
     directory.mkdir(parents=True, exist_ok=True)
 for name in ('mongo', 'redis'):
     directory = data / name
     directory.mkdir(exist_ok=True)
     directory.chmod(0o700)
-    os.chown(directory, account.pw_uid, account.pw_gid)
+    os.chown(directory, service_accounts[name].pw_uid, service_accounts[name].pw_gid)
 for name in ('backups', 'restore-check'):
     directory = data / name
     directory.mkdir(exist_ok=True)
     os.chown(directory, 0, 0)
     directory.chmod(0o700)
-etc.chmod(0o750)
-os.chown(etc, 0, account.pw_gid)
+etc.chmod(0o711)
+os.chown(etc, 0, 0)
 
 digest = hashlib.sha256()
 for name in ('lila-nostr-maia.patch', 'gateway.mjs', 'install.py', 'lila-adapter/server.mjs', 'RELEASE.json'):
@@ -106,7 +105,7 @@ model = data / 'maia3-79m.onnx'
 if not model.exists():
     shutil.copy('/srv/club-maia/models/maia3-79m.onnx', model)
 model.chmod(0o640)
-os.chown(model, 0, account.pw_gid)
+os.chown(model, 0, service_accounts['adapter'].pw_gid)
 assert hashlib.sha256(model.read_bytes()).hexdigest() == '3454b03ae78baa64a87b345fdb1a457265d912caec531039b074f07eda0d8010'
 
 os.umask(0o077)
@@ -172,10 +171,12 @@ maxmemory 128mb
 maxmemory-policy noeviction
 ''')
 (etc / 'logback.xml').write_text('''<configuration><appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender"><encoder><pattern>%date %-5level %logger{30} %message%n%xException{20}</pattern></encoder></appender><root level="INFO"><appender-ref ref="STDOUT"/></root></configuration>''')
-for name in ('secrets.conf', 'application.conf', 'ws.conf', 'redis.conf', 'logback.xml'):
+for name, role in (('secrets.conf', 'app'), ('application.conf', 'app'), ('ws.conf', 'ws'), ('redis.conf', 'redis')):
     path = etc / name
     path.chmod(0o640)
-    os.chown(path, 0, account.pw_gid)
+    os.chown(path, 0, service_accounts[role].pw_gid)
+(etc / 'logback.xml').chmod(0o644)
+os.chown(etc / 'logback.xml', 0, 0)
 for name in ('adapter.env', 'backup.key'):
     path = etc / name
     if path.exists():
@@ -205,6 +206,10 @@ replacement.replace(current)
 
 # Keep account/filesystem/network policy in the same reviewed operations module.
 subprocess.run(['python3', str(payload / 'deployment/public/service-isolation.py')], check=True)
+isolation_info = etc / 'ISOLATION.json'
+isolation_info.write_text(json.dumps({'operations_commit': release_info['gitCommit'], 'application_revision': release_info['gitCommit']}, indent=2) + '\n')
+os.chown(isolation_info, 0, 0)
+isolation_info.chmod(0o600)
 subprocess.run(['nft', '-c', '-f', '/etc/nosweatchess/isolation.nft'], check=True)
 subprocess.run(['systemd-analyze', 'verify', *[
     '/etc/systemd/system/nosweatchess-' + role + '.service'
