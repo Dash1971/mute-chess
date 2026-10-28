@@ -65,8 +65,12 @@ try {
   assert.ok(cookie.startsWith('nosweat_session='));
   await call('/club/login', body, authorization, 401);
   assert.equal((await call('/club/me')).data.user.username, login.data.username);
-  game = (await call('/club/play', { bot: 'pixel-moth', control: 'blitz', color: 'white' })).data;
-  assert.equal(game.rated, false);
+  game = (await call('/club/play', { minutes: 5, increment: 3, color: 'white' })).data;
+  assert.equal(game.rated, true);
+  const initialRound = await round();
+  assert.equal(initialRound.player.color, 'white');
+  assert.equal(initialRound.player.rating, 1500);
+  assert.ok(Math.abs(initialRound.player.rating - initialRound.opponent.rating) <= 200);
   const events = await connect();
   socket.send(JSON.stringify({ t: 'move', d: { u: 'e2e4', a: 1 } }));
   await waitFor(async () => (await round()).steps.at(-1).ply >= 2, 'first Maia reply');

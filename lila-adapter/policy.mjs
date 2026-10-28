@@ -14,7 +14,7 @@ export function freeze(bot) {
     openingFullMoves: bot.opening.full_moves ?? 0, temperature: bot.temperature_after_opening,
     topP: bot.top_p_after_opening, timingVersion: 'lognormal-050-044-006-clock-cap-v1',
     samplingSeed: randomBytes(16).toString('hex'), rated: false,
-    calibration: bot.conditioning_self >= 2200 ? 'experimental-unrated' : 'unvalidated-provisional' };
+    calibration: bot.conditioning_self >= 2200 ? 'experimental-unvalidated' : 'unvalidated-provisional' };
 }
 export function effectivePolicy(policy, ply, roster) {
   const bot = roster.find(bot => bot.id === policy.bot);

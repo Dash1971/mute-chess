@@ -52,7 +52,7 @@ async function play(game) {
     const targetMs = targetTime();
     const result = await maia.predict(moves, policy);
     const elapsed = performance.now() - started;
-    const remaining = game.botColor === 'white' ? game.state.wtime : game.state.btime;
+    const remaining = (game.botColor === 'white' ? game.state.wtime : game.state.btime) ?? 60000;
     await delay(addedWait(targetMs, elapsed, remaining - elapsed));
     if (!maia.healthy || stopping) throw Error('Maia worker unavailable');
     await native(`/club/internal/${game.id}/move`, { ply: game.ply, move: result.move,

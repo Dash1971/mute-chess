@@ -1,9 +1,10 @@
 import http from 'node:http';
 import { isIP } from 'node:net';
-import { createReadStream, statSync, realpathSync } from 'node:fs';
+import { createReadStream, statSync, realpathSync, readFileSync } from 'node:fs';
 
 const domain = 'nosweatchess.org';
 const source = '/opt/nosweatchess/current/source.tar.gz';
+const revision = JSON.parse(readFileSync('/opt/nosweatchess/current/RELEASE.json', 'utf8')).gitCommit;
 const buckets = new Map();
 const websocketPaths = /^\/(?:socket(?:\/v\d+)?|analysis\/socket(?:\/v\d+)?|lobby\/socket(?:\/v\d+)?|play\/[A-Za-z0-9]{12}\/v\d+|watch\/[A-Za-z0-9]{8}\/(?:white|black)\/v\d+)$/;
 function pathOf(req) {
@@ -35,6 +36,7 @@ function reject(res, status, message) {
   res.end(message);
 }
 const server = http.createServer((req, res) => {
+  res.setHeader('X-NoSweat-Revision', revision);
   if (req.headers.host === 'www.' + domain) {
     res.writeHead(308, { Location: 'https://' + domain + req.url }); return res.end();
   }
@@ -75,7 +77,7 @@ const server = http.createServer((req, res) => {
     return createReadStream(filename).on('error', () => res.destroy()).pipe(res);
   }
   if (path === '/source') { res.writeHead(302, { Location: '/source.tar.gz' }); return res.end(); }
-  const supported = path === '/' || /^\/(?:club(?:\/|$)|analysis(?:\/|$)|editor(?:\/|$)|game(?:\/|$)|@\/|login$|signup$|logout$|player-count$|whats-next\/|opening(?:\/|$)|api\/cloud-eval$|paste$|import$)/.test(path) || /^\/[A-Za-z0-9]{8}(?:[A-Za-z0-9]{4})?(?:\/(?:white|black))?$/.test(path);
+  const supported = path === '/' || /^\/(?:club(?:\/|$)|analysis(?:\/|$)|editor(?:\/|$)|game(?:\/|$)|@\/|login$|signup$|logout$|player-count$|account\/now-playing$|lobby\/seeks$|timeline$|pref(?:\/|$)|whats-next\/|opening(?:\/|$)|api\/cloud-eval$|paste$|import$)/.test(path) || /^\/[A-Za-z0-9]{8}(?:[A-Za-z0-9]{4})?(?:\/(?:white|black))?$/.test(path);
   if (!supported) return reject(res, 404, 'This alpha supports human-versus-Maia games and analysis. Return to /club.');
   if (Number(req.headers['content-length'] ?? 0) > 16 * 1024 * 1024) return reject(res, 413, 'Request too large');
   const upstream = http.request({ hostname: '127.0.0.1', port: 29663, path: req.url,

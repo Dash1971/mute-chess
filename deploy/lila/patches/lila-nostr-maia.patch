@@ -32,11 +32,26 @@ index b3d33a8..a9c67c8 100644
    lazy val feed: Feed = wire[Feed]
    lazy val playApi: PlayApi = wire[PlayApi]
    lazy val challenge: Challenge = wire[Challenge]
+diff --git a/app/controllers/Auth.scala b/app/controllers/Auth.scala
+index efdcfe5..1639aed 100644
+--- a/app/controllers/Auth.scala
++++ b/app/controllers/Auth.scala
+@@ -79,7 +79,9 @@ final class Auth(env: Env, accountC: => Account) extends LilaController(env):
+       then Ok(s"ok:${routes.Auth.checkYourEmail}")
+       else BadRequest.async(accountC.renderCheckYourEmail)
+ 
+-  def login = Open(serveLogin)
++  def login =
++    if env.noSweat.enabled then Open(Ok.page(views.noSweatLogin()))
++    else Open(serveLogin)
+   def loginLang = LangPage(routes.Auth.login)(serveLogin)
+ 
+   private def serveLogin(using ctx: Context, referrer: Option[ValidReferrer]) = NoBot:
 diff --git a/app/http/HttpRequestHandler.scala b/app/http/HttpRequestHandler.scala
-index a6875eb..82b5a3d 100644
+index a6875eb..2b0259a 100644
 --- a/app/http/HttpRequestHandler.scala
 +++ b/app/http/HttpRequestHandler.scala
-@@ -10,12 +10,20 @@ final class HttpRequestHandler(
+@@ -10,12 +10,25 @@ final class HttpRequestHandler(
      errorHandler: HttpErrorHandler,
      configuration: HttpConfiguration,
      filters: Seq[EssentialFilter],
@@ -48,17 +63,54 @@ index a6875eb..82b5a3d 100644
  
    override def routeRequest(request: RequestHeader): Option[Handler] =
 -    if request.method == "OPTIONS"
-+    if noSweatEnabled && request.method == "GET" && Set("/", "/login", "/signup").contains(request.path) then
-+      Some(controllerComponents.actionBuilder(_ => Results.Redirect("/club")))
++    if noSweatEnabled && request.method == "GET" && request.path == "/signup" then
++      Some(controllerComponents.actionBuilder(_ => Results.Redirect("/login")))
 +    else if noSweatEnabled && request.method == "POST" &&
-+        (request.path == "/login" || request.path.startsWith("/signup") ||
-+          request.path.startsWith("/setup/") || request.path.startsWith("/api/challenge") ||
-+          request.path == "/api/bot/account/upgrade") then
-+      Some(controllerComponents.actionBuilder(_ => Results.Forbidden("Use Nostr sign-in and the human-versus-Maia club pool.")))
++      (request.path == "/login" || request.path.startsWith("/signup") ||
++        request.path.startsWith("/setup/") || request.path.startsWith("/api/challenge") ||
++        request.path == "/api/bot/account/upgrade")
++    then
++      Some(
++        controllerComponents.actionBuilder(_ =>
++          Results.Forbidden("Use the playing pool; direct challenges are unavailable.")
++        )
++      )
 +    else if request.method == "OPTIONS"
      then optionsHandler.some
      else router.handlerFor(request)
  
+diff --git a/app/views/lobby/home.scala b/app/views/lobby/home.scala
+index 2db52a9..8587cc3 100644
+--- a/app/views/lobby/home.scala
++++ b/app/views/lobby/home.scala
+@@ -35,6 +35,7 @@ object home:
+           Json
+             .obj(
+               "data" -> data,
++              "noSweat" -> env.noSweat.enabled,
+               "showRatings" -> ctx.pref.showRatings
+             )
+             .add("hasUnreadLichessMessage", hasUnreadLichessMessage)
+@@ -118,11 +119,15 @@ object home:
+               button(cls := "button button-metal lobby__start__button lobby__start__button--hook")(
+                 trans.site.createLobbyGame()
+               ),
+-              button(cls := "button button-metal lobby__start__button lobby__start__button--friend")(
+-                trans.site.challengeAFriend()
++              Option.unless(env.noSweat.enabled)(
++                button(cls := "button button-metal lobby__start__button lobby__start__button--friend")(
++                  trans.site.challengeAFriend()
++                )
+               ),
+-              button(cls := "button button-metal lobby__start__button lobby__start__button--ai")(
+-                trans.site.playAgainstComputer()
++              Option.unless(env.noSweat.enabled)(
++                button(cls := "button button-metal lobby__start__button lobby__start__button--ai")(
++                  trans.site.playAgainstComputer()
++                )
+               )
+             )
+           ),
 diff --git a/conf/routes b/conf/routes
 index f2a7ab2..238ee98 100644
 --- a/conf/routes
@@ -81,10 +133,10 @@ index f2a7ab2..238ee98 100644
  GET   /lobby/seeks                     controllers.Lobby.seeks
  
 diff --git a/modules/game/src/main/Env.scala b/modules/game/src/main/Env.scala
-index 43d76ae..f074d1e 100644
+index 43d76ae..55503bc 100644
 --- a/modules/game/src/main/Env.scala
 +++ b/modules/game/src/main/Env.scala
-@@ -34,7 +34,24 @@ final class Env(
+@@ -34,7 +34,27 @@ final class Env(
  )(using scheduler: Scheduler)(using Executor, Materializer):
    private val config = appConfig.get[GameConfig]("game")(using AutoConfig.loader)
  
@@ -95,16 +147,19 @@ index 43d76ae..f074d1e 100644
 +    import lila.db.dsl.{ *, given }
 +    if !noSweatOnly || !game.playable then funit
 +    else
-+      val clockAllowed = game.clock.exists: clock =>
-+        Set((300, 3), (600, 5)).contains((clock.config.limitSeconds.value, clock.config.incrementSeconds.value))
-+      if !game.variant.standard || game.rated.yes || game.userIds.distinct.size != 2 || !clockAllowed then
-+        fufail("No Sweat Chess admits only reserved, unrated human-versus-Maia games")
-+      else
-+        noSweatGames
-+          .exists(bdoc("_id" -> game.id, "human" -> bdoc("$in" -> game.userIds),
-+            "bot" -> bdoc("$in" -> game.userIds), "state" -> "reserved"))
-+          .flatMap:
-+            if _ then funit else fufail("Game has no No Sweat Chess admission reservation")
++      noSweatGames
++        .byId[lila.db.dsl.Bdoc](game.id)
++        .flatMap: reservation =>
++          val allowed = reservation.exists: doc =>
++            val bot = doc.getAsOpt[UserId]("bot")
++            val human = doc.getAsOpt[UserId]("human")
++            val seats = bot.exists(game.userIds.contains) && human.fold(
++              game.userIds.size == 1 && game.rated.no && doc.getAsOpt[String]("guest").isDefined
++            )(id => game.userIds.distinct.size == 2 && game.userIds.contains(id) && !bot.contains(id))
++            seats && game.variant.standard && game.sourceIs(_.Pool) &&
++            doc.getAsOpt[String]("state").contains("reserved") &&
++            doc.getAsOpt[Boolean]("rated").contains(game.rated.yes)
++          if allowed then funit else fufail("Game has no human-versus-Maia pool reservation")
 +
 +  val gameRepo = GameRepo(db(config.gameColl), admitNoSweat)
  
@@ -143,10 +198,10 @@ index 45a3103..6fb1b4b 100644
    def removeRecentChallengesOf(userId: UserId) =
      coll.delete.one:
 diff --git a/modules/user/src/main/UserRepo.scala b/modules/user/src/main/UserRepo.scala
-index 45fd497..c9c385f 100644
+index 45fd497..7771548 100644
 --- a/modules/user/src/main/UserRepo.scala
 +++ b/modules/user/src/main/UserRepo.scala
-@@ -236,6 +236,22 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+@@ -236,6 +236,34 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
        coll.insert.one(doc) >> byId(name.id)
  
    def existsPri[U: UserIdOf](u: U): Fu[Boolean] = coll.exists(bid(u.id))
@@ -156,25 +211,279 @@ index 45fd497..c9c385f 100644
 +
 +  def createNostr(name: UserName, pubkey: String): Fu[Option[User]] =
 +    val doc = newUser(
-+      name, HashedPassword(Array.emptyByteArray),
-+      EmailAddress(s"$pubkey@nostr.invalid"), false, false, None, KidMode.No
++      name,
++      HashedPassword(Array.emptyByteArray),
++      EmailAddress(s"$pubkey@nostr.invalid"),
++      false,
++      false,
++      None,
++      KidMode.No
 +    ) ++ bdoc("nostr" -> pubkey, "len" -> name.value.length)
 +    coll.insert.one(doc).flatMap(_ => byNostr(pubkey))
 +
 +  def createNoSweatBot(name: UserName): Fu[Option[User]] =
-+    val doc = newUser(name, HashedPassword(Array.emptyByteArray),
-+      EmailAddress(s"bot-${name.id}@nosweat.invalid"), false, false, None, KidMode.No) ++
++    val doc = newUser(
++      name,
++      HashedPassword(Array.emptyByteArray),
++      EmailAddress(s"bot-${name.id}@nosweat.invalid"),
++      false,
++      false,
++      None,
++      KidMode.No
++    ) ++
 +      bdoc("len" -> name.value.length, "title" -> PlayerTitle.BOT, "noSweatBot" -> true)
 +    coll.insert.one(doc).flatMap(_ => byId(name.id))
    def existsSec[U: UserIdOf](u: U): Fu[Boolean] = coll.secondary.exists(bid(u.id))
  
    def filterExists(ids: Set[UserId]): Fu[List[UserId]] =
+diff --git a/modules/web/src/main/ui/layout.scala b/modules/web/src/main/ui/layout.scala
+index 1c7a30b..ebb4751 100644
+--- a/modules/web/src/main/ui/layout.scala
++++ b/modules/web/src/main/ui/layout.scala
+@@ -109,8 +109,11 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
+   val noRobots = raw("""<meta content="noindex,nofollow" name="robots">""")
+ 
+   val favicons = raw:
+-    s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
+-      s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
++    if siteName.startsWith("No Sweat Chess") then
++      """<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/nosweat/icon.svg"><link rel="stylesheet" href="/assets/nosweat/brand.css">"""
++    else
++      s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
++        s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
+ 
+   def blindModeForm(using ctx: Context) = raw:
+     val btnText =
+@@ -309,8 +312,21 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
+           a(cls := "site-title", href := langHref("/"), testId("site-title"))(
+             if ctx.kid.yes then span(title := trans.site.kidMode.txt(), cls := "kiddo")(":)")
+             else ctx.isBot.option(botImage),
+-            div(cls := "site-icon", dataIcon := Icon.Logo),
+-            div(cls := "site-name")(siteNameFrag)
++            if siteName.startsWith("No Sweat Chess") then
++              frag(
++                img(cls := "nosweat-header-icon", src := assetPath("nosweat/icon.svg"), alt := ""),
++                img(
++                  cls := "nosweat-wordmark nosweat-dark",
++                  src := assetPath("nosweat/textmark.svg"),
++                  alt := "nosweatchess"
++                ),
++                img(
++                  cls := "nosweat-wordmark nosweat-light",
++                  src := assetPath("nosweat/textmark-light.svg"),
++                  alt := "nosweatchess"
++                )
++              )
++            else frag(div(cls := "site-icon", dataIcon := Icon.Logo), div(cls := "site-name")(siteNameFrag))
+           ),
+           (!isAppealUser).option(
+             frag(
+diff --git a/ui/lobby/src/ctrl.ts b/ui/lobby/src/ctrl.ts
+index a8b22d7..4e28f12 100644
+--- a/ui/lobby/src/ctrl.ts
++++ b/ui/lobby/src/ctrl.ts
+@@ -4,6 +4,7 @@ import { pubsub } from 'lib/pubsub';
+ import { colors } from 'lib/setup/color';
+ import { wsPingInterval } from 'lib/socket';
+ import { storage, type LichessStorage } from 'lib/storage';
++import { alert } from 'lib/view';
+ 
+ import Filter from './filter';
+ import * as hookRepo from './hookRepo';
+@@ -74,6 +75,7 @@ export default class LobbyController {
+       else if (this.hasOngoingRealTimeGame(false)) this.stores.tab.set('now_playing');
+       this.tab = this.stores.tab.get();
+     }
++    if (opts.noSweat && this.tab !== 'now_playing') this.tab = 'pools';
+     this.mode = this.stores.mode.get();
+     this.sort = this.me ? this.stores.sort.get() : 'time';
+ 
+@@ -258,6 +260,11 @@ export default class LobbyController {
+   };
+ 
+   clickPool = (id: string) => {
++    if (this.opts.noSweat) {
++      const pool = this.pools.find(p => p.id === id)!;
++      void this.matchMaia({ minutes: pool.lim, increment: pool.inc, rated: !!this.me }, id);
++      return;
++    }
+     if (!this.me) {
+       xhr.anonPoolSeek(this.pools.find(p => p.id === id)!);
+       this.setTab('real_time');
+@@ -266,6 +273,29 @@ export default class LobbyController {
+     this.redraw();
+   };
+ 
++  matchMaia = async (setup: Record<string, string | number | boolean>, id = 'custom') => {
++    if (this.redirecting || this.poolMember) return;
++    this.poolMember = { id };
++    this.redraw();
++    try {
++      const response = await fetch('/club/play', {
++        method: 'POST',
++        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
++        credentials: 'same-origin',
++        body: JSON.stringify(setup),
++      });
++      const game = await response.json();
++      if (!response.ok) throw new Error(game.error || 'Pairing is temporarily unavailable');
++      this.setRedirecting();
++      site.redirect(game.url);
++    } catch (error) {
++      await alert(error instanceof Error ? error.message : 'Pairing is temporarily unavailable');
++    } finally {
++      this.poolMember = undefined;
++      this.redraw();
++    }
++  };
++
+   enterPool = (member: PoolMember) => {
+     poolRangeStorage.set(this.me?.username, member.id, member.range);
+     this.setTab('pools');
+diff --git a/ui/lobby/src/interfaces.ts b/ui/lobby/src/interfaces.ts
+index f148c56..c58ecd0 100644
+--- a/ui/lobby/src/interfaces.ts
++++ b/ui/lobby/src/interfaces.ts
+@@ -53,6 +53,7 @@ export interface LobbyOpts {
+   showRatings: boolean;
+   data: LobbyData;
+   bots?: boolean;
++  noSweat?: boolean;
+ }
+ 
+ export interface LobbyMe {
+diff --git a/ui/lobby/src/lobby.ts b/ui/lobby/src/lobby.ts
+index 610f89d..d248296 100644
+--- a/ui/lobby/src/lobby.ts
++++ b/ui/lobby/src/lobby.ts
+@@ -58,6 +58,11 @@ export function initModule(opts: LobbyOpts) {
+   pubsub.after('socket.hasConnected').then(() => {
+     const gameId = new URLSearchParams(location.search).get('hook_like');
+     if (!gameId) return;
++    if (opts.noSweat) {
++      void lobbyCtrl.matchMaia({ like: gameId });
++      history.replaceState(null, '', '/');
++      return;
++    }
+     const { ratingMin, ratingMax } = lobbyCtrl.setupCtrl.makeSetupStore('hook')();
+     xhr.text(
+       xhr.url(`/setup/hook/${site.sri}/like/${gameId}`, { deltaMin: ratingMin, deltaMax: ratingMax }),
+diff --git a/ui/lobby/src/setupCtrl.ts b/ui/lobby/src/setupCtrl.ts
+index 42d03af..6985216 100644
+--- a/ui/lobby/src/setupCtrl.ts
++++ b/ui/lobby/src/setupCtrl.ts
+@@ -73,7 +73,7 @@ export default class SetupController {
+     // Load props from the store, but override any store values with values found in forceOptions
+     this.variant = propWithEffect(forceOptions?.variant || storeProps.variant, this.onDropdownChange);
+     this.fen = this.propWithApply(forceOptions?.fen || storeProps.fen);
+-    const canChangeTimeMode = !!this.root.me || this.gameType !== 'hook';
++    const canChangeTimeMode = !!this.root.me || this.gameType !== 'hook' || !!this.root.opts.noSweat;
+     this.timeControl = timeControlFromStoredValues(
+       propWithEffect(forceOptions?.timeMode || storeProps.timeMode, this.onDropdownChange),
+       canChangeTimeMode ? timeModes : ['realTime'],
+@@ -89,6 +89,7 @@ export default class SetupController {
+     this.aiLevel = this.propWithApply(storeProps.aiLevel);
+     this.color(forceOptions?.color || storeProps.color || 'random');
+ 
++    if (this.root.opts.noSweat) this.variant = this.propWithApply('standard');
+     this.enforcePropRules();
+     // Upon loading the props from the store, overriding with forced options, and enforcing rules,
+     // immediately save them to the store. This way, the user can know that whatever they saw last
+@@ -176,7 +177,7 @@ export default class SetupController {
+     friendUser?: string,
+   ) => {
+     this.root.leavePool();
+-    this.gameType = gameType;
++    this.gameType = this.root.opts.noSweat ? 'hook' : gameType;
+     this.loading = false;
+     this.fenError = false;
+     this.lastValidFen = '';
+@@ -292,6 +293,21 @@ export default class SetupController {
+   minimumTimeIfReal = () => (this.gameType === 'ai' && this.variant() === 'fromPosition' ? 1 : 0);
+ 
+   submit = async () => {
++    if (this.root.opts.noSweat) {
++      this.loading = true;
++      this.root.redraw();
++      await this.root.matchMaia({
++        timeMode: this.timeControl.mode(),
++        minutes: this.timeControl.time(),
++        increment: this.timeControl.increment(),
++        days: this.timeControl.days(),
++        rated: this.gameMode() === 'rated',
++        color: this.color(),
++      });
++      this.loading = false;
++      this.root.redraw();
++      return;
++    }
+     const color = this.color();
+     const poolMember = this.hookToPoolMember(color);
+     if (poolMember) {
+diff --git a/ui/lobby/src/view/setup/modal.ts b/ui/lobby/src/view/setup/modal.ts
+index 3e5ae86..5239f54 100644
+--- a/ui/lobby/src/view/setup/modal.ts
++++ b/ui/lobby/src/view/setup/modal.ts
+@@ -58,11 +58,11 @@ export default function setupModal(ctrl: LobbyController): VNode[] | null {
+ 
+ const views = {
+   hook: (ctrl: LobbyController): LooseVNodes => [
+-    variantPicker(ctrl.setupCtrl),
++    !ctrl.opts.noSweat && variantPicker(ctrl.setupCtrl),
+     timePickerAndSliders(ctrl.setupCtrl.timeControl, 0),
+     gameModeButtons(ctrl),
+     ratingView(ctrl),
+-    ratingDifferenceSliders(ctrl),
++    !ctrl.opts.noSweat && ratingDifferenceSliders(ctrl),
+     colorButtons(ctrl.setupCtrl),
+   ],
+   friend: (ctrl: LobbyController): LooseVNodes => [
+diff --git a/ui/lobby/src/view/table.ts b/ui/lobby/src/view/table.ts
+index 9053e1a..5de061f 100644
+--- a/ui/lobby/src/view/table.ts
++++ b/ui/lobby/src/view/table.ts
+@@ -19,7 +19,9 @@ export default function table(ctrl: LobbyController) {
+       gameType: 'hook',
+       label: i18n.site.createLobbyGame,
+       disabled: hookDisabled,
+-      title: 'Create a custom game that any online player can join.',
++      title: opts.noSweat
++        ? 'Play a matched Maia opponent.'
++        : 'Create a custom game that any online player can join.',
+     },
+     {
+       gameType: 'friend',
+@@ -37,7 +39,8 @@ export default function table(ctrl: LobbyController) {
+       disabled: hasOngoingRealTimeGame,
+     },
+   ];
+-  if (opts.bots)
++  if (opts.noSweat) lobbyButtons.splice(1);
++  if (opts.bots && !opts.noSweat)
+     lobbyButtons.push({
+       gameType: 'bots',
+       label: 'play bot',
+diff --git a/ui/lobby/src/view/tabs.ts b/ui/lobby/src/view/tabs.ts
+index bfe17e8..c95e1c7 100644
+--- a/ui/lobby/src/view/tabs.ts
++++ b/ui/lobby/src/view/tabs.ts
+@@ -24,8 +24,8 @@ export default function (ctrl: LobbyController) {
+   const isBot = ctrl.me?.isBot;
+   return [
+     isBot ? undefined : tab(ctrl, 'pools', active, [i18n.site.quickPairing]),
+-    isBot ? undefined : tab(ctrl, 'real_time', active, [i18n.site.lobby]),
+-    isBot ? undefined : tab(ctrl, 'seeks', active, [i18n.site.correspondence]),
++    isBot || ctrl.opts.noSweat ? undefined : tab(ctrl, 'real_time', active, [i18n.site.lobby]),
++    isBot || ctrl.opts.noSweat ? undefined : tab(ctrl, 'seeks', active, [i18n.site.correspondence]),
+     active === 'now_playing' || nbPlaying || isBot
+       ? tab(ctrl, 'now_playing', active, [
+           ...i18n.site.nbGamesInPlay.asArray(nbPlaying, nbPlaying >= 100 ? '99+' : nbPlaying.toString()),
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..eca4f0a
+index 0000000..960b69f
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,221 @@
+@@ -0,0 +1,424 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -202,11 +511,16 @@ index 0000000..eca4f0a
 +  private val adapterInstance = AtomicReference("")
 +  private val connectedBots = java.util.concurrent.ConcurrentHashMap.newKeySet[GameId]()
 +  private val queue = scalalib.actor.AsyncActorSequencer(
-+    maxSize = Max(32), timeout = 20.seconds, "noSweatAdmission", lila.mon.asyncActorMonitor.full
++    maxSize = Max(32),
++    timeout = 20.seconds,
++    "noSweatAdmission",
++    lila.mon.asyncActorMonitor.full
 +  )
-+  lazy val roster: List[JsObject] = Json.parse(
-+    Files.readString(env.getFile.exec("public/nosweat-roster.json").toPath)
-+  ).as[List[JsObject]]
++  lazy val roster: List[JsObject] = Json
++    .parse(
++      Files.readString(env.getFile.exec("public/nosweat-roster.json").toPath)
++    )
++    .as[List[JsObject]]
 +  private def botId(bot: JsObject): UserId = UserId((bot \ "username").as[String].toLowerCase)
 +  private def requireThat(ok: Boolean, status: Int, message: String): Unit =
 +    if !ok then throw NoSweatError(status, message)
@@ -218,149 +532,326 @@ index 0000000..eca4f0a
 +    )
 +
 +  def adapter(path: String, body: JsValue): Fu[JsValue] =
-+    ws.url(s"$adapterUrl$path").withHttpHeaders("Authorization" -> s"Bearer $token", "Content-Type" -> "application/json")
-+      .withRequestTimeout(5.seconds).post(Json.stringify(body)).map: response =>
++    ws.url(s"$adapterUrl$path")
++      .withHttpHeaders("Authorization" -> s"Bearer $token", "Content-Type" -> "application/json")
++      .withRequestTimeout(5.seconds)
++      .post(Json.stringify(body))
++      .map: response =>
 +        val result = Json.parse(response.body)
 +        if response.status != 200 then
-+          throw NoSweatError(response.status, (result \ "error").asOpt[String].getOrElse("Adapter unavailable"))
++          throw NoSweatError(
++            response.status,
++            (result \ "error").asOpt[String].getOrElse("Adapter unavailable")
++          )
 +        result
 +
 +  private def initialize(): Funit =
-+    roster.foldLeft(funit): (previous, bot) =>
-+      previous.flatMap: _ =>
-+        val name = UserName((bot \ "username").as[String])
-+        for
-+          existing <- env.user.repo.byId(name.id)
-+          loaded <- existing.fold(env.user.repo.createNoSweatBot(name))(u => fuccess(u.some))
-+          user = loaded.getOrElse(throw NoSweatError(503, "Could not provision bot"))
-+          doc <- env.user.repo.withColl(_.byId[Bdoc](name.id))
-+          _ = requireThat(user.isBot && doc.exists(_.getAsOpt[Boolean]("noSweatBot").contains(true)),
-+            503, "A roster name is occupied by an account outside the club roster")
-+          _ <- if doc.exists(_.getAsOpt[String]("noSweatSeedVersion").isDefined) then funit
-+            else
-+              List(("blitz", PerfKey.blitz), ("rapid", PerfKey.rapid)).foldLeft(funit): (prev, entry) =>
-+                prev.flatMap: _ =>
-+                  val prior = (bot \ "ratings" \ entry._1)
-+                  val perf = lila.rating.Perf.default.copy(
-+                    glicko = new chess.rating.glicko.Glicko(
-+                      (prior \ "initial_rating").as[Double], (prior \ "initial_rd").as[Double], 0.09
-+                    ), latest = nowInstant.some)
-+                  env.user.perfsRepo.setPerf(user.id, entry._2, perf)
-+              .flatMap(_ => env.user.repo.withColl(_.update.one(bid(name.id), set("noSweatSeedVersion" -> "roster-priors-v1")).void))
-+        yield env.user.lightUserApi.invalidate(user.id)
-+    .flatMap: _ =>
-+      // A process restart never guesses how much time unfinished games lost.
-+      records.find(bdoc("state" -> bdoc("$in" -> List("reserved", "active"))))
-+        .cursor[Bdoc]().list(100).flatMap: docs =>
-+          docs.foldLeft(funit)((prev, doc) => prev.flatMap(_ => failGame(doc.getAsOpt[GameId]("_id").get, "application_restart")))
++    roster
++      .foldLeft(funit): (previous, bot) =>
++        previous.flatMap: _ =>
++          val name = UserName((bot \ "username").as[String])
++          for
++            existing <- env.user.repo.byId(name.id)
++            loaded <- existing.fold(env.user.repo.createNoSweatBot(name))(u => fuccess(u.some))
++            user = loaded.getOrElse(throw NoSweatError(503, "Could not provision bot"))
++            doc <- env.user.repo.withColl(_.byId[Bdoc](name.id))
++            _ = requireThat(
++              user.isBot && doc.exists(_.getAsOpt[Boolean]("noSweatBot").contains(true)),
++              503,
++              "A roster name is occupied by an account outside the club roster"
++            )
++            _ <-
++              if doc.exists(_.getAsOpt[String]("noSweatSeedVersion").isDefined) then funit
++              else
++                List(("blitz", PerfKey.blitz), ("rapid", PerfKey.rapid))
++                  .foldLeft(funit): (prev, entry) =>
++                    prev.flatMap: _ =>
++                      val prior = (bot \ "ratings" \ entry._1)
++                      val perf = lila.rating.Perf.default.copy(
++                        glicko = new chess.rating.glicko.Glicko(
++                          (prior \ "initial_rating").as[Double],
++                          (prior \ "initial_rd").as[Double],
++                          0.09
++                        ),
++                        latest = nowInstant.some
++                      )
++                      env.user.perfsRepo.setPerf(user.id, entry._2, perf)
++                  .flatMap(_ =>
++                    env.user.repo.withColl(
++                      _.update.one(bid(name.id), set("noSweatSeedVersion" -> "roster-priors-v1")).void
++                    )
++                  )
++            _ <-
++              if doc.exists(_.getAsOpt[String]("noSweatPoolSeedVersion").isDefined) then funit
++              else
++                List(PerfKey.ultraBullet, PerfKey.bullet, PerfKey.classical, PerfKey.correspondence)
++                  .foldLeft(funit): (prev, key) =>
++                    prev.flatMap: _ =>
++                      val prior =
++                        (bot \ "ratings" \ (if key == PerfKey.classical || key == PerfKey.correspondence then
++                                              "rapid"
++                                            else "blitz"))
++                      val perf = lila.rating.Perf.default.copy(
++                        glicko = new chess.rating.glicko.Glicko(
++                          (prior \ "initial_rating").as[Double],
++                          (prior \ "initial_rd").as[Double],
++                          0.09
++                        ),
++                        latest = nowInstant.some
++                      )
++                      env.user.perfsRepo.setPerf(user.id, key, perf)
++                  .flatMap(_ =>
++                    env.user.repo.withColl(
++                      _.update.one(bid(name.id), set("noSweatPoolSeedVersion" -> "pool-priors-v1")).void
++                    )
++                  )
++          yield env.user.lightUserApi.invalidate(user.id)
++      .flatMap: _ =>
++        // A process restart never guesses how much time unfinished games lost.
++        records
++          .find(bdoc("state" -> bdoc("$in" -> List("reserved", "active"))))
++          .cursor[Bdoc]()
++          .list(100)
++          .flatMap: docs =>
++            docs.foldLeft(funit)((prev, doc) =>
++              prev.flatMap(_ => failGame(doc.getAsOpt[GameId]("_id").get, "application_restart"))
++            )
 +
 +  val ready: Funit = if enabled then initialize() else funit
 +
 +  if enabled then
 +    env.system.scheduler.scheduleWithFixedDelay(5.seconds, 5.seconds): () =>
 +      if System.currentTimeMillis() - lastPoll.get() > 15000 then
-+        ready.flatMap(_ => current()).foreach: games =>
-+          games.foreach((doc, game) => failGame(game.id, "maia_adapter_unavailable"))
++        ready
++          .flatMap(_ => current())
++          .foreach: games =>
++            games.foreach((doc, game) => failGame(game.id, "maia_adapter_unavailable"))
 +
 +  def nostrUser(pubkey: String, requested: Option[String]): Fu[UserModel] = queue:
 +    ready.flatMap: _ =>
 +      requireThat(pubkey.matches("[0-9a-f]{64}"), 401, "Invalid verified identity")
-+      env.user.repo.byNostr(pubkey).flatMap:
-+        case Some(user) =>
-+          requireThat(user.enabled.yes && !user.isBot, 403, "Account unavailable")
-+          fuccess(user)
-+        case None =>
-+          val name = requested.filter(_.nonEmpty).getOrElse("n" + pubkey.take(19))
-+          requireThat(name.matches("[A-Za-z][A-Za-z0-9_-]{2,19}"), 400, "Use a 3–20 character username")
-+          val reserved = Set("lichess", "ghost", "openingexplorer", "broadcaster", "irwin", "kaladin", "ai",
-+            "lichess4545", "challengermode", "watcherbot", "taketaketakeapp", "undefined", "anonymous", "admin", "system", "nosweatchess")
-+          requireThat(!reserved.contains(name.toLowerCase), 409, "That is a reserved system name")
-+          requireThat(!roster.exists(botId(_).value == name.toLowerCase), 409, "That name belongs to a Maia opponent")
-+          env.user.repo.existsPri(UserName(name).id).flatMap: occupied =>
-+            requireThat(!occupied, 409, "Username already taken")
-+            env.user.repo.createNostr(UserName(name), pubkey).map:
-+              _.getOrElse(throw NoSweatError(503, "Could not create identity"))
++      env.user.repo
++        .byNostr(pubkey)
++        .flatMap:
++          case Some(user) =>
++            requireThat(user.enabled.yes && !user.isBot, 403, "Account unavailable")
++            fuccess(user)
++          case None =>
++            val name = requested.filter(_.nonEmpty).getOrElse("n" + pubkey.take(19))
++            requireThat(name.matches("[A-Za-z][A-Za-z0-9_-]{2,19}"), 400, "Use a 3–20 character username")
++            val reserved = Set(
++              "lichess",
++              "ghost",
++              "openingexplorer",
++              "broadcaster",
++              "irwin",
++              "kaladin",
++              "ai",
++              "lichess4545",
++              "challengermode",
++              "watcherbot",
++              "taketaketakeapp",
++              "undefined",
++              "anonymous",
++              "admin",
++              "system",
++              "nosweatchess"
++            )
++            requireThat(!reserved.contains(name.toLowerCase), 409, "That is a reserved system name")
++            requireThat(
++              !roster.exists(botId(_).value == name.toLowerCase),
++              409,
++              "That name belongs to a Maia opponent"
++            )
++            env.user.repo
++              .existsPri(UserName(name).id)
++              .flatMap: occupied =>
++                requireThat(!occupied, 409, "Username already taken")
++                env.user.repo
++                  .createNostr(UserName(name), pubkey)
++                  .map:
++                    _.getOrElse(throw NoSweatError(503, "Could not create identity"))
 +
 +  def isNostr(user: UserModel): Fu[Boolean] =
 +    env.user.repo.withColl(_.exists(bdoc("_id" -> user.id, "nostr" -> bdoc("$exists" -> true))))
 +
 +  private def current(): Fu[List[(Bdoc, GameModel)]] =
-+    records.find(bdoc("state" -> "active")).cursor[Bdoc]().list(100).flatMap: docs =>
-+      docs.traverse: doc =>
-+        env.round.proxyRepo.game(doc.getAsOpt[GameId]("_id").get).flatMap:
-+          case Some(game) if game.playable => fuccess((doc -> game).some)
-+          case _ =>
-+            connectedBots.remove(doc.getAsOpt[GameId]("_id").get)
-+            records.update.one(bid(doc.getAsOpt[GameId]("_id").get), set("state" -> "finished")).map(_ => none)
-+      .map(_.flatten)
++    records
++      .find(bdoc("state" -> "active"))
++      .cursor[Bdoc]()
++      .list(100)
++      .flatMap: docs =>
++        docs
++          .traverse: doc =>
++            env.round.proxyRepo
++              .game(doc.getAsOpt[GameId]("_id").get)
++              .flatMap:
++                case Some(game) if game.playable => fuccess((doc -> game).some)
++                case _ =>
++                  connectedBots.remove(doc.getAsOpt[GameId]("_id").get)
++                  records.update
++                    .one(bid(doc.getAsOpt[GameId]("_id").get), set("state" -> "finished"))
++                    .map(_ => none)
++          .map(_.flatten)
 +
-+  def play(user: UserModel, data: JsValue): Fu[JsObject] = queue:
++  def play(user: Option[UserModel], guest: String, data: JsValue): Fu[JsObject] = queue:
++    val guestHash = java.security.MessageDigest
++      .getInstance("SHA-256")
++      .digest(guest.getBytes(java.nio.charset.StandardCharsets.UTF_8))
++      .map(b => f"${b & 0xff}%02x")
++      .mkString
 +    for
 +      _ <- ready
-+      identity <- isNostr(user)
-+      _ = requireThat(identity && !user.isBot, 403, "Sign in with Nostr first")
++      identity <- user.fold(fuTrue)(isNostr)
++      _ = requireThat(identity && !user.exists(_.isBot), 403, "Sign in with Nostr first")
++      _ = requireThat((data \ "bot").toOption.isEmpty, 400, "Opponents are assigned by the pool")
 +      games <- current()
-+      existing = games.find(_._1.getAsOpt[UserId]("human").contains(user.id))
++      existing = games.find: (doc, _) =>
++        user.fold(doc.getAsOpt[String]("guest").contains(guestHash))(u =>
++          doc.getAsOpt[UserId]("human").contains(u.id)
++        )
 +      result <- existing match
-+        case Some((_, game)) => fuccess(playerLink(game, user.id))
++        case Some((doc, game)) =>
++          fuccess(playerLink(game, Color.fromWhite(doc.getAsOpt[String]("humanColor").contains("white"))))
 +        case None =>
-+          requireThat(games.size < 2, 503, "Private alpha is full; try again after a game finishes")
-+          val slug = (data \ "bot").asOpt[String].getOrElse("")
-+          val bot = roster.find(b => (b \ "id").as[String] == slug)
-+            .getOrElse(throw NoSweatError(400, "Choose a club opponent"))
-+          val control = (data \ "control").asOpt[String].getOrElse("blitz")
-+          requireThat(Set("blitz", "rapid").contains(control), 400, "Choose 5+3 or 10+5")
-+          val color = (data \ "color").asOpt[String].getOrElse("random")
-+          requireThat(Set("white", "black", "random").contains(color), 400, "Invalid color")
-+          val humanColor = if color == "random" then Color.fromWhite(scalalib.SecureRandom.nextInt(2) == 0)
-+            else Color.fromWhite(color == "white")
-+          val clock = Clock.Config(Clock.LimitSeconds(if control == "blitz" then 300 else 600),
-+            Clock.IncrementSeconds(if control == "blitz" then 3 else 5))
-+          val perfKey = if control == "blitz" then PerfKey.blitz else PerfKey.rapid
++          requireThat(games.size < 2, 503, "The playing pool is full. Please try again shortly.")
++          val mode = (data \ "timeMode").asOpt[String].getOrElse("realTime")
++          requireThat(
++            Set("realTime", "correspondence", "unlimited").contains(mode),
++            400,
++            "Invalid time control"
++          )
++          val minutes = (data \ "minutes").asOpt[Double].getOrElse(5d)
++          val increment = (data \ "increment").asOpt[Int].getOrElse(3)
++          requireThat(
++            lila.setup.HookConfig.validateTime(minutes) &&
++              lila.setup.HookConfig.validateIncrement(Clock.IncrementSeconds(increment)) &&
++              (mode != "realTime" || minutes * 60 + increment > 0),
++            400,
++            "Invalid clock"
++          )
++          val days = (data \ "days").asOpt[Int].getOrElse(2)
++          requireThat(Set(1, 2, 3, 5, 7, 10, 14).contains(days), 400, "Invalid correspondence time")
++          val clock = Option.when(mode == "realTime")(
++            Clock.Config(Clock.LimitSeconds((minutes * 60).toInt), Clock.IncrementSeconds(increment))
++          )
++          val perfKey = lila.rating.PerfType(chess.variant.Standard, chess.Speed(clock)).key
++          val rated = user.isDefined && mode != "unlimited" && (data \ "rated").asOpt[Boolean].getOrElse(true)
++          val busy = games.flatMap(_._1.getAsOpt[UserId]("bot")).toSet
 +          for
-+            policy <- adapter("/freeze", Json.obj("bot" -> slug))
-+            human <- env.user.api.byIdWithPerf(user.id, perfKey)
-+            opponent <- env.user.api.byIdWithPerf(botId(bot), perfKey)
-+            _ = requireThat(opponent.exists(_.user.isBot), 503, "Opponent is unavailable")
++            human <- user.traverse(u => env.user.api.byIdWithPerf(u.id, perfKey)).map(_.flatten)
++            opponents <- roster.traverse(b => env.user.api.byIdWithPerf(botId(b), perfKey))
++            rating = human.fold(1500)(_.perf.intRating.value)
++            eligible = opponents.flatten.filter(o =>
++              o.user.isBot && !busy(o.user.id) &&
++                math.abs(o.perf.intRating.value - rating) <= 200
++            )
++            _ = requireThat(
++              eligible.nonEmpty,
++              503,
++              "No opponent within 200 rating points is available. Please try again shortly."
++            )
++            opponent = eligible(scalalib.SecureRandom.nextInt(eligible.size))
++            bot = roster.find(b => botId(b) == opponent.user.id).get
++            slug = (bot \ "id").as[String]
++            frozen <- adapter("/freeze", Json.obj("bot" -> slug))
++            policy = frozen.as[JsObject] ++ Json.obj("rated" -> rated)
++            requestedColor = (data \ "color").asOpt[String].getOrElse("random")
++            _ = requireThat(Set("random", "white", "black").contains(requestedColor), 400, "Invalid color")
++            humanColor = Color.fromWhite(
++              if requestedColor == "random" then scalalib.SecureRandom.nextInt(2) == 0
++              else requestedColor == "white"
++            )
 +            id <- env.game.idGenerator.game
-+            game = lila.core.game.newGame(
-+              chess = chess.Game(position = chess.variant.Standard.initialPosition, clock = clock.toClock.start.some),
-+              players = ByColor(c => lila.game.Player.make(c, if c == humanColor then human else opponent)),
-+              rated = Rated.No, source = Source.Friend, pgnImport = None,
-+              rules = Set(GameRule.noRematch, GameRule.noGiveTime, GameRule.noClaimWin)
-+            ).withId(id).start
-+            _ <- records.insert.one(bdoc("_id" -> id, "human" -> user.id, "bot" -> botId(bot),
-+              "slug" -> slug, "state" -> "reserved", "snapshot" -> Json.stringify(policy),
-+              "createdAt" -> nowInstant, "control" -> control, "prior" -> Json.stringify((bot \ "ratings" \ control).get)))
++            game = lila.core.game
++              .newGame(
++                chess = chess.Game(
++                  position = chess.variant.Standard.initialPosition,
++                  clock = clock.map(_.toClock.start)
++                ),
++                players =
++                  ByColor(c => lila.game.Player.make(c, if c == humanColor then human else opponent.some)),
++                rated = Rated(rated),
++                source = Source.Pool,
++                pgnImport = None,
++                daysPerTurn = Option.when(mode == "correspondence")(scalalib.model.Days(days)),
++                rules = Set(GameRule.noRematch, GameRule.noGiveTime, GameRule.noClaimWin)
++              )
++              .withId(id)
++              .start
++            _ <- records.insert.one(
++              bdoc(
++                "_id" -> id,
++                "human" -> user.map(_.id),
++                "guest" -> Option.when(user.isEmpty)(guestHash),
++                "humanColor" -> humanColor.name,
++                "bot" -> botId(bot),
++                "slug" -> slug,
++                "state" -> "reserved",
++                "rated" -> rated,
++                "snapshot" -> Json.stringify(policy),
++                "createdAt" -> nowInstant,
++                "control" -> clock.fold(mode)(_.show),
++                "matchedRating" -> rating,
++                "opponentRating" -> opponent.perf.intRating.value
++              )
++            )
 +            _ <- env.game.gameRepo.insertDenormalized(game)
 +            _ <- env.round.onStart.exec(id)
 +            _ <- records.update.one(bid(id), set("state" -> "active"))
-+          yield playerLink(game, user.id)
++          yield playerLink(game, humanColor)
 +    yield result
 +
-+  private def playerLink(game: GameModel, userId: UserId): JsObject =
-+    Json.obj("id" -> game.id.value, "url" -> s"/${game.fullIdOf(game.player(userId).get.color).value}", "rated" -> false)
++  private def playerLink(game: GameModel, color: Color): JsObject =
++    Json.obj(
++      "id" -> game.id.value,
++      "url" -> s"/${game.fullIdOf(color).value}",
++      "rated" -> game.rated.yes,
++      "anonymous" -> game.players(color).userId.isEmpty
++    )
 +
 +  def games(instance: Option[String]): Fu[JsValue] =
-+    val restarted = instance.filter(_.matches("[0-9a-f-]{36}")).exists: next =>
-+      lastPoll.set(System.currentTimeMillis())
-+      val previous = adapterInstance.getAndSet(next)
-+      previous.nonEmpty && previous != next
++    val restarted = instance
++      .filter(_.matches("[0-9a-f-]{36}"))
++      .exists: next =>
++        lastPoll.set(System.currentTimeMillis())
++        val previous = adapterInstance.getAndSet(next)
++        previous.nonEmpty && previous != next
 +    if System.currentTimeMillis() - lastOnline.get() > 5000 then
 +      lastOnline.set(System.currentTimeMillis())
 +      roster.foreach(bot => env.bot.onlineApiUsers.setOnline(botId(bot)))
-+    val recover = if !restarted then funit else ready.flatMap(_ => current()).flatMap: games =>
-+      games.foldLeft(funit)((prev, entry) => prev.flatMap(_ => failGame(entry._2.id, "maia_adapter_restart")))
-+    ready.flatMap(_ => recover).flatMap(_ => current()).flatMap: games =>
-+      games.traverse: (doc, game) =>
-+        env.bot.jsonView.gameState(WithInitialFen(game, None)).map: state =>
-+          val bot = doc.getAsOpt[UserId]("bot").get
-+          if connectedBots.add(game.id) then
-+            env.round.roundApi.tell(game.id, lila.core.round.RoundBus.BotConnected(game.player(bot).get.color, true))
-+          Json.obj("id" -> game.id.value, "ply" -> game.ply.value,
-+            "botToMove" -> game.player.userId.contains(bot), "botColor" -> game.player(bot).get.color.name,
-+            "policy" -> Json.parse(doc.getAsOpt[String]("snapshot").get), "state" -> state)
-+      .map(Json.toJson(_))
++    val recover = if !restarted then funit
++    else
++      ready
++        .flatMap(_ => current())
++        .flatMap: games =>
++          games.foldLeft(funit)((prev, entry) =>
++            prev.flatMap(_ => failGame(entry._2.id, "maia_adapter_restart"))
++          )
++    ready
++      .flatMap(_ => recover)
++      .flatMap(_ => current())
++      .flatMap: games =>
++        games
++          .traverse: (doc, game) =>
++            env.bot.jsonView
++              .gameState(WithInitialFen(game, None))
++              .map: state =>
++                val bot = doc.getAsOpt[UserId]("bot").get
++                if connectedBots.add(game.id) then
++                  env.round.roundApi.tell(
++                    game.id,
++                    lila.core.round.RoundBus.BotConnected(game.player(bot).get.color, true)
++                  )
++                Json.obj(
++                  "id" -> game.id.value,
++                  "ply" -> game.ply.value,
++                  "botToMove" -> game.player.userId.contains(bot),
++                  "botColor" -> game.player(bot).get.color.name,
++                  "policy" -> Json.parse(doc.getAsOpt[String]("snapshot").get),
++                  "state" -> state
++                )
++          .map(Json.toJson(_))
 +
 +  def move(id: GameId, ply: Int, uci: String, timing: JsObject): Funit =
 +    for
@@ -370,38 +861,59 @@ index 0000000..eca4f0a
 +      bot <- env.user.repo.byId(botId)
 +      pov <- env.round.proxyRepo.pov(id, botId)
 +      p = pov.getOrElse(throw NoSweatError(404, "No bot seat"))
-+      _ = requireThat(doc.getAsOpt[String]("state").contains("active") && p.game.playable &&
-+        p.game.ply.value == ply && p.isMyTurn && bot.exists(_.isBot), 409, "Game position changed")
++      _ = requireThat(
++        doc.getAsOpt[String]("state").contains("active") && p.game.playable &&
++          p.game.ply.value == ply && p.isMyTurn && bot.exists(_.isBot),
++        409,
++        "Game position changed"
++      )
 +      _ <- env.bot.player.apply(p, uci, Some(false))(using Me(bot.get))
-+      _ <- records.update.one(bid(id), set(s"moves.$ply" -> Json.stringify(
-+        Json.obj("move" -> uci, "timing" -> timing, "at" -> nowInstant.toString))))
++      _ <- records.update.one(
++        bid(id),
++        set(
++          s"moves.$ply" -> Json.stringify(
++            Json.obj("move" -> uci, "timing" -> timing, "at" -> nowInstant.toString)
++          )
++        )
++      )
 +    yield ()
 +
 +  def failGame(id: GameId, reason: String): Funit =
-+    records.byId[Bdoc](id).flatMap:
-+      case None => funit
-+      case Some(doc) if !doc.getAsOpt[String]("state").exists(Set("active", "reserved").contains) => funit
-+      case Some(_) =>
-+        env.round.proxyRepo.game(id).flatMap:
-+          case Some(game) if !game.playable =>
-+            connectedBots.remove(id)
-+            records.update.one(bid(id), set("state" -> "finished")).void
-+          case _ =>
-+            connectedBots.remove(id)
-+            env.round.roundApi.tell(id, lila.core.round.RoundBus.AbortForce)
-+            records.update.one(bid(id), set("state" -> "service_failure", "failure" -> reason.take(80))).void
++    records
++      .byId[Bdoc](id)
++      .flatMap:
++        case None => funit
++        case Some(doc) if !doc.getAsOpt[String]("state").exists(Set("active", "reserved").contains) => funit
++        case Some(_) =>
++          env.round.proxyRepo
++            .game(id)
++            .flatMap:
++              case Some(game) if !game.playable =>
++                connectedBots.remove(id)
++                records.update.one(bid(id), set("state" -> "finished")).void
++              case _ =>
++                connectedBots.remove(id)
++                env.round.roundApi.tell(id, lila.core.round.RoundBus.AbortForce)
++                records.update
++                  .one(bid(id), set("state" -> "service_failure", "failure" -> reason.take(80)))
++                  .void
 +
 +  def details(id: GameId, user: UserModel): Fu[Option[JsValue]] =
-+    records.one[Bdoc](bid(id) ++ bdoc("human" -> user.id)).map2: doc =>
-+      Json.obj("id" -> id.value, "state" -> doc.getAsOpt[String]("state"),
-+        "failure" -> doc.getAsOpt[String]("failure"),
-+        "policy" -> (Json.parse(doc.getAsOpt[String]("snapshot").get).as[JsObject] - "samplingSeed"))
++    records
++      .one[Bdoc](bid(id) ++ bdoc("human" -> user.id))
++      .map2: doc =>
++        Json.obj(
++          "id" -> id.value,
++          "state" -> doc.getAsOpt[String]("state"),
++          "failure" -> doc.getAsOpt[String]("failure"),
++          "policy" -> (Json.parse(doc.getAsOpt[String]("snapshot").get).as[JsObject] - "samplingSeed")
++        )
 diff --git a/app/controllers/NoSweat.scala b/app/controllers/NoSweat.scala
 new file mode 100644
-index 0000000..64e90cb
+index 0000000..a14d778
 --- /dev/null
 +++ b/app/controllers/NoSweat.scala
-@@ -0,0 +1,86 @@
+@@ -0,0 +1,139 @@
 +package controllers
 +
 +import play.api.libs.json.*
@@ -414,7 +926,8 @@ index 0000000..64e90cb
 +  private val club = env.noSweat
 +  private def handle(f: => Fu[Result]): Fu[Result] =
 +    def error(e: Throwable): Result = e match
-+      case NoSweatError(status, reason) => Status(status)(Json.obj("error" -> reason)).withHeaders("Cache-Control" -> "no-store")
++      case NoSweatError(status, reason) =>
++        Status(status)(Json.obj("error" -> reason)).withHeaders("Cache-Control" -> "no-store")
 +      case _: JsResultException => BadRequest(Json.obj("error" -> "Invalid request"))
 +      case _ =>
 +        lila.log("nosweat").error("Club adapter request failed", e)
@@ -433,40 +946,87 @@ index 0000000..64e90cb
 +      throw NoSweatError(403, "Private adapter authentication required")
 +
 +  def home = Open:
-+    handle:
-+      fuccess(Ok(java.nio.file.Files.readString(env.getFile.exec("public/nosweat/index.html").toPath)).as(HTML))
++    fuccess(Redirect("/"))
++
++  def loginPage = Open:
++    handle(Ok.page(views.noSweatLogin()))
 +
 +  def roster = Open:
 +    handle(club.ready.map(_ => Ok(Json.toJson(club.roster))))
 +
 +  def me = Open:
-+    handle(fuccess(Ok(Json.obj("user" -> ctx.me.map(u => Json.obj("id" -> u.userId.value, "username" -> u.username.value))))))
++    handle(
++      fuccess(
++        Ok(
++          Json.obj(
++            "user" -> ctx.me.map(u => Json.obj("id" -> u.userId.value, "username" -> u.username.value))
++          )
++        )
++      )
++    )
 +
-+  def challenge = OpenBodyOf(parse.tolerantText(4096)):
-+    context ?=>
-+      handle:
-+        sameOrigin
-+        club.adapter("/challenge", Json.parse(context.body.body)).map(Ok(_))
++  def challenge = OpenBodyOf(parse.tolerantText(4096)): context ?=>
++    handle:
++      sameOrigin
++      club.adapter("/challenge", Json.parse(context.body.body)).map(Ok(_))
 +
-+  def login = OpenBodyOf(parse.tolerantText(16384)):
-+    context ?=>
-+      handle:
-+        sameOrigin
-+        val raw = context.body.body
-+        for
-+          verified <- club.adapter("/verify", Json.obj("authorization" -> context.req.headers.get("Authorization"), "rawBody" -> raw))
-+          user <- club.nostrUser((verified \ "pubkey").as[String], (Json.parse(raw) \ "username").asOpt[String])
-+          session <- env.security.api.saveAuthentication(user.id, None, IsPwned(false))
-+        yield Ok(Json.obj("username" -> user.username.value, "url" -> "/club"))
-+          .withCookies(env.security.lilaCookie.withSession(remember = true) { s =>
-+            s + (env.security.api.sessionIdKey -> session.value)
-+          })
++  def login = OpenBodyOf(parse.tolerantText(16384)): context ?=>
++    handle:
++      sameOrigin
++      val raw = context.body.body
++      for
++        verified <- club.adapter(
++          "/verify",
++          Json.obj("authorization" -> context.req.headers.get("Authorization"), "rawBody" -> raw)
++        )
++        user <- club.nostrUser((verified \ "pubkey").as[String], (Json.parse(raw) \ "username").asOpt[String])
++        session <- env.security.api.saveAuthentication(user.id, None, IsPwned(false))
++      yield Ok(Json.obj("username" -> user.username.value, "url" -> "/"))
++        .withCookies(env.security.lilaCookie.withSession(remember = true) { s =>
++          s + (env.security.api.sessionIdKey -> session.value)
++        })
 +
-+  def play = AuthBody(parse.tolerantText(4096)):
-+    context ?=> user ?=>
-+      handle:
-+        sameOrigin
-+        club.play(user.value, Json.parse(context.body.body)).map(Ok(_))
++  def play = OpenBodyOf(parse.tolerantText(4096)): context ?=>
++    handle:
++      sameOrigin
++      val submitted = Json.parse(context.body.body)
++      val setup: Fu[JsValue] = (submitted \ "like")
++        .asOpt[String]
++        .fold(fuccess(submitted)): id =>
++          if !id.matches("[A-Za-z0-9]{8}") then throw NoSweatError(400, "Invalid previous game")
++          env.game.gameRepo
++            .game(GameId(id))
++            .map: previous =>
++              val game = previous.getOrElse(throw NoSweatError(404, "Previous game not found"))
++              game.clock.fold[JsValue](
++                Json.obj(
++                  "timeMode" -> (if game.daysPerTurn.isDefined then "correspondence" else "unlimited"),
++                  "days" -> game.daysPerTurn.fold(2)(_.value),
++                  "rated" -> game.rated.yes
++                )
++              )(clock =>
++                Json.obj(
++                  "minutes" -> (clock.config.limitSeconds.value / 60d),
++                  "increment" -> clock.config.incrementSeconds.value,
++                  "rated" -> game.rated.yes
++                )
++              )
++      setup.flatMap: data =>
++        env.security.lilaCookie.ensureAndGet: sid =>
++          club
++            .play(context.user, sid.value, data)
++            .map: game =>
++              val result = Ok(game)
++              if (game \ "anonymous").as[Boolean] then
++                result.withCookies(
++                  env.security.lilaCookie.cookie(
++                    lila.game.AnonCookie.name,
++                    (game \ "url").as[String].takeRight(4),
++                    maxAge = lila.game.AnonCookie.maxAge.some,
++                    httpOnly = false.some
++                  )
++                )
++              else result
 +
 +  def games = Anon:
 +    handle:
@@ -477,17 +1037,97 @@ index 0000000..64e90cb
 +    handle:
 +      internal
 +      val json = Json.parse(body)
-+      club.move(id, (json \ "ply").as[Int], (json \ "move").as[String],
-+        (json \ "timing").asOpt[JsObject].getOrElse(Json.obj())).map(_ => Ok(Json.obj("ok" -> true)))
++      club
++        .move(
++          id,
++          (json \ "ply").as[Int],
++          (json \ "move").as[String],
++          (json \ "timing").asOpt[JsObject].getOrElse(Json.obj())
++        )
++        .map(_ => Ok(Json.obj("ok" -> true)))
 +
 +  def failure(id: GameId) = AnonBodyOf(parse.tolerantText(4096)): body =>
 +    handle:
 +      internal
 +      club.failGame(id, "maia_service_failure").map(_ => Ok(Json.obj("ok" -> true)))
 +
-+  def game(id: GameId) = Auth:
-+    context ?=> user ?=>
-+      handle(club.details(id, user.value).map(_.fold(NotFound)(Ok(_))))
++  def game(id: GameId) = Auth: context ?=>
++    user ?=> handle(club.details(id, user.value).map(_.fold(NotFound)(Ok(_))))
+diff --git a/app/views/noSweatLogin.scala b/app/views/noSweatLogin.scala
+new file mode 100644
+index 0000000..3f5b616
+--- /dev/null
++++ b/app/views/noSweatLogin.scala
+@@ -0,0 +1,69 @@
++package views
++
++import lila.app.UiEnv.{ *, given }
++
++object noSweatLogin:
++  def apply()(using Context) =
++    Page("Sign in")
++      .css("bits.auth")
++      .headAppend(link(rel := "stylesheet", href := assetPath("nosweat/nostr.css")))
++      .headAppend(script(src := assetPath("nosweat/nostr.js"), defer)):
++        main(cls := "auth auth-login box box-pad")(
++          div(cls := "auth__brand")(
++            img(
++              cls := "nosweat-login-wordmark nosweat-dark",
++              src := assetPath("nosweat/wordmark.svg"),
++              alt := "nosweatchess"
++            ),
++            img(
++              cls := "nosweat-login-wordmark nosweat-light",
++              src := assetPath("nosweat/wordmark-light.svg"),
++              alt := "nosweatchess"
++            )
++          ),
++          h1("Sign in with Nostr"),
++          p("A browser signer (NIP-07) is recommended. It keeps your private key outside this website."),
++          div(cls := "form3")(
++            label(cls := "form-label", `for` := "nostr-username")("Username (optional, for new accounts)"),
++            input(id := "nostr-username", cls := "form-control", maxlength := 20, autocomplete := "username"),
++            button(id := "nostr-extension", cls := "button button-green")("Sign in with browser signer"),
++            div(id := "nostr-saved", hidden)(
++              button(id := "nostr-use-saved", cls := "button")("Sign in with saved key"),
++              button(id := "nostr-forget", cls := "button button-empty")("Forget saved key")
++            ),
++            div(cls := "or-separator")(span("or use a key in this browser")),
++            p(cls := "nostr-help")(
++              "Browser keys are stored on this device. Website scripts can use them; a signer extension provides better isolation. Back up your nsec before clearing browser data."
++            ),
++            button(id := "nostr-generate", cls := "button button-metal")("Generate a Nostr key"),
++            label(cls := "form-label", `for` := "nostr-nsec")("Import your nsec"),
++            input(
++              id := "nostr-nsec",
++              cls := "form-control",
++              tpe := "password",
++              autocomplete := "off",
++              spellcheck := "false",
++              placeholder := "nsec1…"
++            ),
++            button(id := "nostr-import", cls := "button button-metal")("Save key and sign in"),
++            div(id := "nostr-created", hidden)(
++              p(
++                "Your new key is ready. Save this private backup somewhere safe. Anyone with it can sign in as you."
++              ),
++              input(
++                id := "nostr-backup",
++                cls := "form-control",
++                tpe := "password",
++                readonly,
++                autocomplete := "off"
++              ),
++              button(id := "nostr-reveal", cls := "button button-empty")("Show backup nsec"),
++              button(id := "nostr-create-login", cls := "button button-green")("Save key and create account")
++            ),
++            p(id := "nostr-status", role := "status", aria.live := "polite"),
++            p(cls := "nostr-help")(
++              "Only your public key and a signed login challenge go to the server. Signing in does not publish to Nostr relays."
++            ),
++            a(href := "/")("Continue without signing in")
++          )
++        )
 diff --git a/public/nosweat-roster.json b/public/nosweat-roster.json
 new file mode 100644
 index 0000000..f8dcde1
@@ -2300,109 +2940,57 @@ index 0000000..f8dcde1
 +    "username": "KernelGhost"
 +  }
 +]
-diff --git a/public/nosweat/club.js b/public/nosweat/club.js
+diff --git a/public/nosweat/brand.css b/public/nosweat/brand.css
 new file mode 100644
-index 0000000..1e0ebae
+index 0000000..2dea5b0
 --- /dev/null
-+++ b/public/nosweat/club.js
-@@ -0,0 +1,63 @@
-+'use strict';
-+const $ = id => document.getElementById(id);
-+let bots = [];
-+let signedIn = false;
-+async function request(path, body, headers = {}) {
-+  const response = await fetch(path, { method: body ? 'POST' : 'GET', credentials: 'same-origin',
-+    headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...headers },
-+    body: body ? JSON.stringify(body) : undefined });
-+  const result = await response.json();
-+  if (!response.ok) throw Error(result.error || 'The club is temporarily unavailable.');
-+  return result;
-+}
-+function profile() {
-+  const bot = bots.find(b => b.id === $('bot').value);
-+  if (!bot) return;
-+  const prior = bot.ratings[$('control').value];
-+  $('profile').textContent = `${bot.name} · estimated ${prior.initial_rating}? (RD ${prior.initial_rd}). ` +
-+    `Maia3 79M · both conditioning inputs ${bot.conditioning_self} · ${bot.sampling_profile} sampling` +
-+    (bot.opening.full_moves ? ' after five full-sampling opening moves' : '') +
-+    '. History is chosen 50/50 once per game. Variable human timing. ' +
-+    (bot.conditioning_self >= 2200 ? 'Experimental, unvalidated policy.' : 'Provisional, unvalidated policy.');
-+}
-+async function session() {
-+  const { user } = await request('/club/me');
-+  signedIn = !!user;
-+  $('signin').hidden = signedIn; $('account').hidden = !signedIn; $('play').disabled = !signedIn;
-+  if (user) { $('welcome').textContent = 'Welcome, ' + user.username; $('history').href = '/@/' + encodeURIComponent(user.username); }
-+}
-+$('login').addEventListener('click', async () => {
-+  $('status').textContent = '';
-+  if (!window.nostr) { $('status').textContent = 'Open this page in a desktop browser with a NIP-07 Nostr signer to sign in.'; return; }
-+  $('login').disabled = true;
-+  try {
-+    const pubkey = await window.nostr.getPublicKey();
-+    const challenge = await request('/club/challenge', { pubkey });
-+    const body = { challenge: challenge.challenge };
-+    if ($('username').value.trim()) body.username = $('username').value.trim();
-+    const raw = JSON.stringify(body);
-+    const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
-+    const payload = [...new Uint8Array(hash)].map(byte => byte.toString(16).padStart(2, '0')).join('');
-+    const event = await window.nostr.signEvent({ kind: 27235, created_at: Math.floor(Date.now() / 1000), content: '',
-+      tags: [['u', challenge.url], ['method', 'POST'], ['challenge', challenge.challenge], ['payload', payload]] });
-+    await request('/club/login', body, { Authorization: 'Nostr ' + btoa(JSON.stringify(event)) });
-+    await session(); $('status').textContent = 'Signed in. Choose an opponent to play.';
-+  } catch (error) { $('status').textContent = error.message; }
-+  finally { $('login').disabled = false; }
-+});
-+$('play').addEventListener('click', async () => {
-+  if (!signedIn) return;
-+  $('play').disabled = true; $('status').textContent = 'Finding your seat…';
-+  try {
-+    const game = await request('/club/play', { bot: $('bot').value, control: $('control').value, color: $('color').value });
-+    location.assign(game.url);
-+  } catch (error) { $('status').textContent = error.message; $('play').disabled = false; }
-+});
-+$('bot').addEventListener('change', profile); $('control').addEventListener('change', profile);
-+(async () => {
-+  try {
-+    bots = await request('/club/roster');
-+    for (const bot of bots) { const option = document.createElement('option'); option.value = bot.id; option.textContent = bot.name; $('bot').append(option); }
-+    profile(); await session();
-+  } catch (error) { $('status').textContent = error.message; }
-+})();
-diff --git a/public/nosweat/index.html b/public/nosweat/index.html
-new file mode 100644
-index 0000000..3a4a4c7
---- /dev/null
-+++ b/public/nosweat/index.html
-@@ -0,0 +1,24 @@
-+<!doctype html>
-+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-+<title>No Sweat Chess · Alpha</title><link rel="stylesheet" href="/assets/nosweat/club.css">
-+<script defer src="/assets/nosweat/club.js"></script></head>
-+<body><main>
-+<header><a class="brand" href="/club">No Sweat Chess</a><span>Unrated alpha</span></header>
-+<h1>Stay human. Play bots.</h1>
-+<p class="lead">Choose a Maia opponent. Play on the Lichess board. Review with browser Stockfish.</p>
-+<p class="notice">All games are unrated. Opponent ratings are provisional estimates, not measured strength.</p>
-+<section id="signin"><h2>Enter the club</h2><p>Use your Nostr browser signer. Your private key stays with your signer; signing in does not publish anything.</p>
-+<p class="small">We store your public key, club handle, games and session security information. Games are not published to Nostr relays. Public network connections pass through Cloudflare.</p>
-+<label>New username <span>(optional; first sign-in only)</span><input id="username" maxlength="20" autocomplete="off" placeholder="Choose a club handle"></label>
-+<button id="login">Sign in with Nostr</button></section>
-+<section id="account" hidden><h2 id="welcome"></h2><p>Choose an opponent or return to your saved games.</p>
-+<nav><a id="history" href="/club">Your games</a><a href="/analysis">Analysis board</a>
-+<form action="/logout" method="post"><button class="secondary" type="submit">Sign out</button></form></nav></section>
-+<section><h2>Find a familiar opponent</h2>
-+<label>Opponent<select id="bot"></select></label><p id="profile" class="profile"></p>
-+<div class="choices"><label>Clock<select id="control"><option value="blitz">5 + 3 · Blitz</option><option value="rapid">10 + 5 · Rapid</option></select></label>
-+<label>Your pieces<select id="color"><option value="random">Random</option><option value="white">White</option><option value="black">Black</option></select></label></div>
-+<button id="play" disabled>Play Maia</button><p class="small">One game per account. The alpha admits two games at a time. Select Play Maia again to return to an unfinished game.</p></section>
-+<p id="status" role="status" aria-live="polite"></p>
-+<footer>Desktop browsers · Human versus Maia only · <a href="/analysis">Open analysis</a> · <a href="/source.tar.gz">Source &amp; licenses</a></footer>
-+</main></body></html>
-diff --git a/public/nosweat/club.css b/public/nosweat/club.css
-new file mode 100644
-index 0000000..bba055e
---- /dev/null
-+++ b/public/nosweat/club.css
++++ b/public/nosweat/brand.css
 @@ -0,0 +1 @@
-+:root{color-scheme:dark;font:16px/1.55 system-ui,sans-serif;background:#171c1b;color:#e7e9df}*{box-sizing:border-box}body{margin:0}main{max-width:820px;margin:38px auto;padding:0 30px 30px}header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #46534c;padding-bottom:18px}header span,.small,footer{color:#b0bbb1;font-size:13px}.brand{font-size:24px;font-weight:750;color:#d6e9c2;text-decoration:none}h1{font-size:46px;letter-spacing:-1.8px;line-height:1.15;margin-bottom:14px}h2{font-size:21px;margin:0 0 12px}.lead{color:#c5cec2}.notice{padding:12px 16px;background:#333525;border-left:3px solid #b5ae6f}section{padding:24px;margin:20px 0;background:#242c27;border:1px solid #46534c;border-radius:8px}label{display:block;font-size:14px;margin-bottom:16px}label span{color:#aeb8ac}input,select{display:block;width:100%;font:inherit;color:#f0f3e8;background:#171e19;border:1px solid #65705f;border-radius:4px;padding:10px;margin-top:5px}input{max-width:420px}button{font:inherit;font-weight:650;border:0;border-radius:4px;padding:12px 22px;cursor:pointer;color:#18231b;background:#c6dfa9}button:disabled{opacity:.5;cursor:default}.secondary{font-size:14px;padding:6px 12px;background:#475447;color:#fff}.choices{display:grid;grid-template-columns:1fr 1fr;gap:18px}.profile{min-height:72px;color:#bfcbb8;font-size:14px}nav{display:flex;align-items:center;gap:24px}a{color:#c7dfae}form{margin:0}#status{min-height:28px;color:#e1c47a}footer{border-top:1px solid #46534c;padding-top:16px}[hidden]{display:none!important}@media(max-width:800px){main{min-width:760px;margin:20px}header span{font-size:12px}}
++.site-title .nosweat-header-icon{width:38px;height:38px;margin-right:7px}.site-title .nosweat-wordmark{width:174px;height:50px;object-fit:contain}.nosweat-light{display:none}.light .nosweat-dark{display:none}.light .nosweat-light{display:block}.nosweat-login-wordmark{width:272px;max-width:100%;height:62px}.auth__brand{justify-content:center}@media(max-width:799px){.site-title .nosweat-wordmark{display:none!important}.site-title .nosweat-header-icon{width:36px;height:36px;margin:0}}
+diff --git a/public/nosweat/icon.svg b/public/nosweat/icon.svg
+new file mode 100644
+index 0000000..50723d8
+--- /dev/null
++++ b/public/nosweat/icon.svg
+@@ -0,0 +1 @@
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88 88"><title>nosweatchess</title><path d="M14 8H26V16H38V8H50V16H62V8H74V28L31 62H51V52L66 40V65L73 73H15L20 64L57 35H23L14 26Z M8 76H78V84H8Z" fill="#b184ff"/></svg>
+\ No newline at end of file
+diff --git a/public/nosweat/nostr.css b/public/nosweat/nostr.css
+new file mode 100644
+index 0000000..85552df
+--- /dev/null
++++ b/public/nosweat/nostr.css
+@@ -0,0 +1 @@
++.auth-login h1{font-size:1.65em;text-align:center;margin:1em 0}.auth-login>p{line-height:1.5}.auth-login .form3{display:grid;gap:12px}.auth-login .form-control{width:100%}.auth-login .nostr-help{font-size:.85em;color:var(--c-font-dim);line-height:1.5}.auth-login #nostr-status{color:var(--c-bad)}.auth-login [hidden]{display:none!important}.auth-login #nostr-created,.auth-login #nostr-saved{display:grid;gap:12px}.auth-login .or-separator{margin:14px 0}
+diff --git a/public/nosweat/textmark-light.svg b/public/nosweat/textmark-light.svg
+new file mode 100644
+index 0000000..a9babad
+--- /dev/null
++++ b/public/nosweat/textmark-light.svg
+@@ -0,0 +1 @@
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 292 88" role="img"><title>nosweatchess</title><g transform="translate(0 61) scale(0.043 -0.043)"><path transform="translate(0 0)" d="M73.50445556640625 0V526.4955444335938H363.40966796875Q522.9910888671875 526.4955444335938 522.9910888671875 366.59033203125V0H395.49365234375V376.59033203125Q395.49365234375 415.49365234375 356.59033203125 415.49365234375H201.00189208984375V0Z" fill="#3d383e"/><path transform="translate(595 0)" d="M65.50445556640625 159.90521240234375V366.59033203125Q65.50445556640625 526.4955444335938 225.40966796875 526.4955444335938H365.40966796875Q524.9910888671875 526.4955444335938 524.9910888671875 366.59033203125V159.90521240234375Q524.9910888671875 0 365.40966796875 0H225.40966796875Q65.50445556640625 0 65.50445556640625 159.90521240234375ZM193.00189208984375 149.90521240234375Q193.00189208984375 111.00189208984375 231.90521240234375 111.00189208984375H358.59033203125Q397.49365234375 111.00189208984375 397.49365234375 149.90521240234375V376.59033203125Q397.49365234375 415.49365234375 358.59033203125 415.49365234375H231.90521240234375Q193.00189208984375 415.49365234375 193.00189208984375 376.59033203125Z" fill="#3d383e"/><path transform="translate(1188 0)" d="M54.885498046875 41.96246337890625V111.00189208984375H285.5330810546875Q325.81744384765625 111.00189208984375 325.81744384765625 154.6959228515625Q325.81744384765625 199.38995361328125 292.361328125 205.3040771484375L182.59033203125 223.5992431640625Q54.885498046875 245.27545166015625 54.885498046875 369.15203857421875Q54.885498046875 526.4955444335938 215.114501953125 526.4955444335938H371.885498046875L428.2862548828125 484.5330810546875V415.49365234375H221.638671875Q181.030517578125 415.49365234375 181.030517578125 371.79962158203125Q181.030517578125 327.25762939453125 216.4580078125 321.6959228515625L326.22900390625 303.4007568359375Q452.2862548828125 282.72454833984375 452.2862548828125 157.66729736328125Q452.2862548828125 0 291.73345947265625 0H111.2862548828125Z" fill="#3d383e"/><path transform="translate(1697 0)" d="M22.295166015625 507.02862548828125 36.0572509765625 526.4955444335938H143.05914306640625L227.86767578125 111.00189208984375H236.4007568359375L338.1234130859375 526.4955444335938H480.030517578125L581.753173828125 111.00189208984375H590.6100463867188L675.4185791015625 526.4955444335938H782.0966796875L795.8587646484375 507.02862548828125L687.1736450195312 0H494.95166015625L409.07696533203125 374.6832275390625L323.2022705078125 0H131.3040771484375Z" fill="#3d383e"/><path transform="translate(2518 0)" d="M65.50445556640625 159.90521240234375V366.59033203125Q65.50445556640625 526.4955444335938 225.40966796875 526.4955444335938H355.40966796875Q514.9910888671875 526.4955444335938 514.9910888671875 366.59033203125V216.0089111328125H193.00189208984375V149.90521240234375Q193.00189208984375 111.00189208984375 231.90521240234375 111.00189208984375H494.9910888671875V41.96246337890625L438.59033203125 0H225.40966796875Q65.50445556640625 0 65.50445556640625 159.90521240234375ZM193.00189208984375 314.162841796875H387.49365234375V376.59033203125Q387.49365234375 415.49365234375 348.59033203125 415.49365234375H231.90521240234375Q193.00189208984375 415.49365234375 193.00189208984375 376.59033203125Z" fill="#3d383e"/><path transform="translate(3101 0)" d="M205.73345947265625 0Q45.50445556640625 0 45.50445556640625 157.49554443359375Q45.50445556640625 314.9910888671875 205.73345947265625 314.9910888671875H351.49365234375V376.59033203125Q351.49365234375 415.49365234375 312.59033203125 415.49365234375H100.295166015625V484.5330810546875L156.6959228515625 526.4955444335938H319.40966796875Q478.9910888671875 526.4955444335938 478.9910888671875 366.59033203125V0ZM173.00189208984375 149.90521240234375Q173.00189208984375 111.00189208984375 211.90521240234375 111.00189208984375H351.49365234375V216.837158203125H211.90521240234375Q173.00189208984375 216.837158203125 173.00189208984375 177.933837890625Z" fill="#3d383e"/><path transform="translate(3652 0)" d="M69.50445556640625 159.90521240234375V690H197.00189208984375V526.4955444335938H372.30596923828125V415.49365234375H197.00189208984375V149.90521240234375Q197.00189208984375 111.00189208984375 235.90521240234375 111.00189208984375H382.30596923828125V41.96246337890625L325.90521240234375 0H229.40966796875Q69.50445556640625 0 69.50445556640625 159.90521240234375Z" fill="#3d383e"/><path transform="translate(4073 0)" d="M65.50445556640625 159.90521240234375V366.59033203125Q65.50445556640625 526.4955444335938 225.40966796875 526.4955444335938H413.20928955078125L469.61004638671875 484.5330810546875V415.49365234375H231.90521240234375Q193.00189208984375 415.49365234375 193.00189208984375 376.59033203125V149.90521240234375Q193.00189208984375 111.00189208984375 231.90521240234375 111.00189208984375H469.61004638671875V41.96246337890625L413.20928955078125 0H225.40966796875Q65.50445556640625 0 65.50445556640625 159.90521240234375Z" fill="#7433c9"/><path transform="translate(4592 0)" d="M73.50445556640625 0V740H201.00189208984375V526.4955444335938H363.40966796875Q522.9910888671875 526.4955444335938 522.9910888671875 366.59033203125V0H395.49365234375V376.59033203125Q395.49365234375 415.49365234375 356.59033203125 415.49365234375H201.00189208984375V0Z" fill="#7433c9"/><path transform="translate(5187 0)" d="M65.50445556640625 159.90521240234375V366.59033203125Q65.50445556640625 526.4955444335938 225.40966796875 526.4955444335938H355.40966796875Q514.9910888671875 526.4955444335938 514.9910888671875 366.59033203125V216.0089111328125H193.00189208984375V149.90521240234375Q193.00189208984375 111.00189208984375 231.90521240234375 111.00189208984375H494.9910888671875V41.96246337890625L438.59033203125 0H225.40966796875Q65.50445556640625 0 65.50445556640625 159.90521240234375ZM193.00189208984375 314.162841796875H387.49365234375V376.59033203125Q387.49365234375 415.49365234375 348.59033203125 415.49365234375H231.90521240234375Q193.00189208984375 415.49365234375 193.00189208984375 376.59033203125Z" fill="#7433c9"/><path transform="translate(5770 0)" d="M54.885498046875 41.96246337890625V111.00189208984375H285.5330810546875Q325.81744384765625 111.00189208984375 325.81744384765625 154.6959228515625Q325.81744384765625 199.38995361328125 292.361328125 205.3040771484375L182.59033203125 223.5992431640625Q54.885498046875 245.27545166015625 54.885498046875 369.15203857421875Q54.885498046875 526.4955444335938 215.114501953125 526.4955444335938H371.885498046875L428.2862548828125 484.5330810546875V415.49365234375H221.638671875Q181.030517578125 415.49365234375 181.030517578125 371.79962158203125Q181.030517578125 327.25762939453125 216.4580078125 321.6959228515625L326.22900390625 303.4007568359375Q452.2862548828125 282.72454833984375 452.2862548828125 157.66729736328125Q452.2862548828125 0 291.73345947265625 0H111.2862548828125Z" fill="#7433c9"/><path transform="translate(6279 0)" d="M54.885498046875 41.96246337890625V111.00189208984375H285.5330810546875Q325.81744384765625 111.00189208984375 325.81744384765625 154.6959228515625Q325.81744384765625 199.38995361328125 292.361328125 205.3040771484375L182.59033203125 223.5992431640625Q54.885498046875 245.27545166015625 54.885498046875 369.15203857421875Q54.885498046875 526.4955444335938 215.114501953125 526.4955444335938H371.885498046875L428.2862548828125 484.5330810546875V415.49365234375H221.638671875Q181.030517578125 415.49365234375 181.030517578125 371.79962158203125Q181.030517578125 327.25762939453125 216.4580078125 321.6959228515625L326.22900390625 303.4007568359375Q452.2862548828125 282.72454833984375 452.2862548828125 157.66729736328125Q452.2862548828125 0 291.73345947265625 0H111.2862548828125Z" fill="#7433c9"/></g></svg>
+\ No newline at end of file
+diff --git a/public/nosweat/textmark.svg b/public/nosweat/textmark.svg
+new file mode 100644
+index 0000000..c448b7f
+--- /dev/null
++++ b/public/nosweat/textmark.svg
+@@ -0,0 +1 @@
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 292 88" role="img"><title>nosweatchess</title><g transform="translate(0 61) scale(0.043 -0.043)"><path transform="translate(0 0)" d="M73.50445556640625 0V526.4955444335938H363.40966796875Q522.9910888671875 526.4955444335938 522.9910888671875 366.59033203125V0H395.49365234375V376.59033203125Q395.49365234375 415.49365234375 356.59033203125 415.49365234375H201.00189208984375V0Z" fill="#e8e6e3"/><path transform="translate(595 0)" d="M65.50445556640625 159.90521240234375V366.59033203125Q65.50445556640625 526.4955444335938 225.40966796875 526.4955444335938H365.40966796875Q524.9910888671875 526.4955444335938 524.9910888671875 366.59033203125V159.90521240234375Q524.9910888671875 0 365.40966796875 0H225.40966796875Q65.50445556640625 0 65.50445556640625 159.90521240234375ZM193.00189208984375 149.90521240234375Q193.00189208984375 111.00189208984375 231.90521240234375 111.00189208984375H358.59033203125Q397.49365234375 111.00189208984375 397.49365234375 149.90521240234375V376.59033203125Q397.49365234375 415.49365234375 358.59033203125 415.49365234375H231.90521240234375Q193.00189208984375 415.49365234375 193.00189208984375 376.59033203125Z" fill="#e8e6e3"/><path transform="translate(1188 0)" d="M54.885498046875 41.96246337890625V111.00189208984375H285.5330810546875Q325.81744384765625 111.00189208984375 325.81744384765625 154.6959228515625Q325.81744384765625 199.38995361328125 292.361328125 205.3040771484375L182.59033203125 223.5992431640625Q54.885498046875 245.27545166015625 54.885498046875 369.15203857421875Q54.885498046875 526.4955444335938 215.114501953125 526.4955444335938H371.885498046875L428.2862548828125 484.5330810546875V415.49365234375H221.638671875Q181.030517578125 415.49365234375 181.030517578125 371.79962158203125Q181.030517578125 327.25762939453125 216.4580078125 321.6959228515625L326.22900390625 303.4007568359375Q452.2862548828125 282.72454833984375 452.2862548828125 157.66729736328125Q452.2862548828125 0 291.73345947265625 0H111.2862548828125Z" fill="#e8e6e3"/><path transform="translate(1697 0)" d="M22.295166015625 507.02862548828125 36.0572509765625 526.4955444335938H143.05914306640625L227.86767578125 111.00189208984375H236.4007568359375L338.1234130859375 526.4955444335938H480.030517578125L581.753173828125 111.00189208984375H590.6100463867188L675.4185791015625 526.4955444335938H782.0966796875L795.8587646484375 507.02862548828125L687.1736450195312 0H494.95166015625L409.07696533203125 374.6832275390625L323.2022705078125 0H131.3040771484375Z" fill="#e8e6e3"/><path transform="translate(2518 0)" d="M65.50445556640625 159.90521240234375V366.59033203125Q65.50445556640625 526.4955444335938 225.40966796875 526.4955444335938H355.40966796875Q514.9910888671875 526.4955444335938 514.9910888671875 366.59033203125V216.0089111328125H193.00189208984375V149.90521240234375Q193.00189208984375 111.00189208984375 231.90521240234375 111.00189208984375H494.9910888671875V41.96246337890625L438.59033203125 0H225.40966796875Q65.50445556640625 0 65.50445556640625 159.90521240234375ZM193.00189208984375 314.162841796875H387.49365234375V376.59033203125Q387.49365234375 415.49365234375 348.59033203125 415.49365234375H231.90521240234375Q193.00189208984375 415.49365234375 193.00189208984375 376.59033203125Z" fill="#e8e6e3"/><path transform="translate(3101 0)" d="M205.73345947265625 0Q45.50445556640625 0 45.50445556640625 157.49554443359375Q45.50445556640625 314.9910888671875 205.73345947265625 314.9910888671875H351.49365234375V376.59033203125Q351.49365234375 415.49365234375 312.59033203125 415.49365234375H100.295166015625V484.5330810546875L156.6959228515625 526.4955444335938H319.40966796875Q478.9910888671875 526.4955444335938 478.9910888671875 366.59033203125V0ZM173.00189208984375 149.90521240234375Q173.00189208984375 111.00189208984375 211.90521240234375 111.00189208984375H351.49365234375V216.837158203125H211.90521240234375Q173.00189208984375 216.837158203125 173.00189208984375 177.933837890625Z" fill="#e8e6e3"/><path transform="translate(3652 0)" d="M69.50445556640625 159.90521240234375V690H197.00189208984375V526.4955444335938H372.30596923828125V415.49365234375H197.00189208984375V149.90521240234375Q197.00189208984375 111.00189208984375 235.90521240234375 111.00189208984375H382.30596923828125V41.96246337890625L325.90521240234375 0H229.40966796875Q69.50445556640625 0 69.50445556640625 159.90521240234375Z" fill="#e8e6e3"/><path transform="translate(4073 0)" d="M65.50445556640625 159.90521240234375V366.59033203125Q65.50445556640625 526.4955444335938 225.40966796875 526.4955444335938H413.20928955078125L469.61004638671875 484.5330810546875V415.49365234375H231.90521240234375Q193.00189208984375 415.49365234375 193.00189208984375 376.59033203125V149.90521240234375Q193.00189208984375 111.00189208984375 231.90521240234375 111.00189208984375H469.61004638671875V41.96246337890625L413.20928955078125 0H225.40966796875Q65.50445556640625 0 65.50445556640625 159.90521240234375Z" fill="#b184ff"/><path transform="translate(4592 0)" d="M73.50445556640625 0V740H201.00189208984375V526.4955444335938H363.40966796875Q522.9910888671875 526.4955444335938 522.9910888671875 366.59033203125V0H395.49365234375V376.59033203125Q395.49365234375 415.49365234375 356.59033203125 415.49365234375H201.00189208984375V0Z" fill="#b184ff"/><path transform="translate(5187 0)" d="M65.50445556640625 159.90521240234375V366.59033203125Q65.50445556640625 526.4955444335938 225.40966796875 526.4955444335938H355.40966796875Q514.9910888671875 526.4955444335938 514.9910888671875 366.59033203125V216.0089111328125H193.00189208984375V149.90521240234375Q193.00189208984375 111.00189208984375 231.90521240234375 111.00189208984375H494.9910888671875V41.96246337890625L438.59033203125 0H225.40966796875Q65.50445556640625 0 65.50445556640625 159.90521240234375ZM193.00189208984375 314.162841796875H387.49365234375V376.59033203125Q387.49365234375 415.49365234375 348.59033203125 415.49365234375H231.90521240234375Q193.00189208984375 415.49365234375 193.00189208984375 376.59033203125Z" fill="#b184ff"/><path transform="translate(5770 0)" d="M54.885498046875 41.96246337890625V111.00189208984375H285.5330810546875Q325.81744384765625 111.00189208984375 325.81744384765625 154.6959228515625Q325.81744384765625 199.38995361328125 292.361328125 205.3040771484375L182.59033203125 223.5992431640625Q54.885498046875 245.27545166015625 54.885498046875 369.15203857421875Q54.885498046875 526.4955444335938 215.114501953125 526.4955444335938H371.885498046875L428.2862548828125 484.5330810546875V415.49365234375H221.638671875Q181.030517578125 415.49365234375 181.030517578125 371.79962158203125Q181.030517578125 327.25762939453125 216.4580078125 321.6959228515625L326.22900390625 303.4007568359375Q452.2862548828125 282.72454833984375 452.2862548828125 157.66729736328125Q452.2862548828125 0 291.73345947265625 0H111.2862548828125Z" fill="#b184ff"/><path transform="translate(6279 0)" d="M54.885498046875 41.96246337890625V111.00189208984375H285.5330810546875Q325.81744384765625 111.00189208984375 325.81744384765625 154.6959228515625Q325.81744384765625 199.38995361328125 292.361328125 205.3040771484375L182.59033203125 223.5992431640625Q54.885498046875 245.27545166015625 54.885498046875 369.15203857421875Q54.885498046875 526.4955444335938 215.114501953125 526.4955444335938H371.885498046875L428.2862548828125 484.5330810546875V415.49365234375H221.638671875Q181.030517578125 415.49365234375 181.030517578125 371.79962158203125Q181.030517578125 327.25762939453125 216.4580078125 321.6959228515625L326.22900390625 303.4007568359375Q452.2862548828125 282.72454833984375 452.2862548828125 157.66729736328125Q452.2862548828125 0 291.73345947265625 0H111.2862548828125Z" fill="#b184ff"/></g></svg>
+\ No newline at end of file
+diff --git a/public/nosweat/wordmark-light.svg b/public/nosweat/wordmark-light.svg
+new file mode 100644
+index 0000000..2290b48
+--- /dev/null
++++ b/public/nosweat/wordmark-light.svg
+@@ -0,0 +1 @@
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 388 88" role="img"><title>nosweatchess</title><path d="M14 8H26V16H38V8H50V16H62V8H74V28L31 62H51V52L66 40V65L73 73H15L20 64L57 35H23L14 26Z M8 76H78V84H8Z" fill="#7433c9"/><g transform="translate(96 61) scale(0.043 -0.043)"><path transform="translate(0 0)" d="M73.50445556640625 0V526.4955444335938H363.40966796875Q522.9910888671875 526.4955444335938 522.9910888671875 366.59033203125V0H395.49365234375V376.59033203125Q395.49365234375 415.49365234375 356.59033203125 415.49365234375H201.00189208984375V0Z" fill="#3d383e"/><path transform="translate(595 0)" d="M65.50445556640625 159.90521240234375V366.59033203125Q65.50445556640625 526.4955444335938 225.40966796875 526.4955444335938H365.40966796875Q524.9910888671875 526.4955444335938 524.9910888671875 366.59033203125V159.90521240234375Q524.9910888671875 0 365.40966796875 0H225.40966796875Q65.50445556640625 0 65.50445556640625 159.90521240234375ZM193.00189208984375 149.90521240234375Q193.00189208984375 111.00189208984375 231.90521240234375 111.00189208984375H358.59033203125Q397.49365234375 111.00189208984375 397.49365234375 149.90521240234375V376.59033203125Q397.49365234375 415.49365234375 358.59033203125 415.49365234375H231.90521240234375Q193.00189208984375 415.49365234375 193.00189208984375 376.59033203125Z" fill="#3d383e"/><path transform="translate(1188 0)" d="M54.885498046875 41.96246337890625V111.00189208984375H285.5330810546875Q325.81744384765625 111.00189208984375 325.81744384765625 154.6959228515625Q325.81744384765625 199.38995361328125 292.361328125 205.3040771484375L182.59033203125 223.5992431640625Q54.885498046875 245.27545166015625 54.885498046875 369.15203857421875Q54.885498046875 526.4955444335938 215.114501953125 526.4955444335938H371.885498046875L428.2862548828125 484.5330810546875V415.49365234375H221.638671875Q181.030517578125 415.49365234375 181.030517578125 371.79962158203125Q181.030517578125 327.25762939453125 216.4580078125 321.6959228515625L326.22900390625 303.4007568359375Q452.2862548828125 282.72454833984375 452.2862548828125 157.66729736328125Q452.2862548828125 0 291.73345947265625 0H111.2862548828125Z" fill="#3d383e"/><path transform="translate(1697 0)" d="M22.295166015625 507.02862548828125 36.0572509765625 526.4955444335938H143.05914306640625L227.86767578125 111.00189208984375H236.4007568359375L338.1234130859375 526.4955444335938H480.030517578125L581.753173828125 111.00189208984375H590.6100463867188L675.4185791015625 526.4955444335938H782.0966796875L795.8587646484375 507.02862548828125L687.1736450195312 0H494.95166015625L409.07696533203125 374.6832275390625L323.2022705078125 0H131.3040771484375Z" fill="#3d383e"/><path transform="translate(2518 0)" d="M65.50445556640625 159.90521240234375V366.59033203125Q65.50445556640625 526.4955444335938 225.40966796875 526.4955444335938H355.40966796875Q514.9910888671875 526.4955444335938 514.9910888671875 366.59033203125V216.0089111328125H193.00189208984375V149.90521240234375Q193.00189208984375 111.00189208984375 231.90521240234375 111.00189208984375H494.9910888671875V41.96246337890625L438.59033203125 0H225.40966796875Q65.50445556640625 0 65.50445556640625 159.90521240234375ZM193.00189208984375 314.162841796875H387.49365234375V376.59033203125Q387.49365234375 415.49365234375 348.59033203125 415.49365234375H231.90521240234375Q193.00189208984375 415.49365234375 193.00189208984375 376.59033203125Z" fill="#3d383e"/><path transform="translate(3101 0)" d="M205.73345947265625 0Q45.50445556640625 0 45.50445556640625 157.49554443359375Q45.50445556640625 314.9910888671875 205.73345947265625 314.9910888671875H351.49365234375V376.59033203125Q351.49365234375 415.49365234375 312.59033203125 415.49365234375H100.295166015625V484.5330810546875L156.6959228515625 526.4955444335938H319.40966796875Q478.9910888671875 526.4955444335938 478.9910888671875 366.59033203125V0ZM173.00189208984375 149.90521240234375Q173.00189208984375 111.00189208984375 211.90521240234375 111.00189208984375H351.49365234375V216.837158203125H211.90521240234375Q173.00189208984375 216.837158203125 173.00189208984375 177.933837890625Z" fill="#3d383e"/><path transform="translate(3652 0)" d="M69.50445556640625 159.90521240234375V690H197.00189208984375V526.4955444335938H372.30596923828125V415.49365234375H197.00189208984375V149.90521240234375Q197.00189208984375 111.00189208984375 235.90521240234375 111.00189208984375H382.30596923828125V41.96246337890625L325.90521240234375 0H229.40966796875Q69.50445556640625 0 69.50445556640625 159.90521240234375Z" fill="#3d383e"/><path transform="translate(4073 0)" d="M65.50445556640625 159.90521240234375V366.59033203125Q65.50445556640625 526.4955444335938 225.40966796875 526.4955444335938H413.20928955078125L469.61004638671875 484.5330810546875V415.49365234375H231.90521240234375Q193.00189208984375 415.49365234375 193.00189208984375 376.59033203125V149.90521240234375Q193.00189208984375 111.00189208984375 231.90521240234375 111.00189208984375H469.61004638671875V41.96246337890625L413.20928955078125 0H225.40966796875Q65.50445556640625 0 65.50445556640625 159.90521240234375Z" fill="#7433c9"/><path transform="translate(4592 0)" d="M73.50445556640625 0V740H201.00189208984375V526.4955444335938H363.40966796875Q522.9910888671875 526.4955444335938 522.9910888671875 366.59033203125V0H395.49365234375V376.59033203125Q395.49365234375 415.49365234375 356.59033203125 415.49365234375H201.00189208984375V0Z" fill="#7433c9"/><path transform="translate(5187 0)" d="M65.50445556640625 159.90521240234375V366.59033203125Q65.50445556640625 526.4955444335938 225.40966796875 526.4955444335938H355.40966796875Q514.9910888671875 526.4955444335938 514.9910888671875 366.59033203125V216.0089111328125H193.00189208984375V149.90521240234375Q193.00189208984375 111.00189208984375 231.90521240234375 111.00189208984375H494.9910888671875V41.96246337890625L438.59033203125 0H225.40966796875Q65.50445556640625 0 65.50445556640625 159.90521240234375ZM193.00189208984375 314.162841796875H387.49365234375V376.59033203125Q387.49365234375 415.49365234375 348.59033203125 415.49365234375H231.90521240234375Q193.00189208984375 415.49365234375 193.00189208984375 376.59033203125Z" fill="#7433c9"/><path transform="translate(5770 0)" d="M54.885498046875 41.96246337890625V111.00189208984375H285.5330810546875Q325.81744384765625 111.00189208984375 325.81744384765625 154.6959228515625Q325.81744384765625 199.38995361328125 292.361328125 205.3040771484375L182.59033203125 223.5992431640625Q54.885498046875 245.27545166015625 54.885498046875 369.15203857421875Q54.885498046875 526.4955444335938 215.114501953125 526.4955444335938H371.885498046875L428.2862548828125 484.5330810546875V415.49365234375H221.638671875Q181.030517578125 415.49365234375 181.030517578125 371.79962158203125Q181.030517578125 327.25762939453125 216.4580078125 321.6959228515625L326.22900390625 303.4007568359375Q452.2862548828125 282.72454833984375 452.2862548828125 157.66729736328125Q452.2862548828125 0 291.73345947265625 0H111.2862548828125Z" fill="#7433c9"/><path transform="translate(6279 0)" d="M54.885498046875 41.96246337890625V111.00189208984375H285.5330810546875Q325.81744384765625 111.00189208984375 325.81744384765625 154.6959228515625Q325.81744384765625 199.38995361328125 292.361328125 205.3040771484375L182.59033203125 223.5992431640625Q54.885498046875 245.27545166015625 54.885498046875 369.15203857421875Q54.885498046875 526.4955444335938 215.114501953125 526.4955444335938H371.885498046875L428.2862548828125 484.5330810546875V415.49365234375H221.638671875Q181.030517578125 415.49365234375 181.030517578125 371.79962158203125Q181.030517578125 327.25762939453125 216.4580078125 321.6959228515625L326.22900390625 303.4007568359375Q452.2862548828125 282.72454833984375 452.2862548828125 157.66729736328125Q452.2862548828125 0 291.73345947265625 0H111.2862548828125Z" fill="#7433c9"/></g></svg>
+\ No newline at end of file
+diff --git a/public/nosweat/wordmark.svg b/public/nosweat/wordmark.svg
+new file mode 100644
+index 0000000..1a8bfb7
+--- /dev/null
++++ b/public/nosweat/wordmark.svg
+@@ -0,0 +1 @@
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 388 88" role="img"><title>nosweatchess</title><path d="M14 8H26V16H38V8H50V16H62V8H74V28L31 62H51V52L66 40V65L73 73H15L20 64L57 35H23L14 26Z M8 76H78V84H8Z" fill="#b184ff"/><g transform="translate(96 61) scale(0.043 -0.043)"><path transform="translate(0 0)" d="M73.50445556640625 0V526.4955444335938H363.40966796875Q522.9910888671875 526.4955444335938 522.9910888671875 366.59033203125V0H395.49365234375V376.59033203125Q395.49365234375 415.49365234375 356.59033203125 415.49365234375H201.00189208984375V0Z" fill="#e8e6e3"/><path transform="translate(595 0)" d="M65.50445556640625 159.90521240234375V366.59033203125Q65.50445556640625 526.4955444335938 225.40966796875 526.4955444335938H365.40966796875Q524.9910888671875 526.4955444335938 524.9910888671875 366.59033203125V159.90521240234375Q524.9910888671875 0 365.40966796875 0H225.40966796875Q65.50445556640625 0 65.50445556640625 159.90521240234375ZM193.00189208984375 149.90521240234375Q193.00189208984375 111.00189208984375 231.90521240234375 111.00189208984375H358.59033203125Q397.49365234375 111.00189208984375 397.49365234375 149.90521240234375V376.59033203125Q397.49365234375 415.49365234375 358.59033203125 415.49365234375H231.90521240234375Q193.00189208984375 415.49365234375 193.00189208984375 376.59033203125Z" fill="#e8e6e3"/><path transform="translate(1188 0)" d="M54.885498046875 41.96246337890625V111.00189208984375H285.5330810546875Q325.81744384765625 111.00189208984375 325.81744384765625 154.6959228515625Q325.81744384765625 199.38995361328125 292.361328125 205.3040771484375L182.59033203125 223.5992431640625Q54.885498046875 245.27545166015625 54.885498046875 369.15203857421875Q54.885498046875 526.4955444335938 215.114501953125 526.4955444335938H371.885498046875L428.2862548828125 484.5330810546875V415.49365234375H221.638671875Q181.030517578125 415.49365234375 181.030517578125 371.79962158203125Q181.030517578125 327.25762939453125 216.4580078125 321.6959228515625L326.22900390625 303.4007568359375Q452.2862548828125 282.72454833984375 452.2862548828125 157.66729736328125Q452.2862548828125 0 291.73345947265625 0H111.2862548828125Z" fill="#e8e6e3"/><path transform="translate(1697 0)" d="M22.295166015625 507.02862548828125 36.0572509765625 526.4955444335938H143.05914306640625L227.86767578125 111.00189208984375H236.4007568359375L338.1234130859375 526.4955444335938H480.030517578125L581.753173828125 111.00189208984375H590.6100463867188L675.4185791015625 526.4955444335938H782.0966796875L795.8587646484375 507.02862548828125L687.1736450195312 0H494.95166015625L409.07696533203125 374.6832275390625L323.2022705078125 0H131.3040771484375Z" fill="#e8e6e3"/><path transform="translate(2518 0)" d="M65.50445556640625 159.90521240234375V366.59033203125Q65.50445556640625 526.4955444335938 225.40966796875 526.4955444335938H355.40966796875Q514.9910888671875 526.4955444335938 514.9910888671875 366.59033203125V216.0089111328125H193.00189208984375V149.90521240234375Q193.00189208984375 111.00189208984375 231.90521240234375 111.00189208984375H494.9910888671875V41.96246337890625L438.59033203125 0H225.40966796875Q65.50445556640625 0 65.50445556640625 159.90521240234375ZM193.00189208984375 314.162841796875H387.49365234375V376.59033203125Q387.49365234375 415.49365234375 348.59033203125 415.49365234375H231.90521240234375Q193.00189208984375 415.49365234375 193.00189208984375 376.59033203125Z" fill="#e8e6e3"/><path transform="translate(3101 0)" d="M205.73345947265625 0Q45.50445556640625 0 45.50445556640625 157.49554443359375Q45.50445556640625 314.9910888671875 205.73345947265625 314.9910888671875H351.49365234375V376.59033203125Q351.49365234375 415.49365234375 312.59033203125 415.49365234375H100.295166015625V484.5330810546875L156.6959228515625 526.4955444335938H319.40966796875Q478.9910888671875 526.4955444335938 478.9910888671875 366.59033203125V0ZM173.00189208984375 149.90521240234375Q173.00189208984375 111.00189208984375 211.90521240234375 111.00189208984375H351.49365234375V216.837158203125H211.90521240234375Q173.00189208984375 216.837158203125 173.00189208984375 177.933837890625Z" fill="#e8e6e3"/><path transform="translate(3652 0)" d="M69.50445556640625 159.90521240234375V690H197.00189208984375V526.4955444335938H372.30596923828125V415.49365234375H197.00189208984375V149.90521240234375Q197.00189208984375 111.00189208984375 235.90521240234375 111.00189208984375H382.30596923828125V41.96246337890625L325.90521240234375 0H229.40966796875Q69.50445556640625 0 69.50445556640625 159.90521240234375Z" fill="#e8e6e3"/><path transform="translate(4073 0)" d="M65.50445556640625 159.90521240234375V366.59033203125Q65.50445556640625 526.4955444335938 225.40966796875 526.4955444335938H413.20928955078125L469.61004638671875 484.5330810546875V415.49365234375H231.90521240234375Q193.00189208984375 415.49365234375 193.00189208984375 376.59033203125V149.90521240234375Q193.00189208984375 111.00189208984375 231.90521240234375 111.00189208984375H469.61004638671875V41.96246337890625L413.20928955078125 0H225.40966796875Q65.50445556640625 0 65.50445556640625 159.90521240234375Z" fill="#b184ff"/><path transform="translate(4592 0)" d="M73.50445556640625 0V740H201.00189208984375V526.4955444335938H363.40966796875Q522.9910888671875 526.4955444335938 522.9910888671875 366.59033203125V0H395.49365234375V376.59033203125Q395.49365234375 415.49365234375 356.59033203125 415.49365234375H201.00189208984375V0Z" fill="#b184ff"/><path transform="translate(5187 0)" d="M65.50445556640625 159.90521240234375V366.59033203125Q65.50445556640625 526.4955444335938 225.40966796875 526.4955444335938H355.40966796875Q514.9910888671875 526.4955444335938 514.9910888671875 366.59033203125V216.0089111328125H193.00189208984375V149.90521240234375Q193.00189208984375 111.00189208984375 231.90521240234375 111.00189208984375H494.9910888671875V41.96246337890625L438.59033203125 0H225.40966796875Q65.50445556640625 0 65.50445556640625 159.90521240234375ZM193.00189208984375 314.162841796875H387.49365234375V376.59033203125Q387.49365234375 415.49365234375 348.59033203125 415.49365234375H231.90521240234375Q193.00189208984375 415.49365234375 193.00189208984375 376.59033203125Z" fill="#b184ff"/><path transform="translate(5770 0)" d="M54.885498046875 41.96246337890625V111.00189208984375H285.5330810546875Q325.81744384765625 111.00189208984375 325.81744384765625 154.6959228515625Q325.81744384765625 199.38995361328125 292.361328125 205.3040771484375L182.59033203125 223.5992431640625Q54.885498046875 245.27545166015625 54.885498046875 369.15203857421875Q54.885498046875 526.4955444335938 215.114501953125 526.4955444335938H371.885498046875L428.2862548828125 484.5330810546875V415.49365234375H221.638671875Q181.030517578125 415.49365234375 181.030517578125 371.79962158203125Q181.030517578125 327.25762939453125 216.4580078125 321.6959228515625L326.22900390625 303.4007568359375Q452.2862548828125 282.72454833984375 452.2862548828125 157.66729736328125Q452.2862548828125 0 291.73345947265625 0H111.2862548828125Z" fill="#b184ff"/><path transform="translate(6279 0)" d="M54.885498046875 41.96246337890625V111.00189208984375H285.5330810546875Q325.81744384765625 111.00189208984375 325.81744384765625 154.6959228515625Q325.81744384765625 199.38995361328125 292.361328125 205.3040771484375L182.59033203125 223.5992431640625Q54.885498046875 245.27545166015625 54.885498046875 369.15203857421875Q54.885498046875 526.4955444335938 215.114501953125 526.4955444335938H371.885498046875L428.2862548828125 484.5330810546875V415.49365234375H221.638671875Q181.030517578125 415.49365234375 181.030517578125 371.79962158203125Q181.030517578125 327.25762939453125 216.4580078125 321.6959228515625L326.22900390625 303.4007568359375Q452.2862548828125 282.72454833984375 452.2862548828125 157.66729736328125Q452.2862548828125 0 291.73345947265625 0H111.2862548828125Z" fill="#b184ff"/></g></svg>
+\ No newline at end of file

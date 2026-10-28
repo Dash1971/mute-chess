@@ -1,3 +1,9 @@
+# Release order
+
+Use one permanent branch: `main`. Open a short-lived PR, review it, pass GitHub checks, merge on GitHub, and only then deploy. Run `python3 deploy/public/verify-main.py` from a clean checkout of the current main commit. It rejects feature branches, dirty trees and main revisions without a successful push workflow. Rebuild the native app and full UI from the verified main patch; partial UI builds do not update the asset manifest.
+
+A release must carry RELEASE.json with `gitCommit`, `branch: "main"`, and `sourceVerified: true`. The installer verifies the native working source patch against the main payload before activation. Preserve the merged commit and verification metadata in the public corresponding-source archive. Confirm the live X-NoSweat-Revision header after deployment. Delete merged feature branches. Never activate a feature branch and merge it later.
+
 # Public native alpha
 
 The owner authorized deploying nosweatchess.org after the native Maia/Nostr slice.
@@ -50,6 +56,5 @@ Inspect `journalctl -u nosweatchess-app` and the other units; HTTP request loggi
 is disabled. The public source archive includes exact upstream trees and our
 patches, with build instructions and licenses, but no accounts, keys or backups.
 
-All games are unrated with a two-game global cap. The 44 bot priors are estimates.
-NIP-07 desktop signer support is implemented; NIP-46 and private-key import are
-not. Full branding, augmented analysis and capacity calibration remain work.
+There is a two-game global cap. Anonymous games are casual. Nostr accounts start at native provisional 1500 and use native Glicko ratings; automatic pairing stays within ±200. The 44 bot priors remain estimates, with per-speed provisional seeds. Newly supported speed categories inherit blitz/rapid priors as explicit starting estimates. Existing speed ratings are never reset.
+NIP-07 is recommended. Generate/import browser keys are encrypted into IndexedDB with a non-extractable wrapping key; same-origin code can still use them, so an external signer provides better isolation. Keys never go to the server or relays. NIP-46 remains work. The selected violet cyber-rook replaces only the logo; native Lichess styling stays. Augmented analysis, stacked premoves and capacity calibration remain work.

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Install a separate, loopback-only public alpha. Run as root on the mini."""
 import base64
+import importlib.util
+import re
 import grp
 import hashlib
 import json
@@ -20,6 +22,24 @@ dev = Path('/home/dash/no-sweat-lila')
 base = Path('/opt/nosweatchess')
 data = Path('/srv/nosweatchess')
 etc = Path('/etc/nosweatchess')
+release_info = json.loads((payload / 'RELEASE.json').read_text())
+if (release_info.get('branch') != 'main' or release_info.get('sourceVerified') is not True or
+        not re.fullmatch(r'[0-9a-f]{40}', release_info.get('gitCommit', ''))):
+    raise SystemExit('Release provenance must identify a verified, merged main commit')
+spec = importlib.util.spec_from_file_location('native_source', payload / 'deployment/public/native-source.py')
+source_checker = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(source_checker)
+expected_patch = (payload / 'lila-nostr-maia.patch').read_bytes()
+if source_checker.patch_for(dev / 'sources/lila') != expected_patch:
+    raise SystemExit('Native build source differs from the merged main patch')
+if hashlib.sha256(expected_patch).hexdigest() != release_info.get('nativePatchSha256'):
+    raise SystemExit('Native patch provenance hash mismatch')
+# Reject parse failures before creating a release or changing the active symlink.
+checker = base / 'tools/node'
+if not checker.exists():
+    checker = Path('/opt/club-maia/node-v24.22.1-linux-x64/bin/node')
+for script in ('gateway.mjs', 'lila-adapter/server.mjs', 'lila-adapter/policy.mjs', 'nosweat/nostr.js'):
+    subprocess.run([str(checker), '--check', str(payload / script)], check=True)
 try:
     account = pwd.getpwnam('nosweatchess')
 except KeyError:
@@ -36,9 +56,9 @@ etc.chmod(0o750)
 os.chown(etc, 0, account.pw_gid)
 
 digest = hashlib.sha256()
-for name in ('lila-nostr-maia.patch', 'gateway.mjs', 'install.py', 'lila-adapter/server.mjs'):
+for name in ('lila-nostr-maia.patch', 'gateway.mjs', 'install.py', 'lila-adapter/server.mjs', 'RELEASE.json'):
     digest.update((payload / name).read_bytes())
-release_id = '20261028-' + digest.hexdigest()[:12]
+release_id = 'main-' + release_info['gitCommit'][:12] + '-' + digest.hexdigest()[:8]
 release = base / 'releases' / release_id
 if release.exists():
     raise SystemExit('This immutable release already exists; inspect it before reusing it')
@@ -59,6 +79,8 @@ shutil.copytree(dev / 'sources/lila-ws/target/universal/stage/lib', release / 'w
 shutil.copytree(payload / 'lila-adapter', release / 'lila-adapter')
 shutil.copytree(payload / 'nosweat', release / 'lila/public/nosweat', dirs_exist_ok=True)
 shutil.copy(payload / 'gateway.mjs', release / 'gateway.mjs')
+shutil.copy(payload / 'RELEASE.json', release / 'RELEASE.json')
+(release / 'RELEASE.json').chmod(0o644)
 
 for tool in ('mongodb', 'redis'):
     if not (base / 'tools' / tool).exists():
@@ -149,7 +171,7 @@ source_dir.mkdir()
 for repository in ('lila', 'lila-ws'):
     with (source_dir / f'{repository}-upstream.tar').open('wb') as output:
         subprocess.run(['git', '-c', f'safe.directory={dev}/sources/{repository}', '-C', str(dev / 'sources' / repository), 'archive', 'HEAD'], stdout=output, check=True)
-for name in ('lila-nostr-maia.patch', 'lila-ws-bind-address.patch', 'BUILD.md', 'THIRD_PARTY.md', 'LICENSE'):
+for name in ('lila-nostr-maia.patch', 'lila-ws-bind-address.patch', 'BUILD.md', 'THIRD_PARTY.md', 'LICENSE', 'RELEASE.json'):
     shutil.copy(payload / name, source_dir / name)
 shutil.copytree(payload / 'third-party', source_dir / 'third-party')
 shutil.copytree(release / 'lila-adapter', source_dir / 'lila-adapter', ignore=shutil.ignore_patterns('node_modules'))

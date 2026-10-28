@@ -37,27 +37,37 @@ The earlier Node/Fastify prototype is stopped and disabled.
 
 ## Implementation status — 28 October 2026
 
-The alpha supports the confirmed 44 opponents, 5+3 and 10+5, either color,
-native Lichess moves/clocks/reconnect/resignation, game history, PGN and analysis.
+The alpha uses the native Lichess homepage, quick-pair grid, custom time-control
+dialog, rounds, clocks, reconnect, game history, PGN and analysis. It automatically
+assigns one of the confirmed 44 Maia opponents; there is no bot chooser or direct
+challenge flow. The selected violet cyber-rook replaces the logo; the surrounding
+interface keeps its native styling.
 NIP-07 signs a short-lived, one-use NIP-98 login challenge; the server verifies
 signatures and issues native HttpOnly sessions. Private keys stay in the signer;
-no relay publication is required. NIP-46 and key import are not implemented.
+no relay publication is required. The browser signer is recommended. Generating
+or importing an nsec and remembering it in this browser is also supported with
+encrypted IndexedDB storage. NIP-46 remains work.
 
-All games are unrated. Bot displayed priors remain estimates; experimental
-conditioning is explicitly labelled. Admission allows one active game per human
-and at most two games overall. The complete stack has not been benchmarked for
+Anonymous games are casual. Nostr accounts start at native provisional 1500 and
+use native Glicko updates, with automatic pairing within ±200 of the current
+rating for that speed. Bot priors remain estimates. Admission allows one active
+game per browser/account and at most two games overall. The complete stack has not been benchmarked for
 ten concurrent games. Policy/model/history metadata are frozen per game; worker
 failure voids affected active games. Server inference consumes the native clock.
 
 Automated checks cover signed login/replay protection, stable identity, sessions,
 the roster, admission, both colors and controls, Maia replies, native WebSocket
 moves, reconnect, stale retry rejection, resignation, PGN and worker crash
-recovery. Seven adapter tests, three encoder tests and 83 selected upstream UI
-tests pass. This records automated verification, not human manual acceptance.
+recovery. Nine adapter/storage tests and all 251 native frontend tests pass; the
+three model/encoder checks and private/public game-flow checks are recorded in
+the deployment notes. This records automated verification, not human manual acceptance.
 
 The full retro wrapper, En Croissant/Mobile Maia classification, simultaneous
-Stockfish/Maia candidate analysis, Moves by rating and rating calibration remain
-work. Browser Stockfish and native Lichess analysis are available now.
+Stockfish/Maia candidate analysis, Moves by rating, stacked premoves and rating
+calibration remain work. Browser Stockfish and native Lichess analysis are available now.
+
+Release discipline is **checks and review → merge to main → deploy main**.
+`main` is the only permanent branch. See the [release runbook](deploy/public/README.md).
 
 The remaining sections describe the intended product and operational plan.
 
