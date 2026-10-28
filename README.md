@@ -2,6 +2,8 @@
 
 **Lichess-style online chess, played exclusively against human-like Maia3 bots.**
 
+A noncommercial, open-source project licensed under GNU AGPL v3.0.
+
 Club Maia is a working name. This repository currently contains the project vision
 and MVP plan; the application has not been implemented. The final name and domain
 are undecided. `play.mobilemaia.org` is one possible home.
@@ -35,8 +37,9 @@ part of the MVP.
 4. Play using familiar board controls, clocks, premoves, promotion, resignation,
    draw handling, and reconnection behavior.
 5. Receive a result and rating update, then choose another game or a rematch.
-6. Open a Lichess-style analysis board to replay moves, inspect engine evaluations
-   and alternative lines, and identify mistakes.
+6. Open a Lichess-style analysis board to replay moves, inspect Stockfish
+   evaluations and variations, and compare Maia's human-move predictions at
+   selected rating levels.
 7. Return to saved games and rating history, or download a PGN.
 
 Start with standard chess, a small pool of roughly 24–32 named bots, and two
@@ -68,6 +71,7 @@ The initial preference is to reuse focused components:
 | [Chessops](https://github.com/lichess-org/chessops) | Chess rules and FEN, SAN, and PGN operations |
 | [Lichess server and analysis code](https://github.com/lichess-org/lila) | Evaluate reusable game, clock, replay, analysis, and rating behavior |
 | [Stockfish](https://github.com/official-stockfish/Stockfish) | Post-game evaluations and analysis lines |
+| [Maia web platform](https://github.com/CSSLab/maia-platform-frontend) | Evaluate reuse of its browser-side Maia and Stockfish integration and analysis experience |
 
 Before choosing the implementation, time-box a comparison of a minimal Lichess
 server adaptation and a smaller service built around these components. Test the
@@ -117,7 +121,7 @@ flowchart LR
     App <-->|Private inference requests| Maia[Shared Maia workers]
     DB --> Publisher[Publication worker]
     Publisher -->|Opt-in completed PGN| Relays[Nostr relays]
-    Browser --> Analysis[Post-game analysis worker]
+    Browser --> Analysis[Browser workers: Maia and Stockfish analysis]
 ```
 
 - **Web client:** TypeScript, Chessground, and a familiar playing and analysis UI.
@@ -128,9 +132,14 @@ flowchart LR
 - **Maia workers:** proposed Python/ONNX Runtime service with shared loaded models
   and bounded concurrency. A bot identity is configuration and state, not a
   dedicated process or a separate model copy.
-- **Analysis:** evaluate browser Worker/WASM Stockfish first. Provide replay,
-  evaluations, and variations without competing with live Maia inference. If
-  server analysis is needed, give it a separate bounded background queue.
+- **Analysis:** run both Maia and Stockfish in browser workers, following the
+  [Maia platform's client-side engine approach](https://github.com/CSSLab/maia-platform-frontend#client-side-chess-engines).
+  Use ONNX Runtime Web for Maia and WebAssembly Stockfish. Evaluate WebGPU
+  acceleration with a supported fallback for Maia. Model and engine downloads
+  should be versioned, verified, cached locally, and accompanied by clear
+  download progress and cache controls. Benchmark slower devices before choosing
+  the default browser model. This keeps post-game work separate from live server
+  inference; any server fallback needs its own bounded background queue.
 - **Operations:** TLS reverse proxy, containers, one initial hosting region,
   backups, structured logs, metrics, and error reporting.
 
@@ -143,6 +152,22 @@ Player disconnects leave their clocks running. A genuine clock loss follows the
 published chess rules. Identified service failures void affected games without
 rating penalties. The initial recovery policy may void unfinished games after a
 server restart rather than reconstruct uncertain clocks.
+
+### Analysis with both engines
+
+Stockfish provides searched evaluations, principal variations, and mistake
+review. Maia provides human-move probabilities and comparisons at selected
+conditioning levels. Display these as distinct kinds of information: a likely
+human move is not necessarily the strongest move, and Maia's outcome predictions
+are not searched Stockfish evaluations.
+
+Both engines should support the selected game position and analysis variations.
+Pin Maia's model, encoder, history handling, and conditioning inputs, and preserve
+the original game's bot policy metadata. Browser analysis is available after the
+game; server-side validation and inference remain authoritative during rated
+play. The technical spike should test both engines on desktop and mobile browsers,
+including loading, memory use, cancellation, cache updates, and compatibility of
+threaded WebAssembly headers with Nostr login flows.
 
 ## Bot strength and timing
 
@@ -212,6 +237,12 @@ Keep application data and credentials separate from personal accounts, signing
 keys, other projects, and Mobile Maia release infrastructure. Containers organize
 services but do not replace host and network isolation.
 
+The initial host is a repurposed Intel Mac mini. Retire its previous OpenClaw
+installation, service account, credentials, histories, and local recovery copies
+before preparing it for public service. Decide whether to wipe and reinstall the
+OS to address deleted-data remnants. Network isolation and public exposure are
+separate deployment steps; neither is implied by retiring the old agent.
+
 The initial deployment should:
 
 - Use a persistent named tunnel and a custom hostname. The connector establishes
@@ -255,10 +286,10 @@ admission cap. Consider a UPS and automatic service recovery for the beta.
 
 ### Costs and migration
 
-GitHub hosts source, issues, CI, and deployment workflows. GitHub Pages cannot run
-the persistent game server, database, or Maia workers. Its [published limits and
-use restrictions](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits)
-also make it unsuitable as the foundation for a commercial hosted application.
+GitHub hosts source, issues, CI, and deployment workflows. GitHub Pages can host
+static project material for this noncommercial project, subject to its
+[published limits](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits).
+It cannot run the persistent game server, database, or Maia workers.
 
 Initial self-hosting costs depend on existing hardware, electricity, the domain,
 backup storage, and the Cloudflare features selected. Check the current plan and
