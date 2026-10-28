@@ -47,11 +47,16 @@ except KeyError:
     account = pwd.getpwnam('nosweatchess')
 for directory in (base / 'releases', base / 'tools', data, etc):
     directory.mkdir(parents=True, exist_ok=True)
-for name in ('mongo', 'redis', 'backups', 'restore-check'):
+for name in ('mongo', 'redis'):
     directory = data / name
     directory.mkdir(exist_ok=True)
     directory.chmod(0o700)
     os.chown(directory, account.pw_uid, account.pw_gid)
+for name in ('backups', 'restore-check'):
+    directory = data / name
+    directory.mkdir(exist_ok=True)
+    os.chown(directory, 0, 0)
+    directory.chmod(0o700)
 etc.chmod(0o750)
 os.chown(etc, 0, account.pw_gid)
 
@@ -161,10 +166,15 @@ maxmemory 128mb
 maxmemory-policy noeviction
 ''')
 (etc / 'logback.xml').write_text('''<configuration><appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender"><encoder><pattern>%date %-5level %logger{30} %message%n%xException{20}</pattern></encoder></appender><root level="INFO"><appender-ref ref="STDOUT"/></root></configuration>''')
-for path in etc.iterdir():
+for name in ('secrets.conf', 'application.conf', 'ws.conf', 'redis.conf', 'logback.xml'):
+    path = etc / name
     path.chmod(0o640)
     os.chown(path, 0, account.pw_gid)
-(etc / 'adapter.env').chmod(0o600)
+for name in ('adapter.env', 'backup.key'):
+    path = etc / name
+    if path.exists():
+        os.chown(path, 0, 0)
+        path.chmod(0o600)
 
 source_dir = release / 'corresponding-source'
 source_dir.mkdir()

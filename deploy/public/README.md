@@ -40,7 +40,13 @@ while `LILA_ORIGIN` remains loopback.
 
 `backup-crypt.mjs encrypt INPUT OUTPUT` uses AES-256-GCM with a root-only
 32-byte `/etc/nosweatchess/backup.key`. Decryption authenticates the complete
-archive before releasing plaintext. Use verified Mongo database tools, an
+archive before releasing plaintext. Keep the key owned by `root:root`, mode
+`0600`; run the backup tooling as root. Backup and restore-staging directories
+must be owned by `root:root`, mode `0700`, with backup files mode `0600`.
+The website service account must not read the key, list backup files or delete
+backups. The installer preserves this boundary on subsequent deployments and
+only grants group read access to explicitly listed runtime configuration files.
+Use verified Mongo database tools, an
 operator-controlled maintenance window and restricted temporary files for
 `mongodump --archive --gzip --db nosweat`. Encrypt, copy ciphertext off-host and
 keep a separate protected off-host key. Restore only to an explicitly isolated
