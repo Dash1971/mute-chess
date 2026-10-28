@@ -1,8 +1,9 @@
 # nosweatchess: the club in 2097
 
-The public name is **nosweatchess**, the No Sweat Chess Club. The checkout and
-existing GitHub repository remain `club-maia`; no infrastructure names, system
-users, database names, or deployed paths are migrated by the visual update.
+The public name is **nosweatchess**, the No Sweat Chess Club. The GitHub
+repository is now `Dash1971/no-sweat-chess` (renamed from `club-maia` on
+28 October 2026). Existing checkout directories, infrastructure names, system
+users, database names and deployed paths retain their current names.
 
 ## The setting
 

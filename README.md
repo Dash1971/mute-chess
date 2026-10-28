@@ -4,7 +4,8 @@
 
 The No Sweat Chess Club is an independent, noncommercial, open-source chess
 project licensed under GNU AGPL v3.0. This project was previously called Club
-Maia; the checkout and GitHub repository retain the name `club-maia` for now.
+Maia. The GitHub repository is now [`Dash1971/no-sweat-chess`](https://github.com/Dash1971/no-sweat-chess).
+Existing local checkout and infrastructure names may still use `club-maia`.
 
 ## The club
 
@@ -86,10 +87,10 @@ part of the MVP.
    selected rating levels.
 7. Return to saved games and rating history, or download a PGN.
 
-Use standard chess and the [confirmed 44-bot roster](https://github.com/Dash1971/club-maia/issues/1):
+Use standard chess and the [confirmed 44-bot roster](https://github.com/Dash1971/no-sweat-chess/issues/1):
 32 core identities at conditioning 600–2000 and 12 experimental identities at
 2200–2600. Policy mappings, provisional Blitz/Rapid estimates and human
-calibration are tracked in [issue #2](https://github.com/Dash1971/club-maia/issues/2).
+calibration are tracked in [issue #2](https://github.com/Dash1971/no-sweat-chess/issues/2).
 Initial clocks remain **5+3 blitz and 10+5 rapid**, with separate ratings. Human
 testing will determine the supported strength range. Conditioning is not a
 measured rating.

@@ -6,7 +6,7 @@ Decision confirmed by the owner on 28 October 2026. This supersedes the provisio
 
 - **Desktop browsers only.** No mobile app, mobile chess layout or PWA project. Mobile Maia remains a separate product.
 - **Lichess is the base for every chess function we expose**, including live play and analysis. Use Lila's round, clock, promotion, premove, replay, variation/tree, PGN and analysis machinery, with its native chess rules/adjudication and engine integration. Do not grow a parallel custom chess implementation.
-- Add Maia/Nostr/bot-pool integration around that base. Human-versus-Maia only, with the confirmed 44 identities in [issue #1](https://github.com/Dash1971/club-maia/issues/1) and versioned policies/calibration tracked in [issue #2](https://github.com/Dash1971/club-maia/issues/2). No human-versus-human or bot-versus-bot feature.
+- Add Maia/Nostr/bot-pool integration around that base. Human-versus-Maia only, with the confirmed 44 identities in [issue #1](https://github.com/Dash1971/no-sweat-chess/issues/1) and versioned policies/calibration tracked in [issue #2](https://github.com/Dash1971/no-sweat-chess/issues/2). No human-versus-human or bot-versus-bot feature.
 - The cyberpunk/cypherpunk story, retro desktop layout, typography, colours and club notices are the **wrapper and branding**. They do not define new chess rules, control semantics, evaluation meaning or classification algorithms.
 - Add the explicitly requested Mobile Maia / En Croissant / maiachess.com capabilities to Lichess analysis. Preserve their distinct semantics, upstream provenance and regression evidence.
 
