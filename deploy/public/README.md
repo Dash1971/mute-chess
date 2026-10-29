@@ -123,3 +123,11 @@ Post-game and standalone native analysis offer explicit local Maia startup, 5M/7
 ## Native puzzles
 
 The release includes the pinned CC0 starter catalog and import tooling in corresponding-source/puzzles. The installer verifies and inserts only absent puzzles into the isolated native puzzle database, and refreshes only this catalog's namespaced native selection paths. Existing puzzle ratings, votes, rounds and user progress are retained. The native web training, theme, history and difficulty routes are exposed; unrelated puzzle mobile-batch, coordinate and embedded-frame surfaces remain outside the public boundary. Catalog paths are static and do not require Lichess's production path-regeneration cron. Review assistance is gated until solving has ended, using the native completion/reveal state and engine preference.
+
+## Nostr account settings
+
+Edit profile includes an optional public name, editable after signup. Canonical handles and Nostr identities stay stable. The native header, profile links and game-player views display the public name while using the handle for navigation.
+
+`/club/security` enrolls or disables authenticator 2FA with a fresh action-bound Nostr signature. Login requires a second factor whenever native TOTP is present. Authenticator counters and hashed recovery codes are consumed atomically; five factor attempts are permitted per account per minute. Enrollment/disable revoke existing sessions and establish a new current session. The browser generates the setup secret locally, displays a local QR/manual key, then submits the signed secret and authenticator confirmation. Recovery codes appear once and require the Nostr key to use.
+
+Native session management is available at `/account/security`; password/email and API-token management remain unavailable. Run `node lila-adapter/test/account-security.mjs` against the isolated private stack for disposable-account qualification; `ACCOUNT_TEST_ORIGIN` selects a different origin. The script never uses an existing account and prints no keys, secrets, cookies or recovery codes.

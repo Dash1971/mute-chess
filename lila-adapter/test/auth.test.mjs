@@ -47,3 +47,34 @@ test('challenge expires and a restarted verifier accepts no previous challenge',
   assert.throws(() => f.auth.verify(f.header(f.unsigned), f.body), /expired/);
   assert.throws(() => new NostrAuth(origin, () => now).verify(f.header(f.unsigned), f.body), /already used/);
 });
+
+test('security challenges bind the exact action, URL, setup secret and second factor', () => {
+  const key = generateSecretKey(), pubkey = getPublicKey(key);
+  const auth = new NostrAuth(origin, () => now);
+  for (const action of ['enable-two-factor', 'disable-two-factor']) {
+    const challenge = auth.challenge(pubkey, action);
+    assert.equal(challenge.url, origin + '/club/security');
+    const raw = JSON.stringify({ challenge: challenge.challenge, action, twoFactorToken: '123456',
+      ...(action === 'enable-two-factor' ? { secret: 'A'.repeat(32) } : {}) });
+    const unsigned = { kind: 27235, created_at: now / 1000, content: '', tags: [
+      ['u', challenge.url], ['method', 'POST'], ['challenge', challenge.challenge], ['payload', digest(raw)],
+    ] };
+    const header = event => 'Nostr ' + Buffer.from(JSON.stringify(finalizeEvent(event, key))).toString('base64');
+    assert.throws(() => auth.verify(header({ ...unsigned, tags: unsigned.tags.map(t => t[0] === 'u' ? ['u', origin + '/club/login'] : t) }), raw), /Invalid/);
+    assert.throws(() => auth.verify(header(unsigned), raw.replace('123456', '654321')), /Invalid/);
+    assert.deepEqual(auth.verify(header(unsigned), raw), { pubkey, action });
+    assert.throws(() => auth.verify(header(unsigned), raw), /already used/);
+  }
+  assert.throws(() => auth.challenge(pubkey, 'disable-security'), /Invalid/);
+});
+
+test('a login challenge cannot authorize enrollment and its token is signature-bound', () => {
+  const f = fixture();
+  const raw = JSON.stringify({ challenge: JSON.parse(f.body).challenge, action: 'enable-two-factor', secret: 'A'.repeat(32), twoFactorToken: '123456' });
+  const signed = { ...f.unsigned, tags: f.unsigned.tags.map(t => t[0] === 'payload' ? ['payload', digest(raw)] : t) };
+  assert.throws(() => f.auth.verify(f.header(signed), raw), /action mismatch/);
+  const login = JSON.stringify({ challenge: JSON.parse(f.body).challenge, twoFactorToken: 'abcd1234-'.repeat(3) + 'abcd1234' });
+  const loginSigned = { ...f.unsigned, tags: f.unsigned.tags.map(t => t[0] === 'payload' ? ['payload', digest(login)] : t) };
+  assert.throws(() => f.auth.verify(f.header(loginSigned), login.replace('abcd', 'efab')), /Invalid/);
+  assert.deepEqual(f.auth.verify(f.header(loginSigned), login), { pubkey: f.pubkey });
+});
