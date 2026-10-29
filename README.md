@@ -5,9 +5,7 @@
 [Play the unrated alpha at nosweatchess.org](https://nosweatchess.org/club).
 
 The No Sweat Chess Club is an independent, noncommercial, open-source chess
-project licensed under GNU AGPL v3.0. This project was previously called Club
-Maia. The GitHub repository is now [`Dash1971/no-sweat-chess`](https://github.com/Dash1971/no-sweat-chess).
-Existing local checkout and infrastructure names may still use `club-maia`.
+project licensed under GNU AGPL v3.0, built on Lichess with human-like Maia bots.
 
 ## The club
 
@@ -17,18 +15,16 @@ Lichess repository. They use it to form the No Sweat Chess Club, preserving the
 spirit of human chess by playing only bots trained on human games from the before
 times, 2023.
 
-To keep human chess alive, they stopped playing humans. The recovered SSD explains
-why the club uses Lichess; the story is background lore, not a retro-interface
-design requirement. Keep ordinary chess play immediately accessible.
+To keep human chess alive, they stopped playing humans.
 
-The lore is fiction. The real implementation uses human-like Maia3 bots. It does
-not claim a 2023-only training dataset, calibrated bot ratings, or Stockfish 99.
+The 2097 setting and the 2023 archive are fictional. Games use Maia3 bots with
+provisional ratings that are subject to calibration.
 
 ## Confirmed chess foundation
 
 **Lichess with our name and logo, for desktop and mobile browsers.**
 
-The product concept has four defining requirements:
+No Sweat Chess combines:
 
 1. **The familiar Lichess interface:** use Lichess/Lila as the base for playing
    and analysis, retaining its layout, board controls, clocks, move list,
@@ -41,36 +37,30 @@ The product concept has four defining requirements:
    distinct from Maia's human-move probabilities and candidates at selected
    conditioning levels.
 4. **A human-like-bot-only opponent pool:** humans enter the pool and are paired
-   with openly identified Maia bots, never with other humans. Use the confirmed
-   roster and policy/calibration work in issues #1 and #2.
+   with openly identified Maia bots, never with other humans. See the
+   [bot roster](https://github.com/Dash1971/no-sweat-chess/issues/1) and
+   [rating calibration](https://github.com/Dash1971/no-sweat-chess/issues/2).
 
-Desktop and mobile browser support applies to playing, stacked premoves, and
-analysis. Use Lichess's responsive design without a fixed desktop-width gate or
-an early-1990s skin. A separate native mobile app is not part of this requirement.
+Play and analyze in desktop and mobile browsers using Lichess's responsive
+layout and mouse/touch controls.
 
-Analysis also includes the existing En Croissant-derived Mobile Maia move
-classification, combined Stockfish/Maia candidate arrows, and the
-maiachess.com-style candidate and Moves by rating explorers.
+Move-quality classifications, combined Stockfish/Maia candidate arrows,
+interactive candidate comparisons, and a Moves by rating explorer help players
+review their games from both engine and human perspectives.
 
-[Issue #3](https://github.com/Dash1971/no-sweat-chess/issues/3) records the current
-owner direction, updated on 29 October 2026. It supersedes older desktop-only
-and retro-design guidance, including the exploratory mockup. The
-[foundation and source map](docs/chess-foundation.md) remains a technical
-reference; its older presentation and platform restrictions are superseded.
-The implementation status below records shipped work and verification separately
-from these product requirements; it does not establish mobile-browser acceptance.
+See the [product roadmap](https://github.com/Dash1971/no-sweat-chess/issues/3)
+and [chess architecture and source map](docs/chess-foundation.md).
 
 The native Lila application now integrates Maia3 opponents and Nostr identity.
 See [development setup](deploy/lila/README.md) and [public deployment](deploy/public/README.md).
-The earlier Node/Fastify prototype is stopped and disabled.
 
 ## Implementation status — 28 October 2026
 
 The alpha uses the native Lichess homepage, quick-pair grid, custom time-control
 dialog, rounds, clocks, reconnect, game history, PGN and analysis. It automatically
 assigns one of the confirmed 44 Maia opponents; there is no bot chooser or direct
-challenge flow. The selected violet cyber-rook replaces the logo; the surrounding
-interface keeps its native styling.
+challenge flow. A violet rook logo identifies No Sweat Chess within the native
+Lichess interface.
 NIP-07 signs a short-lived, one-use NIP-98 login challenge; the server verifies
 signatures and issues native HttpOnly sessions. Private keys stay in the signer;
 no relay publication is required. The browser signer is recommended. Generating
@@ -91,7 +81,8 @@ recovery. Nine adapter/storage tests and all 277 native frontend tests pass; the
 three model/encoder checks and private/public game-flow checks are recorded in
 the deployment notes. This records automated verification, not human manual acceptance.
 
-Native rounds now include Mobile Maia-style projected multiple premoves, with board-square highlights and native cancellation/promotion. No extra premove labels, count or Clear controls are added. The board menu retains a single/multiple-premove choice.
+Multiple premoves are shown as board-square highlights, with native cancellation
+and promotion. A board-menu setting selects single or multiple premoves.
 
 Post-game and standalone analysis now offer browser-local Maia3 5M/79M probabilities beside Stockfish, candidate previews/return, bounded same-move Stockfish comparisons, 600–2600 rating exploration and EC/Mobile Maia review of individual moves or the full mainline. Full-game review shows White/Black accuracy, a navigable evaluation graph and move classifications; it supports Stop/Resume. Maia model, rating, history, arrow and review-quality preferences live in the native Analysis Menu → Settings and persist in this browser. Maia arrows keep the primary Stockfish width regardless of probability; inferior Stockfish alternatives retain their native taper. Computed classifications stay separate from PGN glyphs and last for the open analysis session. Persisted computed annotations and rating calibration remain work.
 
@@ -163,16 +154,14 @@ with our multiple stacked-premove extension. Chessground, scalachess and the
 existing Lichess client-evaluation machinery stay within that base. We do not need unrelated Lichess product features such as tournaments,
 forums or human matchmaking.
 
-Add explicit adapters for Nostr identity, the human-versus-Maia pool, pinned bot
-policies and calibration. The custom Node/Fastify alpha is a working infrastructure
-prototype; it is not the target chess implementation. The earlier choice between
-a custom chess service and Lila has been superseded by this owner decision.
+Nostr identity, human-versus-Maia matchmaking, pinned bot policies, and calibration
+integrate with Lila through dedicated adapters.
 
 Extend Lichess analysis with the existing En Croissant-derived Mobile Maia move
 classification, simultaneous Stockfish/Maia candidates and arrows, and the Maia
 platform's candidate comparison and Moves by rating interactions. Preserve the
 native Lichess interface with our name and logo. Source pins, integration
-order and acceptance details are in [the foundation decision](docs/chess-foundation.md).
+order and acceptance details are in the [architecture and source map](docs/chess-foundation.md).
 Preserve upstream licenses, notices and corresponding sources.
 
 ## Nostr integration
@@ -202,10 +191,8 @@ implications. Relay outages must not interrupt an authenticated live game.
 
 ## Backend architecture
 
-The target is a Lichess/Lila-based chess application with Maia and identity
-adapters. The current Node/PostgreSQL prototype remains running while this base
-is brought up and tested separately; its infrastructure choices do not constrain
-the Lila integration.
+The application uses Lichess/Lila with adapters for Maia inference and Nostr
+identity.
 
 ```mermaid
 flowchart LR
@@ -429,9 +416,6 @@ weights out of ordinary Git history and disposable build output out of the repo.
 Measure second-game conversion, completed games, return visits, perceived fairness,
 repeat encounters with named bots, calibration accuracy, and hosting cost per
 completed game. Use those results to choose the next features and pool expansion.
-
-This is an independent project. All implementation and design changes stay in
-this repository; no other application or release process is part of this work.
 
 ## License
 
