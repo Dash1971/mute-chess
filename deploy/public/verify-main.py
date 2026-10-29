@@ -16,7 +16,7 @@ if branch != 'main' or commit != remote:
     raise SystemExit('Deploy only the current origin/main revision, checked out on main')
 if command('git', '-C', str(root), 'status', '--porcelain'):
     raise SystemExit('Refusing to deploy a dirty checkout')
-runs = json.loads(command('gh', 'run', 'list', '--repo', 'Dash1971/no-sweat-chess',
+runs = json.loads(command('gh', 'run', 'list', '--repo', 'Dash1971/mute-chess',
     '--workflow', 'checks.yml', '--commit', commit, '--event', 'push', '--limit', '5',
     '--json', 'status,conclusion,headSha'))
 if not any(run['headSha'] == commit and run['status'] == 'completed' and run['conclusion'] == 'success' for run in runs):

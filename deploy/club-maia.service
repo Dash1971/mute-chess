@@ -1,5 +1,5 @@
 [Unit]
-Description=nosweatchess private alpha
+Description=Mute Chess private alpha
 After=network.target postgresql.service mbpfan.service
 Requires=postgresql.service
 

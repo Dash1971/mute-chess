@@ -1,14 +1,16 @@
-# nosweatchess: the club in 2097
+# Mute Chess: the club in 2097
 
-The public name is **nosweatchess**, the No Sweat Chess Club. The GitHub
-repository is now `Dash1971/no-sweat-chess` (renamed from `club-maia` on
-28 October 2026). Existing checkout directories, infrastructure names, system
-users, database names and deployed paths retain their current names.
+The public name is **Mute Chess** and the domain is `mutechess.org`.
+The repository's new name is `Dash1971/mute-chess`. The rebrand is prepared
+locally on 29 October 2026; the GitHub rename and publication are pending the
+owner securing the domain. The local rebrand checkout is `mute-chess`.
+Infrastructure names, system users, database names, browser identity stores and
+deployed paths retain their current names for compatibility with existing data.
 
 ## The setting
 
 In the fictional year 2097, ubiquitous neural implants offer Stockfish 99 at 4750
-Elo. A group of nonchippers create the No Sweat Chess Club to preserve imperfect
+Elo. A group of nonchippers create the Mute Chess Club to preserve imperfect
 human chess by playing bots trained on games from the before times, 2023.
 
 **Stay human. Play bots.**

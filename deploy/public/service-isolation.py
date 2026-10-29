@@ -100,7 +100,7 @@ def unit(role):
     else:
         inaccessible += [etc + '/backup.key', etc + '/adapter.env']
     return f'''[Unit]
-Description=No Sweat Chess isolated {role}
+Description=Mute Chess isolated {role}
 {dependencies}
 [Service]
 User={USERS[role]}
@@ -187,7 +187,7 @@ def configure(root=Path('/')):
     secure(rules)
     filter_unit = unit_dir / 'nosweatchess-isolation.service'
     filter_unit.write_text('''[Unit]
-Description=No Sweat Chess service network boundaries
+Description=Mute Chess service network boundaries
 After=ufw.service
 Before=nosweat-cloudflared.service
 
