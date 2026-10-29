@@ -2667,7 +2667,7 @@ index 2759a13..49e32aa 100644
 +  return localAnalysisDialog(options.ctrl, options.start);
  }
 diff --git a/ui/analyse/src/local/localAnalysisDialog.tsx b/ui/analyse/src/local/localAnalysisDialog.tsx
-index 3a429c5..c91ce5f 100644
+index 3a429c5..80351e4 100644
 --- a/ui/analyse/src/local/localAnalysisDialog.tsx
 +++ b/ui/analyse/src/local/localAnalysisDialog.tsx
 @@ -9,7 +9,8 @@ import { numberFormat } from 'lib/i18n';
@@ -2680,7 +2680,7 @@ index 3a429c5..c91ce5f 100644
  import {
    type Dialog,
    type LooseVNodes,
-@@ -27,15 +28,19 @@ import { isFinished } from '@/study/studyChapters';
+@@ -27,15 +28,20 @@ import { isFinished } from '@/study/studyChapters';
  
  import type AnalyseCtrl from '../ctrl';
  import type { AnalysisEngineInfo } from '../interfaces';
@@ -2690,18 +2690,20 @@ index 3a429c5..c91ce5f 100644
 -export async function localAnalysisDialog(ctrl: AnalyseCtrl): Promise<void> {
 +export async function localAnalysisDialog(ctrl: AnalyseCtrl, start = false): Promise<void> {
    const state = new LocalAnalysisDialog(ctrl, await site.asset.loadEsm<ChartGame>('chart.game'));
-   jsxDialog({
+-  jsxDialog({
++  let redraw: Redraw = () => {};
++  redraw = jsxDialog({
      class: 'local-analysis-dialog',
      css: [{ hashed: 'analyse.local-dialog' }],
      modal: true,
      onClose: state.close,
 +    onShow: dialog => {
-+      if (start && ctrl.noSweat) void state.analyse(dialog, dialog.redraw);
++      if (start && ctrl.noSweat) void state.analyse(dialog, redraw);
 +    },
      render: state.render,
    });
  }
-@@ -56,9 +61,18 @@ class LocalAnalysisDialog {
+@@ -56,9 +62,18 @@ class LocalAnalysisDialog {
      private readonly chartGame: ChartGame,
    ) {
      const info = this.bestEngineDefaults;
@@ -2723,7 +2725,7 @@ index 3a429c5..c91ce5f 100644
      this.engineId(this.customSearch.engine!.id);
      const quality = storedIntProp('local-analysis.quality', 0);
      this.quality = (value?: number) => quality(Math.max(this.minQuality, value ?? quality()));
-@@ -124,7 +138,7 @@ class LocalAnalysisDialog {
+@@ -124,7 +139,7 @@ class LocalAnalysisDialog {
          <button
            class={['button analyse-btn', !this.canAnalyse && 'none']}
            on={{ click: async () => this.analyse(dialog, redraw) }}>
@@ -2732,7 +2734,7 @@ index 3a429c5..c91ce5f 100644
          </button>
          <button class={['button ok-btn', this.engine && 'none']} on={{ click: () => dialog.close('ok') }}>
            {i18n.site.ok}
-@@ -138,7 +152,7 @@ class LocalAnalysisDialog {
+@@ -138,7 +153,7 @@ class LocalAnalysisDialog {
      this.engine?.stop();
    };
  
@@ -2741,7 +2743,7 @@ index 3a429c5..c91ce5f 100644
      const then = performance.now();
      const engine = this.engine!;
      try {
-@@ -158,12 +172,47 @@ class LocalAnalysisDialog {
+@@ -158,12 +173,47 @@ class LocalAnalysisDialog {
          },
        );
        await this.ctrl.idbTree.saveAnalysis(result);
@@ -2790,7 +2792,7 @@ index 3a429c5..c91ce5f 100644
        this.engine = undefined;
        redraw();
      } catch (e) {
-@@ -266,7 +315,7 @@ class LocalAnalysisDialog {
+@@ -266,7 +316,7 @@ class LocalAnalysisDialog {
        this.ctrl.idbTree.hasLocalAnalysis && this.ctrl.publishedEvalEngine,
      ].filter(Boolean);
  
@@ -2799,7 +2801,7 @@ index 3a429c5..c91ce5f 100644
        preludes.push(<p>{i18n.localAnalysis.chooseYourEngineSettings}</p>);
        if (
          !ceval.engines
-@@ -327,7 +376,14 @@ class LocalAnalysisDialog {
+@@ -327,7 +377,14 @@ class LocalAnalysisDialog {
              'local-analysis-engine',
            )}
          </div>
@@ -2815,7 +2817,7 @@ index 3a429c5..c91ce5f 100644
          <div class="setting">
            <label for="local-analysis-threads">{i18n.site.threads}</label>
            <input
-@@ -479,11 +535,15 @@ class LocalAnalysisDialog {
+@@ -479,11 +536,15 @@ class LocalAnalysisDialog {
      return {
        engine: { id: engine.id, threads: this.threads(), hashSize: this.hashSize() },
        search: () => ({
@@ -2834,7 +2836,7 @@ index 3a429c5..c91ce5f 100644
        }),
        canBackground: true,
      };
-@@ -491,8 +551,10 @@ class LocalAnalysisDialog {
+@@ -491,8 +552,10 @@ class LocalAnalysisDialog {
  
    private get bestEngineDefaults(): { id: string; threads: number; hashSize: number } {
      const engine = this.bestBrowserEngine; // TODO - allow external engines once supported
@@ -2847,7 +2849,7 @@ index 3a429c5..c91ce5f 100644
      return { id: engine.id, threads, hashSize };
    }
  
-@@ -502,6 +564,9 @@ class LocalAnalysisDialog {
+@@ -502,6 +565,9 @@ class LocalAnalysisDialog {
    }
  
    private get bestBrowserEngine(): BaseEngineInfo {
@@ -2994,23 +2996,21 @@ index 5019c1b..91a4271 100644
    const fen = makeFen(start.toSetup());
    const variant: VariantKey = rulesToVariantKey[start.rules] || start.rules;
 diff --git a/ui/analyse/src/serverSideUnderboard.ts b/ui/analyse/src/serverSideUnderboard.ts
-index cfbd78b..ced9791 100644
+index cfbd78b..5127e7d 100644
 --- a/ui/analyse/src/serverSideUnderboard.ts
 +++ b/ui/analyse/src/serverSideUnderboard.ts
-@@ -15,6 +15,18 @@ export const stockfishName = 'Stockfish 19';
+@@ -15,6 +15,16 @@ export const stockfishName = 'Stockfish 19';
  
  export default function (element: HTMLElement, ctrl: AnalyseCtrl) {
    $(element).replaceWith(ctrl.opts.$underboard);
 +  // No public fishnet worker is configured. Keep the native on-device review.
 +  if (ctrl.noSweat) {
-+    const form = document.querySelector('form.future-game-analysis');
-+    if (form) {
-+      const button = document.createElement('button');
-+      button.type = 'button';
-+      button.className = 'button';
++    document.querySelector('form.future-game-analysis')?.remove();
++    const button = document.querySelector<HTMLButtonElement>('button.analysis-editor');
++    if (button) {
 +      button.textContent = 'Analyze game';
++      button.classList.remove('analysis-editor');
 +      button.onclick = () => site.asset.loadEsm('analyse.local', { init: { ctrl, start: true } });
-+      form.replaceWith(button);
 +    }
 +  }
    const data = ctrl.data;
