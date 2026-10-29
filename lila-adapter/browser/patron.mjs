@@ -37,11 +37,11 @@ if (page) {
           const result = await call('/club/patron/receipt', { receipt });
           if (!result.confirmed) return;
           settled = true; clearTimeout(expiry); subscription?.close(); pool.destroy();
-          status('Payment confirmed. Thank you! Your patron wings are active.');
+          status('Payment confirmed. Your wings are active. Thank you!');
           location.reload();
         } catch { /* Ignore unrelated/untrusted relay data; only the server awards wings. */ }
       },
-      onclose() { if (invoice && !settled && current === generation) status('Receipt relays disconnected. Use Check payment to reconnect.'); },
+      onclose() { if (invoice && !settled && current === generation) status('Connection lost. Use Check payment to reconnect.'); },
     });
   }
   async function display(value) {
@@ -56,7 +56,7 @@ if (page) {
     if (remaining <= 0) {
       element('payment').hidden = true; status('Invoice expired. Create a new invoice.');
     } else {
-      status('Scan to pay. Waiting for the wallet’s signed payment receipt…');
+      status('Scan to pay. Waiting for payment…');
       const expire = () => {
         const left = (details.createdAt + details.expiresIn) * 1000 - Date.now();
         if (left > 0) { expiry = setTimeout(expire, Math.min(left, 2147483647)); return; }
@@ -129,7 +129,7 @@ if (page) {
     });
     element('amount').addEventListener('change', updateQuote);
     element('copy').addEventListener('click', () => navigator.clipboard.writeText(invoice).then(() => status('Invoice copied.')));
-    element('check').addEventListener('click', () => { seen.clear(); status('Checking for a signed payment receipt…'); watch(); });
+    element('check').addEventListener('click', () => { seen.clear(); status('Checking payment…'); watch(); });
     loadKey().then(key => { element('saved').hidden = !key; key?.fill(0); }).catch(() => {});
     fetch('/club/patron/pending', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
       .then(r => { if (!r.ok) throw Error(); return r.json(); })

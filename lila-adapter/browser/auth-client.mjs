@@ -1,9 +1,14 @@
+export class AuthResponseError extends Error {
+  constructor(message, code) { super(message); this.code = code; }
+}
 export async function call(path, data, authorization) {
   const response = await fetch(path, { method: 'POST', credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...(authorization ? { Authorization: authorization } : {}) },
     body: typeof data === 'string' ? data : JSON.stringify(data), signal: AbortSignal.timeout(15000) });
   const result = await response.json();
-  if (!response.ok) throw Error(result.error || 'Authentication is temporarily unavailable');
+  if (!response.ok) {
+    throw new AuthResponseError(result.error || 'Authentication is temporarily unavailable', result.code);
+  }
   return result;
 }
 export async function signedCall(signer, action, fields = {}) {

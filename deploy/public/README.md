@@ -75,7 +75,7 @@ services retain the database access required by native Lichess, including seen-a
 updates. Kernel/root compromise and abuse through an authorized app connection
 remain outside that boundary.
 
-Before migration, block new admissions, verify zero active games, stop app writers
+Before migration, block new admissions, verify zero active Maia admission records and zero active native games (`game5` statuses 10/20, including friend invitations that became games), stop app writers
 and make a consistent encrypted database/configuration rollback snapshot. Keep
 the previous units, file ownership and configuration for rollback. Verify the
 account/access matrix, nftables persistence and successful real native Maia/Nostr

@@ -29,6 +29,20 @@ try {
     assert.doesNotMatch(page,/\/coach(?:["/])|href="\/blog"|href="\/swag/);
   }
   const home=await request('/');assert.match(home,/app.flotilla.social\/spaces\/mobilemaia/);
+  const homeDoc=html(home);
+  for(const selector of ['.lobby__side','.lobby__puzzle','.lobby__feed','.lobby__tv','.lobby__tournaments','#clinput','#notify-toggle'])
+    assert.equal(homeDoc.querySelector(selector),null,'Focused home omits '+selector);
+  const nav=[...homeDoc.querySelectorAll('#topnav section > a')].map(a=>a.textContent.trim());
+  assert.deepEqual(nav,['Puzzles','Community','Tools']);
+  assert.ok(homeDoc.querySelector('a[href="/patron"]'),'Donate remains');
+  for(const path of ['/about','/faq','/contact','/terms-of-service','/privacy']) {
+    const info=html(await request(path));assert.ok(info.querySelector('.mutechess-info h1'),path);
+  }
+  const patron=html(await request('/patron'));
+  assert.ok(patron.querySelector('a[aria-label="Close donation"]'));
+  assert.match(patron.body.textContent,/eerieatlas700@walletofsatoshi.com/);
+  const category=await request('/forum/mute-feedback');assert.match(category,/Posting opens|Sign in/);
+
   const practice=html(await request('/practice'));
   const course=practice.querySelector('a[href^="/practice/"]');assert.ok(course,'Installed practice course');
   const lesson=await request(course.getAttribute('href'));

@@ -52,7 +52,10 @@ try {
   assert.equal((await request('/.well-known/other.json')).status, 404);
   assert.equal((await request('/metrics')).status, 404);
   for (const [path, method] of [
-    ['/analysis', 'GET'], ['/account/preferences/display','GET'], ['/account/preferences/chess-clock','HEAD'],
+    ['/challenge','GET'], ['/challenge/abcdefgh','GET'], ['/challenge/abcdefgh/accept','POST'],
+    ['/challenge/abcdefgh/decline','POST'], ['/challenge/abcdefgh/cancel','POST'], ['/setup/friend?user=friend','POST'],
+    ['/rel/follow/friend','POST'], ['/rel/unfollow/friend','POST'], ['/rel/block/friend','POST'], ['/rel/unblock/friend','POST'], ['/rel/blocks','GET'],
+    ['/about','GET'], ['/faq','GET'], ['/contact','GET'], ['/terms-of-service','GET'], ['/privacy','HEAD'], ['/analysis', 'GET'], ['/account/preferences/display','GET'], ['/account/preferences/chess-clock','HEAD'],
     ['/account/preferences/game-behavior','GET'], ['/account/preferences','POST'],
     ['/account/preferences/notification','POST'], ['/storm','GET'], ['/storm','POST'], ['/streak','GET'],
     ['/api/streak','GET'], ['/api/player/autocomplete?term=Native','GET'],  ['/learn','GET'], ['/learn/score','POST'],
@@ -64,7 +67,10 @@ try {
     ['/run/captcha/00000000?solution=e2e4','GET'], ['/notify','GET'], ['/notify/clear','POST'],
   ]) assert.equal((await request(path, method)).status, 209, `${method} ${path}`);
   for (const [path, method] of [
-    ['/account/preferences/network','GET'], ['/account/preferences/network','POST'], ['/account/passwd','POST'],
+    ['/setup/hook/abcdefgh','POST'], ['/setup/ai','POST'], ['/api/challenge/friend','POST'],
+    ['/api/challenge/open','POST'], ['/challenge/abcdefgh/to-friend','POST'], ['/challenge/abcdefgh/accept','GET'],
+    ['/challenge','POST'], ['/rel/follow/friend','GET'], ['/rel/delete/friend','POST'],
+    ['/about','POST'], ['/privacy','POST'], ['/account/preferences/network','GET'], ['/account/preferences/network','POST'], ['/account/passwd','POST'],
     ['/account/oauth/token','GET'], ['/api/account/preferences','GET'], ['/api/study','POST'],
     ['/api/streak/27','POST'], ['/storm','DELETE'], ['/learn','DELETE'], ['/games/atomic','GET'], ['/forum/search','GET'],
     ['/study/search','GET'], ['/blog','GET'], ['/coach','GET'], ['/club/internal/games','GET'],

@@ -37,3 +37,8 @@ from lichess-org/lila-db-seed at `b5d06f115c51d6f12167b9629fb21f087bf2e833`, und
 its MIT license, reproduced in `learning/LICENSE.md`. Original lesson explanations
 and attribution are retained; local ownership and contributor memberships are
 sanitized. See `learning/README.md` and `catalog.json` for reproduction and hashes.
+
+Mobile Maia's full control-dependent human timing and independent Dart vectors
+are pinned, with GPL-3.0, in [third-party/mobile-maia-timing](third-party/mobile-maia-timing/README.md).
+The adapter port preserves configured-control tiers and counts inference inside
+the total target; its existing low-clock cap on additional waiting remains.

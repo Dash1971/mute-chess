@@ -65,7 +65,9 @@ try {
   const codes = enabled.data.recoveryCodes;
   assert.equal((await call('/club/me', undefined, undefined, 200, oldSession)).data.user,null);
   assert.match((await call('/club/security')).data, /data-enabled="true"/);
-  await signed('login', {}, 401, key, undefined);
+  const factorRequired = await signed('login', {}, 401, key, undefined);
+  assert.equal(factorRequired.data.code, 'two_factor_required');
+  assert.equal(factorRequired.response.headers.get('cache-control'), 'no-store');
   await signed('login', { twoFactorToken: token }, 401, key, undefined); // enrollment code is consumed
   // Use a second-factor recovery code once; no key-only bypass.
   const recoveryRace = await Promise.all([0,1].map(() => signed('login', { twoFactorToken: codes[0] }, [200,401], key, undefined)));

@@ -61,6 +61,23 @@ index efdcfe5..1639aed 100644
    def loginLang = LangPage(routes.Auth.login)(serveLogin)
  
    private def serveLogin(using ctx: Context, referrer: Option[ValidReferrer]) = NoBot:
+diff --git a/app/controllers/Cms.scala b/app/controllers/Cms.scala
+index 6d2fee0..06daf05 100644
+--- a/app/controllers/Cms.scala
++++ b/app/controllers/Cms.scala
+@@ -56,7 +56,11 @@ final class Cms(env: Env) extends LilaController(env):
+   // pages
+ 
+   val help = menuPage(CmsPageKey("help"))
+-  val tos = menuPage(CmsPageKey("tos"))
++  val tos =
++    if env.noSweat.enabled then
++      Open:
++        Ok.page(views.noSweatInfo("terms-of-service"))
++    else menuPage(CmsPageKey("tos"))
+ 
+   def lonePage(key: CmsPageKey) = Open:
+     orCreateOrNotFound(key): page =>
 diff --git a/app/controllers/Dasher.scala b/app/controllers/Dasher.scala
 index 6209054..b14132d 100644
 --- a/app/controllers/Dasher.scala
@@ -207,6 +224,24 @@ index ede74af..51e2daa 100644
      )
  
    def masterGame(id: GameId, orientation: Color) = Open:
+diff --git a/app/controllers/Main.scala b/app/controllers/Main.scala
+index 7c65f4c..ad9cdc3 100644
+--- a/app/controllers/Main.scala
++++ b/app/controllers/Main.scala
+@@ -83,11 +83,11 @@ final class Main(env: Env, assetsC: ExternalAssets) extends LilaController(env):
+ 
+   def contact = Open:
+     pageHit
+-    Ok.page(views.site.page.contact)
++    Ok.page(if env.noSweat.enabled then views.noSweatInfo("contact") else views.site.page.contact)
+ 
+   def faq = Open:
+     pageHit
+-    Ok.page(views.site.page.faq)
++    Ok.page(if env.noSweat.enabled then views.noSweatInfo("faq") else views.site.page.faq)
+ 
+   def survey = Open:
+     pageHit
 diff --git a/app/controllers/Plan.scala b/app/controllers/Plan.scala
 index 5334d5e..4ed89ec 100644
 --- a/app/controllers/Plan.scala
@@ -262,6 +297,105 @@ index 5334d5e..4ed89ec 100644
  
    def list = Open:
      ctx.me.foldUse(Redirect(routes.Plan.index()).toFuccess): me ?=>
+diff --git a/app/controllers/Setup.scala b/app/controllers/Setup.scala
+index 7d5ec39..0600592 100644
+--- a/app/controllers/Setup.scala
++++ b/app/controllers/Setup.scala
+@@ -44,47 +44,55 @@ final class Setup(
+               origUser <- ctx.user.traverse(env.user.perfsRepo.withPerf(_, config.perfType))
+               destUser <- userId.so(env.user.api.enabledWithPerf(_, config.perfType))
+               denied <- destUser.so(u => env.challenge.granter.isDenied(u.user, config.perfKey.some))
+-              result <- denied match
+-                case Some(denied) =>
+-                  val message = lila.challenge.ChallengeDenied.translated(denied)
+-                  negotiate(
+-                    // 403 tells setupCtrl.ts to close the setup modal
+-                    forbiddenJson(message), // TODO test
+-                    JsonBadRequest(message)
++              result <-
++                if env.noSweat.enabled && (
++                    origUser.isEmpty || destUser.isEmpty || origUser.exists(_.user.isBot) ||
++                      destUser.exists(_.user.isBot) || destUser.exists(u => ctx.is(u.user)) ||
++                      config.variant != chess.variant.Standard
+                   )
+-                case None =>
+-                  import lila.challenge.Challenge.*
+-                  (origUser, ctx.req.sid)
+-                    .match
+-                      case (Some(orig), _) => toRegistered(orig).some
+-                      case (_, Some(sid)) => Challenger.Anonymous(sid.value).some
+-                      case _ if HTTPRequest.isLichobile => Challenger.Open.some
+-                      case _ => none
+-                    .so: challenger =>
+-                      val timeControl = makeTimeControl(config.makeClock, config.makeDaysPerTurn)
+-                      val challenge = lila.challenge.Challenge.make(
+-                        variant = config.variant,
+-                        initialFen = config.fen,
+-                        timeControl = timeControl,
+-                        rated = config.rated,
+-                        color = config.color.name,
+-                        challenger = challenger,
+-                        destUser = destUser,
+-                        rematchOf = none
++                then fuccess(forbiddenJson("Choose a signed-in player for a standard chess challenge."))
++                else
++                  denied match
++                    case Some(denied) =>
++                      val message = lila.challenge.ChallengeDenied.translated(denied)
++                      negotiate(
++                        // 403 tells setupCtrl.ts to close the setup modal
++                        forbiddenJson(message), // TODO test
++                        JsonBadRequest(message)
+                       )
+-                      env.challenge.api
+-                        .create(challenge)
+-                        .flatMap:
+-                          if _ then
+-                            negotiate(
+-                              Redirect(routes.Round.watcher(challenge.gameId, Color.white)),
+-                              challengeC.showChallenge(challenge, justCreated = true)
+-                            )
+-                          else
+-                            negotiate(
+-                              Redirect(routes.Lobby.home),
+-                              JsonBadRequest("Challenge not created")
+-                            )
++                    case None =>
++                      import lila.challenge.Challenge.*
++                      (origUser, ctx.req.sid)
++                        .match
++                          case (Some(orig), _) => toRegistered(orig).some
++                          case (_, Some(sid)) => Challenger.Anonymous(sid.value).some
++                          case _ if HTTPRequest.isLichobile => Challenger.Open.some
++                          case _ => none
++                        .so: challenger =>
++                          val timeControl = makeTimeControl(config.makeClock, config.makeDaysPerTurn)
++                          val challenge = lila.challenge.Challenge.make(
++                            variant = config.variant,
++                            initialFen = config.fen,
++                            timeControl = timeControl,
++                            rated = config.rated,
++                            color = config.color.name,
++                            challenger = challenger,
++                            destUser = destUser,
++                            rematchOf = none
++                          )
++                          env.challenge.api
++                            .create(challenge)
++                            .flatMap:
++                              if _ then
++                                negotiate(
++                                  Redirect(routes.Round.watcher(challenge.gameId, Color.white)),
++                                  challengeC.showChallenge(challenge, justCreated = true)
++                                )
++                              else
++                                negotiate(
++                                  Redirect(routes.Lobby.home),
++                                  JsonBadRequest("Challenge not created")
++                                )
+             yield result
+         )
+ 
 diff --git a/app/controllers/Tv.scala b/app/controllers/Tv.scala
 index 49e260e..2872316 100644
 --- a/app/controllers/Tv.scala
@@ -356,10 +490,10 @@ index 8ce37a2..89c9561 100644
    def pgn(pgn: String) = Open:
      val pov = makePov(none, Standard)
 diff --git a/app/http/HttpRequestHandler.scala b/app/http/HttpRequestHandler.scala
-index a6875eb..c844e23 100644
+index a6875eb..cb26269 100644
 --- a/app/http/HttpRequestHandler.scala
 +++ b/app/http/HttpRequestHandler.scala
-@@ -10,12 +10,28 @@ final class HttpRequestHandler(
+@@ -10,12 +10,30 @@ final class HttpRequestHandler(
      errorHandler: HttpErrorHandler,
      configuration: HttpConfiguration,
      filters: Seq[EssentialFilter],
@@ -378,7 +512,9 @@ index a6875eb..c844e23 100644
 +    then Some(controllerComponents.actionBuilder(_ => Results.NotFound))
 +    else if noSweatEnabled && request.method == "POST" &&
 +      (request.path == "/login" || request.path.startsWith("/signup") ||
-+        request.path.startsWith("/setup/") || request.path.startsWith("/api/challenge") ||
++        (request.path.startsWith("/setup/") && request.path != "/setup/friend") || request.path.startsWith(
++          "/api/challenge"
++        ) ||
 +        request.path == "/api/bot/account/upgrade")
 +    then
 +      Some(
@@ -404,7 +540,7 @@ index 3fb4283..2c758b1 100644
  object replay:
  
 diff --git a/app/views/base/page.scala b/app/views/base/page.scala
-index b408a91..5bb78aa 100644
+index b408a91..91c6e41 100644
 --- a/app/views/base/page.scala
 +++ b/app/views/base/page.scala
 @@ -78,7 +78,7 @@ object page:
@@ -416,8 +552,18 @@ index b408a91..5bb78aa 100644
            favicons,
            preventIndexing.option(noRobots),
            noTranslate,
+@@ -157,7 +157,8 @@ object page:
+               error = ctx.data.error,
+               topnav = topnav(
+                 seesClassMenu = ctx.seesClassMenu,
+-                hasDgt = ctx.pref.hasDgt
++                hasDgt = ctx.pref.hasDgt,
++                compact = env.noSweat.enabled
+               )
+             )
+           ,
 diff --git a/app/views/lobby/home.scala b/app/views/lobby/home.scala
-index 2db52a9..82185a3 100644
+index 2db52a9..5cb8466 100644
 --- a/app/views/lobby/home.scala
 +++ b/app/views/lobby/home.scala
 @@ -10,22 +10,6 @@ object home:
@@ -469,63 +615,174 @@ index 2db52a9..82185a3 100644
          )
        )
        .hrefLangs(lila.ui.LangPath("/")):
-@@ -93,6 +82,13 @@ object home:
-                 ctx.blind.option(h2(trans.site.timeline())),
-                 views.timeline.entries(userTimeline)
-               )
-+            else if env.noSweat.enabled then
-+              div(cls := "about-side mutechess-intro")(
-+                ctx.blind.option(h2(trans.site.about())),
-+                strong("Stay human. Play bots."),
-+                p("Free, open-source chess against human-like Maia opponents."),
-+                a(href := "/source")(trans.site.sourceCode())
-+              )
-             else
-               div(cls := "about-side")(
-                 ctx.blind.option(h2(trans.site.about())),
-@@ -118,31 +114,31 @@ object home:
-               button(cls := "button button-metal lobby__start__button lobby__start__button--hook")(
-                 trans.site.createLobbyGame()
-               ),
+@@ -56,53 +45,63 @@ object home:
+         main(
+           cls := List(
+             "lobby" -> true,
++            "mutechess-play" -> env.noSweat.enabled,
+             "lobby-nope" -> (playban.isDefined || currentGame.isDefined || homepage.hasUnreadLichessMessage)
+           )
+         )(
+-          div(cls := "lobby__side")(
+-            ctx.blind.option(h2(trans.nvui.featuredEvents())),
+-            ctx.kid.no.option(views.streamer.bits.liveStreams(streams)),
+-            div(cls := "lobby__spotlights"):
+-              val eventTags = events.map(bits.spotlight)
+-              val relayTags = views.relay.ui.spotlight(relays)
+-              frag(
+-                eventTags,
+-                relayTags,
+-                ctx.noBot.option {
+-                  val nbManual = eventTags.size + relayTags.size
+-                  val simulBBB = simuls.find(isFeaturable(_) && nbManual < 4)
+-                  val nbForced = nbManual + simulBBB.size.toInt
+-                  val tourBBBs = if nbForced > 3 then 0 else if nbForced == 3 then 1 else 3 - nbForced
+-                  frag(
+-                    lila.tournament.Spotlight.select(tours, tourBBBs).map {
+-                      views.tournament.list.homepageSpotlight(_)
+-                    },
+-                    swiss.ifTrue(nbForced < 3).map(views.swiss.ui.homepageSpotlight),
+-                    simulBBB.map(views.simul.ui.homepageSpotlight)
+-                  )
+-                }
+-              )
+-            ,
+-            classes.nonEmpty.option:
+-              div(cls := "lobby__classes"):
+-                classes.map: clas =>
+-                  a(href := routes.Clas.show(clas.id), dataIcon := Icon.Group)(clas.name)
+-            ,
+-            if ctx.isAuth then
+-              div(cls := "lobby__timeline")(
+-                ctx.blind.option(h2(trans.site.timeline())),
+-                views.timeline.entries(userTimeline)
+-              )
+-            else
+-              div(cls := "about-side")(
+-                ctx.blind.option(h2(trans.site.about())),
+-                trans.site.xIsAFreeYLibreOpenSourceChessServer(
+-                  "Lichess",
+-                  a(cls := "blue", href := routes.Plan.features)(trans.site.really.txt())
+-                ),
+-                " ",
+-                a(href := "/about")(trans.site.aboutX("Lichess"), "...")
+-              )
++          Option.unless(env.noSweat.enabled)(
++            div(cls := "lobby__side")(
++              ctx.blind.option(h2(trans.nvui.featuredEvents())),
++              ctx.kid.no.option(views.streamer.bits.liveStreams(streams)),
++              div(cls := "lobby__spotlights"):
++                val eventTags = events.map(bits.spotlight)
++                val relayTags = views.relay.ui.spotlight(relays)
++                frag(
++                  eventTags,
++                  relayTags,
++                  ctx.noBot.option {
++                    val nbManual = eventTags.size + relayTags.size
++                    val simulBBB = simuls.find(isFeaturable(_) && nbManual < 4)
++                    val nbForced = nbManual + simulBBB.size.toInt
++                    val tourBBBs = if nbForced > 3 then 0 else if nbForced == 3 then 1 else 3 - nbForced
++                    frag(
++                      lila.tournament.Spotlight.select(tours, tourBBBs).map {
++                        views.tournament.list.homepageSpotlight(_)
++                      },
++                      swiss.ifTrue(nbForced < 3).map(views.swiss.ui.homepageSpotlight),
++                      simulBBB.map(views.simul.ui.homepageSpotlight)
++                    )
++                  }
++                )
++              ,
++              classes.nonEmpty.option:
++                div(cls := "lobby__classes"):
++                  classes.map: clas =>
++                    a(href := routes.Clas.show(clas.id), dataIcon := Icon.Group)(clas.name)
++              ,
++              if ctx.isAuth then
++                div(cls := "lobby__timeline")(
++                  ctx.blind.option(h2(trans.site.timeline())),
++                  views.timeline.entries(userTimeline)
++                )
++              else if env.noSweat.enabled then
++                div(cls := "about-side mutechess-intro")(
++                  ctx.blind.option(h2(trans.site.about())),
++                  strong("Stay human. Play bots."),
++                  p("Free, open-source chess against human-like Maia opponents."),
++                  a(href := "/source")(trans.site.sourceCode())
++                )
++              else
++                div(cls := "about-side")(
++                  ctx.blind.option(h2(trans.site.about())),
++                  trans.site.xIsAFreeYLibreOpenSourceChessServer(
++                    "Lichess",
++                    a(cls := "blue", href := routes.Plan.features)(trans.site.really.txt())
++                  ),
++                  " ",
++                  a(href := "/about")(trans.site.aboutX("Lichess"), "...")
++                )
++            )
+           ),
+           currentGame
+             .map(bits.currentGameInfo)
+@@ -114,42 +113,32 @@ object home:
+               if ctx.blind then blindLobby(blindGames) else bits.lobbyApp
+           ,
+           div(cls := "lobby__table")(
+-            div(cls := "lobby__start")(
+-              button(cls := "button button-metal lobby__start__button lobby__start__button--hook")(
+-                trans.site.createLobbyGame()
+-              ),
 -              button(cls := "button button-metal lobby__start__button lobby__start__button--friend")(
 -                trans.site.challengeAFriend()
-+              Option.unless(env.noSweat.enabled)(
-+                button(cls := "button button-metal lobby__start__button lobby__start__button--friend")(
-+                  trans.site.challengeAFriend()
-+                )
-               ),
+-              ),
 -              button(cls := "button button-metal lobby__start__button lobby__start__button--ai")(
 -                trans.site.playAgainstComputer()
-+              Option.unless(env.noSweat.enabled)(
-+                button(cls := "button button-metal lobby__start__button lobby__start__button--ai")(
-+                  trans.site.playAgainstComputer()
++            Option.unless(env.noSweat.enabled)(
++              div(cls := "lobby__start")(
++                button(cls := "button button-metal lobby__start__button lobby__start__button--hook")(
++                  trans.site.createLobbyGame()
 +                )
                )
              )
            ),
 -          div(cls := "lobby__support")(donateLink, swagLink),
-           div(cls := "lobby__tv")(
+-          div(cls := "lobby__tv")(
 -            donateLink,
-             featured.map(g => views.game.mini(Pov.naturalOrientation(g), tv = true))
-           ),
-           div(cls := "lobby__puzzle")(
+-            featured.map(g => views.game.mini(Pov.naturalOrientation(g), tv = true))
+-          ),
+-          div(cls := "lobby__puzzle")(
 -            swagLink,
-             puzzle.map(p => views.puzzle.bits.dailyLink(p)())
+-            puzzle.map(p => views.puzzle.bits.dailyLink(p)())
++          Option.unless(env.noSweat.enabled)(
++            frag(
++              div(cls := "lobby__tv")(
++                featured.map(g => views.game.mini(Pov.naturalOrientation(g), tv = true))
++              ),
++              div(cls := "lobby__puzzle")(puzzle.map(p => views.puzzle.bits.dailyLink(p)())),
++              div(cls := "lobby__feed")(views.feed.lobbyUpdates(lastUpdates)),
++              ctx.noBot.option(bits.underboards(tours, simuls))
++            )
            ),
 -          views.ublog.ui.homeCarousel(ublogPosts),
-           div(cls := "lobby__feed"):
-             views.feed.lobbyUpdates(lastUpdates)
-           ,
-           ctx.noBot.option(bits.underboards(tours, simuls)),
+-          div(cls := "lobby__feed"):
+-            views.feed.lobbyUpdates(lastUpdates)
+-          ,
+-          ctx.noBot.option(bits.underboards(tours, simuls)),
            div(cls := "lobby__about")(
              ctx.blind.option(h2(trans.site.about())),
 -            a(href := "/about")(trans.site.aboutX("Lichess")),
 +            a(href := "/about")(trans.site.aboutX(if env.noSweat.enabled then "Mute Chess" else "Lichess")),
              a(href := "/faq")(trans.faq.faqAbbreviation()),
              a(href := "/contact")(trans.contact.contact()),
-             a(href := "/app")(trans.site.mobileApp()),
+-            a(href := "/app")(trans.site.mobileApp()),
+             a(href := routes.Cms.tos)(trans.site.termsOfService()),
+             a(href := "/privacy")(trans.site.privacy()),
+             a(href := "/source")(trans.site.sourceCode()),
+-            a(href := "/ads")(trans.site.blockAds()),
+             views.bits.connectLinks
+           )
+         )
 diff --git a/app/views/ui.scala b/app/views/ui.scala
-index ab74f28..14968ea 100644
+index ab74f28..37b206a 100644
 --- a/app/views/ui.scala
 +++ b/app/views/ui.scala
 @@ -7,7 +7,7 @@ val captcha = lila.web.ui.CaptchaUi(helpers)
@@ -537,10 +794,28 @@ index ab74f28..14968ea 100644
  
  val setup = lila.setup.ui.SetupUi(helpers)
  
+@@ -23,7 +23,7 @@ val irwin = lila.irwin.IrwinUi(helpers)(menu = views.mod.ui.menu)
+ 
+ val dgt = lila.web.ui.DgtUi(helpers)
+ 
+-val relation = lila.relation.ui.RelationUi(helpers)
++val relation = lila.relation.ui.RelationUi(helpers, env.noSweat.enabled)
+ 
+ val auth = lila.web.ui.AuthUi(helpers)
+ 
 diff --git a/app/views/user/show/header.scala b/app/views/user/show/header.scala
-index 26a6045..d1d215c 100644
+index 26a6045..1600a9b 100644
 --- a/app/views/user/show/header.scala
 +++ b/app/views/user/show/header.scala
+@@ -10,7 +10,7 @@ import lila.web.ui.bits.splitNumber
+ 
+ object header:
+ 
+-  private val actionMenu = lila.user.ui.UserActionMenu(helpers)
++  private val actionMenu = lila.user.ui.UserActionMenu(helpers, env.noSweat.enabled)
+ 
+   private val dataToints = attr("data-toints")
+   private val dataTab = attr("data-tab")
 @@ -42,7 +42,7 @@ object header:
      )(
        u.isPatron.not.so(lineIcon(u)),
@@ -561,13 +836,29 @@ index 26a6045..d1d215c 100644
          div(cls := "trophies")(
            views.user.bits.perfTrophies(u, info.ranks),
            otherTrophies(info),
+diff --git a/app/views/user/show/page.scala b/app/views/user/show/page.scala
+index 9688ca7..f6a2f8b 100644
+--- a/app/views/user/show/page.scala
++++ b/app/views/user/show/page.scala
+@@ -9,7 +9,7 @@ import lila.core.data.SafeJsonStr
+ import lila.game.GameFilter
+ import lila.rating.UserWithPerfs.titleUsernameWithBestRating
+ 
+-lazy val ui = lila.user.ui.UserShow(helpers, bits)
++lazy val ui = lila.user.ui.UserShow(helpers, bits, env.noSweat.enabled)
+ 
+ object page:
+ 
 diff --git a/conf/routes b/conf/routes
-index f2a7ab2..4396222 100644
+index f2a7ab2..c59d4a9 100644
 --- a/conf/routes
 +++ b/conf/routes
-@@ -1,6 +1,18 @@
+@@ -1,6 +1,21 @@
  # Run `./lila.sh playRoutes` after modifying this file
  
++# Mute Chess information
++GET /$key<about|faq|contact|terms-of-service|privacy> controllers.NoSweat.info(key)
++
  # Lobby
 +GET   /club                            controllers.NoSweat.home
 +GET   /club/me                         controllers.NoSweat.me
@@ -584,7 +875,7 @@ index f2a7ab2..4396222 100644
  GET   /                                controllers.Lobby.home
  GET   /lobby/seeks                     controllers.Lobby.seeks
  
-@@ -333,6 +345,10 @@ GET   /$lang<\w\w\w?>/learn            controllers.Learn.indexLang(lang: Languag
+@@ -333,6 +348,10 @@ GET   /$lang<\w\w\w?>/learn            controllers.Learn.indexLang(lang: Languag
  
  # Patron
  GET   /patron                          controllers.Plan.index(page: Int ?= 1)
@@ -715,7 +1006,7 @@ index 2d2ccc9..245cc56 100644
      def nonEmptyRealName: Option[RealName] = ne(realName)
  
 diff --git a/modules/forum/src/main/ui/CategUi.scala b/modules/forum/src/main/ui/CategUi.scala
-index bfd027c..1651442 100644
+index bfd027c..442ece9 100644
 --- a/modules/forum/src/main/ui/CategUi.scala
 +++ b/modules/forum/src/main/ui/CategUi.scala
 @@ -21,7 +21,7 @@ final class CategUi(helpers: Helpers, bits: ForumBits):
@@ -727,6 +1018,28 @@ index bfd027c..1651442 100644
              bits.searchForm()
            ),
            showCategs(globalCategs),
+@@ -38,7 +38,7 @@ final class CategUi(helpers: Helpers, bits: ForumBits):
+       topics: Paginator[TopicView],
+       canWrite: Boolean,
+       stickyPosts: List[TopicView]
+-  )(using Context) =
++  )(using ctx: Context) =
+ 
+     def showTopic(sticky: Boolean)(topic: TopicView) =
+       tr(cls := List("sticky" -> sticky))(
+@@ -95,6 +95,12 @@ final class CategUi(helpers: Helpers, bits: ForumBits):
+               )
+             )
+           ),
++          Option.unless(canWrite)(
++            p(cls := "box-pad forum-posting-help")(
++              if ctx.isAuth then frag("Posting opens after one completed game and two days on your account.")
++              else frag(a(href := "/login?referrer=/forum")("Sign in with Nostr"), " to post.")
++            )
++          ),
+           table(cls := "topics slist slist-pad")(
+             thead(
+               tr(
 diff --git a/modules/forum/src/main/ui/ForumBits.scala b/modules/forum/src/main/ui/ForumBits.scala
 index 6fa1cc3..bdf092f 100644
 --- a/modules/forum/src/main/ui/ForumBits.scala
@@ -751,10 +1064,10 @@ index 6fa1cc3..bdf092f 100644
    def authorLink(post: ForumPost, cssClass: Option[String] = None, withOnline: Boolean = true)(using
        Context
 diff --git a/modules/game/src/main/Env.scala b/modules/game/src/main/Env.scala
-index 43d76ae..55503bc 100644
+index 43d76ae..e9262ba 100644
 --- a/modules/game/src/main/Env.scala
 +++ b/modules/game/src/main/Env.scala
-@@ -34,7 +34,27 @@ final class Env(
+@@ -34,7 +34,35 @@ final class Env(
  )(using scheduler: Scheduler)(using Executor, Materializer):
    private val config = appConfig.get[GameConfig]("game")(using AutoConfig.loader)
  
@@ -764,6 +1077,14 @@ index 43d76ae..55503bc 100644
 +  private def admitNoSweat(game: lila.core.game.Game): Funit =
 +    import lila.db.dsl.{ *, given }
 +    if !noSweatOnly || !game.playable then funit
++    else if game.variant.standard && game.sourceIs(_.Friend) && game.userIds.distinct.size == 2 then
++      // Native ChallengeJoiner and Rematcher enforce invitation ownership/consent.
++      // Keep their Friend source path; human pool/lobby games still require Maia admission.
++      userApi
++        .byIds(game.userIds)
++        .flatMap: users =>
++          if users.size == 2 && users.forall(u => u.enabled.yes && !u.isBot) then funit
++          else fufail("Friend games require two enabled human accounts")
 +    else
 +      noSweatGames
 +        .byId[lila.db.dsl.Bdoc](game.id)
@@ -815,6 +1136,47 @@ index 45a3103..6fb1b4b 100644
  
    def removeRecentChallengesOf(userId: UserId) =
      coll.delete.one:
+diff --git a/modules/lobby/src/main/Env.scala b/modules/lobby/src/main/Env.scala
+index fbb9f54..3e904ef 100644
+--- a/modules/lobby/src/main/Env.scala
++++ b/modules/lobby/src/main/Env.scala
+@@ -6,6 +6,7 @@ import lila.core.config.*
+ 
+ @Module
+ final class Env(
++    appConfig: play.api.Configuration,
+     db: lila.db.Db,
+     onStart: lila.core.game.OnStart,
+     relationApi: lila.core.relation.RelationApi,
+@@ -48,4 +49,6 @@ final class Env(
+ 
+   private lazy val biter = wire[Biter]
+ 
++  private val publicMatchmaking = !appConfig.getOptional[Boolean]("nosweat.enabled").getOrElse(false)
++
+   val socket = wire[LobbySocket]
+diff --git a/modules/lobby/src/main/LobbySocket.scala b/modules/lobby/src/main/LobbySocket.scala
+index b916ee3..3775c75 100644
+--- a/modules/lobby/src/main/LobbySocket.scala
++++ b/modules/lobby/src/main/LobbySocket.scala
+@@ -24,7 +24,8 @@ final class LobbySocket(
+     lobby: LobbySyncActor,
+     relationApi: lila.core.relation.RelationApi,
+     poolApi: lila.core.pool.PoolApi,
+-    userTrustApi: UserTrustApi
++    userTrustApi: UserTrustApi,
++    publicMatchmaking: Boolean
+ )(using ec: Executor, scheduler: Scheduler)(using lila.core.config.RateLimit):
+ 
+   import LobbySocket.*
+@@ -156,6 +157,7 @@ final class LobbySocket(
+     poolLimitPerSri.zero[Unit](k = member.sri.value, cost = cost, msg = msg)
+ 
+   private[lobby] def controller(member: Member): SocketController =
++    case ("poolIn" | "join" | "joinSeek" | "hookIn", _) if !publicMatchmaking => ()
+     case ("join", o) if !member.bot =>
+       HookPoolLimit(
+         member,
 diff --git a/modules/plan/src/main/PlanApi.scala b/modules/plan/src/main/PlanApi.scala
 index 0e35266..8dbe5e8 100644
 --- a/modules/plan/src/main/PlanApi.scala
@@ -1138,6 +1500,46 @@ index 19217e6..57087b9 100644
          .add("replay" -> replay.map(replayJson))
          .add(
            "angle",
+diff --git a/modules/relation/src/main/ui/RelationUi.scala b/modules/relation/src/main/ui/RelationUi.scala
+index 07b5211..4e34c7e 100644
+--- a/modules/relation/src/main/ui/RelationUi.scala
++++ b/modules/relation/src/main/ui/RelationUi.scala
+@@ -7,7 +7,7 @@ import lila.core.perf.UserWithPerfs
+ import lila.ui.*
+ import lila.ui.ScalatagsTemplate.{ *, given }
+ 
+-final class RelationUi(helpers: Helpers):
++final class RelationUi(helpers: Helpers, focused: Boolean = false):
+   import helpers.{ *, given }
+ 
+   def mini(
+@@ -51,7 +51,7 @@ final class RelationUi(helpers: Helpers):
+   )(using ctx: Context) =
+     val blocks = relation.contains(Relation.Block)
+     List(
+-      (ctx.isnt(user) && !blocked && !blocks).option(
++      (ctx.isnt(user) && !blocked && !blocks && !user.isBot).option(
+         MenuItem(
+           trans.challenge.challengeToPlay.txt(),
+           Icon.Swords,
+@@ -92,7 +92,7 @@ final class RelationUi(helpers: Helpers):
+                 Some("relation-button")
+               )
+             ,
+-            (messageable && !blocked && !blocks && !user.isBot).option(
++            (messageable && !blocked && !blocks && !user.isBot && !focused).option(
+               MenuItem(
+                 trans.site.composeMessage.txt(),
+                 Icon.BubbleSpeech,
+@@ -100,7 +100,7 @@ final class RelationUi(helpers: Helpers):
+                 Some("relation")
+               )
+             ),
+-            (!blocked && !blocks && !user.isPatron).option:
++            (!blocked && !blocks && !user.isPatron && !focused).option:
+               val url = if me.isPatron then routes.Plan.list else routes.Plan.index()
+               MenuItem(
+                 trans.patron.giftPatronWingsShort.txt(),
 diff --git a/modules/security/src/main/ui/AccountSecurity.scala b/modules/security/src/main/ui/AccountSecurity.scala
 index 85c24e2..a97ff6d 100644
 --- a/modules/security/src/main/ui/AccountSecurity.scala
@@ -1416,6 +1818,233 @@ index 45fd497..7771548 100644
    def existsSec[U: UserIdOf](u: U): Fu[Boolean] = coll.secondary.exists(bid(u.id))
  
    def filterExists(ids: Set[UserId]): Fu[List[UserId]] =
+diff --git a/modules/user/src/main/ui/UserActionMenu.scala b/modules/user/src/main/ui/UserActionMenu.scala
+index 55cb8a7..2c1db74 100644
+--- a/modules/user/src/main/ui/UserActionMenu.scala
++++ b/modules/user/src/main/ui/UserActionMenu.scala
+@@ -4,78 +4,97 @@ package ui
+ import lila.ui.*
+ import lila.ui.ScalatagsTemplate.{ *, given }
+ 
+-final class UserActionMenu(helpers: Helpers):
++final class UserActionMenu(helpers: Helpers, focused: Boolean = false):
+   import helpers.{ *, given }
+ 
+   def apply(u: User, relationActions: List[MenuItem], canImpersonate: Boolean)(using ctx: Context) =
+-    Menu(
+-      List(
+-        Granter
+-          .opt(_.UserModView)
+-          .option(
+-            MenuItem(
+-              "Mod zone",
+-              Icon.Agent,
+-              routes.User.mod(u.username).url,
+-              cssClass = Some("mod-zone-toggle")
+-            )
+-          ),
+-        ctx
+-          .is(u)
+-          .option(
+-            MenuItem(trans.site.editProfile.txt(), Icon.Gear, routes.Account.profile.url)
+-          ),
+-        (u.count.game > 0).option(
+-          MenuItem(trans.site.watch.txt(), Icon.AnalogTv, routes.User.tv(u.username).url)
+-        )
+-      ).flatten ++
+-        relationActions ++
++    if focused then
++      Menu(
+         List(
+-          Some(
+-            MenuItem(
+-              trans.site.openingExplorer.txt(),
+-              Icon.Book,
+-              s"${routes.UserAnalysis.index}#explorer/${u.username}"
+-            )
+-          ),
+-          Some(
+-            MenuItem(trans.site.exportGames.txt(), Icon.Download, routes.User.download(u.username).url)
+-          ),
+-          (ctx.isAuth && ctx.kid.no && ctx.isnt(u)).option(
+-            MenuItem(
+-              trans.site.reportXToModerators.txt(u.username),
+-              Icon.CautionTriangle,
+-              s"${routes.Report.form}?username=${u.username}"
+-            )
+-          ),
+-          (ctx.is(u) || Granter.opt(_.CloseAccount)).option(
+-            MenuItem(trans.site.friends().render, Icon.User, routes.Relation.following(u.username).url)
+-          ),
+-          (ctx.is(u) || Granter.opt(_.BoostHunter)).option(
+-            MenuItem(
+-              trans.site.favoriteOpponents().render,
+-              Icon.User,
+-              s"${routes.User.opponents}?u=${u.username}"
+-            )
+-          ),
++          ctx.is(u).option(MenuItem(trans.site.editProfile.txt(), Icon.Gear, routes.Account.profile.url)),
++          Some(MenuItem(trans.site.exportGames.txt(), Icon.Download, routes.User.download(u.username).url)),
+           ctx
+             .is(u)
+             .option(
+-              MenuItem(trans.site.listBlockedPlayers.txt(), Icon.NotAllowed, routes.Relation.blocks().url)
++              MenuItem(trans.site.friends().render, Icon.User, routes.Relation.following(u.username).url)
+             ),
+-          ctx.me
+-            .filter(_.is(u))
+-            .ifTrue(Granter.opt(_.LichessTeam))
+-            .map: me =>
+-              MenuItem("My permissions", Icon.Logo, routes.Mod.permissions(me.username).url),
+-          canImpersonate.option(
+-            MenuItem(
+-              "Impersonate",
+-              Icon.Agent,
+-              routes.Mod.impersonate(u.username.value).url,
+-              httpMethod = Some(HttpMethod.POST)
++          ctx
++            .is(u)
++            .option(
++              MenuItem(trans.site.listBlockedPlayers.txt(), Icon.NotAllowed, routes.Relation.blocks().url)
+             )
++        ).flatten ++ relationActions,
++        trans.site.more.txt()
++      )
++    else
++      Menu(
++        List(
++          Granter
++            .opt(_.UserModView)
++            .option(
++              MenuItem(
++                "Mod zone",
++                Icon.Agent,
++                routes.User.mod(u.username).url,
++                cssClass = Some("mod-zone-toggle")
++              )
++            ),
++          ctx
++            .is(u)
++            .option(
++              MenuItem(trans.site.editProfile.txt(), Icon.Gear, routes.Account.profile.url)
++            ),
++          (u.count.game > 0).option(
++            MenuItem(trans.site.watch.txt(), Icon.AnalogTv, routes.User.tv(u.username).url)
+           )
+-        ).flatten,
+-      trans.site.more.txt()
+-    )
++        ).flatten ++
++          relationActions ++
++          List(
++            Some(
++              MenuItem(
++                trans.site.openingExplorer.txt(),
++                Icon.Book,
++                s"${routes.UserAnalysis.index}#explorer/${u.username}"
++              )
++            ),
++            Some(
++              MenuItem(trans.site.exportGames.txt(), Icon.Download, routes.User.download(u.username).url)
++            ),
++            (ctx.isAuth && ctx.kid.no && ctx.isnt(u)).option(
++              MenuItem(
++                trans.site.reportXToModerators.txt(u.username),
++                Icon.CautionTriangle,
++                s"${routes.Report.form}?username=${u.username}"
++              )
++            ),
++            (ctx.is(u) || Granter.opt(_.CloseAccount)).option(
++              MenuItem(trans.site.friends().render, Icon.User, routes.Relation.following(u.username).url)
++            ),
++            (ctx.is(u) || Granter.opt(_.BoostHunter)).option(
++              MenuItem(
++                trans.site.favoriteOpponents().render,
++                Icon.User,
++                s"${routes.User.opponents}?u=${u.username}"
++              )
++            ),
++            ctx
++              .is(u)
++              .option(
++                MenuItem(trans.site.listBlockedPlayers.txt(), Icon.NotAllowed, routes.Relation.blocks().url)
++              ),
++            ctx.me
++              .filter(_.is(u))
++              .ifTrue(Granter.opt(_.LichessTeam))
++              .map: me =>
++                MenuItem("My permissions", Icon.Logo, routes.Mod.permissions(me.username).url),
++            canImpersonate.option(
++              MenuItem(
++                "Impersonate",
++                Icon.Agent,
++                routes.Mod.impersonate(u.username.value).url,
++                httpMethod = Some(HttpMethod.POST)
++              )
++            )
++          ).flatten,
++        trans.site.more.txt()
++      )
+diff --git a/modules/user/src/main/ui/UserShow.scala b/modules/user/src/main/ui/UserShow.scala
+index 90a91f3..621b36b 100644
+--- a/modules/user/src/main/ui/UserShow.scala
++++ b/modules/user/src/main/ui/UserShow.scala
+@@ -6,7 +6,7 @@ import lila.core.user.Flag
+ import lila.ui.*
+ import lila.ui.ScalatagsTemplate.{ *, given }
+ 
+-final class UserShow(helpers: Helpers, bits: UserBits):
++final class UserShow(helpers: Helpers, bits: UserBits, focused: Boolean = false):
+   import helpers.{ *, given }
+ 
+   def mini(
+@@ -49,25 +49,31 @@ final class UserShow(helpers: Helpers, bits: UserBits):
+         frag(
+           (myId.isnt(u.id) && u.enabled.yes).option(
+             div(cls := "upt__actions btn-rack")(
+-              a(
+-                dataIcon := Icon.AnalogTv,
+-                cls := "btn-rack__btn",
+-                title := trans.site.watchGames.txt(),
+-                href := routes.User.tv(u.username)
++              (!focused).option(
++                a(
++                  dataIcon := Icon.AnalogTv,
++                  cls := "btn-rack__btn",
++                  title := trans.site.watchGames.txt(),
++                  href := routes.User.tv(u.username)
++                )
+               ),
+               (!blocked).option(
+                 frag(
+-                  a(
+-                    dataIcon := Icon.BubbleSpeech,
+-                    cls := "btn-rack__btn",
+-                    title := trans.site.chat.txt(),
+-                    href := routes.Msg.convo(u.username)
++                  (!focused).option(
++                    a(
++                      dataIcon := Icon.BubbleSpeech,
++                      cls := "btn-rack__btn",
++                      title := trans.site.chat.txt(),
++                      href := routes.Msg.convo(u.username)
++                    )
+                   ),
+-                  a(
+-                    dataIcon := Icon.Swords,
+-                    cls := "btn-rack__btn",
+-                    title := trans.challenge.challengeToPlay.txt(),
+-                    href := s"${routes.Lobby.home}?user=${u.username}#friend"
++                  (!u.user.isBot).option(
++                    a(
++                      dataIcon := Icon.Swords,
++                      cls := "btn-rack__btn",
++                      title := trans.challenge.challengeToPlay.txt(),
++                      href := s"${routes.Lobby.home}?user=${u.username}#friend"
++                    )
+                   )
+                 )
+               ),
 diff --git a/modules/web/src/main/ui/BoardEditorUi.scala b/modules/web/src/main/ui/BoardEditorUi.scala
 index 28e5bc4..66c01ad 100644
 --- a/modules/web/src/main/ui/BoardEditorUi.scala
@@ -1439,88 +2068,183 @@ index 28e5bc4..66c01ad 100644
        )
        .add("fen" -> fen)
 diff --git a/modules/web/src/main/ui/TopNav.scala b/modules/web/src/main/ui/TopNav.scala
-index 4d9306b..bc1c414 100644
+index 4d9306b..f3bef8a 100644
 --- a/modules/web/src/main/ui/TopNav.scala
 +++ b/modules/web/src/main/ui/TopNav.scala
-@@ -12,7 +12,7 @@ final class TopNav(helpers: Helpers):
+@@ -12,92 +12,97 @@ final class TopNav(helpers: Helpers):
    private def linkTitle(url: String, name: Frag)(using ctx: Context) =
      if ctx.blind then h3(name) else a(href := url)(name)
  
 -  def apply(seesClassMenu: Boolean, hasDgt: Boolean)(using ctx: Context) =
-+  def apply(@scala.annotation.unused seesClassMenu: Boolean, hasDgt: Boolean)(using ctx: Context) =
-     st.nav(id := "topnav", cls := "hover")(
-       st.section(
-         linkTitle(
-@@ -27,9 +27,6 @@ final class TopNav(helpers: Helpers):
-           else a(href := "/?any#friend")(trans.site.challengeAFriend()),
-           Option.when(ctx.noBot):
+-    st.nav(id := "topnav", cls := "hover")(
+-      st.section(
+-        linkTitle(
+-          "/",
+-          frag(
+-            span(cls := "play")(trans.site.play()),
+-            span(cls := "home")("lichess.org")
++  def apply(@scala.annotation.unused seesClassMenu: Boolean, hasDgt: Boolean, compact: Boolean = false)(using
++      ctx: Context
++  ) =
++    if compact then
++      st.nav(id := "topnav", cls := "hover")(
++        st.section(
++          linkTitle(routes.Puzzle.home.url, trans.site.puzzles()),
++          div(role := "group")(
++            a(href := routes.Puzzle.home)(trans.site.puzzles()),
++            a(href := routes.Puzzle.themes)(trans.puzzle.puzzleThemes()),
++            a(href := routes.Puzzle.dashboard(Days(30), "home", none))(trans.puzzle.puzzleDashboard()),
++            a(href := routes.Puzzle.streak)("Puzzle Streak"),
++            a(href := routes.Storm.home)("Puzzle Storm")
+           )
+         ),
+-        div(role := "group")(
+-          if ctx.noBot then a(href := s"${langHref("/")}?any#hook")(trans.site.createLobbyGame())
+-          else a(href := "/?any#friend")(trans.site.challengeAFriend()),
+-          Option.when(ctx.noBot):
++        st.section(
++          linkTitle(routes.ForumCateg.index.url, trans.site.community()),
++          div(role := "group")(a(href := routes.ForumCateg.index)(trans.site.forum()))
++        ),
++        toolsMenu
++      )
++    else
++      st.nav(id := "topnav", cls := "hover")(
++        st.section(
++          linkTitle(
++            "/",
              frag(
 -              a(href := langHref(routes.Tournament.home))(trans.arena.arenaTournaments()),
 -              a(href := langHref(routes.Swiss.home))(trans.swiss.swissTournaments()),
 -              a(href := langHref(routes.Simul.home))(trans.site.simultaneousExhibitions()),
-               hasDgt.option(a(href := routes.DgtCtrl.index)(trans.dgt.dgtBoard())),
-               (ctx.kid.no && !ctx.me.exists(_.isPatron)).option:
-                 a(cls := "community-patron mobile-only", href := routes.Plan.index())(trans.patron.donate())
-@@ -45,8 +42,7 @@ final class TopNav(helpers: Helpers):
-             a(href := langHref(routes.Puzzle.themes))(trans.puzzle.puzzleThemes()),
-             a(href := routes.Puzzle.dashboard(Days(30), "home", none))(trans.puzzle.puzzleDashboard()),
-             a(href := langHref(routes.Puzzle.streak))("Puzzle Streak"),
+-              hasDgt.option(a(href := routes.DgtCtrl.index)(trans.dgt.dgtBoard())),
+-              (ctx.kid.no && !ctx.me.exists(_.isPatron)).option:
+-                a(cls := "community-patron mobile-only", href := routes.Plan.index())(trans.patron.donate())
++              span(cls := "play")(trans.site.play()),
++              span(cls := "home")("lichess.org")
+             )
+-        )
+-      ),
+-      Option.when(ctx.noBot):
+-        val puzzleUrl = langHref(routes.Puzzle.home.url)
+-        st.section(
+-          linkTitle(puzzleUrl, trans.site.puzzles()),
++          ),
+           div(role := "group")(
+-            a(href := puzzleUrl)(trans.site.puzzles()),
+-            a(href := langHref(routes.Puzzle.themes))(trans.puzzle.puzzleThemes()),
+-            a(href := routes.Puzzle.dashboard(Days(30), "home", none))(trans.puzzle.puzzleDashboard()),
+-            a(href := langHref(routes.Puzzle.streak))("Puzzle Streak"),
 -            a(href := langHref(routes.Storm.home))("Puzzle Storm"),
 -            a(href := langHref(routes.Racer.home))("Puzzle Racer")
-+            a(href := langHref(routes.Storm.home))("Puzzle Storm")
++            if ctx.noBot then a(href := s"${langHref("/")}?any#hook")(trans.site.createLobbyGame())
++            else a(href := "/?any#friend")(trans.site.challengeAFriend()),
++            Option.when(ctx.noBot):
++              frag(
++                hasDgt.option(a(href := routes.DgtCtrl.index)(trans.dgt.dgtBoard())),
++                (ctx.kid.no && !ctx.me.exists(_.isPatron)).option:
++                  a(cls := "community-patron mobile-only", href := routes.Plan.index())(trans.patron.donate())
++              )
            )
-         )
-       ,
-@@ -60,32 +56,19 @@ final class TopNav(helpers: Helpers):
-               a(href := langHref(routes.Coordinate.home))(trans.coordinates.coordinates())
+-        )
+-      ,
+-      st.section(
+-        linkTitle(routes.Learn.index.url, trans.site.learnMenu()),
+-        div(role := "group")(
+-          Option.when(ctx.noBot):
+-            frag(
+-              a(href := langHref(routes.Learn.index))(trans.site.chessBasics()),
+-              a(href := langHref(routes.Practice.index))(trans.site.practice()),
+-              a(href := langHref(routes.Coordinate.home))(trans.coordinates.coordinates())
++        ),
++        Option.when(ctx.noBot):
++          val puzzleUrl = langHref(routes.Puzzle.home.url)
++          st.section(
++            linkTitle(puzzleUrl, trans.site.puzzles()),
++            div(role := "group")(
++              a(href := puzzleUrl)(trans.site.puzzles()),
++              a(href := langHref(routes.Puzzle.themes))(trans.puzzle.puzzleThemes()),
++              a(href := routes.Puzzle.dashboard(Days(30), "home", none))(trans.puzzle.puzzleDashboard()),
++              a(href := langHref(routes.Puzzle.streak))("Puzzle Streak"),
++              a(href := langHref(routes.Storm.home))("Puzzle Storm")
              )
-           ,
+-          ,
 -          a(href := langHref(routes.Study.allDefault()))(trans.site.studyMenu()),
 -          ctx.kid.no.option(a(href := langHref(routes.Coach.all(1)))(trans.site.coaches())),
 -          seesClassMenu.option(a(href := routes.Clas.index)(trans.clas.lichessClasses()))
-+          a(href := langHref(routes.Study.allDefault()))(trans.site.studyMenu())
-         )
-       ),
+-        )
+-      ),
 -      st.section:
 -        val broadcastUrl = langHref(routes.RelayTour.index())
 -        frag(
 -          linkTitle(broadcastUrl, trans.site.watch()),
--          div(role := "group")(
++          )
++        ,
++        st.section(
++          linkTitle(routes.Learn.index.url, trans.site.learnMenu()),
++          div(role := "group")(
++            Option.when(ctx.noBot):
++              frag(
++                a(href := langHref(routes.Learn.index))(trans.site.chessBasics()),
++                a(href := langHref(routes.Practice.index))(trans.site.practice()),
++                a(href := langHref(routes.Coordinate.home))(trans.coordinates.coordinates())
++              )
++            ,
++            a(href := langHref(routes.Study.allDefault()))(trans.site.studyMenu())
++          )
++        ),
++        st.section(
++          linkTitle(routes.Tv.games.url, trans.site.watch()),
++          div(role := "group")(
++            a(href := routes.Tv.games)(trans.site.currentGames())
++          )
++        ),
++        st.section(
++          linkTitle(routes.ForumCateg.index.url, trans.site.community()),
+           div(role := "group")(
 -            a(href := routes.RelayTour.index())(trans.broadcast.broadcasts()),
 -            a(href := langHref(routes.Tv.index))("Lichess TV"),
 -            a(href := routes.Tv.games)(trans.site.currentGames()),
 -            (ctx.kid.no && ctx.noBot).option(a(href := routes.Streamer.index())(trans.site.streamersMenu())),
 -            ctx.noBot.option(a(href := langHref(routes.Video.index))(trans.site.videoLibrary()))
--          )
-+      st.section(
-+        linkTitle(routes.Tv.games.url, trans.site.watch()),
-+        div(role := "group")(
-+          a(href := routes.Tv.games)(trans.site.currentGames())
-         )
++            ctx.kid.no.option(a(href := routes.ForumCateg.index)(trans.site.forum())),
++            (ctx.kid.no && ctx.me.exists(_.isPatron))
++              .option(a(cls := "community-patron", href := routes.Plan.index())(trans.patron.donate()))
+           )
+-        )
 -      ,
-+      ),
-       st.section(
+-      st.section(
 -        linkTitle(routes.User.list.url, trans.site.community()),
-+        linkTitle(routes.ForumCateg.index.url, trans.site.community()),
-         div(role := "group")(
+-        div(role := "group")(
 -          a(href := routes.User.list)(trans.site.players()),
 -          ctx.me.map(me => a(href := routes.Relation.following(me.username))(trans.site.friends())),
 -          a(href := routes.Team.home())(trans.team.teams()),
-           ctx.kid.no.option(a(href := routes.ForumCateg.index)(trans.site.forum())),
+-          ctx.kid.no.option(a(href := routes.ForumCateg.index)(trans.site.forum())),
 -          ctx.kid.no.option(a(href := langHref(routes.Ublog.communityAll()))(trans.site.blog())),
-           (ctx.kid.no && ctx.me.exists(_.isPatron))
-             .option(a(cls := "community-patron", href := routes.Plan.index())(trans.patron.donate()))
-         )
-@@ -94,10 +77,8 @@ final class TopNav(helpers: Helpers):
-         linkTitle(routes.UserAnalysis.index.url, trans.site.tools()),
-         div(role := "group")(
-           a(href := routes.UserAnalysis.index)(trans.site.analysis()),
+-          (ctx.kid.no && ctx.me.exists(_.isPatron))
+-            .option(a(cls := "community-patron", href := routes.Plan.index())(trans.patron.donate()))
+-        )
+-      ),
+-      st.section(
+-        linkTitle(routes.UserAnalysis.index.url, trans.site.tools()),
+-        div(role := "group")(
+-          a(href := routes.UserAnalysis.index)(trans.site.analysis()),
 -          a(href := routes.Opening.index())(trans.site.openings()),
-           a(href := routes.Editor.index)(trans.site.boardEditor()),
+-          a(href := routes.Editor.index)(trans.site.boardEditor()),
 -          a(href := routes.Importer.importGame)(trans.site.importGame()),
 -          a(href := routes.Search.index())(trans.search.advancedSearch())
-+          a(href := routes.Importer.importGame)(trans.site.importGame())
-         )
+-        )
++        ),
++        toolsMenu
++      )
++
++  private def toolsMenu(using Context) =
++    st.section(
++      linkTitle(routes.UserAnalysis.index.url, trans.site.tools()),
++      div(role := "group")(
++        a(href := routes.UserAnalysis.index)(trans.site.analysis()),
++        a(href := routes.Editor.index)(trans.site.boardEditor()),
++        a(href := routes.Importer.importGame)(trans.site.importGame())
        )
      )
 diff --git a/modules/web/src/main/ui/bits.scala b/modules/web/src/main/ui/bits.scala
@@ -1561,7 +2285,7 @@ index 0c0ed10..0fd8c57 100644
  
    val logo = raw:
 diff --git a/modules/web/src/main/ui/layout.scala b/modules/web/src/main/ui/layout.scala
-index 1c7a30b..00aae34 100644
+index 1c7a30b..963ba83 100644
 --- a/modules/web/src/main/ui/layout.scala
 +++ b/modules/web/src/main/ui/layout.scala
 @@ -17,8 +17,17 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
@@ -1583,7 +2307,29 @@ index 1c7a30b..00aae34 100644
    val topComment = raw("""<!-- Lichess is open source! See https://lichess.org/source -->""")
    val charset = raw("""<meta charset="utf-8">""")
    val viewport = raw:
-@@ -105,12 +114,23 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
+@@ -63,6 +72,21 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
+   <div id="notify-app" class="dropdown"></div>
+ </div>"""
+ 
++  private def challengeNotifications(challenges: Int)(using Translate) =
++    div(
++      button(id := "challenge-toggle", cls := "toggle link", tpe := "button")(
++        span(
++          title := trans.challenge.challengesX.txt(challenges),
++          role := "status",
++          aria.label := trans.challenge.challengesX.txt(challenges),
++          cls := "data-count",
++          dataCount := challenges,
++          dataIcon := Icon.Swords
++        )
++      ),
++      div(id := "challenge-app", cls := "dropdown")
++    )
++
+   private def friendBox(using Translate) =
+     val titleTxt = trans.site.friends.txt()
+     div(id := "friend_box")(
+@@ -105,12 +129,23 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
      style := "display:inline;width:34px;height:34px;vertical-align:top;margin-right:5px;vertical-align:text-top"
    )
  
@@ -1603,14 +2349,14 @@ index 1c7a30b..00aae34 100644
 -    s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
 -      s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
 +    if isMuteChess then
-+      """<link rel="alternate icon" type="image/png" href="/assets/nosweat/favicon-32.png?v=quiet-signal1"><link id="favicon" rel="icon" type="image/svg+xml" href="/assets/nosweat/favicon.svg?v=quiet-signal1"><link rel="stylesheet" href="/assets/nosweat/brand.css?v=channels1"><link rel="stylesheet" href="/assets/nosweat/quiet-signal.css?v=quiet-signal1">"""
++      """<link rel="alternate icon" type="image/png" href="/assets/nosweat/favicon-32.png?v=quiet-signal1"><link id="favicon" rel="icon" type="image/svg+xml" href="/assets/nosweat/favicon.svg?v=quiet-signal1"><link rel="stylesheet" href="/assets/nosweat/brand.css?v=focused1"><link rel="stylesheet" href="/assets/nosweat/quiet-signal.css?v=quiet-signal1">"""
 +    else
 +      s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
 +        s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
  
    def blindModeForm(using ctx: Context) = raw:
      val btnText =
-@@ -135,7 +155,7 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
+@@ -135,7 +170,7 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
  
    def dasher(me: User) =
      div(cls := "dasher")(
@@ -1619,7 +2365,7 @@ index 1c7a30b..00aae34 100644
        div(id := "dasher_app", cls := "dropdown")
      )
  
-@@ -306,11 +326,38 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
+@@ -306,16 +341,43 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
        header(id := "top")(
          div(cls := "site-title-nav")(
            (!isAppealUser).option(topnavToggle),
@@ -1661,6 +2407,31 @@ index 1c7a30b..00aae34 100644
            ),
            (!isAppealUser).option(
              frag(
+               topnav,
+-              (ctx.kid.no && !ctx.me.exists(_.isPatron) && !zenable).option(
++              (ctx.kid.no && (isMuteChess || !ctx.me.exists(_.isPatron)) && (isMuteChess || !zenable)).option(
+                 a(cls := "site-title-nav__donate")(href := routes.Plan.index())(trans.patron.donate())
+               )
+             )
+@@ -324,7 +386,7 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
+         ),
+         div(cls := "site-buttons")(
+           warnNoAutoplay,
+-          (!isAppealUser).option(clinput),
++          (!isAppealUser && !isMuteChess).option(clinput),
+           privileges,
+           teamRequests(ctx.teamNbRequests),
+           if isAppealUser then
+@@ -335,7 +397,8 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
+               .map: me =>
+                 frag(
+                   me.enabled.yes.option(friendBox),
+-                  allNotifications(challenges, notifications),
++                  if isMuteChess then challengeNotifications(challenges)
++                  else allNotifications(challenges, notifications),
+                   dasher(me)
+                 )
+               .getOrElse:
 diff --git a/ui/@types/lichess/index.d.ts b/ui/@types/lichess/index.d.ts
 index 818aaae..901eb6e 100644
 --- a/ui/@types/lichess/index.d.ts
@@ -2780,7 +3551,7 @@ index 334435d..fa87ed3 100644
  export const userRating = (u: Pick<AnyUser, 'rating' | 'provisional' | 'brackets'>): string | undefined => {
    if (u.rating) {
 diff --git a/ui/lobby/src/ctrl.ts b/ui/lobby/src/ctrl.ts
-index a8b22d7..4e28f12 100644
+index a8b22d7..ca1d9bc 100644
 --- a/ui/lobby/src/ctrl.ts
 +++ b/ui/lobby/src/ctrl.ts
 @@ -4,6 +4,7 @@ import { pubsub } from 'lib/pubsub';
@@ -2799,7 +3570,24 @@ index a8b22d7..4e28f12 100644
      this.mode = this.stores.mode.get();
      this.sort = this.me ? this.stores.sort.get() : 'time';
  
-@@ -258,6 +260,11 @@ export default class LobbyController {
+@@ -136,6 +138,8 @@ export default class LobbyController {
+       history.replaceState(null, '', '/');
+     }
+ 
++    if (opts.noSweat && this.tab !== 'now_playing') this.tab = 'pools';
++
+     this.poolInStorage = storage.make('lobby.pool-in');
+     this.poolInStorage.listen(_ => {
+       // when another tab joins a pool
+@@ -210,6 +214,7 @@ export default class LobbyController {
+   private readonly flushHooksSchedule = () => setTimeout(this.flushHooks, 8000);
+ 
+   setTab = (tab: Tab) => {
++    if (this.opts.noSweat && tab !== 'now_playing') tab = 'pools';
+     if (tab !== this.tab) {
+       if (tab === 'seeks') this.fetchSeeks();
+       else if (tab === 'real_time') this.socket.realTimeIn();
+@@ -258,6 +263,11 @@ export default class LobbyController {
    };
  
    clickPool = (id: string) => {
@@ -2811,7 +3599,7 @@ index a8b22d7..4e28f12 100644
      if (!this.me) {
        xhr.anonPoolSeek(this.pools.find(p => p.id === id)!);
        this.setTab('real_time');
-@@ -266,6 +273,29 @@ export default class LobbyController {
+@@ -266,6 +276,29 @@ export default class LobbyController {
      this.redraw();
    };
  
@@ -2841,6 +3629,16 @@ index a8b22d7..4e28f12 100644
    enterPool = (member: PoolMember) => {
      poolRangeStorage.set(this.me?.username, member.id, member.range);
      this.setTab('pools');
+@@ -352,7 +385,8 @@ export default class LobbyController {
+       if (range) member.range = range;
+       if (match) {
+         this.setTab('pools');
+-        if (this.me) this.enterPool(member);
++        if (this.opts.noSweat) this.clickPool(member.id);
++        else if (this.me) this.enterPool(member);
+         else setTimeout(() => this.clickPool(member.id), 1500);
+         history.replaceState(null, '', '/');
+       }
 diff --git a/ui/lobby/src/interfaces.ts b/ui/lobby/src/interfaces.ts
 index f148c56..c58ecd0 100644
 --- a/ui/lobby/src/interfaces.ts
@@ -2870,7 +3668,7 @@ index 610f89d..d248296 100644
      xhr.text(
        xhr.url(`/setup/hook/${site.sri}/like/${gameId}`, { deltaMin: ratingMin, deltaMax: ratingMax }),
 diff --git a/ui/lobby/src/setupCtrl.ts b/ui/lobby/src/setupCtrl.ts
-index 42d03af..6985216 100644
+index 42d03af..1413a3b 100644
 --- a/ui/lobby/src/setupCtrl.ts
 +++ b/ui/lobby/src/setupCtrl.ts
 @@ -73,7 +73,7 @@ export default class SetupController {
@@ -2895,7 +3693,7 @@ index 42d03af..6985216 100644
    ) => {
      this.root.leavePool();
 -    this.gameType = gameType;
-+    this.gameType = this.root.opts.noSweat ? 'hook' : gameType;
++    this.gameType = this.root.opts.noSweat && !(gameType === 'friend' && friendUser) ? 'hook' : gameType;
      this.loading = false;
      this.fenError = false;
      this.lastValidFen = '';
@@ -2903,7 +3701,7 @@ index 42d03af..6985216 100644
    minimumTimeIfReal = () => (this.gameType === 'ai' && this.variant() === 'fromPosition' ? 1 : 0);
  
    submit = async () => {
-+    if (this.root.opts.noSweat) {
++    if (this.root.opts.noSweat && this.gameType !== 'friend') {
 +      this.loading = true;
 +      this.root.redraw();
 +      await this.root.matchMaia({
@@ -2922,10 +3720,19 @@ index 42d03af..6985216 100644
      const poolMember = this.hookToPoolMember(color);
      if (poolMember) {
 diff --git a/ui/lobby/src/view/setup/modal.ts b/ui/lobby/src/view/setup/modal.ts
-index 3e5ae86..5239f54 100644
+index 3e5ae86..cef13a6 100644
 --- a/ui/lobby/src/view/setup/modal.ts
 +++ b/ui/lobby/src/view/setup/modal.ts
-@@ -58,11 +58,11 @@ export default function setupModal(ctrl: LobbyController): VNode[] | null {
+@@ -15,7 +15,7 @@ export default function setupModal(ctrl: LobbyController): VNode[] | null {
+   const { setupCtrl } = ctrl;
+   if (!setupCtrl.gameType) return null;
+   const buttonText = {
+-    hook: i18n.site.createLobbyGame,
++    hook: ctrl.opts.noSweat ? i18n.site.play : i18n.site.createLobbyGame,
+     friend: setupCtrl.friendUser ? i18n.site.challengeX(setupCtrl.friendUser) : i18n.site.challengeAFriend,
+     ai: i18n.site.playAgainstComputer,
+   }[setupCtrl.gameType];
+@@ -58,16 +58,16 @@ export default function setupModal(ctrl: LobbyController): VNode[] | null {
  
  const views = {
    hook: (ctrl: LobbyController): LooseVNodes => [
@@ -2939,11 +3746,26 @@ index 3e5ae86..5239f54 100644
      colorButtons(ctrl.setupCtrl),
    ],
    friend: (ctrl: LobbyController): LooseVNodes => [
+-    variantPicker(ctrl.setupCtrl),
+-    fenInput(ctrl.setupCtrl),
++    !ctrl.opts.noSweat && variantPicker(ctrl.setupCtrl),
++    !ctrl.opts.noSweat && fenInput(ctrl.setupCtrl),
+     timePickerAndSliders(ctrl.setupCtrl.timeControl, 0),
+     gameModeButtons(ctrl),
+     colorButtons(ctrl.setupCtrl),
 diff --git a/ui/lobby/src/view/table.ts b/ui/lobby/src/view/table.ts
-index 9053e1a..5de061f 100644
+index 9053e1a..e8f724f 100644
 --- a/ui/lobby/src/view/table.ts
 +++ b/ui/lobby/src/view/table.ts
-@@ -19,7 +19,9 @@ export default function table(ctrl: LobbyController) {
+@@ -10,6 +10,7 @@ type ButtonInfo = { gameType: GameType | 'dev' | 'bots'; label: string; disabled
+ 
+ export default function table(ctrl: LobbyController) {
+   const { data, opts } = ctrl;
++  if (opts.noSweat) return hl('div.lobby__table', [renderSetupModal(ctrl)]);
+   const hasOngoingRealTimeGame = ctrl.hasOngoingRealTimeGame(true);
+   const hookDisabled =
+     opts.playban || opts.hasUnreadLichessMessage || ctrl.me?.isBot || hasOngoingRealTimeGame;
+@@ -19,7 +20,9 @@ export default function table(ctrl: LobbyController) {
        gameType: 'hook',
        label: i18n.site.createLobbyGame,
        disabled: hookDisabled,
@@ -2954,7 +3776,7 @@ index 9053e1a..5de061f 100644
      },
      {
        gameType: 'friend',
-@@ -37,7 +39,8 @@ export default function table(ctrl: LobbyController) {
+@@ -37,7 +40,8 @@ export default function table(ctrl: LobbyController) {
        disabled: hasOngoingRealTimeGame,
      },
    ];
@@ -3703,12 +4525,34 @@ index f91c71d..665cbe5 100644
      : player.ai
        ? i18n.site.aiNameLevelAiLevel('Stockfish', player.ai)
        : i18n.site.anonymous;
+diff --git a/ui/site/src/topBar.ts b/ui/site/src/topBar.ts
+index 18646b3..662a537 100644
+--- a/ui/site/src/topBar.ts
++++ b/ui/site/src/topBar.ts
+@@ -56,7 +56,7 @@ export default function () {
+     return false;
+   });
+ 
+-  {
++  if (document.getElementById('challenge-toggle')) {
+     // challengeApp
+     let instance: Promise<any> | undefined;
+     const $toggle = $('#challenge-toggle');
+@@ -91,7 +91,7 @@ export default function () {
+     pubsub.on('challenge-app.open', () => $toggle.trigger('click'));
+   }
+ 
+-  {
++  if (document.getElementById('notify-toggle')) {
+     // notifyApp
+     let instance: Promise<any> | undefined;
+     const $toggle = $('#notify-toggle');
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..730ff8d
+index 0000000..8f10712
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,629 @@
+@@ -0,0 +1,637 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -3723,7 +4567,8 @@ index 0000000..730ff8d
 +import lila.db.dsl.{ *, given }
 +import lila.user.BSONFields as UserFields
 +
-+final case class NoSweatError(status: Int, reason: String) extends RuntimeException(reason)
++final case class NoSweatError(status: Int, reason: String, code: Option[String] = None)
++    extends RuntimeException(reason)
 +
 +/** Identity and bot admission adapters. Round state remains authoritative in Lila. */
 +final class NoSweatService(env: Env, ws: StandaloneWSClient)(using ec: Executor):
@@ -4029,7 +4874,8 @@ index 0000000..730ff8d
 +    import lila.user.TotpSecret.totp
 +    user.totpSecret.fold(funit): secret =>
 +      val token = submitted.getOrElse("").trim
-+      if token.isEmpty then fufail(NoSweatError(401, "Enter your authenticator or recovery code"))
++      if token.isEmpty then
++        fufail(NoSweatError(401, "Enter your authenticator or recovery code", Some("two_factor_required")))
 +      else
 +        factorRateLimit(user).flatMap: _ =>
 +          val period = System.currentTimeMillis() / 30000
@@ -4279,6 +5125,12 @@ index 0000000..730ff8d
 +                  "botToMove" -> game.player.userId.contains(bot),
 +                  "botColor" -> game.player(bot).get.color.name,
 +                  "policy" -> Json.parse(doc.getAsOpt[String]("snapshot").get),
++                  "clock" -> game.clock.map(c =>
++                    Json.obj(
++                      "initial" -> c.config.limitSeconds.value,
++                      "increment" -> c.config.incrementSeconds.value
++                    )
++                  ),
 +                  "state" -> state
 +                )
 +          .map(Json.toJson(_))
@@ -4340,10 +5192,10 @@ index 0000000..730ff8d
 +        )
 diff --git a/app/controllers/NoSweat.scala b/app/controllers/NoSweat.scala
 new file mode 100644
-index 0000000..c7f20ba
+index 0000000..9d3afd9
 --- /dev/null
 +++ b/app/controllers/NoSweat.scala
-@@ -0,0 +1,208 @@
+@@ -0,0 +1,212 @@
 +package controllers
 +
 +import play.api.libs.json.*
@@ -4356,8 +5208,9 @@ index 0000000..c7f20ba
 +  private val club = env.noSweat
 +  private def handle(f: => Fu[Result]): Fu[Result] =
 +    def error(e: Throwable): Result = e match
-+      case NoSweatError(status, reason) =>
-+        Status(status)(Json.obj("error" -> reason)).withHeaders("Cache-Control" -> "no-store")
++      case NoSweatError(status, reason, code) =>
++        Status(status)(Json.obj("error" -> reason) ++ code.fold(Json.obj())(c => Json.obj("code" -> c)))
++          .withHeaders("Cache-Control" -> "no-store")
 +      case _: JsResultException => BadRequest(Json.obj("error" -> "Invalid request"))
 +      case _ =>
 +        lila.log("nosweat").error("Club adapter request failed", e)
@@ -4374,6 +5227,9 @@ index 0000000..c7f20ba
 +  private def internal(using req: RequestHeader): Unit =
 +    if !club.internalAuthorized(req.headers.get("Authorization")) then
 +      throw NoSweatError(403, "Private adapter authentication required")
++
++  def info(key: String) = Open:
++    if club.enabled then Ok.page(views.noSweatInfo(key)) else fuccess(NotFound)
 +
 +  def home = Open:
 +    fuccess(Redirect("/"))
@@ -4552,12 +5408,209 @@ index 0000000..c7f20ba
 +
 +  def game(id: GameId) = Auth: context ?=>
 +    user ?=> handle(club.details(id, user.value).map(_.fold(NotFound)(Ok(_))))
+diff --git a/app/views/noSweatInfo.scala b/app/views/noSweatInfo.scala
+new file mode 100644
+index 0000000..9dfd538
+--- /dev/null
++++ b/app/views/noSweatInfo.scala
+@@ -0,0 +1,191 @@
++package views
++
++import lila.app.UiEnv.{ *, given }
++
++object noSweatInfo:
++  private val npub = "npub1w6l8e4mqa4ruqs2vdvwhdxhp9ke9ax8kpncy2wy26tja3d7rzpgq06c9jl"
++  private val nostrUrl = s"https://primal.net/p/$npub"
++  private val pages = List(
++    "about" -> "About Mute Chess",
++    "faq" -> "FAQ",
++    "contact" -> "Contact",
++    "terms-of-service" -> "Terms of Service",
++    "privacy" -> "Privacy"
++  )
++
++  def apply(key: String)(using Context) =
++    val title = pages.find(_._1 == key).map(_._2).getOrElse("Mute Chess")
++    Page(title).css("bits.page"):
++      main(cls := "box box-pad page mutechess-info")(
++        st.nav(aria.label := "Information")(pages.map((path, name) => a(href := s"/$path")(name))),
++        h1(title),
++        content(key)
++      )
++
++  private def contactLink = a(href := nostrUrl)("Mute Chess on Nostr")
++
++  private def content(key: String): Frag = key match
++    case "about" =>
++      frag(
++        p(
++          "Mute Chess is free, open-source chess against human-like Maia opponents. Choose a time control, play, then review the game with Stockfish and Maia."
++        ),
++        p(
++          "Nostr is your login. Your profile holds your public name and game history. Anonymous games are casual; signed-in accounts can play rated games."
++        ),
++        h2("Built on open chess"),
++        p(
++          "The chess interface is based on Lichess. Stacked premoves, Maia analysis and additive brilliant-move detection build on work from Mobile Maia and En Croissant. Mute Chess is an independent project, not a service operated by Lichess."
++        ),
++        p(
++          a(href := "/source")("Download the source"),
++          " or ",
++          a(href := "https://github.com/Dash1971/mute-chess")("browse GitHub"),
++          ". Upstream licenses and attributions are included."
++        ),
++        p(contactLink)
++      )
++    case "faq" =>
++      frag(
++        h2("How do I start a game?"),
++        p(
++          "Click a time control on the home page. Custom opens the time-control dialog. We match you automatically with an available Maia opponent; there is no human lobby or bot picker."
++        ),
++        h2("Can I play a friend?"),
++        p(
++          "Yes. Sign in, open their profile and choose Challenge to play. Use Friends to follow players and see who is online. Invitations are separate from the Maia-only quick-pair grid. Challenge preferences and blocks apply."
++        ),
++        h2("How do ratings work?"),
++        p(
++          "Anonymous games are casual. Rated Nostr accounts start at provisional 1500 and use native Glicko ratings. Pairing looks for an available bot within 200 rating points. If the pool is busy, try again shortly."
++        ),
++        h2("Can I change the name shown on my account?"),
++        p(
++          "Yes. Click your account name, open your profile and choose Edit profile. Set a public name there; your Nostr identity and game history stay the same."
++        ),
++        h2("Where are my old games?"),
++        p(
++          "Open your profile to browse your games. Open a finished game and choose Analysis board. Tools also includes the analysis board, board editor and PGN import."
++        ),
++        h2("What do the analysis numbers mean?"),
++        p(
++          "Stockfish evaluates searched moves. Maia probabilities show how likely a human-like model is to play each move at the selected rating inputs. Maia score is win probability plus half the draw probability for the side to move. Rating inputs are model settings, not calibrated bot strength."
++        ),
++        h2("How do I turn analysis off?"),
++        p(
++          "Use the analysis toggle. It controls Stockfish and Maia together. Engine options are in analysis settings."
++        ),
++        h2("How do stacked premoves work?"),
++        p(
++          "Enable multiple premoves in the game board menu, then queue moves during the opponent’s turn. Escape or right-click cancels them. An illegal move, reconnect or finished game clears the queue."
++        ),
++        h2("How do I post in the forum?"),
++        p(
++          "Open a forum category and choose New Topic. Normal accounts need a completed game and must be at least two days old. Replies are at the bottom of a topic. The forum and other secondary features are currently kept out of the main navigation."
++        ),
++        h2("How do patron wings work?"),
++        p(
++          "Sign in and create a Lightning invoice on ",
++          a(href := "/patron")("the donation page"),
++          ". A verified payment grants wings for 30 days. Direct Lightning donations and Nostr zaps support the project too, but do not automatically link wings to your account. USD amounts are approximate conversions; your invoice fixes the amount in sats."
++        ),
++        h2("Which Nostr login should I use?"),
++        p(
++          "A NIP-07 browser signer is recommended. You can also generate a key or import an nsec and save it in this browser. Back up your key: we cannot recover it for you. Two-factor authentication and session controls are available in account settings."
++        ),
++        h2("Does Mute Chess support variants or a mobile app?"),
++        p(
++          "Standard chess in desktop browsers is the focus. Other variants and a dedicated mobile app are not offered."
++        ),
++        h2("Need help?"),
++        p(contactLink)
++      )
++    case "contact" =>
++      frag(
++        p("Contact the Mute Chess project on Nostr."),
++        p(contactLink),
++        p(code(npub)),
++        p(
++          "For account, privacy, payment or security questions, use a private message. Never send your nsec, authenticator secret, recovery codes or wallet seed."
++        ),
++        p(
++          "For a bug report, include the page URL and what happened. Share account or payment details only in private."
++        )
++      )
++    case "terms-of-service" =>
++      frag(
++        p(cls := "weak")("Updated October 29, 2026"),
++        h2("Using Mute Chess"),
++        p(
++          "These terms cover mutechess.org, an independent open-source chess service operated as the Mute Chess project. Contact the project through ",
++          contactLink,
++          ". By using the service, you agree to these terms and to use it lawfully. If you cannot legally agree on your own, involve a parent or guardian."
++        ),
++        h2("Your account and content"),
++        p(
++          "You control your Nostr keys. Keep them and your recovery information safe. We cannot replace a lost key or guarantee recovery of an account. Use only identities you control."
++        ),
++        p(
++          "Your profile, games and forum posts may be public. You keep your rights in what you submit and permit us to store, process and display it to run the service. Do not submit content you lack the right to share."
++        ),
++        h2("Fair use"),
++        p(
++          "Do not harass others, expose private information, post unlawful content or spam, manipulate ratings, impersonate people, attack the service or abuse the bot pool. We may moderate content and restrict accounts to protect the service and its users."
++        ),
++        h2("Donations"),
++        p(
++          "Donations are voluntary support, not a subscription or a purchase of guaranteed service. Check the amount and recipient before paying. Supported payments can grant a temporary patron mark as described on the donation page. If a payment or mark is wrong, contact us privately on Nostr. Your wallet and payment provider have their own terms and fees."
++        ),
++        h2("Availability and changes"),
++        p(
++          "We may change, pause or discontinue features. Engine output, move labels and ratings can be wrong. Keep your own copies of games and keys. The service is provided as available, without a guarantee of uninterrupted operation or error-free analysis, to the extent permitted by applicable law."
++        ),
++        p(
++          "Nothing here removes rights or liabilities that applicable law does not allow us to exclude. Material changes will be reflected in these terms and their update date."
++        ),
++        p("See ", a(href := "/privacy")("Privacy"), " for how the service handles data.")
++      )
++    case "privacy" =>
++      frag(
++        p(cls := "weak")("Updated October 29, 2026"),
++        h2("What we store"),
++        p(
++          "Mute Chess stores your Nostr public key and account identifier, optional public profile information, games, ratings, puzzle and lesson progress, preferences, forum content and login sessions. If you enable two-factor authentication, we store the information needed to validate it and manage recovery codes."
++        ),
++        p(
++          "We process IP addresses, session/device information, timestamps and security logs to operate the site, rate-limit requests and investigate abuse. Payment records can include your public key, signed donation request, invoice, payment hash and receipt so we can verify payments and assign patron wings."
++        ),
++        h2("Keys and browser storage"),
++        p(
++          "With a browser signer, the signer holds your private key. If you choose generated or imported browser keys, the browser stores an encrypted key and the wrapping key in IndexedDB. Site scripts can use that store to sign, so a separate signer is recommended. Your nsec is not sent to the Mute Chess server."
++        ),
++        p(
++          "A session cookie keeps you signed in. Browser storage also keeps preferences, cached engines/models and local analysis. Clear site data to remove browser-held data, but back up any browser key first. Removing browser data does not delete server records or public Nostr events."
++        ),
++        h2("Public information"),
++        p(
++          "Profiles, rated identities, game history, spectator games and forum content can be publicly visible. Nostr zap requests and receipts may be published to public relays. Copies on other services are outside our control."
++        ),
++        h2("Other services"),
++        p(
++          "Cloudflare handles public web traffic and security filtering and can process network/request information. Lightning invoices use Wallet of Satoshi’s payment infrastructure. The donation page can contact Nostr relays to find receipts and mempool.space for approximate USD conversion. These services receive the requests and network information needed for their role."
++        ),
++        p(
++          a(href := "https://www.cloudflare.com/privacypolicy/")("Cloudflare privacy"),
++          " · ",
++          a(href := "https://www.walletofsatoshi.com/privacy")("Wallet of Satoshi privacy")
++        ),
++        p(
++          "Stockfish and board analysis with Maia run locally in your browser after their assets download. Maia opponents run on our server and receive the position and move history needed to play. Links to Nostr clients, Flotilla and GitHub open independent services with their own policies."
++        ),
++        h2("Retention and requests"),
++        p(
++          "Account and game data remain available for service operation and game history. Security records and encrypted backups are retained for operations and investigations; we do not currently promise a fixed automatic deletion period. We do not sell personal data or use advertising trackers."
++        ),
++        p(
++          "To request access, correction or deletion, contact ",
++          contactLink,
++          " privately and identify your account without sending private keys. We may ask you to prove control of your public key. Legal obligations, abuse prevention, other players’ game history, backups and public relay copies can limit what can be removed or how quickly it disappears."
++        )
++      )
++    case _ => emptyFrag
 diff --git a/app/views/noSweatLogin.scala b/app/views/noSweatLogin.scala
 new file mode 100644
-index 0000000..06f646f
+index 0000000..5952fae
 --- /dev/null
 +++ b/app/views/noSweatLogin.scala
-@@ -0,0 +1,76 @@
+@@ -0,0 +1,98 @@
 +package views
 +
 +import lila.app.UiEnv.{ *, given }
@@ -4566,8 +5619,8 @@ index 0000000..06f646f
 +  def apply()(using Context) =
 +    Page("Sign in")
 +      .css("bits.auth")
-+      .headAppend(link(rel := "stylesheet", href := assetPath("nosweat/nostr.css")))
-+      .headAppend(script(src := assetPath("nosweat/nostr.js"), defer)):
++      .headAppend(link(rel := "stylesheet", href := s"${assetPath("nosweat/nostr.css")}?v=key-first1"))
++      .headAppend(script(src := s"${assetPath("nosweat/nostr.js")}?v=key-first1", defer)):
 +        main(cls := "auth auth-login box box-pad")(
 +          div(cls := "auth__brand")(
 +            img(
@@ -4581,29 +5634,52 @@ index 0000000..06f646f
 +              alt := "Mute Chess"
 +            )
 +          ),
-+          h1("Sign in with Nostr"),
-+          p("A browser signer (NIP-07) is recommended. It keeps your private key outside this website."),
-+          div(cls := "form3")(
-+            label(cls := "form-label", `for` := "nostr-username")("Username (optional, for new accounts)"),
-+            input(id := "nostr-username", cls := "form-control", maxlength := 20, autocomplete := "username"),
-+            label(cls := "form-label", `for` := "nostr-token")("Authenticator or recovery code (if enabled)"),
-+            input(
-+              id := "nostr-token",
-+              cls := "form-control",
-+              autocomplete := "one-time-code",
-+              maxlength := 64
++          h1("Sign in or join"),
++          p(cls := "nostr-intro")(
++            "No email needed. A Nostr secret key, called an nsec, is your login. Keep it to return to your profile and games."
++          ),
++          div(id := "nostr-methods", cls := "form3")(
++            button(id := "nostr-generate", cls := "button button-green")("Create a key and play"),
++            div(id := "nostr-created", hidden)(
++              p(
++                "Save this secret key in your password manager. Anyone with it can access your account. We cannot recover it for you."
++              ),
++              input(
++                id := "nostr-backup",
++                cls := "form-control",
++                tpe := "password",
++                readonly,
++                autocomplete := "off",
++                aria.label := "Your new Nostr secret key"
++              ),
++              div(cls := "nostr-key-actions")(
++                button(id := "nostr-copy", cls := "button button-metal")("Copy key"),
++                button(id := "nostr-reveal", cls := "button button-empty")("Show key")
++              ),
++              label(cls := "form-label", `for` := "nostr-username")("Username (optional)"),
++              input(
++                id := "nostr-username",
++                cls := "form-control",
++                maxlength := 20,
++                autocomplete := "username"
++              ),
++              button(id := "nostr-create-login", cls := "button button-green")("Save key and play")
 +            ),
-+            button(id := "nostr-extension", cls := "button button-green")("Sign in with browser signer"),
++            p(cls := "nostr-help")(
++              "We save the key in this browser. Keep your own backup before clearing browser data or switching devices."
++            ),
 +            div(id := "nostr-saved", hidden)(
-+              button(id := "nostr-use-saved", cls := "button")("Sign in with saved key"),
++              button(id := "nostr-use-saved", cls := "button")("Continue with saved key"),
 +              button(id := "nostr-forget", cls := "button button-empty")("Forget saved key")
 +            ),
-+            div(cls := "or-separator")(span("or use a key in this browser")),
-+            p(cls := "nostr-help")(
-+              "Browser keys are stored on this device. Website scripts can use them; a signer extension provides better isolation. Back up your nsec before clearing browser data."
++            div(cls := "or-separator")(span("Already use Nostr?")),
++            button(id := "nostr-extension", cls := "button button-metal")(
++              "Join or sign in with browser signer"
 +            ),
-+            button(id := "nostr-generate", cls := "button button-metal")("Generate a Nostr key"),
-+            label(cls := "form-label", `for` := "nostr-nsec")("Import your nsec"),
++            p(cls := "nostr-help")(
++              "A NIP-07 browser signer is recommended if you have one. It keeps your secret key outside this site."
++            ),
++            label(cls := "form-label", `for` := "nostr-nsec")("Or paste your existing secret key"),
 +            input(
 +              id := "nostr-nsec",
 +              cls := "form-control",
@@ -4612,34 +5688,33 @@ index 0000000..06f646f
 +              spellcheck := "false",
 +              placeholder := "nsec1…"
 +            ),
-+            button(id := "nostr-import", cls := "button button-metal")("Save key and sign in"),
-+            div(id := "nostr-created", hidden)(
-+              p(
-+                "Your new key is ready. Save this private backup somewhere safe. Anyone with it can sign in as you."
-+              ),
-+              input(
-+                id := "nostr-backup",
-+                cls := "form-control",
-+                tpe := "password",
-+                readonly,
-+                autocomplete := "off"
-+              ),
-+              button(id := "nostr-reveal", cls := "button button-empty")("Show backup nsec"),
-+              button(id := "nostr-create-login", cls := "button button-green")("Save key and create account")
++            button(id := "nostr-import", cls := "button button-metal")("Save key and sign in")
++          ),
++          div(id := "nostr-second-factor", cls := "form3", hidden)(
++            h2("One more step"),
++            p("Two-factor authentication is enabled for this account."),
++            label(cls := "form-label", `for` := "nostr-token")("Authenticator or recovery code"),
++            input(
++              id := "nostr-token",
++              cls := "form-control",
++              autocomplete := "one-time-code",
++              maxlength := 64
 +            ),
-+            p(id := "nostr-status", role := "status", aria.live := "polite"),
-+            p(cls := "nostr-help")(
-+              "Only your public key and a signed login challenge go to the server. Signing in does not publish to Nostr relays."
-+            ),
-+            a(href := "/")("Continue without signing in")
-+          )
++            button(id := "nostr-verify", cls := "button button-green")("Sign in"),
++            button(id := "nostr-back", cls := "button button-empty")("Use a different key")
++          ),
++          p(id := "nostr-status", role := "status", aria.live := "polite"),
++          p(cls := "nostr-help")(
++            "Your secret key stays in your browser. Signing in does not post anything to Nostr."
++          ),
++          a(href := "/")("Play without signing in")
 +        )
 diff --git a/app/views/noSweatPatron.scala b/app/views/noSweatPatron.scala
 new file mode 100644
-index 0000000..1465204
+index 0000000..5f44b6d
 --- /dev/null
 +++ b/app/views/noSweatPatron.scala
-@@ -0,0 +1,90 @@
+@@ -0,0 +1,96 @@
 +package views
 +
 +import lila.app.UiEnv.{ *, given }
@@ -4658,77 +5733,83 @@ index 0000000..1465204
 +          )
 +        )
 +      )
-+      .headAppend(script(src := assetPath("nosweat/nostr.js?lightning=1"), defer)):
-+        main(cls := "box box-pad form3", id := "nostr-patron", attr("data-pubkey") := pubkey.getOrElse(""))(
-+          h1("Support Mute Chess"),
-+          p("Keep free, open-source chess running. Donate with Bitcoin over Lightning."),
++      .headAppend(script(src := assetPath("nosweat/nostr.js?lightning=2"), defer)):
++        main(cls := "box box-pad", id := "nostr-patron", attr("data-pubkey") := pubkey.getOrElse(""))(
++          div(cls := "patron-heading")(
++            h1("Support Mute Chess"),
++            a(
++              href := "/",
++              cls := "fbt patron-close",
++              aria.label := "Close donation",
++              title := "Close",
++              dataIcon := Icon.X
++            )
++          ),
++          p(cls := "patron-intro")("Bitcoin over Lightning. Any amount helps."),
 +          ctx.me
 +            .exists(_.isPatron)
-+            .option(p(iconTag(patronIconChar), " Your patron wings are active. Thank you!")),
-+          p(
-+            "You can also zap ",
-+            a(href := "https://primal.net/p/npub1w6l8e4mqa4ruqs2vdvwhdxhp9ke9ax8kpncy2wy26tja3d7rzpgq06c9jl")(
-+              "Mute Chess on Nostr"
-+            ),
-+            "."
-+          ),
++            .option(p(cls := "patron-thanks")(iconTag(patronIconChar), " Your wings are active. Thank you!")),
 +          pubkey.fold[Frag](
-+            frag(
-+              p(
-+                a(href := "/login?referrer=/patron")("Sign in with Nostr"),
-+                " to donate here and get patron wings for 30 days."
-+              ),
-+              p("Or send a direct Lightning donation:"),
-+              code("eerieatlas700@walletofsatoshi.com")
++            p(
++              a(href := "/login?referrer=/patron")("Sign in with Nostr"),
++              " for 30-day patron wings, or donate directly below."
 +            )
 +          )(_ =>
 +            frag(
-+              p(
-+                "Choose any amount. A confirmed payment through this page grants patron wings for 30 days. No subscription."
++              p("A confirmed donation gives you patron wings for 30 days."),
++              div(cls := "patron-fields")(
++                div(cls := "patron-field")(
++                  label(`for` := "patron-amount")("Amount"),
++                  input(
++                    id := "patron-amount",
++                    tpe := "number",
++                    min := "1",
++                    step := "1",
++                    value := "1000",
++                    required
++                  )
++                ),
++                div(cls := "patron-field")(
++                  label(`for` := "patron-currency")("Currency"),
++                  select(id := "patron-currency")(
++                    option(value := "sats")("Sats"),
++                    option(value := "USD")("USD")
++                  )
++                )
 +              ),
-+              label(`for` := "patron-amount")("Amount"),
-+              input(
-+                id := "patron-amount",
-+                tpe := "number",
-+                min := "1",
-+                step := "1",
-+                value := "1000",
-+                required
++              p(id := "patron-quote", cls := "patron-note"),
++              div(cls := "patron-actions")(
++                button(id := "patron-create", tpe := "button", cls := "button")("Create invoice"),
++                button(id := "patron-saved", tpe := "button", cls := "button button-metal", hidden)(
++                  "Use saved key"
++                )
 +              ),
-+              label(`for` := "patron-currency")("Denomination"),
-+              select(id := "patron-currency")(
-+                option(value := "sats")("Satoshis"),
-+                option(value := "USD")("USD")
-+              ),
-+              p(id := "patron-quote"),
-+              button(id := "patron-create", tpe := "button", cls := "button")("Create Lightning invoice"),
-+              button(id := "patron-saved", tpe := "button", cls := "button button-metal", hidden)(
-+                "Use saved browser key"
-+              ),
-+              p(
-+                "A NIP-07 browser signer is recommended. Signing requests an invoice; pay it with your Lightning wallet."
++              p(cls := "patron-note")(
++                "A browser signer is recommended. Pay the invoice with your Lightning wallet."
 +              )
 +            )
 +          ),
 +          div(id := "patron-payment", pubkey.isDefined.option(hidden))(
 +            canvas(id := "patron-qr", cls := "qrcode", aria.label := "Lightning payment QR code"),
-+            p(a(id := "patron-open", cls := "button button-green")("Open Lightning wallet")),
++            p(a(id := "patron-open", cls := "button")("Open wallet")),
 +            pubkey.isDefined.option(
 +              frag(
 +                p(id := "patron-invoice-amount"),
-+                button(id := "patron-copy", tpe := "button", cls := "button button-empty")("Copy invoice"),
-+                button(id := "patron-check", tpe := "button", cls := "button button-empty")("Check payment")
++                div(cls := "patron-actions")(
++                  button(id := "patron-copy", tpe := "button", cls := "button button-empty")("Copy invoice"),
++                  button(id := "patron-check", tpe := "button", cls := "button button-empty")("Check payment")
++                )
 +              )
 +            )
 +          ),
 +          p(id := "patron-status", role := "status", aria.live := "polite"),
-+          p(
-+            "Direct address: ",
-+            a(href := "lightning:eerieatlas700@walletofsatoshi.com")("eerieatlas700@walletofsatoshi.com")
++          div(cls := "patron-direct")(
++            a(href := "lightning:eerieatlas700@walletofsatoshi.com")("eerieatlas700@walletofsatoshi.com"),
++            a(href := "https://primal.net/p/npub1w6l8e4mqa4ruqs2vdvwhdxhp9ke9ax8kpncy2wy26tja3d7rzpgq06c9jl")(
++              "Zap Mute Chess on Nostr"
++            )
 +          ),
-+          p(cls := "weak")(
-+            "For automatic wings, use an invoice created here while signed in. Direct wallet donations and zaps also support the project."
-+          )
++          p(cls := "patron-note")("For automatic wings, create your invoice here while signed in.")
 +        )
 diff --git a/app/views/noSweatSecurity.scala b/app/views/noSweatSecurity.scala
 new file mode 100644
@@ -6919,10 +8000,10 @@ HcmV?d00001
 
 diff --git a/public/nosweat/brand.css b/public/nosweat/brand.css
 new file mode 100644
-index 0000000..16a7a7b
+index 0000000..87e787a
 --- /dev/null
 +++ b/public/nosweat/brand.css
-@@ -0,0 +1,77 @@
+@@ -0,0 +1,91 @@
 +.site-title .nosweat-header-icon{width:38px;height:38px;margin-right:7px}.site-title .nosweat-wordmark{width:174px;height:50px;object-fit:contain}.nosweat-light{display:none}.light .nosweat-dark{display:none}.light .nosweat-light{display:block}.nosweat-login-wordmark{width:272px;max-width:100%;height:62px}.auth__brand{justify-content:center}@media(max-width:799px){.site-title .nosweat-wordmark{display:none!important}.site-title .nosweat-header-icon{width:36px;height:36px;margin:0}}
 +
 +main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-dark.svg")}.light main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-light.svg")}
@@ -7000,6 +8081,20 @@ index 0000000..16a7a7b
 +.nosweat-maia-line { flex-wrap:wrap; column-gap:.5em; row-gap:0; }
 +.nosweat-maia-line > span:first-of-type { flex:1; min-width:0; }
 +.nosweat-maia-line .nosweat-maia-score { flex-basis:100%; margin-left:4em; font-size:.9em; color:var(--c-font-dim); }
++
++/* Keep the entry page focused on choosing a time control. */
++.lobby.mutechess-play { width:100%; max-width:64em; margin-inline:auto; grid-template-columns:minmax(0,1fr); grid-template-rows:auto; grid-template-areas:'app' 'about'; }
++.mutechess-play .lobby__table { display:contents; }
++.mutechess-play .lobby__about { margin-top:1.5em; justify-content:center; }
++.nosweat-rating-explorer h3 { margin:.8em 0 .4em; font-size:1.1em; }
++.nosweat-rating-chart svg { width:100%; display:block; overflow:visible; }
++.nosweat-chart-legend { justify-content:flex-end; gap:.5em; }
++.nosweat-chart-legend .fbt { padding:.15em .3em; }
++.nosweat-rating-chart [role=button]:focus-visible { outline:2px solid currentColor; }
++.nosweat-rating-explorer details { margin-top:.5em; }
++.mutechess-info { max-width:52em; margin-inline:auto; line-height:1.7; overflow-wrap:anywhere; }
++.mutechess-info nav { display:flex; flex-wrap:wrap; gap:1em; margin-bottom:1.5em; }
++.mutechess-info h2 { margin-top:1.5em; }
 diff --git a/public/nosweat/favicon-32.png b/public/nosweat/favicon-32.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..4261e6d916997479521a76cde8d32c2f0eee3236
@@ -7095,11 +8190,14 @@ index 0000000..e047dba
 +}
 diff --git a/public/nosweat/nostr.css b/public/nosweat/nostr.css
 new file mode 100644
-index 0000000..85552df
+index 0000000..844ca7e
 --- /dev/null
 +++ b/public/nosweat/nostr.css
-@@ -0,0 +1 @@
+@@ -0,0 +1,4 @@
 +.auth-login h1{font-size:1.65em;text-align:center;margin:1em 0}.auth-login>p{line-height:1.5}.auth-login .form3{display:grid;gap:12px}.auth-login .form-control{width:100%}.auth-login .nostr-help{font-size:.85em;color:var(--c-font-dim);line-height:1.5}.auth-login #nostr-status{color:var(--c-bad)}.auth-login [hidden]{display:none!important}.auth-login #nostr-created,.auth-login #nostr-saved{display:grid;gap:12px}.auth-login .or-separator{margin:14px 0}
++.auth-login{max-width:32em;margin-inline:auto}.auth-login .nostr-intro{margin-bottom:1.5em;color:var(--c-font-dim)}.auth-login #nostr-created{padding:1.1em;border:1px solid var(--c-border);border-radius:6px}.auth-login #nostr-created p{line-height:1.5}.auth-login .nostr-key-actions{display:flex;gap:.7em;flex-wrap:wrap}.auth-login #nostr-second-factor h2{font-size:1.3em}.auth-login #nostr-second-factor p{line-height:1.5}.auth-login #nostr-status:empty{display:none}.auth-login #nostr-status{line-height:1.5;overflow-wrap:anywhere}
++
++.auth-login .nostr-key-actions .button{width:auto;flex:1;margin:0}
 diff --git a/public/nosweat/quiet-signal.css b/public/nosweat/quiet-signal.css
 new file mode 100644
 index 0000000..bad69a2
@@ -7979,10 +9077,10 @@ index 0000000..ec4cc78
 +};
 diff --git a/ui/analyse/src/noSweatAnalysis.ts b/ui/analyse/src/noSweatAnalysis.ts
 new file mode 100644
-index 0000000..1e060fb
+index 0000000..dd369f4
 --- /dev/null
 +++ b/ui/analyse/src/noSweatAnalysis.ts
-@@ -0,0 +1,840 @@
+@@ -0,0 +1,758 @@
 +import type { DrawShape } from '@lichess-org/chessground/draw';
 +import { parseUci } from 'chessops/util';
 +import { attributesModule, classModule, init } from 'snabbdom';
@@ -8009,6 +9107,7 @@ index 0000000..1e060fb
 +import { reviewClick } from './noSweatEvents';
 +import { ReviewFish, type Review } from './noSweatFish';
 +import { readEnginePreferences, type EnginePreferences } from './noSweatPreferences';
++import { ratingSamples as samples, ratingChart } from './noSweatRatingChart';
 +
 +interface MaiaClient {
 +  predict(input: {
@@ -8033,7 +9132,6 @@ index 0000000..1e060fb
 +  depth: number;
 +}
 +const ratings = Array.from({ length: 21 }, (_, i) => 600 + i * 100);
-+const samples = [600, 1100, 1600, 2100, 2600];
 +export class NoSweatAnalysis {
 +  enabled = false;
 +  model = '5m';
@@ -8049,7 +9147,18 @@ index 0000000..1e060fb
 +  maiaArrows = true;
 +  fishArrows = true;
 +  allMoves = false;
-+  ratingTable = false;
++  ratingTable = true;
++  private ratingContext = '';
++  private ratingKey(): string {
++    return JSON.stringify([
++      this.model,
++      this.config?.models[this.model].sha256,
++      this.opponentElo,
++      this.history,
++      this.history ? this.historyFens().slice(-8) : this.historyFens().slice(-1),
++      this.ctrl.path,
++    ]);
++  }
 +  status = '';
 +  error = '';
 +  candidates: Candidate[] = [];
@@ -8198,7 +9307,9 @@ index 0000000..1e060fb
 +    this.secondaryCandidates = [];
 +    this.expectedScore = this.secondaryExpectedScore = undefined;
 +    this.scores.clear();
-+    this.byRating.clear();
++    const ratingContext = this.ratingKey();
++    if (ratingContext !== this.ratingContext) this.byRating.clear();
++    this.ratingContext = ratingContext;
 +    this.fishBest = undefined;
 +    this.ctrl.setAutoShapes();
 +    this.error = '';
@@ -8300,11 +9411,12 @@ index 0000000..1e060fb
 +    this.secondaryCandidates = results[1]?.status === 'fulfilled' ? results[1].value.candidates : [];
 +    this.secondaryExpectedScore = results[1]?.status === 'fulfilled' ? results[1].value.score : undefined;
 +    this.error = results.some(r => r.status === 'rejected')
-+      ? 'A Maia channel is unavailable. Try pausing and enabling analysis again.'
++      ? 'Maia is unavailable. Turn analysis off and on to retry.'
 +      : '';
 +    this.status = '';
 +    this.ctrl.setAutoShapes();
 +    this.ctrl.redraw();
++    if (this.ratingTable && this.candidates.length && this.sideRedraw) this.sampleRatings();
 +  }
 +  setEnabled(enabled: boolean): void {
 +    this.enabled = enabled;
@@ -8422,7 +9534,11 @@ index 0000000..1e060fb
 +    })().catch(e => this.failure(e, generation));
 +  };
 +  sampleRatings = (): void => {
-+    if (this.compareBusy) return;
++    if (this.compareBusy || !this.enabled || !this.analysisAllowed()) return;
++    const context = this.ratingKey();
++    if (context !== this.ratingContext) this.byRating.clear();
++    this.ratingContext = context;
++    if (this.byRating.size === samples.length) return;
 +    this.compareBusy = true;
 +    const generation = this.generation;
 +    const fens = this.historyFens();
@@ -8430,13 +9546,16 @@ index 0000000..1e060fb
 +    this.error = '';
 +    (async () => {
 +      for (const rating of samples) {
-+        this.status = 'Sampling Maia ' + rating + '…';
++        if (!this.valid(generation) || !this.ratingTable) break;
++        if (this.byRating.has(rating)) continue;
++        this.status = 'Loading rating chart…';
 +        this.ctrl.redraw();
 +        const result = await this.predict(fens, rating, generation);
 +        if (!this.valid(generation)) return;
 +        this.byRating.set(rating, result.candidates);
 +        this.ctrl.redraw();
 +      }
++      if (!this.valid(generation)) return;
 +      this.status = '';
 +      this.compareBusy = false;
 +      this.ctrl.redraw();
@@ -8487,7 +9606,7 @@ index 0000000..1e060fb
 +            : position(this.ctrl.node.fen).isEnd()
 +              ? 'No legal moves'
 +              : !this.enabled
-+                ? 'Paused'
++                ? 'Off'
 +                : this.status
 +                  ? 'Analyzing…'
 +                  : 'Unavailable',
@@ -8555,12 +9674,8 @@ index 0000000..1e060fb
 +      'section.nosweat-candidate-panel',
 +      { attrs: { 'aria-label': 'Candidate moves and rating explorer' } },
 +      [
-+        hl('div.nosweat-panel-heading', [
-+          hl('h2', 'Candidate moves'),
-+          button(this.enabled ? 'Pause' : 'Enable analysis', () => this.ctrl.cevalEnabled(!this.enabled)),
-+        ]),
++        hl('div.nosweat-panel-heading', [hl('h2', 'Candidate moves')]),
 +        hl('div.nosweat-rating-inputs', [rating(false), this.secondMaiaEnabled && rating(true)]),
-+        hl('small.nosweat-panel-note', 'Maia: move likelihood · SF: White’s evaluation'),
 +        this.returnPath !== undefined && hl('small', 'Selected: ' + (this.ctrl.node.san ?? 'position')),
 +        this.returnPath !== undefined &&
 +          button('Return to original position', () => {
@@ -8628,29 +9743,20 @@ index 0000000..1e060fb
 +            hl(
 +              'details.nosweat-rating-explorer',
 +              {
++                attrs: { open: this.ratingTable },
 +                hook: {
 +                  insert: vnode => {
 +                    (vnode.elm as HTMLDetailsElement).ontoggle = event => {
 +                      this.ratingTable = (event.target as HTMLDetailsElement).open;
++                      if (this.ratingTable && this.candidates.length) this.sampleRatings();
 +                    };
 +                  },
 +                },
 +              },
 +              [
-+                hl('summary', 'Moves by rating'),
-+                hl(
-+                  'small',
-+                  'Mover input 600–2600; opponent stays ' +
-+                    this.opponentElo +
-+                    '. Model inputs are not calibrated Elo.',
-+                ),
-+                button(
-+                  this.byRating.size ? 'Refresh rating samples' : 'Sample ratings',
-+                  this.sampleRatings,
-+                  this.compareBusy || !this.candidates.length,
-+                ),
-+                this.byRating.size > 0 && this.renderRatingChart(),
-+                this.byRating.size > 0 && this.renderRatings(),
++                hl('summary', 'Moves by Rating'),
++                this.renderRatingChart(),
++                hl('details', [hl('summary', 'Move probabilities'), this.renderRatings()]),
 +              ],
 +            ),
 +            this.status && hl('p', { attrs: { role: 'status' } }, this.status),
@@ -8670,109 +9776,19 @@ index 0000000..1e060fb
 +    this.ctrl.redraw();
 +  }
 +  private renderRatingChart(): VNode {
-+    const moves = this.ratingMoves().slice(0, 5);
-+    const colors = ['#e89b3c', '#e85d68', '#3d9be9', '#8bc34a', '#b49be6'];
-+    const max = Math.max(
-+      0.1,
-+      ...[...this.byRating.values()].flatMap(values =>
-+        values.filter(c => moves.includes(c.uci)).map(c => c.probability),
-+      ),
++    return ratingChart(
++      this.byRating,
++      uci => san(this.ctrl.node.fen, uci),
++      rating => this.chooseRating(rating, false, true),
++      uci => this.preview(uci),
 +    );
-+    return hl('div.nosweat-rating-chart', [
-+      hl(
-+        'svg',
-+        {
-+          attrs: {
-+            viewBox: '0 0 240 125',
-+            role: 'img',
-+            'aria-label': 'Maia move likelihood by rating; exact values in the table below',
-+          },
-+        },
-+        [
-+          hl('line', { attrs: { x1: 30, y1: 90, x2: 230, y2: 90, stroke: 'currentColor', opacity: 0.3 } }),
-+          ...moves.map((uci, index) =>
-+            hl('polyline', {
-+              attrs: {
-+                fill: 'none',
-+                stroke: colors[index],
-+                'stroke-width': 2,
-+                points: samples
-+                  .flatMap((n, i) => {
-+                    const p = this.byRating.get(n)?.find(c => c.uci === uci)?.probability;
-+                    return p === undefined ? [] : [`${30 + i * 50},${90 - (p / max) * 75}`];
-+                  })
-+                  .join(' '),
-+              },
-+            }),
-+          ),
-+          hl(
-+            'text',
-+            { attrs: { x: 0, y: 14, fill: 'currentColor', 'font-size': 9 } },
-+            (max * 100).toFixed(0) + '%',
-+          ),
-+          hl('text', { attrs: { x: 0, y: 93, fill: 'currentColor', 'font-size': 9 } }, '0%'),
-+          ...moves.flatMap((uci, index) =>
-+            samples.flatMap((rating, i) => {
-+              const probability = this.byRating.get(rating)?.find(c => c.uci === uci)?.probability;
-+              return probability === undefined
-+                ? []
-+                : [
-+                    hl(
-+                      'a',
-+                      {
-+                        attrs: {
-+                          href: '#',
-+                          'aria-label': `${san(this.ctrl.node.fen, uci)} at Maia ${rating}: ${(probability * 100).toFixed(1)}%`,
-+                        },
-+                        hook: reviewClick(event => {
-+                          event.preventDefault();
-+                          this.chooseRating(rating, false, true);
-+                        }),
-+                      },
-+                      [
-+                        hl('circle', {
-+                          attrs: {
-+                            cx: 30 + i * 50,
-+                            cy: 90 - (probability / max) * 75,
-+                            r: 3,
-+                            fill: colors[index],
-+                          },
-+                        }),
-+                      ],
-+                    ),
-+                  ];
-+            }),
-+          ),
-+          hl('text', { attrs: { x: 30, y: 106, fill: 'currentColor', 'font-size': 10 } }, '600'),
-+          hl('text', { attrs: { x: 205, y: 106, fill: 'currentColor', 'font-size': 10 } }, '2600'),
-+        ],
-+      ),
-+      hl(
-+        'div.nosweat-chart-legend',
-+        moves.map((uci, i) =>
-+          hl(
-+            'button.fbt',
-+            {
-+              attrs: { style: 'color:' + colors[i], type: 'button' },
-+              hook: reviewClick(() => this.preview(uci)),
-+            },
-+            san(this.ctrl.node.fen, uci),
-+          ),
-+        ),
-+      ),
-+    ]);
-+  }
-+  private ratingMoves(): string[] {
-+    const moves = new Set(this.rows().map(c => c.uci));
-+    for (const values of this.byRating.values()) for (const c of values.slice(0, 3)) moves.add(c.uci);
-+    return [...moves];
 +  }
 +  private renderRatings(): VNode {
 +    const moves = new Set(this.rows().map(c => c.uci));
 +    for (const values of this.byRating.values()) for (const c of values.slice(0, 3)) moves.add(c.uci);
 +    return hl('div.nosweat-rating-scroll', [
 +      hl('table.nosweat-ratings', [
-+        hl('caption', 'Moves by rating — opponent input stays ' + this.opponentElo),
++        hl('caption', 'Move probabilities'),
 +        hl('thead', [
 +          hl('tr', [
 +            hl('th', 'Move'),
@@ -9408,6 +10424,188 @@ index 0000000..987d947
 +++ b/ui/analyse/src/noSweatPreferences.ts
 @@ -0,0 +1 @@
 +export * from 'lib/nosweat/preferences';
+diff --git a/ui/analyse/src/noSweatRatingChart.ts b/ui/analyse/src/noSweatRatingChart.ts
+new file mode 100644
+index 0000000..8064fbf
+--- /dev/null
++++ b/ui/analyse/src/noSweatRatingChart.ts
+@@ -0,0 +1,176 @@
++import { hl, type VNode } from 'lib/view';
++
++import type { Candidate } from './noSweatCore';
++import { reviewClick } from './noSweatEvents';
++
++export const ratingSamples = Array.from({ length: 21 }, (_, i) => 600 + i * 100);
++export const chartX = (rating: number) => 48 + ((rating - 600) / 2000) * 300;
++export const chartY = (probability: number) => 200 - Math.max(0, Math.min(1, probability)) * 165;
++const colors = ['#45b86b', '#9bdc96', '#2b9853'];
++
++export function chartMoves(data: Map<number, Candidate[]>): string[] {
++  const totals = new Map<string, number>();
++  for (const values of data.values())
++    for (const move of values) totals.set(move.uci, (totals.get(move.uci) ?? 0) + move.probability);
++  return [...totals]
++    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
++    .slice(0, 3)
++    .map(([uci]) => uci);
++}
++
++export function chartPath(data: Map<number, Candidate[]>, uci: string): string {
++  let connected = false;
++  return ratingSamples
++    .map(rating => {
++      const values = data.get(rating);
++      if (!values) {
++        connected = false;
++        return '';
++      }
++      const probability = values.find(move => move.uci === uci)?.probability ?? 0;
++      const segment = `${connected ? 'L' : 'M'}${chartX(rating)},${chartY(probability)}`;
++      connected = true;
++      return segment;
++    })
++    .join(' ');
++}
++
++export function ratingChart(
++  data: Map<number, Candidate[]>,
++  name: (uci: string) => string,
++  select: (rating: number) => void,
++  preview: (uci: string) => void,
++): VNode {
++  const moves = chartMoves(data);
++  return hl('div.nosweat-rating-chart', [
++    hl(
++      'div.nosweat-chart-legend',
++      moves.map((uci, i) =>
++        hl(
++          'button.fbt',
++          {
++            attrs: { type: 'button', style: `color:${colors[i]}` },
++            hook: reviewClick(() => preview(uci)),
++          },
++          name(uci),
++        ),
++      ),
++    ),
++    hl(
++      'svg',
++      {
++        attrs: {
++          viewBox: '0 0 402 246',
++          role: 'img',
++          'aria-label': 'Moves by rating: Maia probability from 600 to 2600',
++        },
++      },
++      [
++        ...[0, 0.25, 0.5, 0.75, 1].flatMap(p => [
++          hl('line', {
++            attrs: {
++              x1: 48,
++              x2: 348,
++              y1: chartY(p),
++              y2: chartY(p),
++              stroke: 'currentColor',
++              opacity: 0.18,
++              'stroke-dasharray': '3 3',
++            },
++          }),
++          hl(
++            'text',
++            {
++              attrs: { x: 40, y: chartY(p) + 4, 'text-anchor': 'end', fill: 'currentColor', 'font-size': 10 },
++            },
++            `${p * 100}%`,
++          ),
++        ]),
++        ...[600, 1000, 1400, 1800, 2200, 2600].flatMap(rating => [
++          hl('line', {
++            attrs: {
++              x1: chartX(rating),
++              x2: chartX(rating),
++              y1: 35,
++              y2: 200,
++              stroke: 'currentColor',
++              opacity: 0.12,
++              'stroke-dasharray': '3 3',
++            },
++          }),
++          hl(
++            'text',
++            {
++              attrs: {
++                x: chartX(rating),
++                y: 220,
++                'text-anchor': 'middle',
++                fill: 'currentColor',
++                'font-size': 10,
++              },
++            },
++            String(rating),
++          ),
++        ]),
++        hl(
++          'text',
++          {
++            attrs: {
++              transform: 'translate(12 118) rotate(-90)',
++              'text-anchor': 'middle',
++              fill: 'currentColor',
++              'font-size': 10,
++            },
++          },
++          'Maia probability',
++        ),
++        ...moves.flatMap((uci, index) => [
++          hl('path', {
++            attrs: {
++              d: chartPath(data, uci),
++              fill: 'none',
++              stroke: colors[index],
++              'stroke-width': 2.5,
++              'stroke-linejoin': 'round',
++            },
++          }),
++          ...ratingSamples.flatMap(rating => {
++            const values = data.get(rating);
++            if (!values) return [];
++            const p = values.find(move => move.uci === uci)?.probability ?? 0;
++            const title = `${name(uci)} · ${rating} · ${(p * 100).toFixed(1)}%`;
++            return [
++              hl(
++                'a',
++                {
++                  attrs: { href: '#', role: 'button', 'aria-label': title },
++                  hook: reviewClick(event => {
++                    event.preventDefault();
++                    select(rating);
++                  }),
++                },
++                [
++                  hl('title', title),
++                  hl('circle', { attrs: { cx: chartX(rating), cy: chartY(p), r: 3.5, fill: colors[index] } }),
++                ],
++              ),
++            ];
++          }),
++          data.has(2600) &&
++            hl(
++              'text',
++              {
++                attrs: {
++                  x: 358,
++                  y: chartY(data.get(2600)!.find(m => m.uci === uci)?.probability ?? 0) + 4,
++                  fill: colors[index],
++                  'font-size': 11,
++                },
++              },
++              name(uci),
++            ),
++        ]),
++      ],
++    ),
++  ]);
++}
 diff --git a/ui/analyse/src/noSweatSnapshots.ts b/ui/analyse/src/noSweatSnapshots.ts
 new file mode 100644
 index 0000000..759163b
@@ -27365,21 +28563,147 @@ index 0000000..0a1dd6a
 +    client.release();
 +  });
 +});
+diff --git a/ui/analyse/tests/noSweatRatingChart.test.ts b/ui/analyse/tests/noSweatRatingChart.test.ts
+new file mode 100644
+index 0000000..db87c38
+--- /dev/null
++++ b/ui/analyse/tests/noSweatRatingChart.test.ts
+@@ -0,0 +1,40 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++
++import { chartMoves, chartPath, chartX, chartY, ratingSamples } from '../src/noSweatRatingChart';
++
++test('fixed probability/rating axes cover the complete 600–2600 range', () => {
++  assert.equal(ratingSamples.length, 21);
++  assert.equal(chartX(600), 48);
++  assert.equal(chartX(2600), 348);
++  assert.equal(chartY(0), 200);
++  assert.equal(chartY(1), 35);
++  assert.equal(chartY(0.5), 117.5);
++});
++test('missing samples break lines and legal zero probabilities remain explicit', () => {
++  const values = new Map([
++    [600, [{ uci: 'e2e4', probability: 0.5 }]],
++    [800, []],
++  ]);
++  assert.equal(chartPath(values, 'e2e4').trim(), 'M48,117.5  M78,200');
++});
++test('the three leading moves reflect all sampled ratings', () => {
++  const values = new Map([
++    [
++      600,
++      [
++        { uci: 'e2e4', probability: 0.6 },
++        { uci: 'd2d4', probability: 0.3 },
++        { uci: 'a2a3', probability: 0.1 },
++      ],
++    ],
++    [
++      2600,
++      [
++        { uci: 'g1f3', probability: 0.8 },
++        { uci: 'd2d4', probability: 0.2 },
++      ],
++    ],
++  ]);
++  assert.deepEqual(chartMoves(values), ['g1f3', 'e2e4', 'd2d4']);
++});
 diff --git a/ui/bits/css/build/bits.patron.scss b/ui/bits/css/build/bits.patron.scss
 new file mode 100644
-index 0000000..4e58196
+index 0000000..ef5fea9
 --- /dev/null
 +++ b/ui/bits/css/build/bits.patron.scss
-@@ -0,0 +1,16 @@
+@@ -0,0 +1,96 @@
 +@import '../../../lib/css/plugin';
-+@import '../../../lib/css/form/form3';
 +
 +#nostr-patron {
-+  width: 100%;
-+  max-width: 40em;
++  width: min(100%, 34em);
 +  height: min-content;
 +  margin: 0 auto;
 +  border: $border;
++  line-height: 1.6;
++
++  .patron-heading {
++    display: flex;
++    align-items: flex-start;
++    justify-content: space-between;
++    gap: 1em;
++  }
++
++  h1 {
++    margin: 0;
++    font-size: 1.8em;
++    line-height: 1.25;
++  }
++
++  p {
++    margin: 1em 0;
++  }
++
++  .patron-close {
++    flex: none;
++    font-size: 1.3em;
++    padding: 0.2em 0.4em;
++  }
++
++  .patron-intro {
++    color: $c-font-dim;
++  }
++
++  .patron-fields {
++    display: grid;
++    grid-template-columns: minmax(0, 1fr) 7em;
++    gap: 1em;
++    margin: 1.4em 0;
++  }
++
++  .patron-field {
++    display: grid;
++    gap: 0.4em;
++  }
++
++  input,
++  select {
++    width: 100%;
++    min-width: 0;
++    padding: 0.65em;
++    background: $c-bg-box;
++    color: $c-font;
++    border: $border;
++    border-radius: 3px;
++    font-size: 1em;
++  }
++
++  .patron-actions {
++    display: flex;
++    flex-wrap: wrap;
++    gap: 0.7em;
++  }
++
++  .patron-note {
++    color: $c-font-dim;
++    font-size: 0.9em;
++  }
++
++  .patron-direct {
++    display: flex;
++    flex-direction: column;
++    gap: 0.6em;
++    padding-top: 1em;
++    border-top: $border;
++    overflow-wrap: anywhere;
++  }
++
++  #patron-status:empty,
++  #patron-quote:empty {
++    display: none;
++  }
++
++  #patron-payment {
++    text-align: center;
++    margin: 1.5em 0;
++  }
 +
 +  .qrcode {
 +    display: block;
@@ -28455,3 +29779,42 @@ index 0000000..9fc8e4d
 +    );
 +  });
 +});
+diff --git a/ui/site/tests/topBar.test.ts b/ui/site/tests/topBar.test.ts
+new file mode 100644
+index 0000000..bdf5669
+--- /dev/null
++++ b/ui/site/tests/topBar.test.ts
+@@ -0,0 +1,26 @@
++import assert from 'node:assert/strict';
++import { test, mock } from 'node:test';
++
++import { pubsub } from 'lib/pubsub';
++
++test('socket events do not load disabled challenge or notification widgets', async () => {
++  document.body.innerHTML = '<header id="top"><nav id="topnav"></nav></header>';
++  window.matchMedia = globalThis.matchMedia;
++  const empty: Record<string, unknown> = { length: 0 };
++  for (const name of ['on', 'one', 'html', 'find', 'empty', 'removeAttr']) empty[name] = () => empty;
++  Object.defineProperty(globalThis, '$', { value: () => empty, configurable: true });
++  const load = mock.fn(async () => ({}));
++  mock.module(new URL('../src/asset.ts', import.meta.url).href, {
++    namedExports: { loadEsm: load, loadCssPath: () => {} },
++  });
++  mock.module(new URL('../src/clinput.ts', import.meta.url).href, {
++    namedExports: { addClinputKeyHandler: () => {} },
++  });
++  const { default: initTopBar } = await import('../src/topBar');
++  initTopBar();
++  pubsub.emit('socket.in.challenges', {});
++  pubsub.emit('socket.in.notifications', { notifications: {} as Paginator<never>, unread: 1 });
++  pubsub.emit('notify-app.set-read', 'someone');
++  await Promise.resolve();
++  assert.equal(load.mock.callCount(), 0);
++});
+diff --git a/ui/site/tests/tsconfig.json b/ui/site/tests/tsconfig.json
+new file mode 100644
+index 0000000..5ee372b
+--- /dev/null
++++ b/ui/site/tests/tsconfig.json
+@@ -0,0 +1 @@
++{ "extends": "../../.test/tsconfig.test.json" }
