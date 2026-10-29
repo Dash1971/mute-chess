@@ -1,7 +1,7 @@
 import { generateSecretKey, getPublicKey, finalizeEvent } from 'nostr-tools/pure';
 import { decode, nsecEncode } from 'nostr-tools/nip19';
 import { saveKey, loadKey, forgetKey } from './key-store.mjs';
-import { signedCall } from './auth-client.mjs';
+import { signedCall, AuthResponseError } from './auth-client.mjs';
 import './security.mjs';
 import './patron.mjs';
 
@@ -33,7 +33,7 @@ async function signIn(signer, key, save = true) {
   const fields = { username: element('username').value.trim() || undefined };
   try { await complete(await signedCall(signer, 'login', fields), key, save); }
   catch (error) {
-    if (error.code !== 'two_factor_required') throw error;
+    if (!(error instanceof AuthResponseError) || error.code !== 'two_factor_required') throw error;
     // Retain a temporary copy only while the verified account completes 2FA.
     // Import/saved-key callers erase their own copy in finally.
     const copy = key?.slice();

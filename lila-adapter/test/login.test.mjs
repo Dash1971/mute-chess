@@ -56,3 +56,8 @@ test('unqualified errors never reveal 2FA; switching identity clears the pending
   requireFactor=true;ui.node('nsec').value=nsecEncode(key);await ui.node('import').click();ui.node('token').value='old-code';await ui.node('back').click();
   assert.equal(ui.node('token').value,'');assert.equal(ui.node('second-factor').hidden,true);assert.equal(ui.node('methods').hidden,false);key.fill(0);
 });
+
+test('a signer error cannot impersonate the server 2FA confirmation',async()=>{
+  const ui=await page(()=>({status:200,body:{url:'/'}}),{getPublicKey(){throw Object.assign(new Error('Signer failed'),{code:'two_factor_required'});},signEvent(){}});
+  await ui.node('extension').click();assert.equal(ui.node('second-factor').hidden,true);assert.equal(ui.attempts.length,0);
+});
