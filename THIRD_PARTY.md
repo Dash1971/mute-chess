@@ -23,3 +23,7 @@ The nosweatchess cyber-rook is an original, Codex-assisted SVG mark. Its outline
 ## Native analysis extensions
 
 Mobile Maia premove projection, browser inference worker/client/encoder and En Croissant-derived classification retain their source pins and adaptations in [analysis/PROVENANCE.md](analysis/PROVENANCE.md). The independent EC scoring/material references and fixtures are under analysis/reference. En Croissant GPL-3.0 is retained as third-party/EN-CROISSANT-GPL3-LICENSE. ONNX Runtime MIT and full third-party notices accompany the browser vendor sources; exact runtime/model download hashes are in analysis/browser/config.json. Native Stockfish remains distributed by the pinned Lila source/assets and its original notices. Generated model/runtime downloads are excluded from Git and corresponding-source archives; exact sources and reproduction recipes are provided.
+
+## Lichess puzzle database
+
+The starter puzzle catalog in puzzles/ is a pinned subset of https://database.lichess.org/#puzzles, CC0-1.0. See puzzles/catalog.json, README.md and CC0-1.0.txt for source, selection and exact hashes. Native Lila puzzle code retains its upstream AGPL-3.0 license.

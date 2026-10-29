@@ -9,7 +9,7 @@ Decision confirmed by the owner on 28 October 2026. This supersedes the provisio
 - **Desktop browsers only.** No mobile app, mobile chess layout or PWA project. Mobile Maia remains a separate product.
 - **Lichess is the base for every chess function we expose**, including live play and analysis. Use Lila's round, clock, promotion, premove, replay, variation/tree, PGN and analysis machinery, with its native chess rules/adjudication and engine integration. Do not grow a parallel custom chess implementation.
 - Add Maia/Nostr/bot-pool integration around that base. Human-versus-Maia only, with the confirmed 44 identities in [issue #1](https://github.com/Dash1971/no-sweat-chess/issues/1) and versioned policies/calibration tracked in [issue #2](https://github.com/Dash1971/no-sweat-chess/issues/2). No human-versus-human or bot-versus-bot feature.
-- The cyberpunk/cypherpunk story, retro desktop layout, typography, colours and club notices are the **wrapper and branding**. They do not define new chess rules, control semantics, evaluation meaning or classification algorithms.
+- The cyberpunk/cypherpunk story, retro desktop layout, typography, colors and club notices are the **wrapper and branding**. They do not define new chess rules, control semantics, evaluation meaning or classification algorithms.
 - Add the explicitly requested Mobile Maia / En Croissant / maiachess.com capabilities to Lichess analysis. Preserve their distinct semantics, upstream provenance and regression evidence.
 
 This means an adapted **Lila-based chess application**, rather than a stand-alone copy of Chessground surrounded by newly implemented chess controllers. It does not require offering every unrelated feature of lichess.org (forums, tournaments, human matchmaking, etc.). Retain mature upstream behavior for the supported scope and make small, identifiable integration changes.
@@ -92,3 +92,7 @@ The selected-move analysis increment includes local Maia3 5M/79M, raw legal poli
 ## 29 October scope decision: standard chess only
 
 The owner explicitly excluded all chess variants. Analysis, editing, imports and play support standard chess only, including ordinary custom FEN positions. No variant selector, variant play/analysis URL or variant PGN import is part of this product. Preserve upstream rules internals as dependencies, without presenting them as supported features. The swag store is removed. The footer social section currently contains only [our GitHub repository](https://github.com/Dash1971/no-sweat-chess). The account control must expose native profile viewing and editing for Nostr-authenticated users.
+
+## Puzzles (owner clarification, 29 October 2026)
+
+Use native Lichess puzzle solving, ratings, solution validation, post-completion review and next-puzzle behavior. No En Croissant puzzle port is required. Extend review with the same two Stockfish / two independently rated Maia channels and shared arrow geometry. Engine assistance is prohibited during solving, including pending work carried over from the previous puzzle. Preserve ordinary Lichess hints and reveal behavior. The starter catalog is a pinned, legally validated subset of the official CC0 Lichess database; its positions and original game links are real, while unavailable game metadata is omitted.

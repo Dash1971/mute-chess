@@ -203,6 +203,7 @@ shutil.copytree(payload / 'third-party', source_dir / 'third-party')
 shutil.copytree(release / 'lila-adapter', source_dir / 'lila-adapter', ignore=shutil.ignore_patterns('node_modules'))
 shutil.copytree(payload / 'deployment', source_dir / 'deployment')
 shutil.copytree(payload / 'analysis', source_dir / 'analysis')
+shutil.copytree(payload / 'puzzles', source_dir / 'puzzles')
 with tarfile.open(release / 'source.tar.gz', 'w:gz') as archive:
     archive.add(source_dir, arcname='nosweatchess-source')
 (release / 'source.tar.gz').chmod(0o644)
@@ -228,4 +229,13 @@ subprocess.run(['systemd-analyze', 'verify', *[
 subprocess.run(['systemctl', 'daemon-reload'], check=True)
 subprocess.run(['systemctl', 'enable', '--now', 'nosweatchess-isolation'], check=True)
 subprocess.run(['systemctl', 'enable', '--now', 'nosweatchess-mongo', 'nosweatchess-redis'], check=True)
+# Seed only missing catalog puzzles after the isolated database is ready.
+for attempt in range(30):
+    probe = subprocess.run([str(base / 'tools/node'), str(dev / 'tools/mongosh/node_modules/mongosh/bin/mongosh.js'), 'mongodb://127.0.0.1:27019/nosweat', '--quiet', '--eval', 'db.runCommand({ping:1}).ok'], capture_output=True)
+    if probe.returncode == 0: break
+    import time
+    time.sleep(1)
+else: raise RuntimeError('Puzzle database did not become ready')
+env = {**os.environ, 'PATH': str(base / 'tools') + os.pathsep + os.environ.get('PATH', '')}
+subprocess.run(['python3', str(source_dir / 'puzzles/import.py'), 'mongodb://127.0.0.1:27019/nosweat', '--mongosh', str(dev / 'tools/mongosh/node_modules/mongosh/bin/mongosh.js')], env=env, check=True)
 print(json.dumps({'release': str(release), 'source_sha256': hashlib.sha256((release / 'source.tar.gz').read_bytes()).hexdigest(), 'application_exposed': False}))

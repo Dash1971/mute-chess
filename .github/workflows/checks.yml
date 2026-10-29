@@ -36,12 +36,13 @@ jobs:
       - name: Encoder regression without external weights
         working-directory: lila-adapter
         run: PYTHONPATH=.:test python -m unittest test_worker.WorkerTests.test_history_and_black_orientation
+      - run: python -m unittest discover -s puzzles
       - name: Parse deployment Python
         run: |
           python - <<'PY'
           import ast
           from pathlib import Path
-          for directory in ('deploy', 'scripts'):
+          for directory in ('deploy', 'scripts', 'puzzles'):
               for source in Path(directory).rglob('*.py'):
                   ast.parse(source.read_text(), filename=str(source))
           PY
@@ -73,5 +74,6 @@ jobs:
           npm install --global pnpm@12.9.0
           pnpm install --frozen-lockfile
           (cd ui/.build && pnpm install --frozen-lockfile)
+          node "$GITHUB_WORKSPACE/puzzles/validate.mjs" /tmp/lila/node_modules/.pnpm/chessops@0.15.1/node_modules/chessops
           node ui/test
-          ./ui/build --no-install analyse round editor dasher
+          ./ui/build --no-install analyse round editor dasher puzzle

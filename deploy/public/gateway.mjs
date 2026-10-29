@@ -79,8 +79,10 @@ const server = http.createServer((req, res) => {
   if (path === '/source') { res.writeHead(302, { Location: '/source.tar.gz' }); return res.end(); }
   const profileRoute = ((path === '/dasher' && ['GET', 'HEAD'].includes(req.method)) ||
     (path === '/account/profile' && ['GET', 'HEAD', 'POST'].includes(req.method)));
-  const supported = profileRoute || path === '/' || /^\/(?:club(?:\/|$)|analysis(?:\/|$)|editor(?:\/|$)|game(?:\/|$)|@\/|login$|signup$|logout$|player-count$|account\/now-playing$|lobby\/seeks$|timeline$|pref(?:\/|$)|whats-next\/|opening(?:\/|$)|api\/cloud-eval$|paste$|import$)/.test(path) || /^\/[A-Za-z0-9]{8}(?:[A-Za-z0-9]{4})?(?:\/(?:white|black))?$/.test(path);
-  if (!supported) return reject(res, 404, 'This alpha supports human-versus-Maia games and analysis. Return to /club.');
+  const puzzleRoute = (['GET', 'HEAD'].includes(req.method) && /^\/training(?:\/[A-Za-z0-9_-]+){0,3}$/.test(path) && !/^\/training\/(?:coordinate|batch|new|of-player|frame)(?:\/|$)/.test(path)) ||
+    (req.method === 'POST' && /^\/training\/(?:complete\/[A-Za-z0-9_-]+\/[A-Za-z0-9]{5}|difficulty\/[A-Za-z0-9_-]+|[A-Za-z0-9]{5}\/(?:vote(?:\/[A-Za-z0-9_-]+)?|report))$/.test(path));
+  const supported = puzzleRoute || profileRoute || path === '/' || /^\/(?:club(?:\/|$)|analysis(?:\/|$)|editor(?:\/|$)|game(?:\/|$)|@\/|login$|signup$|logout$|player-count$|account\/now-playing$|lobby\/seeks$|timeline$|pref(?:\/|$)|whats-next\/|opening(?:\/|$)|api\/cloud-eval$|paste$|import$)/.test(path) || /^\/[A-Za-z0-9]{8}(?:[A-Za-z0-9]{4})?(?:\/(?:white|black))?$/.test(path);
+  if (!supported) return reject(res, 404, 'This page is unavailable. Return to the homepage.');
   if (Number(req.headers['content-length'] ?? 0) > 16 * 1024 * 1024) return reject(res, 413, 'Request too large');
   const upstream = http.request({ hostname: '127.0.0.1', port: 29663, path: req.url,
     method: req.method, headers: headers(req), timeout: 30000 }, response => {
