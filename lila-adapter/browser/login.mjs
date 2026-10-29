@@ -17,7 +17,8 @@ async function signIn(signer, localKey) {
   element('nsec').value = '';
   element('backup').value = '';
   generated?.fill(0); generated = undefined;
-  location.assign(result.url || '/');
+  const returnToSupport = new URLSearchParams(location.search).get('referrer') === '/patron';
+  location.assign(returnToSupport ? '/patron' : result.url || '/');
 }
 function localSigner(key) {
   return { getPublicKey: () => getPublicKey(key), signEvent: event => finalizeEvent(event, key) };
