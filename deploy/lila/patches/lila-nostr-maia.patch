@@ -1300,6 +1300,156 @@ index 00f9d9a..cab3e5b 100644
    element: HTMLElement;
    data: AnalyseData;
    userId?: string;
+diff --git a/ui/analyse/src/local/localAnalysisDialog.tsx b/ui/analyse/src/local/localAnalysisDialog.tsx
+index 3a429c5..c59ea01 100644
+--- a/ui/analyse/src/local/localAnalysisDialog.tsx
++++ b/ui/analyse/src/local/localAnalysisDialog.tsx
+@@ -10,6 +10,7 @@ import { licon } from 'lib/licon';
+ import { log } from 'lib/permalog';
+ import { pubsub } from 'lib/pubsub';
+ import { storedIntProp, storedStringProp, type StoredProp } from 'lib/storage';
++import { structuredCloneLite } from 'lib/tree/ops';
+ import {
+   type Dialog,
+   type LooseVNodes,
+@@ -158,12 +159,47 @@ class LocalAnalysisDialog {
+         },
+       );
+       await this.ctrl.idbTree.saveAnalysis(result);
++      const mergeResult = () =>
++        this.ctrl.mergeMainlineAnalysisData({
++          ...result.localUpdate,
++          tree: structuredCloneLite(result.localUpdate.tree),
++        });
++      mergeResult();
++      // Keep the completed native review even if optional brilliant verification is cancelled.
++      let brillianceUnavailable = false;
++      if (this.ctrl.noSweat) {
++        try {
++          const verified = await engine.verifyBrilliants(result, (done, total) => {
++            this.status = `Checking brilliant moves: ${done} / ${total}`;
++            this.chart?.updateData(this.ctrl.data, engine.nodes);
++            redraw();
++          });
++          if (!verified) {
++            this.engine = undefined;
++            this.status = i18n.site.done;
++            redraw();
++            return;
++          }
++          await this.ctrl.idbTree.saveAnalysis(result);
++          mergeResult();
++          this.chart?.updateData(this.ctrl.data, engine.nodes);
++        } catch (error) {
++          if (String(error).includes('Cancelled')) {
++            this.engine = undefined;
++            this.status = i18n.site.done;
++            redraw();
++            return;
++          }
++          log('Brilliant verification unavailable', error);
++          brillianceUnavailable = true;
++        }
++      }
+       this.status = [
+         `${i18n.site.done} ${i18n.site.nbSeconds(Math.round((performance.now() - then) / 100) / 10)}`,
+         <br />,
++        brillianceUnavailable && 'Brilliant checks unavailable; native analysis is complete.',
+         this.canPublish.showButton && i18n.localAnalysis.youCanPublish,
+       ];
+-      this.ctrl.mergeMainlineAnalysisData(result.localUpdate);
+       this.engine = undefined;
+       redraw();
+     } catch (e) {
+diff --git a/ui/analyse/src/local/localAnalysisEngine.ts b/ui/analyse/src/local/localAnalysisEngine.ts
+index 228b88d..f9a2361 100644
+--- a/ui/analyse/src/local/localAnalysisEngine.ts
++++ b/ui/analyse/src/local/localAnalysisEngine.ts
+@@ -10,6 +10,9 @@ import type { ClientEval, Glyph, TreeNodeLite, TreePath } from 'lib/tree/types';
+ 
+ import AnalyseCtrl from '../ctrl';
+ import type { AnalysisUpdate, AnalysisEngineInfo, AnalysisMeta, Division } from '../interfaces';
++import { BrilliantVerifier, brilliantGlyph, mainlineKey, hasQualityGlyph } from '../noSweatBrilliants';
++import { ClassifierClient } from '../noSweatClassifierClient';
++import { ReviewFish } from '../noSweatFish';
+ 
+ // modules/tree/.../Analysis.scala
+ export interface ServerAnalysisDocument {
+@@ -33,6 +36,8 @@ export class LocalAnalysisEngine {
+   readonly nodes: TreeNodeLite[];
+   busy = false;
+ 
++  private readonly importedQuality = new Map<number, Glyph[]>();
++  private brilliantAbort?: AbortController;
+   private readonly path: TreePath;
+   private nodeIndex: number;
+   private nodesSearched = 0;
+@@ -42,6 +47,11 @@ export class LocalAnalysisEngine {
+     this.nodes = mainlineNodeList(structuredCloneLite(this.ctrl.tree.root));
+     this.nodeIndex = this.nodes.length - 1;
+     for (const [i, node] of this.nodes.entries()) {
++      if (node.glyphs?.some(g => !g.comp && g.id >= 1 && g.id <= 6))
++        this.importedQuality.set(
++          node.ply,
++          node.glyphs.filter(g => !g.comp && g.id >= 1 && g.id <= 6),
++        );
+       node.eval = node.ceval = undefined;
+       node.comments = undefined;
+       node.glyphs = undefined;
+@@ -81,7 +91,53 @@ export class LocalAnalysisEngine {
+     }
+   }
+ 
++  async verifyBrilliants(
++    result: LocalAnalysisResult,
++    progress: (done: number, total: number) => void,
++  ): Promise<boolean> {
++    const nodes = mainlineNodeList(result.localUpdate.tree);
++    const key = mainlineKey(nodes);
++    const current = () =>
++      this.ctrl.isCevalAllowed() && !document.hidden && key === mainlineKey(this.ctrl.mainline);
++    const abort = (this.brilliantAbort = new AbortController());
++    const fish = new ReviewFish(() => {});
++    const classifier = new ClassifierClient(
++      () => new Worker(site.asset.url(site.asset.jsModule('analyse.nosweatWorker')), { type: 'module' }),
++    );
++    const cancel = () => {
++      if (document.hidden) abort.abort();
++    };
++    document.addEventListener('visibilitychange', cancel);
++    const shutdown = () => abort.abort();
++    window.addEventListener('pagehide', shutdown);
++    this.busy = true;
++    try {
++      const verifier = new BrilliantVerifier({
++        sacrifice: (before, after, signal) => classifier.sacrifice(before, after, signal),
++        search: (fen, signal, depth, time) => fish.search(fen, [], signal, depth, time),
++        classify: (input, signal) => classifier.classify(input, signal),
++      });
++      const candidates = nodes.map(n =>
++        this.importedQuality.has(n.ply) ? { ...n, glyphs: this.importedQuality.get(n.ply) } : n,
++      );
++      const verified = await verifier.run(candidates, abort.signal, current, progress);
++      if (abort.signal.aborted || !current()) return false;
++      for (const move of verified) {
++        const node = nodes.find(n => n.ply === move.ply && n.fen === move.fen && n.uci === move.uci);
++        if (node && !hasQualityGlyph(node)) node.glyphs = [...(node.glyphs ?? []), brilliantGlyph()];
++      }
++      return true;
++    } finally {
++      this.busy = false;
++      classifier.release();
++      fish.destroy();
++      document.removeEventListener('visibilitychange', cancel);
++      window.removeEventListener('pagehide', shutdown);
++    }
++  }
++
+   readonly stop = () => {
++    this.brilliantAbort?.abort();
+     this.ctrl.ceval.reset();
+     this.finishNode(this.isRunning() ? 'cancelled' : undefined);
+   };
 diff --git a/ui/analyse/src/pgnImport.ts b/ui/analyse/src/pgnImport.ts
 index 5019c1b..91a4271 100644
 --- a/ui/analyse/src/pgnImport.ts
@@ -1332,6 +1482,28 @@ index cfbd78b..4ee7197 100644
    const data = ctrl.data;
    const $panels = $('.analyse__underboard__panels > div');
    const $menu = $('.analyse__underboard__menu');
+diff --git a/ui/analyse/src/util.ts b/ui/analyse/src/util.ts
+index f3984e8..2f09f52 100644
+--- a/ui/analyse/src/util.ts
++++ b/ui/analyse/src/util.ts
+@@ -51,7 +51,16 @@ export function mergeReviewData(into: TreeNodeLite, from: TreeNodeLite): void {
+   into.comments = Array.from(comments.values());
+ 
+   const glyphs = new Map(into.glyphs?.filter(g => !g.comp).map(g => [`${g.id}:false`, g]));
+-  from.glyphs?.forEach(g => glyphs.set(`${g.id}:${!!g.comp}`, g));
++  from.glyphs?.forEach(g => {
++    if (
++      g.source === 'mobile-maia-brilliant-v1' &&
++      [...glyphs.values(), ...(from.glyphs ?? []).filter(other => other !== g)].some(
++        other => other.id >= 1 && other.id <= 6,
++      )
++    )
++      return;
++    glyphs.set(`${g.id}:${!!g.comp}`, g);
++  });
+   into.glyphs = Array.from(glyphs.values());
+ 
+   for (const fromChild of from.children) {
 diff --git a/ui/analyse/src/view/components.ts b/ui/analyse/src/view/components.ts
 index 1690fe3..593342c 100644
 --- a/ui/analyse/src/view/components.ts
@@ -1387,6 +1559,181 @@ index 96ce0df..a93b740 100644
      renderMoveList(ctrl, deps, concealOf),
      deps?.gbEdit.running(ctrl) ? deps?.gbEdit.render(ctrl) : undefined,
      renderBackToLiveButton(ctrl),
+diff --git a/ui/chart/src/acpl.ts b/ui/chart/src/acpl.ts
+index d06272b..4a8de31 100644
+--- a/ui/chart/src/acpl.ts
++++ b/ui/chart/src/acpl.ts
+@@ -32,6 +32,7 @@ import {
+   axisOpts,
+ } from './index';
+ import type { AcplChart, AnalyseData, Player } from './interface';
++import { classificationPoint } from './moveClassifications';
+ 
+ Chart.register(LineController, LinearScale, PointElement, LineElement, Tooltip, Filler, ChartDataLabels);
+ export default async function (
+@@ -46,18 +47,14 @@ export default async function (
+   const ply = plyLine(0);
+   const divisionLines = division(data.game.division);
+   const firstPly = mainline[0].ply;
+-  const isPartial = (d: AnalyseData) => !d.analysis || !!d.analysis.partial;
+ 
+   const makeDataset = (
+     d: AnalyseData,
+     mainline: TreeNodeBase[],
+-  ): { acpl: ChartDataset<'line'>; moveLabels: string[]; adviceHoverColors: string[] } => {
+-    const pointBackgroundColors: (
+-      | typeof orangeAccent
+-      | typeof blurBackgroundColorWhite
+-      | typeof blurBackgroundColorBlack
+-    )[] = [];
+-    const adviceHoverColors: string[] = [];
++  ): { acpl: ChartDataset<'line'>; moveLabels: string[] } => {
++    const pointBackgroundColors: string[] = [];
++    const pointBorderColors: string[] = [];
++    const pointBorderWidths: number[] = [];
+     const moveLabels: string[] = [];
+     const pointStyles: PointStyle[] = [];
+     const pointSizes: number[] = [];
+@@ -76,20 +73,27 @@ export default async function (
+       const winchance = winningChances.povChances('white', { cp });
+       // Plot winchance because logarithmic but display the corresponding cp.eval from AnalyseData in the tooltip
+       winChances.push({ x: node.ply, y: winchance });
+-      const { advice, color: glyphColor } = glyphProperties(node);
+       const label = turn + dots + ' ' + node.san;
+       let annotation = '';
+-      if (advice) annotation = ` [${i18n.site[advice]}]`;
+       const isBlur =
+         blurs[isWhite ? 1 : 0][Math.floor((node.ply - (d.game.startedAtTurn || 0) - 1) / 2)] === '1';
+-      if (isBlur) annotation = ' [blur]';
+-      moveLabels.push(label + annotation);
+-      pointStyles.push(isBlur ? 'rect' : 'circle');
+-      pointSizes.push(isBlur ? 5 : 0);
+-      pointBackgroundColors.push(
+-        isBlur ? (isWhite ? blurBackgroundColorWhite : blurBackgroundColorBlack) : orangeAccent,
++      const point = classificationPoint(
++        node,
++        orangeAccent,
++        isBlur ? (isWhite ? blurBackgroundColorWhite : blurBackgroundColorBlack) : undefined,
+       );
+-      adviceHoverColors.push(glyphColor ?? orangeAccent);
++      const classified = point.classification;
++      if (classified) {
++        const name = 'advice' in classified ? i18n.site[classified.advice] : classified.name;
++        annotation = ` [${classified.symbol} ${name}]`;
++      }
++      if (isBlur) annotation += ' [blur]';
++      moveLabels.push(label + annotation);
++      pointStyles.push(point.style);
++      pointSizes.push(point.radius);
++      pointBackgroundColors.push(point.color);
++      pointBorderColors.push(point.border);
++      pointBorderWidths.push(point.borderWidth);
+     });
+     return {
+       acpl: {
+@@ -101,25 +105,28 @@ export default async function (
+           below: blackFill,
+           above: whiteFill,
+         },
+-        pointRadius: d.player.blurs || d.opponent.blurs ? pointSizes : 0,
++        pointRadius: pointSizes,
+         pointHoverRadius: 5,
+         pointHitRadius: 100,
+         borderColor: orangeAccent,
+         pointBackgroundColor: pointBackgroundColors,
++        pointBorderColor: pointBorderColors,
++        pointBorderWidth: pointBorderWidths,
++        pointHoverBackgroundColor: pointBackgroundColors,
++        pointHoverBorderColor: pointBorderColors,
++        pointHoverBorderWidth: pointBorderWidths,
+         pointStyle: pointStyles,
+         hoverBackgroundColor: orangeAccent,
+         order: 5,
+         datalabels: { display: false },
+       },
+       moveLabels,
+-      adviceHoverColors,
+     };
+   };
+ 
+   const dataset = makeDataset(data, mainline);
+   const acpl = dataset.acpl;
+   const moveLabels = dataset.moveLabels;
+-  let adviceHoverColors = dataset.adviceHoverColors;
+   const config: ChartConfiguration<'line'> = {
+     type: 'line',
+     data: {
+@@ -167,54 +174,43 @@ export default async function (
+   };
+   const acplChart = new Chart(el, config) as AcplChart;
+   acplChart.selectPly = selectPly.bind(acplChart);
+-  acplChart.updateData = (d: AnalyseData, mainline: TreeNodeBase[]) => {
+-    const dataset = makeDataset(d, mainline);
+-    adviceHoverColors = dataset.adviceHoverColors;
+-    const acpl = dataset.acpl;
+-    acplChart.data.datasets[0].data = acpl.data;
+-    if (!isPartial(data)) christmasTree(acplChart, mainline, adviceHoverColors);
++  acplChart.updateData = (d: AnalyseData, nodes: TreeNodeBase[]) => {
++    mainline = nodes;
++    const dataset = makeDataset(d, nodes);
++    moveLabels.splice(0, moveLabels.length, ...dataset.moveLabels);
++    acplChart.data.labels = moveLabels.map((_, index) => index);
++    // Analysis arrives after the initial chart: replace glyph styles and labels too.
++    Object.assign(acplChart.data.datasets[0], dataset.acpl);
+     acplChart.update('none');
+   };
+   pubsub.on('ply', acplChart.selectPly);
+   pubsub.emit('ply.trigger');
+-  if (!isPartial(data)) christmasTree(acplChart, mainline, adviceHoverColors);
++  christmasTree(acplChart, () => mainline);
+   return acplChart;
+ }
+ 
+-type Advice = 'blunder' | 'mistake' | 'inaccuracy';
+-const glyphProperties = (node: TreeNodeBase): { advice?: Advice; color?: string } => {
+-  if (node.glyphs?.some(g => g.id === 4)) return { advice: 'blunder', color: '#db3031' };
+-  else if (node.glyphs?.some(g => g.id === 2)) return { advice: 'mistake', color: '#e69d00' };
+-  else if (node.glyphs?.some(g => g.id === 6)) return { advice: 'inaccuracy', color: '#4da3d5' };
+-  else return { advice: undefined, color: undefined };
+-};
+-
+ const toBlurArray = (player: Player) => player.blurs?.bits?.split('') ?? [];
+ 
+-function christmasTree(chart: AcplChart, mainline: TreeNodeBase[], hoverColors: string[]) {
+-  $('div.advice-summary')
+-    .on('mouseenter', 'div.symbol', function (this: HTMLElement) {
++function christmasTree(chart: AcplChart, mainline: () => TreeNodeBase[]) {
++  $(chart.canvas.closest('.analyse') ?? document.body)
++    .on('mouseenter', '.advice-summary div.symbol', function (this: HTMLElement) {
+       if (!chart.canvas.isConnected) return;
+       const symbol = this.getAttribute('data-symbol');
+       const playerColorBit = this.getAttribute('data-color') === 'white' ? 1 : 0;
+-      const acplDataset = chart.data.datasets[0];
+-      if (symbol === '??' || symbol === '?!' || symbol === '?') {
+-        acplDataset.pointHoverBackgroundColor = hoverColors;
+-        acplDataset.pointBorderColor = hoverColors;
+-        const points = mainline
++      if (symbol && ['??', '?', '?!', '!!', '!', '!?'].includes(symbol)) {
++        const nodes = mainline();
++        const points = nodes
+           .filter(
+             node => node.glyphs?.some(glyph => glyph.symbol === symbol) && (node.ply & 1) === playerColorBit,
+           )
+-          .map(node => ({ datasetIndex: 0, index: node.ply - mainline[0].ply - 1 }));
++          .map(node => ({ datasetIndex: 0, index: node.ply - nodes[0].ply - 1 }));
+         chart.setActiveElements(points);
+         chart.update('none');
+       }
+     })
+-    .on('mouseleave', 'div.symbol', function (this: HTMLElement) {
++    .on('mouseleave', '.advice-summary div.symbol', function (this: HTMLElement) {
+       if (!chart.canvas.isConnected) return;
+       chart.setActiveElements([]);
+-      chart.data.datasets[0].pointHoverBackgroundColor = orangeAccent;
+-      chart.data.datasets[0].pointBorderColor = orangeAccent;
+       chart.update('none');
+     });
+ }
 diff --git a/ui/dasher/src/interfaces.ts b/ui/dasher/src/interfaces.ts
 index ba0f963..0e2c0e6 100644
 --- a/ui/dasher/src/interfaces.ts
@@ -1692,6 +2039,18 @@ index 0efdc62..799834d 100644
          setTimeout(() => site.reload('lila-ws resync'), 500);
          break;
        case 'ack':
+diff --git a/ui/lib/src/tree/types.ts b/ui/lib/src/tree/types.ts
+index da99e9e..2ef2fa0 100644
+--- a/ui/lib/src/tree/types.ts
++++ b/ui/lib/src/tree/types.ts
+@@ -124,6 +124,7 @@ export interface Gamebook {
+ export type GlyphId = number;
+ 
+ export interface Glyph {
++  source?: string;
+   id: GlyphId;
+   comp?: boolean;
+   name: string;
 diff --git a/ui/lib/src/view/userLink.ts b/ui/lib/src/view/userLink.ts
 index 334435d..fa87ed3 100644
 --- a/ui/lib/src/view/userLink.ts
@@ -5642,10 +6001,10 @@ HcmV?d00001
 
 diff --git a/public/nosweat/brand.css b/public/nosweat/brand.css
 new file mode 100644
-index 0000000..bbd432a
+index 0000000..16a7a7b
 --- /dev/null
 +++ b/public/nosweat/brand.css
-@@ -0,0 +1,73 @@
+@@ -0,0 +1,77 @@
 +.site-title .nosweat-header-icon{width:38px;height:38px;margin-right:7px}.site-title .nosweat-wordmark{width:174px;height:50px;object-fit:contain}.nosweat-light{display:none}.light .nosweat-dark{display:none}.light .nosweat-light{display:block}.nosweat-login-wordmark{width:272px;max-width:100%;height:62px}.auth__brand{justify-content:center}@media(max-width:799px){.site-title .nosweat-wordmark{display:none!important}.site-title .nosweat-header-icon{width:36px;height:36px;margin:0}}
 +
 +main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-dark.svg")}.light main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-light.svg")}
@@ -5719,6 +6078,10 @@ index 0000000..bbd432a
 +.nosweat-rating-scroll { max-width:100%; overflow:auto; }
 +.nosweat-rating-explorer .nosweat-ratings { min-width:320px; }
 +.nosweat-candidate-panel [role=status],.nosweat-candidate-panel .error { font-size:.85em; line-height:1.4; }
++
++.nosweat-maia-line { flex-wrap:wrap; column-gap:.5em; row-gap:0; }
++.nosweat-maia-line > span:first-of-type { flex:1; min-width:0; }
++.nosweat-maia-line .nosweat-maia-score { flex-basis:100%; margin-left:4em; font-size:.9em; color:var(--c-font-dim); }
 diff --git a/public/nosweat/favicon-32.png b/public/nosweat/favicon-32.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..4261e6d916997479521a76cde8d32c2f0eee3236
@@ -6671,11 +7034,11 @@ index 0000000..b207c43
 +</svg>
 diff --git a/ui/analyse/src/analyse.nosweatWorker.ts b/ui/analyse/src/analyse.nosweatWorker.ts
 new file mode 100644
-index 0000000..3f188fa
+index 0000000..ec4cc78
 --- /dev/null
 +++ b/ui/analyse/src/analyse.nosweatWorker.ts
-@@ -0,0 +1,16 @@
-+import { classify, naiveMaterial, type ClassificationInput } from './noSweatClassify';
+@@ -0,0 +1,21 @@
++import { classify, naiveMaterial, isSacrifice, type ClassificationInput } from './noSweatClassify';
 +const material = new Map<string, number>();
 +const evaluate = (fen: string): number => {
 +  if (material.has(fen)) return material.get(fen)!;
@@ -6684,25 +7047,31 @@ index 0000000..3f188fa
 +  if (material.size > 4000) material.delete(material.keys().next().value!);
 +  return value;
 +};
-+self.onmessage = (event: MessageEvent<ClassificationInput>) => {
++self.onmessage = (event: MessageEvent<ClassificationInput | { material: [string, string] }>) => {
 +  try {
-+    self.postMessage({ result: classify(event.data, evaluate) });
++    self.postMessage({
++      result:
++        'material' in event.data
++          ? isSacrifice(...event.data.material, evaluate)
++          : classify(event.data, evaluate),
++    });
 +  } catch (error) {
 +    self.postMessage({ error: String(error) });
 +  }
 +};
 diff --git a/ui/analyse/src/noSweatAnalysis.ts b/ui/analyse/src/noSweatAnalysis.ts
 new file mode 100644
-index 0000000..9d2bad2
+index 0000000..aaea2d9
 --- /dev/null
 +++ b/ui/analyse/src/noSweatAnalysis.ts
-@@ -0,0 +1,808 @@
+@@ -0,0 +1,834 @@
 +import type { DrawShape } from '@lichess-org/chessground/draw';
 +import { parseUci } from 'chessops/util';
 +import { attributesModule, classModule, init } from 'snabbdom';
 +
 +import { frag } from 'lib';
 +import { winningChances } from 'lib/ceval';
++import { maiaExpectedScore } from 'lib/nosweat/expectedScore';
 +import { storage } from 'lib/storage';
 +import { hl, type VNode } from 'lib/view';
 +
@@ -6729,13 +7098,17 @@ index 0000000..9d2bad2
 +    selfElo: number;
 +    opponentElo: number;
 +    includeValue: boolean;
-+  }): Promise<Float32Array>;
++  }): Promise<{ move_logits: Float32Array; value_logits: Float32Array }>;
 +  release(): void;
 +  snapshot(): { phase: string };
 +}
 +interface Config {
 +  models: Record<string, { sha256: string }>;
 +  browserModel: string;
++}
++interface Prediction {
++  candidates: Candidate[];
++  score: number;
 +}
 +interface Scored {
 +  score: EvalScore;
@@ -6751,6 +7124,8 @@ index 0000000..9d2bad2
 +  secondMaiaEnabled = true;
 +  secondMaiaElo = 2400;
 +  secondaryCandidates: Candidate[] = [];
++  expectedScore?: number;
++  secondaryExpectedScore?: number;
 +  private sideRedraw?: () => void;
 +  history = true;
 +  maiaArrows = true;
@@ -6771,7 +7146,7 @@ index 0000000..9d2bad2
 +  private client?: MaiaClient;
 +  private config?: Config;
 +  private maiaTail: Promise<unknown> = Promise.resolve();
-+  private readonly cache = new Map<string, Candidate[]>();
++  private readonly cache = new Map<string, Prediction>();
 +  private readonly fish: ReviewFish;
 +  private readonly reviewCache = new Map<string, Review>();
 +  private fishBest?: string;
@@ -6897,6 +7272,7 @@ index 0000000..9d2bad2
 +    this.cancel();
 +    this.candidates = [];
 +    this.secondaryCandidates = [];
++    this.expectedScore = this.secondaryExpectedScore = undefined;
 +    this.scores.clear();
 +    this.byRating.clear();
 +    this.fishBest = undefined;
@@ -6945,7 +7321,7 @@ index 0000000..9d2bad2
 +    rating: number,
 +    generation: number,
 +    opponent = this.opponentElo,
-+  ): Promise<Candidate[]> {
++  ): Promise<Prediction> {
 +    const task = this.maiaTail
 +      .catch(() => {})
 +      .then(async () => {
@@ -6966,10 +7342,13 @@ index 0000000..9d2bad2
 +            tokens: encodeHistory(fens, this.history),
 +            selfElo: rating,
 +            opponentElo: opponent,
-+            includeValue: false,
++            includeValue: true,
 +          });
 +          if (!this.valid(generation)) throw new Error('Cancelled');
-+          const result = policy(fens[fens.length - 1], logits);
++          const result = {
++            candidates: policy(fens[fens.length - 1], logits.move_logits),
++            score: maiaExpectedScore(logits.value_logits),
++          };
 +          this.cache.set(key, result);
 +          if (this.cache.size > 128) this.cache.delete(this.cache.keys().next().value!);
 +          return result;
@@ -6992,8 +7371,10 @@ index 0000000..9d2bad2
 +        : []),
 +    ]);
 +    if (!this.valid(generation)) return;
-+    this.candidates = results[0].status === 'fulfilled' ? results[0].value : [];
-+    this.secondaryCandidates = results[1]?.status === 'fulfilled' ? results[1].value : [];
++    this.candidates = results[0].status === 'fulfilled' ? results[0].value.candidates : [];
++    this.expectedScore = results[0].status === 'fulfilled' ? results[0].value.score : undefined;
++    this.secondaryCandidates = results[1]?.status === 'fulfilled' ? results[1].value.candidates : [];
++    this.secondaryExpectedScore = results[1]?.status === 'fulfilled' ? results[1].value.score : undefined;
 +    this.error = results.some(r => r.status === 'rejected')
 +      ? 'A Maia channel is unavailable. Try pausing and enabling analysis again.'
 +      : '';
@@ -7129,7 +7510,7 @@ index 0000000..9d2bad2
 +        this.ctrl.redraw();
 +        const result = await this.predict(fens, rating, generation);
 +        if (!this.valid(generation)) return;
-+        this.byRating.set(rating, result);
++        this.byRating.set(rating, result.candidates);
 +        this.ctrl.redraw();
 +      }
 +      this.status = '';
@@ -7167,6 +7548,7 @@ index 0000000..9d2bad2
 +  }
 +  view(): VNode | undefined {
 +    if (!this.ctrl.isCevalAllowed()) return undefined;
++    const side = position(this.ctrl.node.fen).turn === 'white' ? 'White' : 'Black';
 +    const row = (rating: number, candidates: Candidate[], secondary: boolean) =>
 +      hl('div.nosweat-maia-line', [
 +        hl(
@@ -7185,6 +7567,18 @@ index 0000000..9d2bad2
 +                : this.status
 +                  ? 'Analyzing…'
 +                  : 'Unavailable',
++        ),
++        hl(
++          'span.nosweat-maia-score',
++          {
++            attrs: {
++              title: `Maia expected score for ${side}, the side to move: win probability plus half the draw probability.`,
++            },
++          },
++          `${side} score ${(() => {
++            const score = secondary ? this.secondaryExpectedScore : this.expectedScore;
++            return score === undefined ? '—' : (score * 100).toFixed(1) + '%';
++          })()}`,
 +        ),
 +      ]);
 +    return hl('section.nosweat-engine-lines', { attrs: { 'aria-label': 'Maia analysis channels' } }, [
@@ -7512,23 +7906,128 @@ index 0000000..ddf9d0d
 +++ b/ui/analyse/src/noSweatArrows.ts
 @@ -0,0 +1 @@
 +export * from 'lib/nosweat/arrows';
+diff --git a/ui/analyse/src/noSweatBrilliants.ts b/ui/analyse/src/noSweatBrilliants.ts
+new file mode 100644
+index 0000000..d1a01b5
+--- /dev/null
++++ b/ui/analyse/src/noSweatBrilliants.ts
+@@ -0,0 +1,93 @@
++import { parseUci } from 'chessops/util';
++
++import type { TreeNodeBase, Glyph } from 'lib/tree/types';
++
++import type { ClassificationInput, ClassificationResult } from './noSweatClassify';
++import { position, standardUci } from './noSweatCore';
++import type { Review } from './noSweatFish';
++
++export const brilliantSource = 'mobile-maia-brilliant-v1';
++export const mainlineKey = (nodes: TreeNodeBase[]): string =>
++  JSON.stringify(nodes.map(n => [n.ply, n.fen, n.uci]));
++export const hasQualityGlyph = (node: TreeNodeBase): boolean =>
++  !!node.glyphs?.some(g => g.id >= 1 && g.id <= 6);
++export const brilliantGlyph = (): Glyph => ({
++  id: 3,
++  symbol: '!!',
++  name: 'Brilliant',
++  comp: true,
++  source: brilliantSource,
++});
++
++interface Dependencies {
++  sacrifice(before: string, after: string, signal: AbortSignal): Promise<boolean>;
++  search(fen: string, signal: AbortSignal, depth: number, time: number): Promise<Review>;
++  classify(input: ClassificationInput, signal: AbortSignal): Promise<ClassificationResult>;
++}
++export interface VerifiedBrilliant {
++  ply: number;
++  fen: string;
++  uci: string;
++}
++
++// Add only !!. Native judgments, evaluations and accuracy are never replaced.
++export class BrilliantVerifier {
++  constructor(private readonly deps: Dependencies) {}
++  async run(
++    nodes: TreeNodeBase[],
++    signal: AbortSignal,
++    current: () => boolean,
++    progress: (done: number, total: number) => void,
++  ): Promise<VerifiedBrilliant[]> {
++    const valid = () => {
++      if (signal.aborted || !current()) throw new Error('Cancelled');
++    };
++    const cache = new Map<string, Review>();
++    const baseline = async (fen: string) => {
++      if (!cache.has(fen))
++        cache.set(fen, { ...(await this.deps.search(fen, signal, 14, 1200)), quality: brilliantSource });
++      return cache.get(fen)!;
++    };
++    const verified: VerifiedBrilliant[] = [];
++    for (let i = 1; i < nodes.length; i++) {
++      valid();
++      const before = nodes[i - 1];
++      const after = nodes[i];
++      progress(i - 1, nodes.length - 1);
++      if (!after.uci || hasQualityGlyph(after) || position(after.fen).isEnd()) continue;
++      const move = parseUci(after.uci);
++      if (!move) continue;
++      const uci = standardUci(position(before.fen), move);
++      // The complete capture-root check runs off the UI thread, without a node cap.
++      if (!(await this.deps.sacrifice(before.fen, after.fen, signal))) continue;
++      valid();
++      const reviews = [await baseline(before.fen), await baseline(after.fen)];
++      valid();
++      const input = { positions: [before.fen, after.fen], reviews, move: uci };
++      const candidate = await this.deps.classify(input, signal);
++      valid();
++      if ((candidate.provisional || candidate.symbol) !== '!!') continue;
++      // Independent, stronger, whole-decision-window corroboration, as in Mobile Maia.
++      const confirmation: Review[] = [];
++      for (let n = 0; n < 2; n++) {
++        confirmation.push({
++          ...(await this.deps.search(
++            input.positions[n],
++            signal,
++            Math.max(16, reviews[n].current.depth + 2),
++            1800,
++          )),
++          quality: brilliantSource,
++        });
++        valid();
++      }
++      const result = await this.deps.classify({ ...input, confirmation }, signal);
++      valid();
++      if (result.symbol === '!!' && !result.withheld)
++        verified.push({ ply: after.ply, fen: after.fen, uci: after.uci });
++    }
++    valid();
++    progress(nodes.length - 1, nodes.length - 1);
++    return verified;
++  }
++}
 diff --git a/ui/analyse/src/noSweatClassifierClient.ts b/ui/analyse/src/noSweatClassifierClient.ts
 new file mode 100644
-index 0000000..cfd17fa
+index 0000000..d9843d5
 --- /dev/null
 +++ b/ui/analyse/src/noSweatClassifierClient.ts
-@@ -0,0 +1,46 @@
+@@ -0,0 +1,52 @@
 +import type { ClassificationInput, ClassificationResult } from './noSweatClassify';
 +export class ClassifierClient {
 +  private worker?: Worker;
 +  private cancel?: () => void;
 +  constructor(private readonly create: () => Worker) {}
 +  classify(input: ClassificationInput, signal: AbortSignal): Promise<ClassificationResult> {
++    return this.request(input, signal);
++  }
++  sacrifice(before: string, after: string, signal: AbortSignal): Promise<boolean> {
++    return this.request({ material: [before, after] }, signal);
++  }
++  private request<T>(input: unknown, signal: AbortSignal): Promise<T> {
 +    if (signal.aborted) return Promise.reject(new Error('Cancelled'));
 +    if (this.cancel) return Promise.reject(new Error('Classifier is busy'));
 +    const worker = (this.worker ??= this.create());
 +    return new Promise((resolve, reject) => {
-+      const finish = (error?: Error, result?: ClassificationResult) => {
++      const finish = (error?: Error, result?: T) => {
 +        clearTimeout(timer);
 +        signal.removeEventListener('abort', aborted);
 +        this.cancel = undefined;
@@ -7566,10 +8065,10 @@ index 0000000..cfd17fa
 +}
 diff --git a/ui/analyse/src/noSweatClassify.ts b/ui/analyse/src/noSweatClassify.ts
 new file mode 100644
-index 0000000..4400b0e
+index 0000000..f82a0d9
 --- /dev/null
 +++ b/ui/analyse/src/noSweatClassify.ts
-@@ -0,0 +1,172 @@
+@@ -0,0 +1,173 @@
 +// En Croissant v0.15.0 / Mobile Maia port. GPL-3.0; see analysis/PROVENANCE.md.
 +import type { Chess } from 'chessops/chess';
 +import type { NormalMove } from 'chessops/types';
@@ -7666,6 +8165,9 @@ index 0000000..4400b0e
 +  }
 +  return best || 0;
 +}
++export const isSacrifice = (before: string, after: string, evaluateMaterial = naiveMaterial): boolean =>
++  !position(after).isEnd() && evaluateMaterial(before) > -evaluateMaterial(after) + 100;
++
 +export interface ClassificationInput {
 +  positions: string[];
 +  reviews: Review[];
@@ -7688,9 +8190,7 @@ index 0000000..4400b0e
 +  const after = reviews[n - 1];
 +  const previous = n > 2 ? reviews[n - 3] : undefined;
 +  const color = position(positions[n - 2]).turn;
-+  const sacrifice =
-+    !position(positions[n - 1]).isEnd() &&
-+    evaluateMaterial(positions[n - 2]) > -evaluateMaterial(positions[n - 1]) + 100;
++  const sacrifice = isSacrifice(positions[n - 2], positions[n - 1], evaluateMaterial);
 +  const predicate = (b: Snapshot, a: Snapshot, p?: Snapshot): Annotation =>
 +    annotation(p?.lines[0], b, a.lines[0], color, move, sacrifice);
 +  let symbol = predicate(before.current, after.current, previous?.current);
@@ -25553,6 +26053,147 @@ index 0000000..416aaa6
 +    assert.deepEqual(terminalScore('7k/6Q1/5K2/8/8/8/8/8 b - - 0 1'), { mate: 1 });
 +  });
 +});
+diff --git a/ui/analyse/tests/noSweatBrilliants.test.ts b/ui/analyse/tests/noSweatBrilliants.test.ts
+new file mode 100644
+index 0000000..e9340bd
+--- /dev/null
++++ b/ui/analyse/tests/noSweatBrilliants.test.ts
+@@ -0,0 +1,135 @@
++import assert from 'node:assert/strict';
++import { readFileSync } from 'node:fs';
++import { test } from 'node:test';
++
++import type { TreeNodeLite } from 'lib/tree/types';
++
++import { BrilliantVerifier, brilliantGlyph, mainlineKey } from '../src/noSweatBrilliants';
++import { classify, isSacrifice } from '../src/noSweatClassify';
++import { legalUcis, position } from '../src/noSweatCore';
++import { SearchSnapshots } from '../src/noSweatSnapshots';
++import { mergeReviewData } from '../src/util';
++const game = JSON.parse(
++  readFileSync(new URL('./fixtures/noSweat/stockfish18-fast.json', import.meta.url), 'utf8'),
++).runs.find((g: any) => g.name === 'opera-1858');
++const nodes = [
++  { ply: 18, fen: game.positions[18], id: '', children: [] },
++  { ply: 19, fen: game.positions[19], id: 'ab', uci: game.moves[18], children: [] },
++];
++const review = (fen: string) => {
++  const index = game.positions.indexOf(fen);
++  const snapshots = new SearchSnapshots(
++    new Set(legalUcis(fen)),
++    Math.min(2, legalUcis(fen).length),
++    position(fen).turn === 'white',
++  );
++  game.scores[index].raw.forEach((line: string) => snapshots.add(line));
++  return { current: snapshots.completed!, previous: snapshots.previous };
++};
++test('Opera Game Nb5 reference is published only after independent whole-window confirmation', async () => {
++  const calls: number[] = [];
++  const verifier = new BrilliantVerifier({
++    sacrifice: async (a, b) => isSacrifice(a, b),
++    search: async (fen, _signal, depth) => {
++      calls.push(depth);
++      return review(fen);
++    },
++    classify: async input => classify(input),
++  });
++  const found = await verifier.run(
++    nodes,
++    new AbortController().signal,
++    () => true,
++    () => {},
++  );
++  assert.equal(game.annotations[18], '!!');
++  assert.deepEqual(found, [{ ply: 19, fen: game.positions[19], uci: 'c3b5' }]);
++  assert.deepEqual(calls, [14, 14, 16, 16]);
++});
++test('a whole-window veto or native/imported quality annotation never produces a brilliant', async () => {
++  const verifier = new BrilliantVerifier({
++    sacrifice: async () => true,
++    search: async fen => review(fen),
++    classify: async input =>
++      input.confirmation ? { ...classify(input), symbol: '', withheld: true } : classify(input),
++  });
++  assert.deepEqual(
++    await verifier.run(
++      nodes,
++      new AbortController().signal,
++      () => true,
++      () => {},
++    ),
++    [],
++  );
++  let searched = false;
++  const protectedVerifier = new BrilliantVerifier({
++    sacrifice: async () => {
++      searched = true;
++      return true;
++    },
++    search: async fen => review(fen),
++    classify: async input => classify(input),
++  });
++  for (const id of [1, 2, 3, 4, 5, 6]) {
++    assert.deepEqual(
++      await protectedVerifier.run(
++        [nodes[0], { ...nodes[1], glyphs: [{ id, name: 'Imported', symbol: '?' }] }],
++        new AbortController().signal,
++        () => true,
++        () => {},
++      ),
++      [],
++    );
++  }
++  assert.equal(searched, false);
++});
++test('cancellation and changed mainline identity prevent late publication', async () => {
++  const abort = new AbortController();
++  let current = true;
++  const verifier = new BrilliantVerifier({
++    sacrifice: async () => {
++      abort.abort();
++      return true;
++    },
++    search: async fen => review(fen),
++    classify: async input => classify(input),
++  });
++  await assert.rejects(
++    verifier.run(
++      nodes,
++      abort.signal,
++      () => true,
++      () => {},
++    ),
++    /Cancelled/,
++  );
++  const stale = new BrilliantVerifier({
++    sacrifice: async () => {
++      current = false;
++      return true;
++    },
++    search: async fen => review(fen),
++    classify: async input => classify(input),
++  });
++  await assert.rejects(
++    stale.run(
++      nodes,
++      new AbortController().signal,
++      () => current,
++      () => {},
++    ),
++    /Cancelled/,
++  );
++  assert.notEqual(mainlineKey(nodes), mainlineKey([{ ...nodes[0], fen: game.positions[17] }, nodes[1]]));
++});
++test('native tree merge preserves imported judgments instead of adding a conflicting computed brilliant', () => {
++  const into = { ...nodes[1], glyphs: [{ id: 2, symbol: '?', name: 'Mistake' }] } as TreeNodeLite;
++  const from = { ...nodes[1], glyphs: [brilliantGlyph()] } as TreeNodeLite;
++  mergeReviewData(into, from);
++  assert.equal(into.glyphs?.length, 1);
++  assert.equal(into.glyphs?.[0].id, 2);
++  const clean = { ...nodes[1] } as TreeNodeLite;
++  mergeReviewData(clean, from);
++  assert.equal(clean.glyphs?.[0].source, 'mobile-maia-brilliant-v1');
++});
 diff --git a/ui/analyse/tests/noSweatFullReview.test.ts b/ui/analyse/tests/noSweatFullReview.test.ts
 new file mode 100644
 index 0000000..0a1dd6a
@@ -25800,6 +26441,87 @@ index 0000000..0a1dd6a
 +    client.release();
 +  });
 +});
+diff --git a/ui/chart/src/moveClassifications.ts b/ui/chart/src/moveClassifications.ts
+new file mode 100644
+index 0000000..417f417
+--- /dev/null
++++ b/ui/chart/src/moveClassifications.ts
+@@ -0,0 +1,40 @@
++import type { TreeNodeBase } from 'lib/tree/types';
++
++// Mobile Maia MoveClassification / AnalysisGraphPainter; EC EvalChart.CustomDot.
++// Native Lichess judgments remain authoritative when glyphs coexist.
++const classifications = [
++  { id: 4, symbol: '??', name: 'Blunder', color: '#fa5252', advice: 'blunder' },
++  { id: 2, symbol: '?', name: 'Mistake', color: '#fd7e14', advice: 'mistake' },
++  { id: 6, symbol: '?!', name: 'Inaccuracy', color: '#fab005', advice: 'inaccuracy' },
++  { id: 3, symbol: '!!', name: 'Brilliant', color: '#15aabf' },
++  { id: 1, symbol: '!', name: 'Good', color: '#12b886' },
++  { id: 5, symbol: '!?', name: 'Interesting', color: '#82c91e' },
++] as const;
++
++type MoveClassification = (typeof classifications)[number];
++
++export const moveClassification = (node: TreeNodeBase): MoveClassification | undefined =>
++  classifications.find(c => node.glyphs?.some(g => g.id === c.id));
++
++export const classificationPoint = (
++  node: TreeNodeBase,
++  fallback: string,
++  blurColor?: string,
++): {
++  classification?: MoveClassification;
++  radius: number;
++  color: string;
++  border: string;
++  borderWidth: number;
++  style: 'rect' | 'circle';
++} => {
++  const classification = moveClassification(node);
++  return {
++    classification,
++    radius: classification ? 4 : blurColor ? 5 : 0,
++    color: classification?.color ?? blurColor ?? fallback,
++    border: classification ? '#eeeeee' : (blurColor ?? fallback),
++    borderWidth: classification ? 1 : 0,
++    style: !classification && blurColor ? ('rect' as const) : ('circle' as const),
++  };
++};
+diff --git a/ui/chart/tests/moveClassifications.test.ts b/ui/chart/tests/moveClassifications.test.ts
+new file mode 100644
+index 0000000..abc311d
+--- /dev/null
++++ b/ui/chart/tests/moveClassifications.test.ts
+@@ -0,0 +1,29 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++
++import { classificationPoint } from '../src/moveClassifications';
++const node = (ids: number[]) => ({ ply: 21, fen: '', glyphs: ids.map(id => ({ id, symbol: '', name: '' })) });
++test('classification markers reproduce all six Mobile Maia / En Croissant circle colors', () => {
++  for (const [id, symbol, color] of [
++    [3, '!!', '#15aabf'],
++    [1, '!', '#12b886'],
++    [5, '!?', '#82c91e'],
++    [6, '?!', '#fab005'],
++    [2, '?', '#fd7e14'],
++    [4, '??', '#fa5252'],
++  ] as const) {
++    const point = classificationPoint(node([id]), '#888');
++    assert.equal(point.classification?.symbol, symbol);
++    assert.deepEqual(
++      [point.radius, point.color, point.border, point.borderWidth, point.style],
++      [4, color, '#eeeeee', 1, 'circle'],
++    );
++  }
++});
++test('native negative judgments take precedence over positive/imported glyphs; ordinary points stay quiet', () => {
++  assert.equal(classificationPoint(node([3, 4]), '#888').classification?.symbol, '??');
++  assert.equal(classificationPoint(node([3, 6]), '#888').classification?.symbol, '?!');
++  assert.equal(classificationPoint(node([10]), '#888').radius, 0);
++  assert.equal(classificationPoint(node([]), '#888', 'black').style, 'rect');
++  assert.equal(classificationPoint(node([4]), '#888', 'black').style, 'circle');
++});
 diff --git a/ui/lib/src/nosweat/arrows.ts b/ui/lib/src/nosweat/arrows.ts
 new file mode 100644
 index 0000000..595739d
@@ -25999,6 +26721,21 @@ index 0000000..1a77e83
 +  if (!pos.isEnd()) return undefined;
 +  return pos.isCheckmate() ? { mate: pos.turn === 'white' ? -1 : 1 } : { cp: 0 };
 +};
+diff --git a/ui/lib/src/nosweat/expectedScore.ts b/ui/lib/src/nosweat/expectedScore.ts
+new file mode 100644
+index 0000000..7a07f41
+--- /dev/null
++++ b/ui/lib/src/nosweat/expectedScore.ts
+@@ -0,0 +1,9 @@
++// Maia3 value head is [loss, draw, win], from the side-to-move perspective.
++// Same calculation as Mobile Maia's browser core.whiteScore, without the White flip.
++export function maiaExpectedScore(logits: ArrayLike<number>): number {
++  if (logits.length !== 3 || !Array.from(logits).every(Number.isFinite))
++    throw new Error('Invalid Maia value output');
++  const max = Math.max(...Array.from(logits));
++  const [loss, draw, win] = Array.from(logits, n => Math.exp(n - max));
++  return (win + draw / 2) / (loss + draw + win);
++}
 diff --git a/ui/lib/src/nosweat/preferences.ts b/ui/lib/src/nosweat/preferences.ts
 new file mode 100644
 index 0000000..2cdb291
@@ -26243,6 +26980,26 @@ index 0000000..4441b84
 +  line(3, 1, 'd2d4');
 +  line(3, 2, 'e2e4');
 +  assert.equal(emitted.length, count + 1);
++});
+diff --git a/ui/lib/tests/maiaExpectedScore.test.ts b/ui/lib/tests/maiaExpectedScore.test.ts
+new file mode 100644
+index 0000000..b041dbc
+--- /dev/null
++++ b/ui/lib/tests/maiaExpectedScore.test.ts
+@@ -0,0 +1,14 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++
++import { maiaExpectedScore } from '../src/nosweat/expectedScore';
++test('Maia L/D/W value logits produce side-to-move expected score, including half credit for draws', () => {
++  assert.ok(Math.abs(maiaExpectedScore([Math.log(0.1), Math.log(0.2), Math.log(0.7)]) - 0.8) < 1e-12);
++  assert.equal(maiaExpectedScore([0, 0, 0]), 0.5);
++  assert.equal(maiaExpectedScore([1000, 0, 0]), 0);
++  assert.equal(maiaExpectedScore([0, 1000, 0]), 0.5);
++  assert.equal(maiaExpectedScore([0, 0, 1000]), 1);
++  assert.equal(maiaExpectedScore([10000, 10000, 10000]), 0.5);
++  for (const invalid of [[], [1, 2], [1, 2, NaN], [Infinity, 0, 0]])
++    assert.throws(() => maiaExpectedScore(invalid));
 +});
 diff --git a/ui/lib/tests/noSweatReviewMaia.test.ts b/ui/lib/tests/noSweatReviewMaia.test.ts
 new file mode 100644

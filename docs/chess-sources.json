@@ -1,6 +1,6 @@
 {
   "recorded_date": "2026-10-29",
-  "status": "native Lila/lila-ws with Nostr rated and anonymous casual bot play; stacked premoves, browser Maia/Stockfish and full-game accuracy/classification; persistent reports and calibration remain work",
+  "status": "native Lila/lila-ws with Nostr rated and anonymous casual bot play; stacked premoves, native Lichess review with additive verified brilliants, classified graph markers and Maia expected scores; calibration remains work",
   "lichess": {
     "repository": "https://github.com/lichess-org/lila",
     "revision": "b551752d2a0e7a63459d9812825d95a633a98737",
