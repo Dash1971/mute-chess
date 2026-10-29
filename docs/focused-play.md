@@ -38,3 +38,14 @@ selected bot opponents. Native API-token/challenge endpoints remain unavailable.
 The quick-pair grid and Custom Play stay bot-only; no public human matchmaking.
 The compact profile menu retains profile editing, game export and Friends, without
 advertising the deferred opening explorer or unsupported inbox/gifting features.
+
+
+Nostr sign-in starts with Create a key and play. Show the masked nsec backup with
+Copy/Show controls, explain saving it in a password manager, then save locally and
+play. Retain existing-nsec import, the saved-key return path and a secondary NIP-07
+signer button/recommendation. Do not show 2FA until a verified signed login reports
+`two_factor_required`; a generic error must not reveal account security state. Each
+retry signs a fresh challenge bound to the code, and local keys are saved only
+after successful authentication. Clear pending key copies/codes on account switch
+and page exit. Existing identities remain stable and do not become new accounts
+when their nsec or signer is used again. See #59.

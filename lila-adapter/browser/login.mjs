@@ -6,22 +6,42 @@ import './security.mjs';
 import './patron.mjs';
 
 const element = id => document.getElementById('nostr-' + id);
-let generated;
+let generated, pending;
 const status = message => { element('status').textContent = message; };
-async function signIn(signer, localKey) {
-  const result = await signedCall(signer, 'login', {
-    username: element('username').value.trim() || undefined,
-    twoFactorToken: element('token').value.trim() || undefined,
-  });
-  if (localKey) await saveKey(localKey);
+function localSigner(key) {
+  return { getPublicKey: () => getPublicKey(key), signEvent: event => finalizeEvent(event, key) };
+}
+function resetFactor() {
+  pending?.key?.fill(0); pending = undefined;
+  element('token').value = '';
+  element('second-factor').hidden = true;
+  element('methods').hidden = false;
+}
+async function complete(result, key, save) {
+  if (key && save) await saveKey(key);
   element('nsec').value = '';
   element('backup').value = '';
   generated?.fill(0); generated = undefined;
-  const returnToSupport = new URLSearchParams(location.search).get('referrer') === '/patron';
-  location.assign(returnToSupport ? '/patron' : result.url || '/');
+  resetFactor();
+  const referrer = new URLSearchParams(location.search).get('referrer');
+  const destination = referrer?.startsWith('/') && !referrer.startsWith('//') && !/^\/(?:login|signup)(?:[/?#]|$)/.test(referrer)
+    ? new URL(referrer, location.origin) : undefined;
+  location.assign(destination?.origin === location.origin ? destination.href : result.url || '/');
 }
-function localSigner(key) {
-  return { getPublicKey: () => getPublicKey(key), signEvent: event => finalizeEvent(event, key) };
+async function signIn(signer, key, save = true) {
+  resetFactor();
+  const fields = { username: element('username').value.trim() || undefined };
+  try { await complete(await signedCall(signer, 'login', fields), key, save); }
+  catch (error) {
+    if (error.code !== 'two_factor_required') throw error;
+    // Retain a temporary copy only while the verified account completes 2FA.
+    // Import/saved-key callers erase their own copy in finally.
+    const copy = key?.slice();
+    pending = { signer: copy ? localSigner(copy) : signer, key: copy, save, fields };
+    element('methods').hidden = true;
+    element('second-factor').hidden = false;
+    element('token').focus();
+  }
 }
 let busy = false;
 function action(name, callback) {
@@ -37,23 +57,29 @@ function action(name, callback) {
 }
 if (element('extension')) {
   action('extension', async () => {
-    if (!window.nostr?.getPublicKey || !window.nostr?.signEvent) throw Error('Install or enable a NIP-07 browser signer, then reload this page.');
+    if (!window.nostr?.getPublicKey || !window.nostr?.signEvent) throw Error('Enable your Nostr browser signer, then try again.');
     await signIn(window.nostr);
   });
-  action('generate', async () => {
-    generated?.fill(0); generated = generateSecretKey();
+  action('generate', () => {
+    resetFactor(); generated?.fill(0); generated = generateSecretKey();
     element('backup').value = nsecEncode(generated);
     element('backup').type = 'password';
     element('created').hidden = false;
-    element('create-login').focus();
+    element('created').scrollIntoView({ block: 'nearest' });
+    element('copy').focus();
   });
   action('reveal', () => {
     const hidden = element('backup').type === 'password';
     element('backup').type = hidden ? 'text' : 'password';
-    element('reveal').textContent = hidden ? 'Hide backup nsec' : 'Show backup nsec';
+    element('reveal').textContent = hidden ? 'Show key' : 'Hide key';
+  });
+  action('copy', async () => {
+    if (!generated) throw Error('Create a key first');
+    await navigator.clipboard.writeText(element('backup').value);
+    status('Key copied. Save it in your password manager.');
   });
   action('create-login', async () => {
-    if (!generated) throw Error('Generate a key first');
+    if (!generated) throw Error('Create a key first');
     await signIn(localSigner(generated), generated);
   });
   action('import', async () => {
@@ -62,15 +88,28 @@ if (element('extension')) {
       const decoded = decode(element('nsec').value.trim());
       if (decoded.type !== 'nsec') throw Error();
       key = decoded.data;
-      getPublicKey(key); // validate the scalar, not just the encoding
-    } catch { throw Error('Enter a valid nsec private key'); }
+      getPublicKey(key);
+    } catch { throw Error('Enter a valid nsec secret key'); }
+    element('nsec').value = '';
     try { await signIn(localSigner(key), key); } finally { key.fill(0); }
   });
   action('use-saved', async () => {
     const key = await loadKey();
     if (!key) throw Error('No key is saved in this browser');
-    try { await signIn(localSigner(key)); } finally { key.fill(0); }
+    try { await signIn(localSigner(key), key, false); } finally { key.fill(0); }
   });
-  action('forget', async () => { await forgetKey(); element('saved').hidden = true; status('Saved key removed from this browser.'); });
+  action('forget', async () => { resetFactor(); await forgetKey(); element('saved').hidden = true; status('Saved key removed from this browser.'); });
+  action('verify', async () => {
+    if (!pending) return;
+    const token = element('token').value.trim();
+    if (!token) throw Error('Enter your authenticator or recovery code');
+    // Each retry obtains and signs a new one-use challenge, including the code.
+    const result = await signedCall(pending.signer, 'login', { ...pending.fields, twoFactorToken: token });
+    await complete(result, pending.key, pending.save);
+  });
+  action('back', () => { resetFactor(); status(''); });
+  element('token').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); element('verify').click(); } });
+  element('nsec').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); element('import').click(); } });
+  window.addEventListener('pagehide', () => { pending?.key?.fill(0); generated?.fill(0); });
   loadKey().then(key => { element('saved').hidden = !key; key?.fill(0); }).catch(() => {});
 }

@@ -82,3 +82,13 @@ restriction for direct invitations. Quick pairing and Custom Play remain exclusi
 Maia; no human pool or public lobby. Preserve challenge preferences, blocking and
 ownership; do not enable anonymous/open challenges, manual bot challenges, variants
 or API tokens. See `docs/focused-play.md` and #57.
+
+
+## Key-first sign-in (owner request, October 29, 2026)
+
+Lead with generating/saving a Nostr key and tell users to back up their nsec in a
+password manager. Existing nsec and browser signer paths must reuse the same
+identity. Retain recommended NIP-07 signing. Show authenticator/recovery-code input
+only after signed proof confirms 2FA is enabled, never as an initial field or an
+unauthenticated public-key probe. Preserve fresh signature-bound retries, recovery
+code replay protection and local encrypted-key storage. See #59.

@@ -3,7 +3,11 @@ export async function call(path, data, authorization) {
     headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...(authorization ? { Authorization: authorization } : {}) },
     body: typeof data === 'string' ? data : JSON.stringify(data), signal: AbortSignal.timeout(15000) });
   const result = await response.json();
-  if (!response.ok) throw Error(result.error || 'Authentication is temporarily unavailable');
+  if (!response.ok) {
+    const error = Error(result.error || 'Authentication is temporarily unavailable');
+    error.code = result.code;
+    throw error;
+  }
   return result;
 }
 export async function signedCall(signer, action, fields = {}) {

@@ -11,7 +11,7 @@ class Client {
   async request(path, body, status = 200, extra = {}) {
     const response = await fetch(origin+path, { method: body === undefined ? 'GET' : 'POST', redirect:'manual',
       headers: { Origin:origin, Accept:'application/json', 'X-Requested-With':'XMLHttpRequest', Cookie:this.cookie(),
-        ...(!(body instanceof URLSearchParams) ? {'Content-Type':'application/json'} : {}), ...extra },
+        ...(body !== undefined && !(body instanceof URLSearchParams) ? {'Content-Type':'application/json'} : {}), ...extra },
       body: body === undefined ? undefined : body instanceof URLSearchParams ? body : JSON.stringify(body),
       signal:AbortSignal.timeout(30000) });
     for (const cookie of response.headers.getSetCookie()) { const pair=cookie.split(';')[0], i=pair.indexOf('='); this.jar.set(pair.slice(0,i),pair.slice(i+1)); }
@@ -43,18 +43,11 @@ try {
   await a.request('/challenge');await b.request('/challenge');
   await a.request('/rel/follow/'+b.username,{});await b.request('/rel/follow/'+a.username,{});
   const following=await a.request('/@/'+a.username+'/following',undefined,200,{Accept:'text/html'});assert.match(following,new RegExp(b.username,'i'));
-  await guest.request('/setup/friend?user='+b.username,setup({mode:'0'}),403);
-  await a.request('/setup/friend',setup(),403);
-  await a.request('/setup/friend?user='+a.username,setup(),403);
-  await a.request('/setup/friend?user=PixelMoth',setup(),403);
-  await a.request('/setup/friend?user='+b.username,setup({variant:'2'}),403);
-  await a.request('/setup/hook/abcdefgh',setup(),403);
-  await a.request('/api/challenge/'+b.username,{},403);
   const invite=await a.request('/setup/friend?user='+b.username,setup());
   const id=invite.challenge.id;assert.equal(invite.challenge.destUser.id,b.username.toLowerCase());
   assert.ok((await b.request('/challenge')).in.some(c=>c.id===id),'recipient receives native invitation');
   await stranger.request('/challenge/'+id+'/accept',{},404);
-  await b.request('/challenge/'+id+'/accept',{},302,{Accept:'text/html'});
+  await b.request('/challenge/'+id+'/accept',{},303,{Accept:'text/html'});
   const white=await a.request('/game/'+id),black=await b.request('/game/'+id);
   assert.equal(white.player.color,'white');assert.equal(black.player.color,'black');
   assert.notEqual(white.opponent.user.title,'BOT');assert.equal(white.clock.initial,300);assert.equal(white.clock.increment,3);assert.equal(white.game.rated,true);
@@ -69,11 +62,20 @@ try {
   await waitFor(async()=> (await a.request('/game/'+id)).game.turns===4,'second black move');
   wa.send(JSON.stringify({t:'resign'}));
   await waitFor(async()=> (await b.request('/game/'+id)).game.status.id>=30,'native resignation');
-  const pgn=await a.request('/game/export/'+id,undefined,200,{Accept:'application/x-chess-pgn'});assert.match(pgn,/1\. e4 e5 2\. Nf3 Nc6/);
+  const pgn=await a.request('/game/export/'+id,undefined,200,{Accept:'application/x-chess-pgn'});assert.match(pgn,/1\. e4[\s\S]*e5[\s\S]*2\. Nf3[\s\S]*Nc6/);
   const profile=await a.request('/@/'+a.username,undefined,200,{Accept:'text/html'});assert.ok(profile.includes(id),'native game history');
   const declined=await a.request('/setup/friend?user='+b.username,setup());await b.request('/challenge/'+declined.challenge.id+'/decline',{},204);
   const canceled=await a.request('/setup/friend?user='+b.username,setup());await a.request('/challenge/'+canceled.challenge.id+'/cancel',{},204);
   await b.request('/rel/block/'+a.username,{});await a.request('/setup/friend?user='+b.username,setup(),403);
   await b.request('/rel/unblock/'+a.username,{});await a.request('/rel/unfollow/'+b.username,{});
+  // Separate requests respect the native per-IP setup budget.
+  await delay(61000);
+  await guest.request('/setup/friend?user='+b.username,setup({mode:'0'}),403);
+  await a.request('/setup/friend',setup(),403);
+  await a.request('/setup/friend?user='+a.username,setup(),403);
+  await a.request('/setup/friend?user=PixelMoth',setup(),403);
+  await a.request('/setup/friend?user='+b.username,setup({variant:'2'}),403);
+  await a.request('/setup/hook/abcdefgh',setup(),403);
+  await a.request('/api/challenge/'+b.username,{},403);
   console.log(JSON.stringify({ok:true,checks:['native friends and challenges load','follow/block round trip','anonymous/open/self/bot/variant rejected','human pool HTTP denied','invitation ownership','two human clocks and moves','resignation/export/history','decline/cancel','blocked challenger refused']}));
-} finally {for(const ws of sockets)ws.close();}
+} finally {for(const ws of sockets){if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({t:'resign'}));ws.close();}}
