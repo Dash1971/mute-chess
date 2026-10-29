@@ -1161,6 +1161,21 @@ index b00837d..e173701 100644
  
      // If one has the correct multipv and the other doesn't, prefer the right multipv regardless of strength
      const multipv = this.search.multiPv;
+diff --git a/ui/lib/src/ceval/engines/stockfishWebEngine.ts b/ui/lib/src/ceval/engines/stockfishWebEngine.ts
+index 53eda2c..91ae7fe 100644
+--- a/ui/lib/src/ceval/engines/stockfishWebEngine.ts
++++ b/ui/lib/src/ceval/engines/stockfishWebEngine.ts
+@@ -33,7 +33,9 @@ export class StockfishWebEngine implements CevalEngine {
+ 
+   async boot(): Promise<void> {
+     const [root, js] = [this.info.assets.root, this.info.assets.js];
+-    const scriptUrl = site.asset.url(`${root}/${js}`);
++    // Worker isolation headers changed after these immutable upstream files were
++    // first served. A policy version refreshes their cached response headers too.
++    const scriptUrl = site.asset.url(`${root}/${js}`) + '?worker-policy=coep-v1';
+     const makeModule = await import(scriptUrl);
+     const module: StockfishWeb = await makeModule.default({
+       wasmMemory: sharedWasmMemory(this.info.minMem!),
 diff --git a/ui/lib/src/ceval/protocol.ts b/ui/lib/src/ceval/protocol.ts
 index e5f050a..2044471 100644
 --- a/ui/lib/src/ceval/protocol.ts
