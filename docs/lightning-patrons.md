@@ -23,3 +23,7 @@ key. The donation link, QR/LNURL and new invoice requests use this destination.
 The official Nostr public identity remains unchanged; its external profile should
 use this address as `lud16`. No Nostr event or Mobile Maia/Zapstore update is
 published by the website deployment.
+
+Receipt verification retains the retired LNURL solely for previously issued
+invoices. New requests reject it; wings still require the exact invoice, donor
+and request ID already recorded in the native ledger.

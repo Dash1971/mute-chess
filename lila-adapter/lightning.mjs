@@ -13,6 +13,8 @@ export const support = Object.freeze({
   relays: Object.freeze(['wss://relay.damus.io', 'wss://nos.lol', 'wss://relay.primal.net']),
 });
 export const lnurl = bech32.encode('lnurl', bech32.toWords(utf8ToBytes(support.endpoint)), 2048);
+// Old server-issued invoices can still settle; new invoice requests use only lnurl.
+const receiptLnurls = [lnurl, bech32.encode('lnurl', bech32.toWords(utf8ToBytes('https://walletofsatoshi.com/.well-known/lnurlp/eerieatlas700')), 2048)];
 const hash = text => bytesToHex(sha256(utf8ToBytes(text)));
 const requireThat = (ok, message) => { if (!ok) throw Error(message); };
 const oneTag = (event, name, required = true) => {
@@ -73,10 +75,10 @@ export function invoiceDetails(invoice) {
   };
 }
 
-export function validateZapRequest(event, now = Math.floor(Date.now() / 1000)) {
+export function validateZapRequest(event, now = Math.floor(Date.now() / 1000), allowedLnurls = [lnurl]) {
   requireThat(event?.kind === 9734 && JSON.stringify(event).length <= 8000 && verifyEvent(event), 'A signed Nostr zap request is required');
   requireThat(Math.abs(now - event.created_at) <= 300, 'Zap request expired');
-  requireThat(oneTag(event, 'p') === support.recipient && oneTag(event, 'lnurl') === lnurl, 'Wrong donation recipient');
+  requireThat(oneTag(event, 'p') === support.recipient && allowedLnurls.includes(oneTag(event, 'lnurl')), 'Wrong donation recipient');
   requireThat(!event.tags.some(t => ['e', 'a'].includes(t[0])), 'Use a profile zap for patron wings');
   const amount = oneTag(event, 'amount');
   requireThat(/^[1-9][0-9]{0,11}$/.test(amount) && Number(amount) >= 1000 && Number(amount) <= 100000000000 && Number(amount) % 1000 === 0, 'Choose a whole-satoshi amount');
@@ -94,7 +96,7 @@ export function validateZapReceipt(receipt, now = Math.floor(Date.now() / 1000),
   const invoice = rawInvoice.toLowerCase();
   // Validate the exact original signed request at its own creation time. The native
   // ledger must additionally match this invoice to one fetched from our wallet.
-  const amount = validateZapRequest(request, request.created_at);
+  const amount = validateZapRequest(request, request.created_at, receiptLnurls);
   requireThat(details.descriptionHash === hash(description) && details.amountMsat === amount, 'Receipt invoice does not match its zap request');
   requireThat(receipt.created_at >= request.created_at - 300 && details.createdAt >= request.created_at - 300 && details.createdAt <= request.created_at + 300, 'Invalid payment timestamps');
   const sender = oneTag(receipt, 'P', false);

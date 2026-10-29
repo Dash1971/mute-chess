@@ -107,3 +107,13 @@ test('provider lookup is pinned, redirect-free and checks the invoice before ret
     assert.equal(count, 1);
   }
 });
+
+// The native ledger still requires the exact previously fetched invoice/request ID.
+test('address rotation keeps old invoice receipts valid but rejects new requests for the retired address', () => {
+  const oldLnurl = bech32.encode('lnurl', bech32.toWords(utf8ToBytes('https://walletofsatoshi.com/.well-known/lnurlp/eerieatlas700')), 2048);
+  const oldRequest = request({ tags: request().tags.map(tag => tag[0] === 'lnurl' ? ['lnurl', oldLnurl] : tag) });
+  assert.throws(() => validateZapRequest(oldRequest, now), /recipient/);
+  assert.equal(validateZapReceipt(receipt(oldRequest), now + 5, signedWallet).requestId, oldRequest.id);
+  const unrelated = request({ tags: request().tags.map(tag => tag[0] === 'lnurl' ? ['lnurl', 'unrelated'] : tag) });
+  assert.throws(() => validateZapReceipt(receipt(unrelated), now + 5, signedWallet), /recipient/);
+});
