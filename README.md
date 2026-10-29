@@ -58,13 +58,13 @@ failure voids affected active games. Server inference consumes the native clock.
 Automated checks cover signed login/replay protection, stable identity, sessions,
 the roster, admission, both colors and controls, Maia replies, native WebSocket
 moves, reconnect, stale retry rejection, resignation, PGN and worker crash
-recovery. Nine adapter/storage tests and all 277 native frontend tests pass; the
+recovery. Nine adapter/storage tests and all 280 native frontend tests pass; the
 three model/encoder checks and private/public game-flow checks are recorded in
 the deployment notes. This records automated verification, not human manual acceptance.
 
 Native rounds now include Mobile Maia-style projected multiple premoves, with board-square highlights and native cancellation/promotion. No extra premove labels, count or Clear controls are added. The board menu retains a single/multiple-premove choice.
 
-Post-game and standalone analysis now offer browser-local Maia3 5M/79M probabilities beside Stockfish, candidate previews/return, bounded same-move Stockfish comparisons, 600–2600 rating exploration and EC/Mobile Maia review of individual moves or the full mainline. Full-game review shows White/Black accuracy, a navigable evaluation graph and move classifications; it supports Stop/Resume. Maia model, rating, history, arrow and review-quality preferences live in the native Analysis Menu → Settings and persist in this browser. Maia arrows keep the primary Stockfish width regardless of probability; inferior Stockfish alternatives retain their native taper. Computed classifications stay separate from PGN glyphs and last for the open analysis session. Persisted computed annotations, rating calibration and the broader wrapper remain work.
+Post-game and standalone analysis now offer browser-local Maia3 5M/79M probabilities beside Stockfish, candidate previews/return, bounded same-move Stockfish comparisons, 600–2600 rating exploration and EC/Mobile Maia review of individual moves or the full mainline. Full-game review shows White/Black accuracy, a navigable evaluation graph and move classifications; it supports Stop/Resume. Maia model, rating, history, arrow and review-quality preferences live in the native Analysis Menu → Settings and persist in this browser. The board shows two Stockfish choices and one top move for each of two Maia ratings, with Mobile Maia colors and combined agreement arrows. Maia shafts never taper with likelihood. The left-side candidate panel offers same-move SF comparison, preview/return and an optional rating chart/table across 600–2600. Computed classifications stay separate from PGN glyphs and last for the open analysis session. Persisted computed annotations, rating calibration and the broader wrapper remain work.
 
 Release discipline is **checks and review → merge to main → deploy main**.
 `main` is the only permanent branch. See the [release runbook](deploy/public/README.md).
