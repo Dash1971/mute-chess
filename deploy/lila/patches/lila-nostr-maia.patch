@@ -887,7 +887,7 @@ index f2a7ab2..c59d4a9 100644
  GET   /patron/list                     controllers.Plan.list
  POST  /patron/style                    controllers.Plan.style
 diff --git a/modules/analyse/src/main/ui/AnalyseUi.scala b/modules/analyse/src/main/ui/AnalyseUi.scala
-index 2fde85c..64777ee 100644
+index 2fde85c..b009933 100644
 --- a/modules/analyse/src/main/ui/AnalyseUi.scala
 +++ b/modules/analyse/src/main/ui/AnalyseUi.scala
 @@ -8,7 +8,7 @@ import play.api.libs.json.*
@@ -953,8 +953,15 @@ index 2fde85c..64777ee 100644
                hasWiki.option:
                  fieldset(cls := "analyse__wiki empty toggle-box toggle-box--toggle", id := "wikibook-field")(
                    legend(tabindex := 0)("WikiBook"),
-@@ -140,7 +143,10 @@ final class AnalyseUi(helpers: Helpers)(endpoints: AnalyseEndpoints):
-       _.withWebAssembly.withExternalEngine(endpoints.externalEngine)
+@@ -136,11 +139,15 @@ final class AnalyseUi(helpers: Helpers)(endpoints: AnalyseEndpoints):
+         .csp:
+           cspExternalEngine.compose(_.withInlineIconFont.withChessDbCn)
+ 
+-    def cspExternalEngine: Update[ContentSecurityPolicy] =
+-      _.withWebAssembly.withExternalEngine(endpoints.externalEngine)
++    def cspExternalEngine: Update[ContentSecurityPolicy] = csp =>
++      if standardOnly then csp.withWebAssembly
++      else csp.withWebAssembly.withExternalEngine(endpoints.externalEngine)
  
      def analyseModule(mode: "userAnalysis" | "replay", json: JsObject) =
 -      PageModule("analyse.user", Json.obj("mode" -> mode, "cfg" -> json))
@@ -3669,10 +3676,42 @@ index 53eda2c..91ae7fe 100644
      const module: StockfishWeb = await makeModule.default({
        wasmMemory: sharedWasmMemory(this.info.minMem!),
 diff --git a/ui/lib/src/ceval/protocol.ts b/ui/lib/src/ceval/protocol.ts
-index e5f050a..fc00bb3 100644
+index e5f050a..6e47607 100644
 --- a/ui/lib/src/ceval/protocol.ts
 +++ b/ui/lib/src/ceval/protocol.ts
-@@ -142,8 +142,9 @@ export class Protocol {
+@@ -10,6 +10,7 @@ export class Protocol {
+ 
+   private work?: Work;
+   private currentEval?: LocalEval;
++  private completedEval?: LocalEval;
+   private gameId?: string;
+   private expectedPvs = 1;
+   private nextWork?: Work;
+@@ -70,14 +71,15 @@ export class Protocol {
+       const work = this.work;
+       this.work = undefined;
+       if (work) {
+-        const ceval = this.currentEval ?? {
+-          millis: 0,
+-          fen: work.currentFen,
+-          depth: 0,
+-          nodes: 0,
+-          pvs: [],
+-          engineId: this.info.id,
+-        };
++        const ceval = this.completedEval ??
++          this.currentEval ?? {
++            millis: 0,
++            fen: work.currentFen,
++            depth: 0,
++            nodes: 0,
++            pvs: [],
++            engineId: this.info.id,
++          };
+         ceval.bestmove = parts[1];
+         if (parts[2] === 'ponder') ceval.ponder = parts[3];
+         if (!work.stopRequested) work.emit(ceval, work);
+@@ -142,8 +144,9 @@ export class Protocol {
        };
  
        if (multiPv === 1) {
@@ -3684,7 +3723,7 @@ index e5f050a..fc00bb3 100644
            this.currentEval = {
              fen: this.work.currentFen,
              depth,
-@@ -155,13 +156,18 @@ export class Protocol {
+@@ -155,13 +158,20 @@ export class Protocol {
              engineId: this.info.id,
            };
          }
@@ -3701,12 +3740,22 @@ index e5f050a..fc00bb3 100644
 +        this.currentEval?.pvs.length === this.expectedPvs &&
 +        this.currentEval.depth === depth &&
 +        new Set(this.currentEval.pvs.map(pv => pv.moves[0])).size === this.expectedPvs
-+      )
++      ) {
++        this.completedEval = structuredClone(this.currentEval);
 +        this.emit();
++      }
      } else if (
        command &&
        !['Stockfish', 'id', 'option', 'info'].includes(parts[0]) &&
-@@ -206,8 +212,8 @@ export class Protocol {
+@@ -195,6 +205,7 @@ export class Protocol {
+ 
+     if (this.work) {
+       this.currentEval = undefined;
++      this.completedEval = undefined;
+       this.expectedPvs = 1;
+ 
+       this.setOption('UCI_Variant', this.uciVariant(this.work.variant));
+@@ -206,8 +217,8 @@ export class Protocol {
        this.gameId = this.work.gameId;
  
        this.send(['position fen', this.work.initialFen, 'moves', ...this.work.moves].join(' '));
@@ -29933,10 +29982,10 @@ index 0000000..77aca04
 +}
 diff --git a/ui/lib/tests/cevalProtocol.test.ts b/ui/lib/tests/cevalProtocol.test.ts
 new file mode 100644
-index 0000000..f8209fb
+index 0000000..547bb63
 --- /dev/null
 +++ b/ui/lib/tests/cevalProtocol.test.ts
-@@ -0,0 +1,98 @@
+@@ -0,0 +1,111 @@
 +import assert from 'node:assert/strict';
 +import { test } from 'node:test';
 +
@@ -29979,7 +30028,7 @@ index 0000000..f8209fb
 +  protocol.received('readyok');
 +  const line = (depth: number, rank: number, move: string) =>
 +    protocol.received(`info depth ${depth} multipv ${rank} score cp 20 nodes 100 time 1 pv ${move}`);
-+  return { emitted, line };
++  return { emitted, line, finish: (move: string) => protocol.received('bestmove ' + move) };
 +}
 +test('Stockfish skipped-depth and same-depth rank changes keep two distinct current choices', () => {
 +  const { emitted, line } = fixture();
@@ -30034,6 +30083,19 @@ index 0000000..f8209fb
 +  });
 +  protocol.received('readyok');
 +  assert.ok(sent.includes('go depth 12 movetime 500'));
++});
++
++test('a timed stop retains the last complete MultiPV iteration instead of a partial deeper root', () => {
++  const { emitted, line, finish } = fixture();
++  line(12, 1, 'e2e4');
++  line(12, 2, 'd2d4');
++  line(13, 1, 'g1f3');
++  finish('g1f3');
++  assert.equal(emitted.at(-1)!.depth, 12);
++  assert.deepEqual(
++    emitted.at(-1)!.pvs.map(pv => pv.moves[0]),
++    ['e2e4', 'd2d4'],
++  );
 +});
 diff --git a/ui/lib/tests/maiaExpectedScore.test.ts b/ui/lib/tests/maiaExpectedScore.test.ts
 new file mode 100644
