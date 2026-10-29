@@ -49,3 +49,16 @@ separate, ongoing Quiet Signal design implementation.
 ## Quiet Signal brand (owner decision, 29 October 2026)
 
 The owner selected the Quiet Signal Mute Chess concept and authorized its implementation and PR. Use the interrupted knight, graphite/chalk/mint palette and moss board documented in `design/quiet-signal/README.md`. This supersedes the earlier logo-only styling restriction above. Preserve native Lichess layouts and controls. Keep internal NoSweat identifiers, existing browser identity keys, services, database paths and deployed origins intact; a domain migration requires its own deployment work. Easter egg ideas remain proposals.
+
+## Native community and learning (owner request, 29 October 2026)
+
+Enable native forum, Puzzle Storm/Streak, basics/coordinates/practice/studies,
+current human-versus-Maia games, and supported account preferences. Preserve native
+models, scoring, security, ownership and abuse controls. Practice lessons use the
+licensed, additive subset in `learning/`; never run upstream's destructive dev
+seeder. Do not reveal Maia suggestions during practice/gamebook solving. Remove
+blog/coaches and unsupported navigation. Footer socials now include GitHub and
+the owner's existing Flotilla room (see `docs/native-learning-community.md`).
+The owner deferred opening explorer after live testing confirmed Lichess now
+requires authentication. Keep #42 open; do not ship a secondary Lichess login or
+shared token setup without a renewed request.

@@ -113,3 +113,13 @@ Nostr login remains passwordless. Optional authenticator 2FA requires both a fre
 Add small Mobile Maia/En Croissant colored circles for quality glyphs on the original Lichess evaluation graph. Retain native chart geometry, accuracy, ACPL, judgments, tooltips, selection and learning flow. Add only independently confirmed automatic brilliant moves; never replace native negative judgments or imported quality annotations.
 
 “Score %” means Maia expected game score for the current position: win probability plus half draw probability. Show it beside each Maia channel with the side-to-move perspective. Keep it distinct from raw move likelihood, Stockfish evaluation and full-game accuracy.
+
+## 29 October community and learning follow-up
+
+The owner requested native forums, Storm/Streak, learning (without coaches),
+watching current games and the remaining supported preference categories. Keep
+native Lichess interfaces and behavior, with our existing bot-only and standard-only
+boundaries. Link the existing Flotilla Mute Chess room alongside GitHub; remove blog
+navigation. See `docs/native-learning-community.md` and `learning/README.md` for
+scope and licensed lesson provenance. The opening explorer is deferred by the
+owner because the live Lichess API now requires separate authentication (#42).

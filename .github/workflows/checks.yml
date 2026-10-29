@@ -21,6 +21,7 @@ jobs:
       - run: npm test
         working-directory: lila-adapter
       - run: node analysis/test-client.mjs
+      - run: node learning/test-import.mjs
       - name: Parse runtime JavaScript and build the browser login
         run: |
           node --check deploy/public/gateway.mjs
@@ -38,12 +39,13 @@ jobs:
         working-directory: lila-adapter
         run: PYTHONPATH=.:test python -m unittest test_worker.WorkerTests.test_history_and_black_orientation
       - run: python -m unittest discover -s puzzles
+      - run: python -m unittest discover -s learning
       - name: Parse deployment Python
         run: |
           python - <<'PY'
           import ast
           from pathlib import Path
-          for directory in ('deploy', 'scripts', 'puzzles'):
+          for directory in ('deploy', 'scripts', 'puzzles', 'learning'):
               for source in Path(directory).rglob('*.py'):
                   ast.parse(source.read_text(), filename=str(source))
           PY
@@ -79,4 +81,4 @@ jobs:
           (cd ui/.build && pnpm install --frozen-lockfile)
           node "$GITHUB_WORKSPACE/puzzles/validate.mjs" /tmp/lila/node_modules/.pnpm/chessops@0.15.1/node_modules/chessops
           node ui/test
-          ./ui/build --no-install site lobby analyse round editor dasher puzzle bits
+          ./ui/build --no-install site lobby analyse round editor dasher puzzle bits learn coordinateTrainer storm user

@@ -29,3 +29,11 @@ Mobile Maia premove projection, browser inference worker/client/encoder and En C
 The starter puzzle catalog in puzzles/ is a pinned subset of https://database.lichess.org/#puzzles, CC0-1.0. See puzzles/catalog.json, README.md and CC0-1.0.txt for source, selection and exact hashes. Native Lila puzzle code retains its upstream AGPL-3.0 license.
 
 Lightning invoice and zap verification uses pinned `@noble/curves` 2.0.1, `@noble/hashes` 2.0.1 and `@scure/base` 2.0.0 (MIT), also used by the pinned nostr-tools dependency. Their original distribution licenses and package-lock integrity hashes are retained. BOLT-11 and NIP-57 are protocol references; the integration does not copy another wallet implementation.
+
+## Native practice lesson snapshot
+
+The 20 standard-chess practice studies (229 chapters) in `learning/` are derived
+from lichess-org/lila-db-seed at `b5d06f115c51d6f12167b9629fb21f087bf2e833`, under
+its MIT license, reproduced in `learning/LICENSE.md`. Original lesson explanations
+and attribution are retained; local ownership and contributor memberships are
+sanitized. See `learning/README.md` and `catalog.json` for reproduction and hashes.
