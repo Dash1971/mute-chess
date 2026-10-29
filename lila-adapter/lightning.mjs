@@ -5,8 +5,8 @@ import { bytesToHex, concatBytes, utf8ToBytes } from '@noble/hashes/utils.js';
 import { verifyEvent } from 'nostr-tools/pure';
 
 export const support = Object.freeze({
-  address: 'eerieatlas700@walletofsatoshi.com',
-  endpoint: 'https://walletofsatoshi.com/.well-known/lnurlp/eerieatlas700',
+  address: 'dash@walletofsatoshi.com',
+  endpoint: 'https://walletofsatoshi.com/.well-known/lnurlp/dash',
   npub: 'npub1w6l8e4mqa4ruqs2vdvwhdxhp9ke9ax8kpncy2wy26tja3d7rzpgq06c9jl',
   recipient: '76be7cd760ed47c0414c6b1d769ae12db25e98f60cf045388ad2e5d8b7c31050',
   issuer: 'be1d89794bf92de5dd64c1e60f6a2c70c140abac9932418fee30c5c637fe9479',

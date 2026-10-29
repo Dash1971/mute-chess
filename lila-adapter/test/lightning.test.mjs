@@ -39,7 +39,7 @@ function receipt(req = request(), fields = {}) {
 const signedWallet = getPublicKey(wallet);
 
 test('owner address and npub are the sole configured destination', () => {
-  assert.equal(support.address, 'eerieatlas700@walletofsatoshi.com');
+  assert.equal(support.address, 'dash@walletofsatoshi.com');
   assert.equal(support.npub, 'npub1w6l8e4mqa4ruqs2vdvwhdxhp9ke9ax8kpncy2wy26tja3d7rzpgq06c9jl');
   assert.equal(new TextDecoder().decode(bech32.fromWords(bech32.decode(lnurl, 2048).words)), support.endpoint);
 });

@@ -40,7 +40,7 @@ try {
   }
   const patron=html(await request('/patron'));
   assert.ok(patron.querySelector('a[aria-label="Close donation"]'));
-  assert.match(patron.body.textContent,/eerieatlas700@walletofsatoshi.com/);
+  assert.match(patron.body.textContent,/dash@walletofsatoshi.com/);
   const category=await request('/forum/mute-feedback');assert.match(category,/Posting opens|Sign in/);
 
   const practice=html(await request('/practice'));

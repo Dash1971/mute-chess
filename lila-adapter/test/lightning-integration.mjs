@@ -30,7 +30,7 @@ try {
   cookie = login.response.headers.getSetCookie().find(c => c.startsWith('nosweatliladev=')).split(';')[0];
   const page = await call('/patron', undefined, { html: true });
   assert.match(page.data, new RegExp(`data-pubkey="${pubkey}"`));
-  assert.match(page.data, /eerieatlas700@walletofsatoshi.com/);
+  assert.match(page.data, /dash@walletofsatoshi.com/);
   assert.match(page.data, /mempool.space/);
   assert.equal(page.response.headers.get('cache-control'), 'no-store');
   const request = finalizeEvent({ kind: 9734, created_at: Math.floor(Date.now() / 1000), content: 'Private stack qualification (unpaid)', tags: [

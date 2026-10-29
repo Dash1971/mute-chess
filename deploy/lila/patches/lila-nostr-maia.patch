@@ -6167,7 +6167,7 @@ index 0000000..5952fae
 +        )
 diff --git a/app/views/noSweatPatron.scala b/app/views/noSweatPatron.scala
 new file mode 100644
-index 0000000..5f44b6d
+index 0000000..0d78c53
 --- /dev/null
 +++ b/app/views/noSweatPatron.scala
 @@ -0,0 +1,96 @@
@@ -6260,7 +6260,7 @@ index 0000000..5f44b6d
 +          ),
 +          p(id := "patron-status", role := "status", aria.live := "polite"),
 +          div(cls := "patron-direct")(
-+            a(href := "lightning:eerieatlas700@walletofsatoshi.com")("eerieatlas700@walletofsatoshi.com"),
++            a(href := "lightning:dash@walletofsatoshi.com")("dash@walletofsatoshi.com"),
 +            a(href := "https://primal.net/p/npub1w6l8e4mqa4ruqs2vdvwhdxhp9ke9ax8kpncy2wy26tja3d7rzpgq06c9jl")(
 +              "Zap Mute Chess on Nostr"
 +            )

@@ -12,7 +12,7 @@ with cross-origin access for Nostr clients. The profile uses the site's existing
 rook avatar and social banner, which permit cross-origin image loads.
 
 The owner-provided Wallet of Satoshi Lightning address is configured in the
-published profile's `lud16` field: `eerieatlas700@walletofsatoshi.com`. NIP-05 is an identity address, separate from
+published profile's `lud16` field: `dash@walletofsatoshi.com`. NIP-05 is an identity address, separate from
 that payment address.
 
 Private signing keys and recovery material belong only in the owner's key
