@@ -62,3 +62,23 @@ the owner's existing Flotilla room (see `docs/native-learning-community.md`).
 The owner deferred opening explorer after live testing confirmed Lichess now
 requires authentication. Keep #42 open; do not ship a secondary Lichess login or
 shared token setup without a renewed request.
+
+## Focused play surface (owner decision, October 29, 2026)
+
+The latest owner direction supersedes prominent community/learning navigation:
+keep the time-control grid, direct bot matching, profile/game history, analysis,
+Puzzles, Community, Tools and Donate. Hide Play, Learn and Watch menus, header social/search/notification
+controls (except the retained Friends and direct challenge controls) and homepage updates/puzzle/event/tournament panels. Keep native feature
+routes and implementation behind the focused surface. Remove lobby UI rather
+than simulating activity. Contact and legal pages use the official Nostr identity;
+do not invent an email, company or jurisdiction. See `docs/focused-play.md`.
+
+
+## Friends and invitation games (owner correction, October 29, 2026)
+
+Friends remain supported. Signed-in human players may challenge one another through
+native Lichess invitations. This supersedes the earlier human-versus-Maia-only
+restriction for direct invitations. Quick pairing and Custom Play remain exclusively
+Maia; no human pool or public lobby. Preserve challenge preferences, blocking and
+ownership; do not enable anonymous/open challenges, manual bot challenges, variants
+or API tokens. See `docs/focused-play.md` and #57.

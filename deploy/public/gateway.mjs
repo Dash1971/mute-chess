@@ -118,8 +118,15 @@ const server = http.createServer((req, res) => {
     (post && /^\/forum\/(?:[A-Za-z0-9_-]+\/(?:new|[A-Za-z0-9_-]+\/(?:close|sticky|new)|react\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/(?:true|false))|(?:delete|relocate|post)\/[A-Za-z0-9_-]+)$/.test(path)) ||
     (read && /^\/study(?:\/[A-Za-z0-9_.-]+){0,4}$/.test(path) && !/^\/study\/search(?:\/|$)/.test(path)) ||
     (post && /^\/study(?:\/(?:as|list-format|topic|[A-Za-z0-9]{8}\/(?:delete|cloneApply|clear-chat|import-pgn|admin)))?$/.test(path));
+  const friendRoute =
+    (read && /^\/challenge(?:\/[A-Za-z0-9]{8})?$/.test(path)) ||
+    (post && /^\/challenge\/[A-Za-z0-9]{8}\/(?:accept|decline|cancel)$/.test(path)) ||
+    (post && path === '/setup/friend') ||
+    (read && path === '/rel/blocks') ||
+    (post && /^\/rel\/(?:follow|unfollow|block|unblock)\/[A-Za-z0-9_-]{1,30}$/.test(path));
   const patronRoute = path === '/patron' && ['GET', 'HEAD'].includes(req.method);
-  const supported = featureRoute || patronRoute || puzzleRoute || profileRoute || path === '/' || /^\/(?:club(?:\/|$)|analysis(?:\/|$)|editor(?:\/|$)|game(?:\/|$)|@\/|login$|signup$|logout$|player-count$|account\/now-playing$|lobby\/seeks$|timeline$|pref(?:\/|$)|whats-next\/|opening(?:\/|$)|api\/cloud-eval$|paste$|import$)/.test(path) || /^\/[A-Za-z0-9]{8}(?:[A-Za-z0-9]{4})?(?:\/(?:white|black))?$/.test(path);
+  const infoRoute = read && /^\/(?:about|faq|contact|terms-of-service|privacy)$/.test(path);
+  const supported = friendRoute || infoRoute || featureRoute || patronRoute || puzzleRoute || profileRoute || path === '/' || /^\/(?:club(?:\/|$)|analysis(?:\/|$)|editor(?:\/|$)|game(?:\/|$)|@\/|login$|signup$|logout$|player-count$|account\/now-playing$|lobby\/seeks$|timeline$|pref(?:\/|$)|whats-next\/|opening(?:\/|$)|api\/cloud-eval$|paste$|import$)/.test(path) || /^\/[A-Za-z0-9]{8}(?:[A-Za-z0-9]{4})?(?:\/(?:white|black))?$/.test(path);
   if (!supported) return reject(res, 404, 'This page is unavailable. Return to the homepage.');
   if (Number(req.headers['content-length'] ?? 0) > 16 * 1024 * 1024) return reject(res, 413, 'Request too large');
   const upstream = http.request({ hostname: '127.0.0.1', port: 29663, path: req.url,

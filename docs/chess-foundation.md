@@ -1,3 +1,5 @@
+> **October 29 correction (#57):** retain native friends and allow direct invitations between signed-in human players. Quick pairing remains Maia-only, without a public human pool. This supersedes earlier human-versus-Maia-only restrictions for invitation games.
+
 > **28 October follow-up:** restore the native Lichess homepage and interaction model. Defer the retro wrapper. Replace only the logo after the owner chooses a concept. Anonymous play is casual; Nostr accounts use provisional 1500 and native rating updates. Pair automatically with a random available opponent within ±200, using the native quick-pair controls and custom dialog. Keep NIP-07 recommended and add generated/imported browser keys. This overrides earlier unrated/manual-opponent alpha UX below.
 
 # Confirmed foundation: Lichess chess, augmented analysis, desktop club wrapper
