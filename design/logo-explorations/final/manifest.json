@@ -1,0 +1,24 @@
+{
+  "name": "Mute Chess",
+  "short_name": "Mute Chess",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#101719",
+  "theme_color": "#101719",
+  "description": "Free, open-source chess with human-like Maia opponents. Stay human. Play bots.",
+  "icons": [
+    {
+      "src": "/assets/nosweat/app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/nosweat/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

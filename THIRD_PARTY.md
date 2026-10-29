@@ -18,7 +18,7 @@ The Node prototype incorporates Chessops and Chessground as pinned dependencies 
 
 Other npm dependency sources, exact versions and integrity hashes are recorded in `pnpm-lock.yaml`; dependency distributions carry their license files. The runtime uses Fastify and plugins (MIT), node-postgres (MIT), nostr-tools (Unlicense), Zod (MIT), ONNX Runtime (MIT), NumPy (BSD-3-Clause), and python-chess (GPL-3.0-or-later). See those distributions for their complete notices.
 
-The Mute Chess cyber-rook is an original, Codex-assisted SVG mark. Its outlined wordmark uses unmodified Oxanium (Severin Meyer), SIL OFL 1.1; the font, license and pinned source are retained in `third-party/oxanium/`. The generated concept sheet is exploratory artwork, distinct from the final SVG asset. These assets are for this independent fork, not an upstream Lichess contribution.
+The Mute Chess Quiet Signal knight and board are original, Codex-assisted SVG artwork. Its outlined wordmark uses unmodified Space Grotesk, SIL OFL 1.1; the font, license, checksum and pinned source are retained in `third-party/space-grotesk/`. Reproduction instructions and the AI-assisted design provenance are in `design/quiet-signal/README.md`. These assets are for this independent fork, not an upstream Lichess contribution. The earlier cyber-rook concept used Oxanium (Severin Meyer), SIL OFL 1.1; its font and notices remain in `third-party/oxanium/` for the archived exploration.
 
 ## Native analysis extensions
 

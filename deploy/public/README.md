@@ -21,6 +21,9 @@ Prepare/build the pinned sources using `../lila/README.md`. The payload includes
 both patches, adapter code with `npm ci --omit=dev`, the public club assets,
 gateway, installer, pinned Python requirements, BUILD.md, LICENSE,
 THIRD_PARTY.md, the complete `third-party` directory and deployment scripts.
+Include `design/quiet-signal` and `design/logo-explorations/final` (excluding
+`node_modules` and Python environments). The installer checks for the brand sources
+before preparing a release and includes them with the corresponding-source archive.
 The installer copies staged Java libraries and builds an independent Python
 environment. The external model is SHA-256 verified. Keep keys and data out of
 the payload and source archive.
@@ -112,7 +115,7 @@ is disabled. The public source archive includes exact upstream trees and our
 patches, with build instructions and licenses, but no accounts, keys or backups.
 
 There is a two-game global cap. Anonymous games are casual. Nostr accounts start at native provisional 1500 and use native Glicko ratings; automatic pairing stays within ±200. The 44 bot priors remain estimates, with per-speed provisional seeds. Newly supported speed categories inherit blitz/rapid priors as explicit starting estimates. Existing speed ratings are never reset.
-NIP-07 is recommended. Generate/import browser keys are encrypted into IndexedDB with a non-extractable wrapping key; same-origin code can still use them, so an external signer provides better isolation. Keys never go to the server or relays. NIP-46 remains work. The selected violet cyber-rook replaces only the logo; native Lichess styling stays. Capacity calibration remains work; native premove and analysis extensions are described below.
+NIP-07 is recommended. Generate/import browser keys are encrypted into IndexedDB with a non-extractable wrapping key; same-origin code can still use them, so an external signer provides better isolation. Keys never go to the server or relays. NIP-46 remains work. The selected Quiet Signal identity uses the MuteChess knight, graphite/mint palette and a native moss board theme. Existing board choices, internal identifiers, storage and deployment origins remain intact; see `design/quiet-signal/README.md`. Capacity calibration remains work; native premove and analysis extensions are described below.
 
 ## Browser analysis assets
 

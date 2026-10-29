@@ -11,11 +11,11 @@ has been renamed and the shared Git remote updated. Documentation links and
 deployment domain/origin settings are prepared for those destinations; live
 domain routing and deployment remain separate.
 
-The current rook design and Oxanium lettering are retained. Dark/light wordmarks
+The publication initially retained the rook design and Oxanium lettering; the subsequent Quiet Signal refresh replaces them with the interrupted knight and Space Grotesk lettering. Dark/light wordmarks
 now spell “Mute Chess”; native header/login alternatives and SVG titles use the
 same brand. Upstream licenses and pinned third-party source identities remain
 unchanged. Regenerate lettering with `fonttools==4.68.0` and
-`python design/logo-explorations/build-chosen-logo.py`. Use `--lila-root PATH`
+`python design/logo-explorations/build-chosen-logo.py`. The Quiet Signal generator accepts `--lila-root PATH` (also `--native-dir PATH`)
 only when intentionally updating a separate native checkout.
 
 Database names and collections, canonical account IDs, browser identity stores,

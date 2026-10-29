@@ -44,3 +44,8 @@ deployment remain separate work. Preserve persisted identity stores,
 database/schema fields, internal protocol/configuration names, service accounts
 and deployment paths; a branding change must not reset data. Preserve the
 separate, ongoing Quiet Signal design implementation.
+
+
+## Quiet Signal brand (owner decision, 29 October 2026)
+
+The owner selected the Quiet Signal Mute Chess concept and authorized its implementation and PR. Use the interrupted knight, graphite/chalk/mint palette and moss board documented in `design/quiet-signal/README.md`. This supersedes the earlier logo-only styling restriction above. Preserve native Lichess layouts and controls. Keep internal NoSweat identifiers, existing browser identity keys, services, database paths and deployed origins intact; a domain migration requires its own deployment work. Easter egg ideas remain proposals.

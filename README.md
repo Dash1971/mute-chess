@@ -27,6 +27,7 @@ analysis, with a familiar interface for desktop and mobile browsers.
 The new home is [mutechess.org](https://mutechess.org/club). The domain cutover
 is prepared in source and requires a separate deployment.
 We're building in public, and feedback from players helps shape the project.
+The Quiet Signal visual identity is documented in [the brand guide](design/quiet-signal/README.md).
 
 ## The club, 2097
 
