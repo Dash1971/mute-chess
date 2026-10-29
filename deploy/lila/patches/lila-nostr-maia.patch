@@ -940,7 +940,7 @@ index 28e5bc4..66c01ad 100644
        )
        .add("fen" -> fen)
 diff --git a/modules/web/src/main/ui/bits.scala b/modules/web/src/main/ui/bits.scala
-index 0c0ed10..87680eb 100644
+index 0c0ed10..01a040d 100644
 --- a/modules/web/src/main/ui/bits.scala
 +++ b/modules/web/src/main/ui/bits.scala
 @@ -46,29 +46,7 @@ z-index: 99;
@@ -975,7 +975,7 @@ index 0c0ed10..87680eb 100644
  
    val logo = raw:
 diff --git a/modules/web/src/main/ui/layout.scala b/modules/web/src/main/ui/layout.scala
-index 1c7a30b..cdc75bb 100644
+index 1c7a30b..6a71357 100644
 --- a/modules/web/src/main/ui/layout.scala
 +++ b/modules/web/src/main/ui/layout.scala
 @@ -109,8 +109,11 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
@@ -2449,7 +2449,7 @@ index f91c71d..665cbe5 100644
        : i18n.site.anonymous;
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..a75890f
+index 0000000..3e43808
 --- /dev/null
 +++ b/app/NoSweatService.scala
 @@ -0,0 +1,536 @@
@@ -3183,7 +3183,7 @@ index 0000000..3e2bf22
 +    user ?=> handle(club.details(id, user.value).map(_.fold(NotFound)(Ok(_))))
 diff --git a/app/views/noSweatLogin.scala b/app/views/noSweatLogin.scala
 new file mode 100644
-index 0000000..dd5fd6e
+index 0000000..06f646f
 --- /dev/null
 +++ b/app/views/noSweatLogin.scala
 @@ -0,0 +1,76 @@
@@ -5246,7 +5246,7 @@ index 0000000..bbd432a
 +.nosweat-candidate-panel [role=status],.nosweat-candidate-panel .error { font-size:.85em; line-height:1.4; }
 diff --git a/public/nosweat/icon.svg b/public/nosweat/icon.svg
 new file mode 100644
-index 0000000..50723d8
+index 0000000..555e490
 --- /dev/null
 +++ b/public/nosweat/icon.svg
 @@ -0,0 +1 @@
@@ -5261,7 +5261,7 @@ index 0000000..85552df
 +.auth-login h1{font-size:1.65em;text-align:center;margin:1em 0}.auth-login>p{line-height:1.5}.auth-login .form3{display:grid;gap:12px}.auth-login .form-control{width:100%}.auth-login .nostr-help{font-size:.85em;color:var(--c-font-dim);line-height:1.5}.auth-login #nostr-status{color:var(--c-bad)}.auth-login [hidden]{display:none!important}.auth-login #nostr-created,.auth-login #nostr-saved{display:grid;gap:12px}.auth-login .or-separator{margin:14px 0}
 diff --git a/public/nosweat/textmark-light.svg b/public/nosweat/textmark-light.svg
 new file mode 100644
-index 0000000..a9babad
+index 0000000..049fcab
 --- /dev/null
 +++ b/public/nosweat/textmark-light.svg
 @@ -0,0 +1 @@
@@ -5269,7 +5269,7 @@ index 0000000..a9babad
 \ No newline at end of file
 diff --git a/public/nosweat/textmark.svg b/public/nosweat/textmark.svg
 new file mode 100644
-index 0000000..c448b7f
+index 0000000..7b8a46a
 --- /dev/null
 +++ b/public/nosweat/textmark.svg
 @@ -0,0 +1 @@
@@ -5277,7 +5277,7 @@ index 0000000..c448b7f
 \ No newline at end of file
 diff --git a/public/nosweat/watermark-dark.svg b/public/nosweat/watermark-dark.svg
 new file mode 100644
-index 0000000..5038d93
+index 0000000..1a7f911
 --- /dev/null
 +++ b/public/nosweat/watermark-dark.svg
 @@ -0,0 +1 @@
@@ -5285,7 +5285,7 @@ index 0000000..5038d93
 \ No newline at end of file
 diff --git a/public/nosweat/watermark-light.svg b/public/nosweat/watermark-light.svg
 new file mode 100644
-index 0000000..0dc421a
+index 0000000..e4b3e94
 --- /dev/null
 +++ b/public/nosweat/watermark-light.svg
 @@ -0,0 +1 @@
@@ -5293,7 +5293,7 @@ index 0000000..0dc421a
 \ No newline at end of file
 diff --git a/public/nosweat/wordmark-light.svg b/public/nosweat/wordmark-light.svg
 new file mode 100644
-index 0000000..2290b48
+index 0000000..40a08b2
 --- /dev/null
 +++ b/public/nosweat/wordmark-light.svg
 @@ -0,0 +1 @@
@@ -5301,7 +5301,7 @@ index 0000000..2290b48
 \ No newline at end of file
 diff --git a/public/nosweat/wordmark.svg b/public/nosweat/wordmark.svg
 new file mode 100644
-index 0000000..1a8bfb7
+index 0000000..3a03088
 --- /dev/null
 +++ b/public/nosweat/wordmark.svg
 @@ -0,0 +1 @@
@@ -24043,7 +24043,7 @@ index 0000000..d00400d
 +}
 diff --git a/ui/analyse/tests/noSweat.test.ts b/ui/analyse/tests/noSweat.test.ts
 new file mode 100644
-index 0000000..10a1c3f
+index 0000000..416aaa6
 --- /dev/null
 +++ b/ui/analyse/tests/noSweat.test.ts
 @@ -0,0 +1,144 @@
