@@ -12,24 +12,53 @@ Existing local checkout and infrastructure names may still use `club-maia`.
 ## The club
 
 In the fictional year 2097, neural implants give everyone access to Stockfish 99
-at 4750 Elo. A few nonchippers form a club to preserve the spirit of human chess,
-ironically by playing only bots trained on human games from the before times, 2023. They build themselves a little corner of the early web.
+at 4750 Elo. A few nonchippers discover an old SSD containing a copy of the
+Lichess repository. They use it to form the No Sweat Chess Club, preserving the
+spirit of human chess by playing only bots trained on human games from the before
+times, 2023.
 
-The interface is an early-1990s desktop chess room: warm paper, muted green,
-beveled controls, a club noticeboard, and the board at the center. It is designed
-for **desktop browsers**, with a fixed-width layout and a narrow-window notice,
-without a separate mobile interface or mobile app. See [design notes](docs/design.md).
+To keep human chess alive, they stopped playing humans. The recovered SSD explains
+why the club uses Lichess; the story is background lore, not a retro-interface
+design requirement. Keep ordinary chess play immediately accessible.
 
 The lore is fiction. The real implementation uses human-like Maia3 bots. It does
 not claim a 2023-only training dataset, calibrated bot ratings, or Stockfish 99.
 
 ## Confirmed chess foundation
 
-**Desktop browsers only. Lichess is the base for all chess play and analysis.**
-The retro club is the wrapper and branding. Analysis will add the existing
-En Croissant-derived Mobile Maia move classification, combined Stockfish/Maia
-candidate arrows, and the maiachess.com-style candidate and Moves by rating
-explorers. See [the confirmed foundation and source map](docs/chess-foundation.md).
+**Lichess with our name and logo, for desktop and mobile browsers.**
+
+The product concept has four defining requirements:
+
+1. **The familiar Lichess interface:** use Lichess/Lila as the base for playing
+   and analysis, retaining its layout, board controls, clocks, move list,
+   settings, game flow, and responsive behavior with No Sweat Chess branding.
+2. **Multiple stacked premoves:** let players queue several future moves, with
+   clear board feedback and cancellation, processed in order against the actual
+   game state. Support mouse and touch interaction.
+3. **Maia alongside Stockfish analysis:** compare both engines at the same
+   selected position. Keep Stockfish's searched evaluations and best lines
+   distinct from Maia's human-move probabilities and candidates at selected
+   conditioning levels.
+4. **A human-like-bot-only opponent pool:** humans enter the pool and are paired
+   with openly identified Maia bots, never with other humans. Use the confirmed
+   roster and policy/calibration work in issues #1 and #2.
+
+Desktop and mobile browser support applies to playing, stacked premoves, and
+analysis. Use Lichess's responsive design without a fixed desktop-width gate or
+an early-1990s skin. A separate native mobile app is not part of this requirement.
+
+Analysis also includes the existing En Croissant-derived Mobile Maia move
+classification, combined Stockfish/Maia candidate arrows, and the
+maiachess.com-style candidate and Moves by rating explorers.
+
+[Issue #3](https://github.com/Dash1971/no-sweat-chess/issues/3) records the current
+owner direction, updated on 29 October 2026. It supersedes older desktop-only
+and retro-design guidance, including the exploratory mockup. The
+[foundation and source map](docs/chess-foundation.md) remains a technical
+reference; its older presentation and platform restrictions are superseded.
+The implementation status below records shipped work and verification separately
+from these product requirements; it does not establish mobile-browser acceptance.
 
 The native Lila application now integrates Maia3 opponents and Nostr identity.
 See [development setup](deploy/lila/README.md) and [public deployment](deploy/public/README.md).
@@ -64,7 +93,7 @@ the deployment notes. This records automated verification, not human manual acce
 
 Native rounds now include Mobile Maia-style projected multiple premoves, with board-square highlights and native cancellation/promotion. No extra premove labels, count or Clear controls are added. The board menu retains a single/multiple-premove choice.
 
-Post-game and standalone analysis now offer browser-local Maia3 5M/79M probabilities beside Stockfish, candidate previews/return, bounded same-move Stockfish comparisons, 600–2600 rating exploration and EC/Mobile Maia review of individual moves or the full mainline. Full-game review shows White/Black accuracy, a navigable evaluation graph and move classifications; it supports Stop/Resume. Maia model, rating, history, arrow and review-quality preferences live in the native Analysis Menu → Settings and persist in this browser. Maia arrows keep the primary Stockfish width regardless of probability; inferior Stockfish alternatives retain their native taper. Computed classifications stay separate from PGN glyphs and last for the open analysis session. Persisted computed annotations, rating calibration and the broader wrapper remain work.
+Post-game and standalone analysis now offer browser-local Maia3 5M/79M probabilities beside Stockfish, candidate previews/return, bounded same-move Stockfish comparisons, 600–2600 rating exploration and EC/Mobile Maia review of individual moves or the full mainline. Full-game review shows White/Black accuracy, a navigable evaluation graph and move classifications; it supports Stop/Resume. Maia model, rating, history, arrow and review-quality preferences live in the native Analysis Menu → Settings and persist in this browser. Maia arrows keep the primary Stockfish width regardless of probability; inferior Stockfish alternatives retain their native taper. Computed classifications stay separate from PGN glyphs and last for the open analysis session. Persisted computed annotations and rating calibration remain work.
 
 Release discipline is **checks and review → merge to main → deploy main**.
 `main` is the only permanent branch. See the [release runbook](deploy/public/README.md).
@@ -77,10 +106,10 @@ Give people who enjoy online chess a familiar place to play, improve, and track
 their progress without worrying about an opponent secretly using an engine,
 abandoning a losing game, or behaving badly.
 
-Use familiar chess controls within the nostalgic desktop club interface: choose
-a time control, join the pool, get paired with an opponent of similar playing
-strength, play a complete game, see the rating change, and analyze the game
-afterward. Ratings and analysis describe the finished product, not this alpha.
+Use the familiar Lichess experience on desktop and mobile: choose a time
+control, join the human-like bot pool, play with multiple stacked premoves, see
+the result and rating change, and review the game with Maia alongside Stockfish.
+Retain native navigation and responsive mouse/touch interaction.
 
 Every opponent is an openly identified Maia3-powered bot with a persistent
 username and a calibrated rating. Bots wait for human matchmaking requests.
@@ -98,12 +127,14 @@ part of the MVP.
 2. Choose a time control and enter the pool.
 3. Get paired immediately, subject to service capacity, with a bot near the
    player's estimated strength. New players have provisional ratings.
-4. Play using familiar board controls, clocks, premoves, promotion, resignation,
-   draw handling, and reconnection behavior.
+4. Play using familiar Lichess board controls, clocks, multiple stacked
+   premoves, promotion, resignation, draw handling, and reconnection behavior on
+   desktop and mobile browsers.
 5. Receive a result and rating update, then choose another game or a rematch.
-6. Open the Lichess-based analysis board to replay moves, inspect Stockfish
-   evaluations and variations, and compare Maia's human-move predictions at
-   selected rating levels.
+6. Open the Lichess-based analysis board to replay moves and compare Maia
+   alongside Stockfish at the same position: searched evaluations and variations
+   beside human-move predictions at selected conditioning levels, on desktop
+   and mobile browsers.
 7. Return to saved games and rating history, or download a PGN.
 
 Use standard chess and the [confirmed 44-bot roster](https://github.com/Dash1971/no-sweat-chess/issues/1):
@@ -126,10 +157,10 @@ humans to make the club feel active.
 ## Lichess as the chess foundation
 
 Use **Lila**, the server and web application powering Lichess, as the base for
-our supported chess play and analysis. Retain its mature round, clock, premove,
-promotion, reconnect, replay, variation, PGN and analysis behavior. Chessground,
-scalachess and the existing Lichess client-evaluation machinery stay within that
-base. We do not need unrelated Lichess product features such as tournaments,
+our supported chess play and analysis on desktop and mobile. Retain its mature
+round, clock, promotion, reconnect, replay, variation, PGN and analysis behavior,
+with our multiple stacked-premove extension. Chessground, scalachess and the
+existing Lichess client-evaluation machinery stay within that base. We do not need unrelated Lichess product features such as tournaments,
 forums or human matchmaking.
 
 Add explicit adapters for Nostr identity, the human-versus-Maia pool, pinned bot
@@ -139,8 +170,8 @@ a custom chess service and Lila has been superseded by this owner decision.
 
 Extend Lichess analysis with the existing En Croissant-derived Mobile Maia move
 classification, simultaneous Stockfish/Maia candidates and arrows, and the Maia
-platform's candidate comparison and Moves by rating interactions. Keep the club
-wrapper and branding separate from the chess behavior. Source pins, integration
+platform's candidate comparison and Moves by rating interactions. Preserve the
+native Lichess interface with our name and logo. Source pins, integration
 order and acceptance details are in [the foundation decision](docs/chess-foundation.md).
 Preserve upstream licenses, notices and corresponding sources.
 
@@ -178,7 +209,7 @@ the Lila integration.
 
 ```mermaid
 flowchart LR
-    Browser[Desktop browser and Nostr signer] -->|Signed login| Identity[Nostr identity adapter]
+    Browser[Desktop or mobile browser and Nostr signer] -->|Signed login| Identity[Nostr identity adapter]
     Identity --> Lila[Lichess chess application]
     Browser <-->|Moves and clocks| Socket[Lichess WebSocket service]
     Socket <--> Redis[Redis]
@@ -188,8 +219,9 @@ flowchart LR
     Browser --> Analysis[Lichess analysis with Stockfish and Maia workers]
 ```
 
-- **Web client:** the Lichess playing and analysis surfaces within our desktop
-  club wrapper. Retain native chess interaction and shared tree/navigation state.
+- **Web client:** the native Lichess playing and analysis surfaces with No Sweat
+  Chess branding, responsive on desktop and mobile. Retain mouse/touch chess
+  interaction and shared tree/navigation state.
 - **Application and chess state:** adapt Lila and its native services, retaining
   authoritative rules, clocks, results and persistence. Integrate Nostr, bot
   admission and policy/calibration metadata through narrow adapters.
@@ -201,9 +233,9 @@ flowchart LR
   Use ONNX Runtime Web for Maia and WebAssembly Stockfish. Evaluate WebGPU
   acceleration with a supported fallback for Maia. Model and engine downloads
   should be versioned, verified, cached locally, and accompanied by clear
-  download progress and cache controls. Benchmark slower devices before choosing
-  the desktop browser model. This keeps post-game work separate from live server
-  inference; any server fallback needs its own bounded background queue.
+  download progress and cache controls. Benchmark slower desktop and mobile
+  devices before choosing browser model defaults. This keeps post-game work
+  separate from live server inference; any server fallback needs its own bounded background queue.
 - **Operations:** TLS reverse proxy, containers, one initial hosting region,
   backups, structured logs, metrics, and error reporting.
 
@@ -229,9 +261,9 @@ Both engines should support the selected game position and analysis variations.
 Pin Maia's model, encoder, history handling, and conditioning inputs, and preserve
 the original game's bot policy metadata. Browser analysis is available after the
 game; server-side validation and inference remain authoritative during rated
-play. The integration must test both engines in supported desktop browsers,
-including loading, memory use, cancellation, cache updates, and compatibility of
-threaded WebAssembly headers with Nostr login flows.
+play. The integration must test both engines in supported desktop and mobile
+browsers, including loading, memory use, touch interaction, cancellation, cache
+updates, and compatibility of threaded WebAssembly headers with Nostr login flows.
 
 ## Bot strength and timing
 
