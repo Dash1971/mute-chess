@@ -12,10 +12,12 @@ const transport = process.env.SMOKE_TRANSPORT ?? origin;
 const run = randomBytes(3).toString('hex');
 let cookie, game, socket;
 async function call(path, body, authorization, expected = 200) {
+  const html = body === undefined && (path.startsWith('/@/') || path === '/account/profile' || path.startsWith('/training'));
+  const accept = path.startsWith('/game/export/') ? 'application/x-chess-pgn' : html ? 'text/html' : 'application/json';
   const { status, headers, text } = await new Promise((resolve, reject) => {
     const request = (transport.startsWith('https:') ? https : http).request(transport + path, { method: body !== undefined ? 'POST' : 'GET',
-    headers: { Accept: path.startsWith('/game/export/') ? 'application/x-chess-pgn' : 'application/json',
-      'Content-Type': body instanceof URLSearchParams ? 'application/x-www-form-urlencoded' : 'application/json', Host: 'nosweatchess.org', Origin: origin,
+    headers: { Accept: accept,
+      ...(body === undefined ? {} : { 'Content-Type': body instanceof URLSearchParams ? 'application/x-www-form-urlencoded' : 'application/json' }), Host: 'nosweatchess.org', Origin: origin,
       ...(cookie ? { Cookie: cookie } : {}), ...(authorization ? { Authorization: authorization } : {}) },
     timeout: 15000 }, response => {
       let text = ''; response.setEncoding('utf8');
