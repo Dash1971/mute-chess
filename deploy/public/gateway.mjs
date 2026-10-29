@@ -5,6 +5,12 @@ import { createReadStream, statSync, realpathSync, readFileSync } from 'node:fs'
 const domain = 'mutechess.org';
 const source = '/opt/nosweatchess/current/source.tar.gz';
 const revision = JSON.parse(readFileSync('/opt/nosweatchess/current/RELEASE.json', 'utf8')).gitCommit;
+// Public identity only. Signing and recovery keys never belong on this server.
+const nostrPubkey = '76be7cd760ed47c0414c6b1d769ae12db25e98f60cf045388ad2e5d8b7c31050';
+const nostrIdentity = Buffer.from(JSON.stringify({
+  names: { mutechess: nostrPubkey, club: nostrPubkey, _: nostrPubkey },
+  relays: { [nostrPubkey]: ['wss://relay.damus.io', 'wss://nos.lol', 'wss://relay.primal.net'] },
+}));
 const buckets = new Map();
 const websocketPaths = /^\/(?:socket(?:\/v\d+)?|analysis\/socket(?:\/v\d+)?|lobby\/socket(?:\/v\d+)?|play\/[A-Za-z0-9]{12}\/v\d+|watch\/[A-Za-z0-9]{8}\/(?:white|black)\/v\d+)$/;
 function pathOf(req) {
@@ -43,6 +49,20 @@ const server = http.createServer((req, res) => {
   if (req.headers.host !== domain) return reject(res, 421, 'Unknown host');
   if (!allowed(req)) return reject(res, 429, 'Too many requests. Please try again shortly.');
   const path = pathOf(req);
+  if (path === '/.well-known/nostr.json') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (!['GET', 'HEAD'].includes(req.method)) {
+      res.setHeader('Allow', 'GET, HEAD, OPTIONS');
+      return reject(res, 405, 'Method not allowed');
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8',
+      'Content-Length': nostrIdentity.length, 'Cache-Control': 'public, max-age=300' });
+    return res.end(req.method === 'HEAD' ? undefined : nostrIdentity);
+  }
   if (!path || path.startsWith('/club/internal') || path.startsWith('/cli') || path.startsWith('/dev/') ||
       path.startsWith('/monitor') || path.startsWith('/metrics')) return reject(res, 404, 'Not found');
   if (path === '/source.tar.gz') {
@@ -69,9 +89,11 @@ const server = http.createServer((req, res) => {
       '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.ico': 'image/x-icon',
       '.woff2': 'font/woff2', '.woff': 'font/woff', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.mp4': 'video/mp4' };
     const immutable = /\.[a-f0-9]{8}\./i.test(relative) || relative.startsWith('hashed/') || /^lifat\/nnue\/nn-[a-f0-9]{12}\.nnue$/.test(relative);
+    const socialImage = ['nosweat/app-icon-512.png', 'nosweat/social.png'].includes(relative);
+    if (socialImage) res.setHeader('Access-Control-Allow-Origin', '*');
     res.writeHead(200, { 'Content-Type': types[filename.slice(filename.lastIndexOf('.'))] ?? 'application/octet-stream',
       'Content-Length': file.size, 'Cache-Control': immutable ? 'public,max-age=31536000,immutable' : 'public,max-age=300',
-      'Cross-Origin-Resource-Policy': 'same-origin', 'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Resource-Policy': socialImage ? 'cross-origin' : 'same-origin', 'Cross-Origin-Embedder-Policy': 'require-corp',
       'Cross-Origin-Opener-Policy': 'same-origin', 'X-Content-Type-Options': 'nosniff' });
     if (req.method === 'HEAD') return res.end();
     return createReadStream(filename).on('error', () => res.destroy()).pipe(res);
