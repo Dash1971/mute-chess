@@ -22,10 +22,10 @@ async function call(path, body, authorization, expected = 200, session = cookie)
   return { response, data };
 }
 function sessionOf(result) {
-  const header = result.response.headers.getSetCookie().find(c => /(?:nosweat_session|lila2)=/.test(c));
+  const header = result.response.headers.getSetCookie().find(c => /(?:nosweat_session|nosweatliladev|lila2)=/.test(c));
   assert.ok(header, 'New authenticated session cookie'); return header.split(';')[0];
 }
-async function signed(action, fields = {}, expected = 200, signerKey = key, session = cookie) {
+async function signed(action, fields = {}, expected = 200, signerKey = key, session = action === 'login' ? null : cookie) {
   const signerPubkey = getPublicKey(signerKey);
   const challenge = (await call('/club/challenge', { pubkey: signerPubkey, action })).data;
   const raw = JSON.stringify({ challenge: challenge.challenge, ...(action === 'login' ? {} : { action }), ...fields });
@@ -68,16 +68,18 @@ try {
   await signed('login', {}, 401, key, undefined);
   await signed('login', { twoFactorToken: token }, 401, key, undefined); // enrollment code is consumed
   // Use a second-factor recovery code once; no key-only bypass.
-  const recovered = await signed('login', { twoFactorToken: codes[0] }, 200, key, undefined);
-  const recoveredSession = sessionOf(recovered);
-  await signed('login', { twoFactorToken: codes[0] }, 401, key, undefined);
+  const recoveryRace = await Promise.all([0,1].map(() => signed('login', { twoFactorToken: codes[0] }, [200,401], key, undefined)));
+  assert.deepEqual(recoveryRace.map(r => r.response.status).sort(), [200,401]);
+  const recoveredSession = sessionOf(recoveryRace.find(r => r.response.status === 200));
   // Five failed/successful factor attempts share a persistent one-minute budget.
   await signed('login', { twoFactorToken: '000000' }, 401, key, undefined);
   await signed('login', { twoFactorToken: codes[1] }, 429, key, undefined);
   // Wait for the next window and verify an independent authenticator implementation.
   await delay(61000);
-  const authenticated = await signed('login', { twoFactorToken: totp(bytes) }, 200, key, undefined);
-  cookie = sessionOf(authenticated);
+  const authenticatorToken = totp(bytes);
+  const otpRace = await Promise.all([0,1].map(() => signed('login', { twoFactorToken: authenticatorToken }, [200,401], key, undefined)));
+  assert.deepEqual(otpRace.map(r => r.response.status).sort(), [200,401]);
+  cookie = sessionOf(otpRace.find(r => r.response.status === 200));
   await signed('login', { twoFactorToken: totp(bytes) }, 401, key, undefined);
   const disabled = await signed('disable-two-factor', { twoFactorToken: codes[1] });
   cookie = sessionOf(disabled); assert.equal(disabled.data.enabled,false);
@@ -86,5 +88,5 @@ try {
   cookie = sessionOf(await signed('login', {}, 200, key, undefined));
   assert.equal((await call('/dasher')).data.user.displayName,displayName);
   await call('/logout', new URLSearchParams(), undefined, [200,302,303]);
-  console.log(JSON.stringify({ ok:true, handle, displayName, checks:['late public name, canonical links and identity preserved', 'fresh signature from matching Nostr identity', 'enrollment and single-use recovery codes', 'session revocation', 'key-only login denied', 'native TOTP accepted', 'TOTP and recovery replay denied', 'per-account rate limit', 'signed disable requires a second factor', 'key-only login restored after disabling'] }));
+  console.log(JSON.stringify({ ok:true, handle, displayName, checks:['late public name, canonical links and identity preserved', 'fresh signature from matching Nostr identity', 'enrollment and single-use recovery codes', 'session revocation', 'key-only login denied', 'native TOTP accepted', 'concurrent TOTP and recovery consumption permits exactly one login; replay denied', 'per-account rate limit', 'signed disable requires a second factor', 'key-only login restored after disabling'] }));
 } finally { key.fill(0); }
