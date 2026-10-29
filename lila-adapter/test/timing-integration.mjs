@@ -32,9 +32,12 @@ try{
     await new Promise((resolve,reject)=>{ws.once('open',resolve);ws.once('error',reject);});sockets.push(ws);
     const roundTrips=[];
     for(let i=0;i<4;i++){
-      round=await call('/game'+active.url);const [from,dests]=Object.entries(round.possibleMoves)[0];
+      round=await call('/game'+active.url);
+      // Native PossibleMoves.json groups origin followed by legal destinations.
+      const uci=round.possibleMoves.split(' ')[0].slice(0,4);
       const before=round.game.turns,started=performance.now();
-      ws.send(JSON.stringify({t:'move',d:{u:from+dests.slice(0,2),a:i+1}}));
+      assert.match(uci,/^[a-h][1-8][a-h][1-8]$/);
+      ws.send(JSON.stringify({t:'move',d:{u:uci,a:i+1}}));
       await wait(async()=> (await call('/game'+active.url)).game.turns>=before+2,'Maia reply');roundTrips.push(Math.round(performance.now()-started));
     }
     ws.send(JSON.stringify({t:'resign'}));await wait(async()=> (await call('/game'+active.url)).game.status.id>=30,'resignation');
