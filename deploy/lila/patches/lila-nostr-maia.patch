@@ -4549,7 +4549,7 @@ index 18646b3..662a537 100644
      const $toggle = $('#notify-toggle');
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..54ee714
+index 0000000..8f10712
 --- /dev/null
 +++ b/app/NoSweatService.scala
 @@ -0,0 +1,637 @@
@@ -5127,8 +5127,8 @@ index 0000000..54ee714
 +                  "policy" -> Json.parse(doc.getAsOpt[String]("snapshot").get),
 +                  "clock" -> game.clock.map(c =>
 +                    Json.obj(
-+                      "initial" -> c.config.limitSeconds,
-+                      "increment" -> c.config.incrementSeconds
++                      "initial" -> c.config.limitSeconds.value,
++                      "increment" -> c.config.incrementSeconds.value
 +                    )
 +                  ),
 +                  "state" -> state
