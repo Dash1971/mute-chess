@@ -6216,7 +6216,7 @@ index 0000000..5952fae
 +        )
 diff --git a/app/views/noSweatPatron.scala b/app/views/noSweatPatron.scala
 new file mode 100644
-index 0000000..0d78c53
+index 0000000..ca58a41
 --- /dev/null
 +++ b/app/views/noSweatPatron.scala
 @@ -0,0 +1,96 @@
@@ -6238,7 +6238,7 @@ index 0000000..0d78c53
 +          )
 +        )
 +      )
-+      .headAppend(script(src := assetPath("nosweat/nostr.js?lightning=2"), defer)):
++      .headAppend(script(src := assetPath("nosweat/nostr.js?lightning=3"), defer)):
 +        main(cls := "box box-pad", id := "nostr-patron", attr("data-pubkey") := pubkey.getOrElse(""))(
 +          div(cls := "patron-heading")(
 +            h1("Support Mute Chess"),
