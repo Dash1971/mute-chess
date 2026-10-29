@@ -64,6 +64,14 @@
         "test/human_timing_test.dart"
       ],
       "adaptation": "third-party/mobile-maia-timing; original-control timing tiers and total-target accounting"
+    },
+    "projection_continuity": {
+      "pull_request": "https://github.com/Dash1971/maia-chess-android-preview/pull/111",
+      "revision": "4fb5d3cf04b9eac862940fb870eacd7e2dd541f5",
+      "paths": [
+        "lib/src/play.dart",
+        "test/launch_game_features_test.dart"
+      ]
     }
   },
   "en_croissant": {

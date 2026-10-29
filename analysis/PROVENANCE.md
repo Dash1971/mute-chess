@@ -25,3 +25,27 @@ The native graph now displays small circles for its existing six quality glyphs 
 Automatic brilliant detection is additive after the native Analysis editor saves its review. A complete capture-root material search runs in the cancellable worker before separate exact two-PV Stockfish searches (depth 14 / 1200ms baseline; at least depth 16 / 1800ms whole-window confirmation). The same independent classifier must corroborate the full decision window. Imported quality glyphs and native negative judgments are preserved. Confirmed `!!` glyphs carry `mobile-maia-brilliant-v1` provenance and persist in the native browser review. The serialized review is kept separate from the UI's completed tree nodes so native memoized position helpers cannot corrupt the saved result.
 
 Maia current-position expected score reuses the inference value head: stable softmax over [loss, draw, win], then win + half draw, from the side-to-move perspective. Model, ratings, history and position key the same cache as raw policy. Paused, stale, failed and terminal inference does not reuse a previous score. No additional model invocation is needed.
+
+## October 30 approved refinement
+
+Mobile Maia PR [#111](https://github.com/Dash1971/maia-chess-android-preview/pull/111),
+commit `4fb5d3cf04b9eac862940fb870eacd7e2dd541f5`, provides the projection-continuity
+behavior: consume a validated queued move before publishing the board, retain
+queued destinations through acknowledgements, and reveal the authoritative board
+on invalid queues/endings. The native controller adaptation preserves legal
+server destinations, transport cancellation, clocks, promotion and move sounds.
+White/Black regressions inspect every Chessground update, not just settled state.
+
+The owner approved separate side-by-side Maia cards, full-width Moves by Rating,
+clickable rating labels, and the six Mobile Maia/En Croissant categories in the
+native summary. This supersedes the earlier brilliant-only scope. Overall
+accuracy, ACPL, best lines, evaluation chart and Learn from your mistakes remain
+native Lichess. Existing imported quality glyphs take precedence. Ordinary
+classifications use complete two-PV native searches; `!`/`!!` require independent
+whole-window corroboration. Fast defaults to depth 12 / 500 ms per position;
+Balanced uses 14 / 1000 ms and Thorough 16 / 1500 ms, following current Mobile
+Maia `stockfish.dart` at `8563954429c2fb53ce0fe0e16c73c5d8a73ccfe0`. Confirmation
+requests at least two additional depths with a larger time budget; incomplete,
+stale or vetoed standout results are withheld. No extra full-strength baseline
+search runs for every move. Scores and classifications are persisted in the native
+browser review; quality is separate from native accuracy.

@@ -101,3 +101,22 @@ Use Mobile Maia's complete timing implementation, including its 1+0 and
 inside the total target and preserve the low-clock added-wait cap. Version changes
 in frozen game policy; never replace an active game's timing silently. See
 `docs/bot-timing.md` and #60.
+
+## Analysis refinement (owner approval, October 30, 2026)
+
+Use two separate Maia cards side by side on the left, with independent leading
+probabilities and Others expansions. Click each Maia label to choose its rating
+in a button grid; no dropdown. Put expected score (win plus half draw, side to
+move) beside the model, and Moves by Rating across the full width below both
+cards. Keep Stockfish and the native move tree on the right. Preserve the native
+Lichess graph, overall accuracy, ACPL and Learn from your mistakes; omit phase
+accuracy. The owner now explicitly requests all validated Mobile Maia/En Croissant
+move classifications, superseding the earlier brilliant-only scope. Keep imported
+annotations and complete-window standout confirmation. Fast whole-game analysis
+is the default, with quality and advanced engine options behind Settings. Restore
+Play as a direct link to quick pairing, without a dropdown. See #62.
+
+For smoother premoves, follow Mobile Maia PR #111: never publish an intermediate
+real board between projected updates. Preserve legal server destinations, native
+clocks, sounds, committed history, cancellation, endings and single premoves. See
+#61. Do not add counts, strips or extra clear controls.

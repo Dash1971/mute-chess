@@ -887,7 +887,7 @@ index f2a7ab2..c59d4a9 100644
  GET   /patron/list                     controllers.Plan.list
  POST  /patron/style                    controllers.Plan.style
 diff --git a/modules/analyse/src/main/ui/AnalyseUi.scala b/modules/analyse/src/main/ui/AnalyseUi.scala
-index 2fde85c..53f9fef 100644
+index 2fde85c..b009933 100644
 --- a/modules/analyse/src/main/ui/AnalyseUi.scala
 +++ b/modules/analyse/src/main/ui/AnalyseUi.scala
 @@ -8,7 +8,7 @@ import play.api.libs.json.*
@@ -899,7 +899,23 @@ index 2fde85c..53f9fef 100644
    import helpers.{ *, given }
  
    def miniSpan(fen: Fen.Board, color: Color = chess.White, lastMove: Option[Uci] = None) =
-@@ -68,21 +68,23 @@ final class AnalyseUi(helpers: Helpers)(endpoints: AnalyseEndpoints):
+@@ -17,11 +17,12 @@ final class AnalyseUi(helpers: Helpers)(endpoints: AnalyseEndpoints):
+   def explorerAndCevalConfig(using ctx: Context) =
+     Json.obj(
+       "explorer" -> Json.obj(
+-        "endpoint" -> endpoints.explorer,
+-        "tablebaseEndpoint" -> endpoints.tablebase,
++        "endpoint" -> (if standardOnly then "/opening-explorer-disabled" else endpoints.explorer),
++        "tablebaseEndpoint" -> (if standardOnly then "/tablebase-disabled" else endpoints.tablebase),
+         "showRatings" -> ctx.pref.showRatings
+       ),
+-      "externalEngineEndpoint" -> endpoints.externalEngine
++      "externalEngineEndpoint" -> (if standardOnly then "/external-engine-disabled"
++                                   else endpoints.externalEngine)
+     )
+ 
+   def userAnalysis(
+@@ -68,21 +69,23 @@ final class AnalyseUi(helpers: Helpers)(endpoints: AnalyseEndpoints):
          )(
            pov.game.synthetic.option(
              st.aside(cls := "analyse__side")(
@@ -937,8 +953,15 @@ index 2fde85c..53f9fef 100644
                hasWiki.option:
                  fieldset(cls := "analyse__wiki empty toggle-box toggle-box--toggle", id := "wikibook-field")(
                    legend(tabindex := 0)("WikiBook"),
-@@ -140,7 +142,10 @@ final class AnalyseUi(helpers: Helpers)(endpoints: AnalyseEndpoints):
-       _.withWebAssembly.withExternalEngine(endpoints.externalEngine)
+@@ -136,11 +139,15 @@ final class AnalyseUi(helpers: Helpers)(endpoints: AnalyseEndpoints):
+         .csp:
+           cspExternalEngine.compose(_.withInlineIconFont.withChessDbCn)
+ 
+-    def cspExternalEngine: Update[ContentSecurityPolicy] =
+-      _.withWebAssembly.withExternalEngine(endpoints.externalEngine)
++    def cspExternalEngine: Update[ContentSecurityPolicy] = csp =>
++      if standardOnly then csp.withWebAssembly
++      else csp.withWebAssembly.withExternalEngine(endpoints.externalEngine)
  
      def analyseModule(mode: "userAnalysis" | "replay", json: JsObject) =
 -      PageModule("analyse.user", Json.obj("mode" -> mode, "cfg" -> json))
@@ -2068,10 +2091,10 @@ index 28e5bc4..66c01ad 100644
        )
        .add("fen" -> fen)
 diff --git a/modules/web/src/main/ui/TopNav.scala b/modules/web/src/main/ui/TopNav.scala
-index 4d9306b..f3bef8a 100644
+index 4d9306b..b8b1950 100644
 --- a/modules/web/src/main/ui/TopNav.scala
 +++ b/modules/web/src/main/ui/TopNav.scala
-@@ -12,92 +12,97 @@ final class TopNav(helpers: Helpers):
+@@ -12,92 +12,98 @@ final class TopNav(helpers: Helpers):
    private def linkTitle(url: String, name: Frag)(using ctx: Context) =
      if ctx.blind then h3(name) else a(href := url)(name)
  
@@ -2088,6 +2111,7 @@ index 4d9306b..f3bef8a 100644
 +  ) =
 +    if compact then
 +      st.nav(id := "topnav", cls := "hover")(
++        st.section(a(href := "/")(trans.site.play())),
 +        st.section(
 +          linkTitle(routes.Puzzle.home.url, trans.site.puzzles()),
 +          div(role := "group")(
@@ -2285,7 +2309,7 @@ index 0c0ed10..0fd8c57 100644
  
    val logo = raw:
 diff --git a/modules/web/src/main/ui/layout.scala b/modules/web/src/main/ui/layout.scala
-index 1c7a30b..963ba83 100644
+index 1c7a30b..a5207bf 100644
 --- a/modules/web/src/main/ui/layout.scala
 +++ b/modules/web/src/main/ui/layout.scala
 @@ -17,8 +17,17 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
@@ -2349,7 +2373,7 @@ index 1c7a30b..963ba83 100644
 -    s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
 -      s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
 +    if isMuteChess then
-+      """<link rel="alternate icon" type="image/png" href="/assets/nosweat/favicon-32.png?v=quiet-signal1"><link id="favicon" rel="icon" type="image/svg+xml" href="/assets/nosweat/favicon.svg?v=quiet-signal1"><link rel="stylesheet" href="/assets/nosweat/brand.css?v=focused1"><link rel="stylesheet" href="/assets/nosweat/quiet-signal.css?v=quiet-signal1">"""
++      """<link rel="alternate icon" type="image/png" href="/assets/nosweat/favicon-32.png?v=quiet-signal1"><link id="favicon" rel="icon" type="image/svg+xml" href="/assets/nosweat/favicon.svg?v=quiet-signal1"><link rel="stylesheet" href="/assets/nosweat/brand.css?v=analysis2"><link rel="stylesheet" href="/assets/nosweat/quiet-signal.css?v=quiet-signal1">"""
 +    else
 +      s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
 +        s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
@@ -2445,16 +2469,18 @@ index 818aaae..901eb6e 100644
    flair?: Flair;
    patron?: boolean; // BC
 diff --git a/ui/analyse/css/_layout.scss b/ui/analyse/css/_layout.scss
-index 4f219ad..1f1a034 100644
+index 4f219ad..93aac37 100644
 --- a/ui/analyse/css/_layout.scss
 +++ b/ui/analyse/css/_layout.scss
-@@ -174,6 +174,31 @@ $analyse-gauge-gap: 4px;
+@@ -174,6 +174,33 @@ $analyse-gauge-gap: 4px;
        min-height: 10em;
      }
  
 +    // The optional explorer scrolls in the side column, without changing the
 +    // board row or pushing native move controls below an expanded table.
 +    &:has(.nosweat-candidate-panel) {
++      ---col3-uniboard-side-min: 320px;
++
 +      .analyse__side {
 +        grid-row: 1 / 3;
 +        height: var(---cg-height);
@@ -2625,22 +2651,132 @@ index 00f9d9a..cab3e5b 100644
    element: HTMLElement;
    data: AnalyseData;
    userId?: string;
+diff --git a/ui/analyse/src/local/analyse.local.ts b/ui/analyse/src/local/analyse.local.ts
+index 2759a13..49e32aa 100644
+--- a/ui/analyse/src/local/analyse.local.ts
++++ b/ui/analyse/src/local/analyse.local.ts
+@@ -1,7 +1,8 @@
+ import type AnalyseCtrl from '../ctrl';
+ import { localAnalysisDialog } from './localAnalysisDialog';
+ 
+-export async function initModule(ctrl: AnalyseCtrl): Promise<void> {
++export async function initModule(input: AnalyseCtrl | { ctrl: AnalyseCtrl; start: boolean }): Promise<void> {
+   await site.asset.loadI18n('localAnalysis');
+-  return localAnalysisDialog(ctrl);
++  const options = 'ctrl' in input ? input : { ctrl: input, start: false };
++  return localAnalysisDialog(options.ctrl, options.start);
+ }
 diff --git a/ui/analyse/src/local/localAnalysisDialog.tsx b/ui/analyse/src/local/localAnalysisDialog.tsx
-index 3a429c5..c59ea01 100644
+index 3a429c5..582cd6e 100644
 --- a/ui/analyse/src/local/localAnalysisDialog.tsx
 +++ b/ui/analyse/src/local/localAnalysisDialog.tsx
-@@ -10,6 +10,7 @@ import { licon } from 'lib/licon';
+@@ -9,7 +9,8 @@ import { numberFormat } from 'lib/i18n';
+ import { licon } from 'lib/licon';
  import { log } from 'lib/permalog';
  import { pubsub } from 'lib/pubsub';
- import { storedIntProp, storedStringProp, type StoredProp } from 'lib/storage';
+-import { storedIntProp, storedStringProp, type StoredProp } from 'lib/storage';
++import { storage, storedIntProp, storedStringProp, type StoredProp } from 'lib/storage';
 +import { structuredCloneLite } from 'lib/tree/ops';
  import {
    type Dialog,
    type LooseVNodes,
-@@ -158,12 +159,47 @@ class LocalAnalysisDialog {
+@@ -23,25 +24,31 @@ import {
+ } from 'lib/view';
+ import { text as xhrText } from 'lib/xhr';
+ 
+-import { isFinished } from '@/study/studyChapters';
+-
+ import type AnalyseCtrl from '../ctrl';
+ import type { AnalysisEngineInfo } from '../interfaces';
++import { gameReviewQuality } from '../noSweatFullReview';
++import { isFinished } from '../study/studyChapters';
+ import { LocalAnalysisEngine } from './localAnalysisEngine';
+ 
+-export async function localAnalysisDialog(ctrl: AnalyseCtrl): Promise<void> {
++export async function localAnalysisDialog(ctrl: AnalyseCtrl, start = false): Promise<void> {
+   const state = new LocalAnalysisDialog(ctrl, await site.asset.loadEsm<ChartGame>('chart.game'));
+-  jsxDialog({
++  let redraw: Redraw = () => {};
++  redraw = jsxDialog({
+     class: 'local-analysis-dialog',
+     css: [{ hashed: 'analyse.local-dialog' }],
+     modal: true,
+     onClose: state.close,
++    onShow: dialog => {
++      if (start && ctrl.noSweat) void state.analyse(dialog, redraw);
++    },
+     render: state.render,
+   });
+ }
+ 
+-class LocalAnalysisDialog {
++export class LocalAnalysisDialog {
+   private engine?: LocalAnalysisEngine;
++  private running = false;
++  private closed = false;
+   private chartData: Parameters<ChartGame['acpl']>[1];
+   private chart?: AcplChart;
+   private status?: LooseVNodes;
+@@ -56,9 +63,18 @@ class LocalAnalysisDialog {
+     private readonly chartGame: ChartGame,
+   ) {
+     const info = this.bestEngineDefaults;
+-    this.engineId = storedStringProp('local-analysis.engine', info.id);
+-    this.threads = storedIntProp('local-analysis.threads', info.threads);
+-    this.hashSize = storedIntProp('local-analysis.hash', info.hashSize);
++    this.engineId = storedStringProp(
++      ctrl.noSweat ? 'nosweat.review.engine.v1' : 'local-analysis.engine',
++      info.id,
++    );
++    this.threads = storedIntProp(
++      ctrl.noSweat ? 'nosweat.review.threads.v1' : 'local-analysis.threads',
++      info.threads,
++    );
++    this.hashSize = storedIntProp(
++      ctrl.noSweat ? 'nosweat.review.hash.v1' : 'local-analysis.hash',
++      info.hashSize,
++    );
+     this.engineId(this.customSearch.engine!.id);
+     const quality = storedIntProp('local-analysis.quality', 0);
+     this.quality = (value?: number) => quality(Math.max(this.minQuality, value ?? quality()));
+@@ -124,7 +140,7 @@ class LocalAnalysisDialog {
+         <button
+           class={['button analyse-btn', !this.canAnalyse && 'none']}
+           on={{ click: async () => this.analyse(dialog, redraw) }}>
+-          {i18n.localAnalysis.analyse}
++          {this.ctrl.noSweat ? 'Analyze' : i18n.localAnalysis.analyse}
+         </button>
+         <button class={['button ok-btn', this.engine && 'none']} on={{ click: () => dialog.close('ok') }}>
+           {i18n.site.ok}
+@@ -134,15 +150,21 @@ class LocalAnalysisDialog {
+   };
+ 
+   readonly close = () => {
++    this.closed = true;
+     pubsub.off('ceval.engine.download', this.updateDownloadStatus);
+     this.engine?.stop();
+   };
+ 
+-  private async analyse(dlg: Dialog, redraw: Redraw): Promise<void> {
++  async analyse(dlg: Dialog, redraw: Redraw): Promise<void> {
++    if (this.closed || this.running || !this.engine) return;
+     const then = performance.now();
+-    const engine = this.engine!;
++    const engine = this.engine;
++    this.running = true;
++    this.status = 'Preparing analysis…';
++    redraw();
+     try {
+       const division = await engine.getDivision();
++      if (this.closed) return;
+       this.chartData = {
+         ...this.ctrl.data,
+         game: { ...this.ctrl.data.game, division },
+@@ -158,12 +180,48 @@ class LocalAnalysisDialog {
          },
        );
        await this.ctrl.idbTree.saveAnalysis(result);
++      if (this.closed) return;
 +      const mergeResult = () =>
 +        this.ctrl.mergeMainlineAnalysisData({
 +          ...result.localUpdate,
@@ -2652,7 +2788,7 @@ index 3a429c5..c59ea01 100644
 +      if (this.ctrl.noSweat) {
 +        try {
 +          const verified = await engine.verifyBrilliants(result, (done, total) => {
-+            this.status = `Checking brilliant moves: ${done} / ${total}`;
++            this.status = `Classifying moves: ${done} / ${total}`;
 +            this.chart?.updateData(this.ctrl.data, engine.nodes);
 +            redraw();
 +          });
@@ -2672,35 +2808,134 @@ index 3a429c5..c59ea01 100644
 +            redraw();
 +            return;
 +          }
-+          log('Brilliant verification unavailable', error);
++          log('Move classification unavailable', error);
 +          brillianceUnavailable = true;
 +        }
 +      }
        this.status = [
          `${i18n.site.done} ${i18n.site.nbSeconds(Math.round((performance.now() - then) / 100) / 10)}`,
          <br />,
-+        brillianceUnavailable && 'Brilliant checks unavailable; native analysis is complete.',
++        brillianceUnavailable && 'Move classifications unavailable; game analysis is complete.',
          this.canPublish.showButton && i18n.localAnalysis.youCanPublish,
        ];
 -      this.ctrl.mergeMainlineAnalysisData(result.localUpdate);
        this.engine = undefined;
        redraw();
      } catch (e) {
+@@ -172,6 +230,9 @@ class LocalAnalysisDialog {
+         await alert(String(e));
+       }
+       dlg.close('cancel');
++    } finally {
++      this.running = false;
++      if (dlg.dialog.open) redraw();
+     }
+   }
+ 
+@@ -266,7 +327,7 @@ class LocalAnalysisDialog {
+       this.ctrl.idbTree.hasLocalAnalysis && this.ctrl.publishedEvalEngine,
+     ].filter(Boolean);
+ 
+-    if (!current) {
++    if (!current && !this.ctrl.noSweat) {
+       preludes.push(<p>{i18n.localAnalysis.chooseYourEngineSettings}</p>);
+       if (
+         !ceval.engines
+@@ -327,7 +388,14 @@ class LocalAnalysisDialog {
+             'local-analysis-engine',
+           )}
+         </div>
+-        {this.searchQualitySetting(redraw)}
++        {this.ctrl.noSweat ? (
++          <div class="setting">
++            <label>Quality</label>
++            <strong>{gameReviewQuality(storage.get('nosweat.gameReview.quality')).name}</strong>
++          </div>
++        ) : (
++          this.searchQualitySetting(redraw)
++        )}
+         <div class="setting">
+           <label for="local-analysis-threads">{i18n.site.threads}</label>
+           <input
+@@ -430,11 +498,11 @@ class LocalAnalysisDialog {
+   }
+ 
+   private get isIdle() {
+-    return !this.engine?.busy;
++    return !this.running && !this.engine?.busy;
+   }
+ 
+   private get canAnalyse() {
+-    return this.engine?.busy === false;
++    return !this.running && this.engine?.busy === false;
+   }
+ 
+   private get canPublish() {
+@@ -479,11 +547,15 @@ class LocalAnalysisDialog {
+     return {
+       engine: { id: engine.id, threads: this.threads(), hashSize: this.hashSize() },
+       search: () => ({
+-        by:
+-          this.quality() === 0
++        by: this.ctrl.noSweat
++          ? (() => {
++              const q = gameReviewQuality(storage.get('nosweat.gameReview.quality'));
++              return { depth: q.depth, movetime: q.movetime };
++            })()
++          : this.quality() === 0
+             ? { nodes: this.standardQualityNodesAt() }
+             : { movetime: Math.min(this.quality(), engine.maxMovetime ?? 300_000) },
+-        multiPv: 1,
++        multiPv: this.ctrl.noSweat ? 2 : 1,
+       }),
+       canBackground: true,
+     };
+@@ -491,8 +563,10 @@ class LocalAnalysisDialog {
+ 
+   private get bestEngineDefaults(): { id: string; threads: number; hashSize: number } {
+     const engine = this.bestBrowserEngine; // TODO - allow external engines once supported
+-    const threads = /*engine.tech === 'EXTERNAL' ? engine.maxThreads :*/ navigator.hardwareConcurrency;
+-    const hashSize = /*engine.tech === 'EXTERNAL' ? (engine.maxHash ?? 512) :*/ maxBrowserHash;
++    const threads = this.ctrl.noSweat
++      ? Math.min(2, engine.maxThreads, navigator.hardwareConcurrency || 1)
++      : navigator.hardwareConcurrency;
++    const hashSize = this.ctrl.noSweat ? Math.min(64, maxBrowserHash) : maxBrowserHash;
+     return { id: engine.id, threads, hashSize };
+   }
+ 
+@@ -502,6 +576,9 @@ class LocalAnalysisDialog {
+   }
+ 
+   private get bestBrowserEngine(): BaseEngineInfo {
+-    return this.browserEngines[0];
++    return (
++      (this.ctrl.noSweat && this.browserEngines.find(e => e.id === '__sf_19_smallnet')) ||
++      this.browserEngines[0]
++    );
+   }
+ }
 diff --git a/ui/analyse/src/local/localAnalysisEngine.ts b/ui/analyse/src/local/localAnalysisEngine.ts
-index 228b88d..f9a2361 100644
+index 228b88d..3840b2e 100644
 --- a/ui/analyse/src/local/localAnalysisEngine.ts
 +++ b/ui/analyse/src/local/localAnalysisEngine.ts
-@@ -10,6 +10,9 @@ import type { ClientEval, Glyph, TreeNodeLite, TreePath } from 'lib/tree/types';
+@@ -5,11 +5,16 @@ import { setupPosition } from 'chessops/variant';
+ import { myUserId } from 'lib';
+ import { randomId } from 'lib/algo';
+ import type { CustomCeval } from 'lib/ceval/types';
++import { storage } from 'lib/storage';
+ import { mainlineNodeList, structuredCloneLite } from 'lib/tree/ops';
+ import type { ClientEval, Glyph, TreeNodeLite, TreePath } from 'lib/tree/types';
  
  import AnalyseCtrl from '../ctrl';
  import type { AnalysisUpdate, AnalysisEngineInfo, AnalysisMeta, Division } from '../interfaces';
-+import { BrilliantVerifier, brilliantGlyph, mainlineKey, hasQualityGlyph } from '../noSweatBrilliants';
++import { mainlineKey } from '../noSweatBrilliants';
 +import { ClassifierClient } from '../noSweatClassifierClient';
 +import { ReviewFish } from '../noSweatFish';
++import { FullGameClassifier, qualityGlyph, gameReviewQuality } from '../noSweatFullReview';
  
  // modules/tree/.../Analysis.scala
  export interface ServerAnalysisDocument {
-@@ -33,6 +36,8 @@ export class LocalAnalysisEngine {
+@@ -33,6 +38,8 @@ export class LocalAnalysisEngine {
    readonly nodes: TreeNodeLite[];
    busy = false;
  
@@ -2709,7 +2944,7 @@ index 228b88d..f9a2361 100644
    private readonly path: TreePath;
    private nodeIndex: number;
    private nodesSearched = 0;
-@@ -42,6 +47,11 @@ export class LocalAnalysisEngine {
+@@ -42,6 +49,11 @@ export class LocalAnalysisEngine {
      this.nodes = mainlineNodeList(structuredCloneLite(this.ctrl.tree.root));
      this.nodeIndex = this.nodes.length - 1;
      for (const [i, node] of this.nodes.entries()) {
@@ -2721,7 +2956,7 @@ index 228b88d..f9a2361 100644
        node.eval = node.ceval = undefined;
        node.comments = undefined;
        node.glyphs = undefined;
-@@ -81,7 +91,53 @@ export class LocalAnalysisEngine {
+@@ -81,7 +93,60 @@ export class LocalAnalysisEngine {
      }
    }
  
@@ -2746,19 +2981,26 @@ index 228b88d..f9a2361 100644
 +    window.addEventListener('pagehide', shutdown);
 +    this.busy = true;
 +    try {
-+      const verifier = new BrilliantVerifier({
-+        sacrifice: (before, after, signal) => classifier.sacrifice(before, after, signal),
++      const verifier = new FullGameClassifier({
 +        search: (fen, signal, depth, time) => fish.search(fen, [], signal, depth, time),
 +        classify: (input, signal) => classifier.classify(input, signal),
 +      });
 +      const candidates = nodes.map(n =>
 +        this.importedQuality.has(n.ply) ? { ...n, glyphs: this.importedQuality.get(n.ply) } : n,
 +      );
-+      const verified = await verifier.run(candidates, abort.signal, current, progress);
++      const verified = await verifier.run(
++        candidates,
++        abort.signal,
++        current,
++        progress,
++        gameReviewQuality(storage.get('nosweat.gameReview.quality')),
++      );
 +      if (abort.signal.aborted || !current()) return false;
-+      for (const move of verified) {
-+        const node = nodes.find(n => n.ply === move.ply && n.fen === move.fen && n.uci === move.uci);
-+        if (node && !hasQualityGlyph(node)) node.glyphs = [...(node.glyphs ?? []), brilliantGlyph()];
++      for (const node of nodes) {
++        if (!verified.has(node.ply) || this.importedQuality.has(node.ply)) continue;
++        node.glyphs = (node.glyphs ?? []).filter(g => g.id < 1 || g.id > 6 || !g.comp);
++        const glyph = qualityGlyph(verified.get(node.ply)!);
++        if (glyph) node.glyphs.push(glyph);
 +      }
 +      return true;
 +    } finally {
@@ -2775,6 +3017,19 @@ index 228b88d..f9a2361 100644
      this.ctrl.ceval.reset();
      this.finishNode(this.isRunning() ? 'cancelled' : undefined);
    };
+@@ -189,6 +254,12 @@ export class LocalAnalysisEngine {
+       );
+     });
+ 
++    // Imported quality annotations remain authoritative through persistence too.
++    for (const node of this.nodes) {
++      const imported = this.importedQuality.get(node.ply);
++      if (imported) node.glyphs = [...(node.glyphs ?? []).filter(g => g.id < 1 || g.id > 6), ...imported];
++    }
++
+     return {
+       localUpdate: {
+         division,
 diff --git a/ui/analyse/src/pgnImport.ts b/ui/analyse/src/pgnImport.ts
 index 5019c1b..91a4271 100644
 --- a/ui/analyse/src/pgnImport.ts
@@ -2795,15 +3050,23 @@ index 5019c1b..91a4271 100644
    const fen = makeFen(start.toSetup());
    const variant: VariantKey = rulesToVariantKey[start.rules] || start.rules;
 diff --git a/ui/analyse/src/serverSideUnderboard.ts b/ui/analyse/src/serverSideUnderboard.ts
-index cfbd78b..4ee7197 100644
+index cfbd78b..5127e7d 100644
 --- a/ui/analyse/src/serverSideUnderboard.ts
 +++ b/ui/analyse/src/serverSideUnderboard.ts
-@@ -15,6 +15,8 @@ export const stockfishName = 'Stockfish 19';
+@@ -15,6 +15,16 @@ export const stockfishName = 'Stockfish 19';
  
  export default function (element: HTMLElement, ctrl: AnalyseCtrl) {
    $(element).replaceWith(ctrl.opts.$underboard);
 +  // No public fishnet worker is configured. Keep the native on-device review.
-+  if (ctrl.noSweat) document.querySelector('form.future-game-analysis')?.remove();
++  if (ctrl.noSweat) {
++    document.querySelector('form.future-game-analysis')?.remove();
++    const button = document.querySelector<HTMLButtonElement>('button.analysis-editor');
++    if (button) {
++      button.textContent = 'Analyze game';
++      button.classList.remove('analysis-editor');
++      button.onclick = () => site.asset.loadEsm('analyse.local', { init: { ctrl, start: true } });
++    }
++  }
    const data = ctrl.data;
    const $panels = $('.analyse__underboard__panels > div');
    const $menu = $('.analyse__underboard__menu');
@@ -2886,6 +3149,26 @@ index f3984e8..2f09f52 100644
    into.glyphs = Array.from(glyphs.values());
  
    for (const fromChild of from.children) {
+diff --git a/ui/analyse/src/view/actionMenu.ts b/ui/analyse/src/view/actionMenu.ts
+index 92bfd1d..837cddb 100644
+--- a/ui/analyse/src/view/actionMenu.ts
++++ b/ui/analyse/src/view/actionMenu.ts
+@@ -152,13 +152,13 @@ export function view(ctrl: AnalyseCtrl): VNode {
+           'button',
+           {
+             hook: bind('click', () => {
+-              site.asset.loadEsm('analyse.local', { init: ctrl });
++              site.asset.loadEsm('analyse.local', { init: ctrl.noSweat ? { ctrl, start: true } : ctrl });
+               ctrl.actionMenu(false);
+               ctrl.redraw();
+             }),
+             attrs: dataIcon(licon.Cogs),
+           },
+-          i18n.study.analysisEditor,
++          ctrl.noSweat ? 'Analyze game' : i18n.study.analysisEditor,
+         ),
+       (ctrl.idbTree.movesDirty || ctrl.idbTree.hasLocalAnalysis || ctrl.idbTree.hasLocalCeval) &&
+         hl(
 diff --git a/ui/analyse/src/view/components.ts b/ui/analyse/src/view/components.ts
 index 1690fe3..593342c 100644
 --- a/ui/analyse/src/view/components.ts
@@ -2911,6 +3194,89 @@ index 83a184c..e7693b7 100644
          }),
        },
        [
+diff --git a/ui/analyse/src/view/roundTraining.ts b/ui/analyse/src/view/roundTraining.ts
+index 99a8328..0ef8435 100644
+--- a/ui/analyse/src/view/roundTraining.ts
++++ b/ui/analyse/src/view/roundTraining.ts
+@@ -9,6 +9,7 @@ import type AnalyseCtrl from '@/ctrl';
+ import { findTag } from '@/study/studyChapters';
+ 
+ import type { AnalysisMetaSide, GamePhase } from '../interfaces';
++import { classificationCounts, moveClasses } from '../noSweatFullReview';
+ 
+ type AdviceKind = 'inaccuracy' | 'mistake' | 'blunder';
+ 
+@@ -79,6 +80,62 @@ const error = (nb: number, color: Color, advice: Advice) =>
+   );
+ 
+ const doRender = (ctrl: AnalyseCtrl): VNode => {
++  if (ctrl.noSweat) {
++    const counts = {
++      white: classificationCounts(ctrl.mainline, 'white'),
++      black: classificationCounts(ctrl.mainline, 'black'),
++    };
++    return h('div.advice-summary.nosweat-summary', [
++      h('table', [
++        h(
++          'thead',
++          h('tr', [h('th'), ...(['white', 'black'] as Color[]).map(c => h('th', renderPlayer(ctrl, c)))]),
++        ),
++        h('tbody', [
++          ...moveClasses.map((category, i) =>
++            h('tr', [
++              h('td', { attrs: { style: 'color:' + category.color } }, category.symbol + ' ' + category.name),
++              ...(['white', 'black'] as Color[]).map(c =>
++                h(
++                  'td',
++                  h(
++                    'button.fbt',
++                    {
++                      attrs: {
++                        type: 'button',
++                        disabled: !counts[c][i],
++                        'aria-label': `${category.name}: ${counts[c][i]} for ${c}`,
++                      },
++                      hook: bind('click', () => ctrl.jumpToGlyphSymbol(c, category.symbol), ctrl.redraw),
++                    },
++                    String(counts[c][i]),
++                  ),
++                ),
++              ),
++            ]),
++          ),
++          h('tr.accuracy', [
++            h('td', i18n.site.accuracy),
++            ...(['white', 'black'] as Color[]).map(c => h('td', `${ctrl.mainlineAnalysis![c].accuracy}%`)),
++          ]),
++          h('tr', [
++            h('td', 'Avg. centipawn loss'),
++            ...(['white', 'black'] as Color[]).map(c => h('td', String(ctrl.mainlineAnalysis![c].acpl))),
++          ]),
++        ]),
++      ]),
++      !ctrl.study &&
++        h(
++          'a.button.text',
++          {
++            class: { active: !!ctrl.retro },
++            attrs: dataIcon(licon.PlayTriangle),
++            hook: bind('click', ctrl.toggleRetro, ctrl.redraw),
++          },
++          i18n.site.learnFromYourMistakes,
++        ),
++    ]);
++  }
+   return h(
+     'div.advice-summary',
+     {
+@@ -139,6 +196,7 @@ export function render(ctrl: AnalyseCtrl): VNode | undefined {
+   // don't cache until the analysis is complete!
+   const buster = ctrl.mainlineAnalysis.partial ? Math.random() : '';
+   let cacheKey = String(buster) + !!ctrl.retro + Boolean(ctrl.idbTree.hasLocalAnalysis);
++  if (ctrl.noSweat) cacheKey += JSON.stringify(ctrl.mainline.map(n => n.glyphs));
+   if (ctrl.study) cacheKey += ctrl.study.data.chapter.id;
+ 
+   return h('div.analyse__round-training', [
 diff --git a/ui/analyse/src/view/settingsView.ts b/ui/analyse/src/view/settingsView.ts
 index 89b6efa..81bc593 100644
 --- a/ui/analyse/src/view/settingsView.ts
@@ -2929,18 +3295,6 @@ index 89b6efa..81bc593 100644
      modal: !isTouchDevice(),
      easyClose: 'clickOutside',
      show: true,
-diff --git a/ui/analyse/src/view/tools.ts b/ui/analyse/src/view/tools.ts
-index 96ce0df..a93b740 100644
---- a/ui/analyse/src/view/tools.ts
-+++ b/ui/analyse/src/view/tools.ts
-@@ -24,6 +24,7 @@ export function renderTools({ ctrl, deps, concealOf, allowVideo }: ViewContext,
-       !ctrl.practice &&
-       !ctrl.study?.hideMoves() &&
-       cevalView.renderPvs(ctrl),
-+    ctrl.noSweat?.view(),
-     renderMoveList(ctrl, deps, concealOf),
-     deps?.gbEdit.running(ctrl) ? deps?.gbEdit.render(ctrl) : undefined,
-     renderBackToLiveButton(ctrl),
 diff --git a/ui/bits/src/bits.qrcode.ts b/ui/bits/src/bits.qrcode.ts
 index a53a9f6..4b9c0e3 100644
 --- a/ui/bits/src/bits.qrcode.ts
@@ -3376,10 +3730,42 @@ index 53eda2c..91ae7fe 100644
      const module: StockfishWeb = await makeModule.default({
        wasmMemory: sharedWasmMemory(this.info.minMem!),
 diff --git a/ui/lib/src/ceval/protocol.ts b/ui/lib/src/ceval/protocol.ts
-index e5f050a..2044471 100644
+index e5f050a..6e47607 100644
 --- a/ui/lib/src/ceval/protocol.ts
 +++ b/ui/lib/src/ceval/protocol.ts
-@@ -142,8 +142,9 @@ export class Protocol {
+@@ -10,6 +10,7 @@ export class Protocol {
+ 
+   private work?: Work;
+   private currentEval?: LocalEval;
++  private completedEval?: LocalEval;
+   private gameId?: string;
+   private expectedPvs = 1;
+   private nextWork?: Work;
+@@ -70,14 +71,15 @@ export class Protocol {
+       const work = this.work;
+       this.work = undefined;
+       if (work) {
+-        const ceval = this.currentEval ?? {
+-          millis: 0,
+-          fen: work.currentFen,
+-          depth: 0,
+-          nodes: 0,
+-          pvs: [],
+-          engineId: this.info.id,
+-        };
++        const ceval = this.completedEval ??
++          this.currentEval ?? {
++            millis: 0,
++            fen: work.currentFen,
++            depth: 0,
++            nodes: 0,
++            pvs: [],
++            engineId: this.info.id,
++          };
+         ceval.bestmove = parts[1];
+         if (parts[2] === 'ponder') ceval.ponder = parts[3];
+         if (!work.stopRequested) work.emit(ceval, work);
+@@ -142,8 +144,9 @@ export class Protocol {
        };
  
        if (multiPv === 1) {
@@ -3391,7 +3777,7 @@ index e5f050a..2044471 100644
            this.currentEval = {
              fen: this.work.currentFen,
              depth,
-@@ -155,13 +156,18 @@ export class Protocol {
+@@ -155,13 +158,20 @@ export class Protocol {
              engineId: this.info.id,
            };
          }
@@ -3408,11 +3794,45 @@ index e5f050a..2044471 100644
 +        this.currentEval?.pvs.length === this.expectedPvs &&
 +        this.currentEval.depth === depth &&
 +        new Set(this.currentEval.pvs.map(pv => pv.moves[0])).size === this.expectedPvs
-+      )
++      ) {
++        this.completedEval = structuredClone(this.currentEval);
 +        this.emit();
++      }
      } else if (
        command &&
        !['Stockfish', 'id', 'option', 'info'].includes(parts[0]) &&
+@@ -195,6 +205,7 @@ export class Protocol {
+ 
+     if (this.work) {
+       this.currentEval = undefined;
++      this.completedEval = undefined;
+       this.expectedPvs = 1;
+ 
+       this.setOption('UCI_Variant', this.uciVariant(this.work.variant));
+@@ -206,8 +217,8 @@ export class Protocol {
+       this.gameId = this.work.gameId;
+ 
+       this.send(['position fen', this.work.initialFen, 'moves', ...this.work.moves].join(' '));
+-      const [by, value] = Object.entries(this.work.search)[0];
+-      const cmd = Number.isFinite(value) ? `go ${by} ${value}` : 'go';
++      const limits = Object.entries(this.work.search).filter(([, value]) => Number.isFinite(value));
++      const cmd = ['go', ...limits.flatMap(([by, value]) => [by, String(value)])].join(' ');
+       this.send(cmd);
+     }
+   }
+diff --git a/ui/lib/src/ceval/types.ts b/ui/lib/src/ceval/types.ts
+index a571135..695c8a3 100644
+--- a/ui/lib/src/ceval/types.ts
++++ b/ui/lib/src/ceval/types.ts
+@@ -8,7 +8,7 @@ import type { Prop } from '../index';
+ import type { CevalCtrl } from './ctrl';
+ 
+ export type WinningChances = number;
+-export type SearchBy = { movetime: number } | { depth: number } | { nodes: number };
++export type SearchBy = { movetime: number; depth?: number } | { depth: number } | { nodes: number };
+ export type Search = { by: SearchBy; multiPv: number; indeterminate?: boolean };
+ export type NodeEfficiencyVsFishnet = Partial<Record<'chess' | 'variant', number>>;
+ 
 diff --git a/ui/lib/src/game/interfaces.ts b/ui/lib/src/game/interfaces.ts
 index 1892379..c353f9e 100644
 --- a/ui/lib/src/game/interfaces.ts
@@ -4068,10 +4488,18 @@ index 8c13b00..aff5608 100644
    return hl('div.infos', { attrs: game.perf && dataIcon(perfIcons[game.perf.key]) }, [
      hl('div', [
 diff --git a/ui/round/src/ctrl.ts b/ui/round/src/ctrl.ts
-index ca1efc8..6c32c9f 100644
+index ca1efc8..dd9d18f 100644
 --- a/ui/round/src/ctrl.ts
 +++ b/ui/round/src/ctrl.ts
-@@ -51,6 +51,7 @@ import type {
+@@ -1,6 +1,7 @@
+ /// <reference types="../types/ab" />
+ 
+ import type { DrawShape } from '@lichess-org/chessground/draw';
++import { read as readBoard } from '@lichess-org/chessground/fen';
+ import { opposite, uciToMove } from '@lichess-org/chessground/util';
+ import * as ab from 'ab/round';
+ import { roleToChar } from 'chessops/util';
+@@ -51,6 +52,7 @@ import type {
  } from './interfaces';
  import { init as keyboardInit } from './keyboard';
  import MoveOn from './moveOn';
@@ -4079,7 +4507,7 @@ index ca1efc8..6c32c9f 100644
  import Server from './server';
  import { make as makeSocket, type RoundSocket } from './socket';
  import * as title from './title';
-@@ -63,6 +64,116 @@ import * as xhr from './xhr';
+@@ -63,6 +65,139 @@ import * as xhr from './xhr';
  type GoneBerserk = Partial<ByColor<boolean>>;
  
  export default class RoundController implements MoveRootCtrl {
@@ -4139,8 +4567,6 @@ index ca1efc8..6c32c9f 100644
 +      check: false,
 +      lastMove: undefined,
 +      movable: { dests: new Map() },
-+    });
-+    this.chessground.set({
 +      highlight: {
 +        custom: new Map(
 +          [...this.premoveSequence.destinations].map(([key, dest]) => [
@@ -4186,9 +4612,34 @@ index ca1efc8..6c32c9f 100644
 +      this.clearQueuedPremoves();
 +      return false;
 +    }
-+    this.chessground.move(move.orig, move.dest);
-+    if (move.promotion) promote(this.chessground, move.dest, move.promotion);
-+    this.chessground.set({ turnColor: this.data.opponent.color, movable: { dests: new Map() } });
++    // Consume against authoritative destinations, then publish only the final
++    // projected plan (Mobile Maia #111). Never move a projected piece backwards.
++    const before = readBoard(this.stepAt(this.ply).fen);
++    const capture =
++      before.get(move.dest)?.color === this.data.opponent.color ||
++      (before.get(move.orig)?.role === 'pawn' && !move.dest.startsWith(move.orig[0]));
++    site.sound.move({ name: capture ? 'capture' : 'move', filter: 'game' });
++    const accepted = new PremoveSequence();
++    accepted.moves.push(move);
++    this.optimisticFen = accepted.project(this.stepAt(this.ply).fen, this.data.player.color);
++    this.projected = this.premoveSequence.moves.length > 0;
++    this.chessground.set({
++      fen: this.projected
++        ? this.premoveSequence.project(this.optimisticFen, this.data.player.color)
++        : this.optimisticFen,
++      turnColor: this.data.opponent.color,
++      movable: { dests: new Map() },
++      check: false,
++      lastMove: this.projected ? undefined : [move.orig, move.dest],
++      highlight: {
++        custom: new Map(
++          [...this.premoveSequence.destinations].map(([key, dest]) => [
++            key,
++            dest ? 'nosweat-premove-dest' : 'nosweat-premove-origin',
++          ]),
++        ),
++      },
++    });
 +    this.sendMove(move.orig, move.dest, move.promotion, { premove: true, preConfirmed: true });
 +    return true;
 +  };
@@ -4196,7 +4647,7 @@ index ca1efc8..6c32c9f 100644
    data: RoundData;
    socket: RoundSocket;
    chessground: CgApi;
-@@ -155,6 +266,23 @@ export default class RoundController implements MoveRootCtrl {
+@@ -155,6 +290,23 @@ export default class RoundController implements MoveRootCtrl {
        this.redraw();
      });
  
@@ -4220,7 +4671,7 @@ index ca1efc8..6c32c9f 100644
      pubsub.on('zen', toggleZenMode);
  
      if (!this.opts.noab && this.isPlaying()) ab.init(this);
-@@ -167,6 +295,7 @@ export default class RoundController implements MoveRootCtrl {
+@@ -167,6 +319,7 @@ export default class RoundController implements MoveRootCtrl {
    };
  
    private readonly onUserMove = (orig: Key, dest: Key, meta: MoveMetadata) => {
@@ -4228,7 +4679,7 @@ index ca1efc8..6c32c9f 100644
      if (!this.keyboardMove?.usedSan && !this.opts.noab) ab.move(this, meta, pubsub.emit);
      if (!this.startPromotion(orig, dest, meta)) this.sendMove(orig, dest, undefined, meta);
    };
-@@ -198,10 +327,35 @@ export default class RoundController implements MoveRootCtrl {
+@@ -198,10 +351,35 @@ export default class RoundController implements MoveRootCtrl {
        this.keyboardMove?.justSelected(),
      );
  
@@ -4267,7 +4718,7 @@ index ca1efc8..6c32c9f 100644
  
    private readonly onNewPiece = (piece: Piece, key: Key): void => {
      if (piece.role === 'pawn' && (key[1] === '1' || key[1] === '8')) return;
-@@ -228,15 +382,20 @@ export default class RoundController implements MoveRootCtrl {
+@@ -228,15 +406,20 @@ export default class RoundController implements MoveRootCtrl {
  
    lastPly = (): number => util.lastPly(this.data);
  
@@ -4297,7 +4748,7 @@ index ca1efc8..6c32c9f 100644
  
    replaying = (): boolean => this.ply !== this.lastPly() && !this.data.local;
  
-@@ -253,11 +412,13 @@ export default class RoundController implements MoveRootCtrl {
+@@ -253,11 +436,13 @@ export default class RoundController implements MoveRootCtrl {
    isPlaying = (): boolean => game.isPlayerPlaying(this.data);
  
    jump = (ply: Ply): boolean => {
@@ -4311,7 +4762,7 @@ index ca1efc8..6c32c9f 100644
      const s = this.stepAt(ply);
      const config: CgConfig = {
        fen: s.fen,
-@@ -316,7 +477,9 @@ export default class RoundController implements MoveRootCtrl {
+@@ -316,7 +501,9 @@ export default class RoundController implements MoveRootCtrl {
    ): void => {
      const socketOpts: SocketSendOpts = {
        sign: this.sign,
@@ -4322,7 +4773,7 @@ index ca1efc8..6c32c9f 100644
      };
      if (this.clock) {
        socketOpts.withLag = !this.shouldSendMoveTime || !this.clock.isRunning();
-@@ -330,7 +493,7 @@ export default class RoundController implements MoveRootCtrl {
+@@ -330,7 +517,7 @@ export default class RoundController implements MoveRootCtrl {
          }
        }
      }
@@ -4331,54 +4782,162 @@ index ca1efc8..6c32c9f 100644
  
      this.justDropped = meta.justDropped;
      this.justCaptured = meta.justCaptured;
-@@ -370,6 +533,7 @@ export default class RoundController implements MoveRootCtrl {
+@@ -370,6 +557,7 @@ export default class RoundController implements MoveRootCtrl {
        this.redraw();
        return;
      }
-+    if (this.stackedPremoves()) this.optimisticFen = this.chessground.getFen();
++    if (this.stackedPremoves() && !meta.premove) this.optimisticFen = this.chessground.getFen();
      this.actualSendMove('move', move, { justCaptured: meta.captured, premove: meta.premove });
    };
  
-@@ -413,6 +577,11 @@ export default class RoundController implements MoveRootCtrl {
+@@ -413,6 +601,8 @@ export default class RoundController implements MoveRootCtrl {
    apiMove = (o: ApiMove): true => {
      const d = this.data;
      const playing = this.isPlaying();
-+    if (this.projected) {
-+      this.projected = false;
-+      ground.sync(this, this.stepAt(this.ply), playing);
-+    }
++    const projected = this.projected;
 +    this.optimisticFen = undefined;
      d.game.turns = o.ply;
      d.game.player = plyColor(o.ply);
      const playedColor = plyOpponentColor(o.ply);
-@@ -497,6 +666,8 @@ export default class RoundController implements MoveRootCtrl {
+@@ -427,34 +617,38 @@ export default class RoundController implements MoveRootCtrl {
+     this.setTitle();
+     if (!this.replaying()) {
+       this.ply++;
+-      if (o.role)
+-        this.chessground.newPiece(
+-          {
+-            role: o.role,
+-            color: playedColor,
+-          },
+-          o.uci.slice(2, 4) as Key,
+-        );
+-      else {
+-        // This block needs to be idempotent, even for castling moves in
+-        // Chess960.
+-        const keys = uciToMove(o.uci)!;
+-        const pieces = this.chessground.state.pieces;
+-        if (
+-          !o.castle ||
+-          (pieces.get(o.castle.king[0])?.role === 'king' && pieces.get(o.castle.rook[0])?.role === 'rook')
+-        ) {
+-          this.chessground.move(keys[0], keys[1]);
++      if (!projected) {
++        if (o.role)
++          this.chessground.newPiece(
++            {
++              role: o.role,
++              color: playedColor,
++            },
++            o.uci.slice(2, 4) as Key,
++          );
++        else {
++          // This block needs to be idempotent, even for castling moves in
++          // Chess960.
++          const keys = uciToMove(o.uci)!;
++          const pieces = this.chessground.state.pieces;
++          if (
++            !o.castle ||
++            (pieces.get(o.castle.king[0])?.role === 'king' && pieces.get(o.castle.rook[0])?.role === 'rook')
++          ) {
++            this.chessground.move(keys[0], keys[1]);
++          }
+         }
++        if (o.promotion) promote(this.chessground, o.promotion.key, o.promotion.pieceClass);
++        this.chessground.set({
++          turnColor: d.game.player,
++          movable: {
++            dests: playing ? util.parsePossibleMoves(d.possibleMoves) : new Map(),
++          },
++          check: !!o.check,
++        });
+       }
+-      if (o.promotion) promote(this.chessground, o.promotion.key, o.promotion.pieceClass);
+-      this.chessground.set({
+-        turnColor: d.game.player,
+-        movable: {
+-          dests: playing ? util.parsePossibleMoves(d.possibleMoves) : new Map(),
+-        },
+-        check: !!o.check,
+-      });
++      if (projected && playedColor !== d.player.color)
++        site.sound.move({ name: o.san.includes('x') ? 'capture' : 'move', filter: 'game' });
+       if (this.googlyEyes) this.chessground.setAutoShapes(this.googlyEyes());
+       if (o.status?.name === 'mate') {
+         site.sound.play('checkmate', o.volume);
+@@ -475,7 +669,6 @@ export default class RoundController implements MoveRootCtrl {
+       crazy: o.crazyhouse,
+     };
+     d.steps.push(step);
+-    if (this.ply === step.ply && this.chessground.getFen() !== step.fen) ground.sync(this, step, playing);
+     this.justDropped = undefined;
+     this.justCaptured = undefined;
+     game.setOnGame(d, playedColor, true);
+@@ -497,6 +690,27 @@ export default class RoundController implements MoveRootCtrl {
        if (this.data.steps.length > 2) this.data.expiration = undefined;
        else this.data.expiration.movedAt = Date.now();
      }
++    // Resolve a stacked premove before any authoritative position is rendered.
++    // Native single-premoves retain their existing delayed execution below.
++    const stackedTurn = !this.replaying() && playedColor !== d.player.color && this.stackedPremoves();
++    const premovePlayed = stackedTurn && this.playQueuedPremove();
++    if (this.ply === step.ply && !premovePlayed) {
++      if (
++        projected &&
++        this.isPlaying() &&
++        this.premoveSequence.moves.length &&
++        playedColor === d.player.color
++      ) {
++        // The server ack advances committed history, not the visible queued plan.
++        this.chessground.state.turnColor = d.opponent.color;
++        this.projectPremoves();
++      } else {
++        this.projected = false;
++        if (projected || this.chessground.getFen() !== step.fen) ground.sync(this, step, playing);
++      }
++    }
 +    if (!this.isPlaying()) this.clearQueuedPremoves();
-+    else if (playedColor === d.player.color) this.projectPremoves();
++    else if (playedColor === d.player.color && !projected) this.projectPremoves();
      this.redraw();
      if (playing && playedColor === d.player.color) {
        this.transientMove?.clear();
-@@ -509,10 +680,16 @@ export default class RoundController implements MoveRootCtrl {
+@@ -504,20 +718,28 @@ export default class RoundController implements MoveRootCtrl {
+       cevalSub.publish(d, o);
+     }
+     if (!this.replaying() && playedColor !== d.player.color) {
++      if (stackedTurn && !premovePlayed) this.showYourMoveNotification();
+       if (this.vibration() && 'vibrate' in navigator) navigator.vibrate(100);
+       // prevent race conditions with explosions and premoves
        // https://github.com/lichess-org/lila/issues/343
        const premoveDelay = d.game.variant.key === 'atomic' ? 100 : 1;
        const premovePly = this.ply;
 +      const queueGeneration = this.premoveSequence.generation;
        const premoveFen = step.fen;
-       setTimeout(() => {
-         if (this.ply !== premovePly || this.stepAt(this.ply).fen !== premoveFen) return;
+-      setTimeout(() => {
+-        if (this.ply !== premovePly || this.stepAt(this.ply).fen !== premoveFen) return;
 -        if (this.nvui) this.nvui.playPremove();
-+        if (this.stackedPremoves()) {
-+          if (queueGeneration !== this.premoveSequence.generation || !this.playQueuedPremove()) {
-+            this.clearQueuedPremoves();
+-        else if (!this.chessground.playPremove() && !this.playPredrop()) {
+-          this.promotion.cancel();
+-          this.showYourMoveNotification();
+-        }
+-      }, premoveDelay);
++      if (!stackedTurn)
++        setTimeout(() => {
++          if (this.ply !== premovePly || this.stepAt(this.ply).fen !== premoveFen) return;
++          if (this.stackedPremoves()) {
++            if (queueGeneration !== this.premoveSequence.generation || !this.playQueuedPremove()) {
++              this.clearQueuedPremoves();
++              this.showYourMoveNotification();
++            }
++          } else if (this.nvui) this.nvui.playPremove();
++          else if (!this.chessground.playPremove() && !this.playPredrop()) {
++            this.promotion.cancel();
 +            this.showYourMoveNotification();
 +          }
-+        } else if (this.nvui) this.nvui.playPremove();
-         else if (!this.chessground.playPremove() && !this.playPredrop()) {
-           this.promotion.cancel();
-           this.showYourMoveNotification();
-@@ -545,6 +722,8 @@ export default class RoundController implements MoveRootCtrl {
++        }, premoveDelay);
+     }
+     this.autoScroll();
+     this.onChange();
+@@ -545,6 +767,8 @@ export default class RoundController implements MoveRootCtrl {
    }
  
    reload = (d: RoundData): void => {
@@ -4387,7 +4946,7 @@ index ca1efc8..6c32c9f 100644
      const posChanged = d.steps.length !== this.data.steps.length;
      if (posChanged) this.ply = util.lastPly(d);
      util.upgradeServerData(d);
-@@ -572,6 +751,8 @@ export default class RoundController implements MoveRootCtrl {
+@@ -572,6 +796,8 @@ export default class RoundController implements MoveRootCtrl {
    };
  
    endWithData = (o: ApiEnd): void => {
@@ -4396,7 +4955,7 @@ index ca1efc8..6c32c9f 100644
      const d = this.data;
      const ply = this.lastPly();
      const step = this.stepAt(ply);
-@@ -981,6 +1162,7 @@ export default class RoundController implements MoveRootCtrl {
+@@ -981,6 +1207,7 @@ export default class RoundController implements MoveRootCtrl {
            if (!this.nvui && d.pref.submitMove) {
              site.mousetrap
                .bind('esc', () => {
@@ -5711,7 +6270,7 @@ index 0000000..5952fae
 +        )
 diff --git a/app/views/noSweatPatron.scala b/app/views/noSweatPatron.scala
 new file mode 100644
-index 0000000..5f44b6d
+index 0000000..ca58a41
 --- /dev/null
 +++ b/app/views/noSweatPatron.scala
 @@ -0,0 +1,96 @@
@@ -5733,7 +6292,7 @@ index 0000000..5f44b6d
 +          )
 +        )
 +      )
-+      .headAppend(script(src := assetPath("nosweat/nostr.js?lightning=2"), defer)):
++      .headAppend(script(src := assetPath("nosweat/nostr.js?lightning=3"), defer)):
 +        main(cls := "box box-pad", id := "nostr-patron", attr("data-pubkey") := pubkey.getOrElse(""))(
 +          div(cls := "patron-heading")(
 +            h1("Support Mute Chess"),
@@ -5804,7 +6363,7 @@ index 0000000..5f44b6d
 +          ),
 +          p(id := "patron-status", role := "status", aria.live := "polite"),
 +          div(cls := "patron-direct")(
-+            a(href := "lightning:eerieatlas700@walletofsatoshi.com")("eerieatlas700@walletofsatoshi.com"),
++            a(href := "lightning:dash@walletofsatoshi.com")("dash@walletofsatoshi.com"),
 +            a(href := "https://primal.net/p/npub1w6l8e4mqa4ruqs2vdvwhdxhp9ke9ax8kpncy2wy26tja3d7rzpgq06c9jl")(
 +              "Zap Mute Chess on Nostr"
 +            )
@@ -8000,10 +8559,10 @@ HcmV?d00001
 
 diff --git a/public/nosweat/brand.css b/public/nosweat/brand.css
 new file mode 100644
-index 0000000..87e787a
+index 0000000..ce0fa6c
 --- /dev/null
 +++ b/public/nosweat/brand.css
-@@ -0,0 +1,91 @@
+@@ -0,0 +1,101 @@
 +.site-title .nosweat-header-icon{width:38px;height:38px;margin-right:7px}.site-title .nosweat-wordmark{width:174px;height:50px;object-fit:contain}.nosweat-light{display:none}.light .nosweat-dark{display:none}.light .nosweat-light{display:block}.nosweat-login-wordmark{width:272px;max-width:100%;height:62px}.auth__brand{justify-content:center}@media(max-width:799px){.site-title .nosweat-wordmark{display:none!important}.site-title .nosweat-header-icon{width:36px;height:36px;margin:0}}
 +
 +main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-dark.svg")}.light main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-light.svg")}
@@ -8050,38 +8609,6 @@ index 0000000..87e787a
 +.nosweat-computed-glyph.mistake { color:#fd7e14; }
 +.nosweat-computed-glyph.blunder { color:#fa5252; }
 +
-+.nosweat-engine-lines { background:var(--c-bg-box); padding:.35em .6em; flex-shrink:0; }
-+.nosweat-maia-line { display:flex; gap:.5em; font-size:.85em; padding:.2em 0; line-height:1.5; }
-+.nosweat-maia-line strong { min-width:3.5em; }
-+.nosweat-maia-line span { overflow:hidden; text-overflow:ellipsis; }
-+.nosweat-candidate-panel { background:var(--c-bg-box); padding:.7em; border-radius:4px; margin-bottom:1em; min-width:0; }
-+.nosweat-panel-heading { display:flex; justify-content:space-between; align-items:center; gap:.3em; }
-+.nosweat-panel-heading h2 { font-size:1.15em; margin:0; }
-+.nosweat-panel-heading button { font-size:.8em; }
-+.nosweat-rating-inputs { display:flex; gap:.5em; margin:.7em 0; flex-wrap:wrap; }
-+.nosweat-rating-picker { display:flex; align-items:center; gap:.3em; flex:1; font-size:.9em; }
-+.nosweat-rating-picker select { min-width:0; padding:.3em; }
-+.nosweat-panel-note { display:block; color:var(--c-font-dim); font-size:.8em; margin:.5em 0; }
-+.nosweat-candidate-panel table { width:100%; border-collapse:collapse; font-size:.85em; }
-+.nosweat-candidate-panel th,.nosweat-candidate-panel td { padding:.35em .15em; border-bottom:1px solid var(--c-border); text-align:right; }
-+.nosweat-candidate-panel th:first-child,.nosweat-candidate-panel td:first-child { text-align:left; }
-+.nosweat-candidates small { display:block; font-size:.75em; color:var(--c-font-dim); }
-+.nosweat-candidate-panel .fbt { text-transform:none; }
-+.nosweat-panel-actions { display:flex; flex-wrap:wrap; gap:.25em; margin:.5em 0; }
-+.nosweat-panel-actions button { padding:.4em; font-size:.8em; }
-+.nosweat-rating-explorer { border-top:1px solid var(--c-border); margin-top:.7em; padding-top:.7em; }
-+.nosweat-rating-explorer summary { cursor:pointer; }
-+.nosweat-rating-explorer small { display:block; font-size:.8em; line-height:1.5; margin:.5em 0; color:var(--c-font-dim); }
-+.nosweat-rating-chart svg { width:100%; }
-+.nosweat-chart-legend { display:flex; flex-wrap:wrap; font-size:.8em; }
-+.nosweat-rating-scroll { max-width:100%; overflow:auto; }
-+.nosweat-rating-explorer .nosweat-ratings { min-width:320px; }
-+.nosweat-candidate-panel [role=status],.nosweat-candidate-panel .error { font-size:.85em; line-height:1.4; }
-+
-+.nosweat-maia-line { flex-wrap:wrap; column-gap:.5em; row-gap:0; }
-+.nosweat-maia-line > span:first-of-type { flex:1; min-width:0; }
-+.nosweat-maia-line .nosweat-maia-score { flex-basis:100%; margin-left:4em; font-size:.9em; color:var(--c-font-dim); }
-+
 +/* Keep the entry page focused on choosing a time control. */
 +.lobby.mutechess-play { width:100%; max-width:64em; margin-inline:auto; grid-template-columns:minmax(0,1fr); grid-template-rows:auto; grid-template-areas:'app' 'about'; }
 +.mutechess-play .lobby__table { display:contents; }
@@ -8095,6 +8622,48 @@ index 0000000..87e787a
 +.mutechess-info { max-width:52em; margin-inline:auto; line-height:1.7; overflow-wrap:anywhere; }
 +.mutechess-info nav { display:flex; flex-wrap:wrap; gap:1em; margin-bottom:1.5em; }
 +.mutechess-info h2 { margin-top:1.5em; }
++
++/* Two independent Maia channels; shared full-width rating explorer. */
++.nosweat-candidate-panel { min-width:0; margin-bottom:1em; }
++.nosweat-candidate-panel > h2 { margin:0 0 .65em; font-size:1.1em; }
++.nosweat-maia-cards { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.65em; align-items:start; }
++.nosweat-maia-cards:has(> :only-child) { grid-template-columns:1fr; }
++.nosweat-maia-card { min-width:0; background:var(--c-bg-box); border-radius:5px; overflow:hidden; }
++.nosweat-maia-card header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.2em .4em; padding:.65em .6em .35em; }
++.nosweat-maia-label { font-weight:bold; padding:.15em 0; border-radius:3px; text-align:left; font-size:.95em; }
++.nosweat-maia-label:hover { text-decoration:underline; text-underline-offset:.25em; }
++.nosweat-score { display:inline-flex; align-items:center; gap:.3em; font-size:.85em; white-space:nowrap; font-variant-numeric:tabular-nums; }
++.nosweat-score i { width:.55em; height:.55em; border-radius:50%; }
++.nosweat-policy-scroll { max-height:24em; overflow:auto; }
++.nosweat-policy { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
++.nosweat-policy th { font-size:.75rem; font-weight:normal; color:var(--c-font-dim); padding:.3em .8em; }
++.nosweat-policy th:first-child,.nosweat-policy td:first-child { text-align:left; }
++.nosweat-policy th:last-child,.nosweat-policy td:last-child { text-align:right; }
++.nosweat-policy td { padding:.25em .6em; font-size:.9em; }
++.nosweat-policy button { color:var(--c-good); text-transform:none; padding:.25em 0; }
++.nosweat-others { display:flex; justify-content:space-between; gap:.3em; padding:.65em .75em; font-size:.8em; width:100%; border-top:1px solid var(--c-border); color:var(--c-font-dim); }
++.nosweat-others:hover { background:var(--c-bg-low); }
++.nosweat-maia-empty { padding:1em .6em; color:var(--c-font-dim); font-size:.85em; }
++.nosweat-rating-explorer { background:var(--c-bg-box); padding:.75em; border-radius:5px; margin-top:.75em; }
++.nosweat-rating-explorer h3 { margin:0 0 .6em; font-size:1em; }
++.nosweat-rating-explorer summary { font-size:.85em; margin-top:.6em; }
++.nosweat-return { margin-top:.5em; font-size:.8em; }
++.nosweat-rating-dialog { width:min(24em,90vw); padding:1.5em; }
++.nosweat-rating-dialog h2 { margin:0 0 1em; font-size:1.4em; }
++.nosweat-rating-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:.4em; }
++.nosweat-rating-grid button { padding:.65em .3em; border-radius:4px; background:var(--c-bg-low); }
++.nosweat-rating-grid button[aria-pressed=true] { background:var(--c-primary); color:var(--c-primary-over); }
++.nosweat-candidate-panel [role=status],.nosweat-candidate-panel .error { font-size:.8em; margin:.7em .2em; }
++.nosweat-summary table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
++.nosweat-summary th { color:var(--c-font-dim); font-weight:normal; padding:.4em; max-width:8em; overflow-wrap:anywhere; }
++.nosweat-summary td { padding:.2em .4em; text-align:right; }
++.nosweat-summary td:first-child { text-align:left; }
++.nosweat-summary td button { min-width:2em; padding:.15em; }
++.nosweat-summary .accuracy td { border-top:1px solid var(--c-border); padding-top:.7em; font-weight:bold; }
++.nosweat-summary > .button { margin-top:1em; }
++.nosweat-review-settings { margin-top:1.5em; }
++.nosweat-review-quality { display:flex; gap:1em; flex-wrap:wrap; margin:1em 0; }
++.nosweat-review-quality label { display:flex; align-items:center; gap:.4em; }
 diff --git a/public/nosweat/favicon-32.png b/public/nosweat/favicon-32.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..4261e6d916997479521a76cde8d32c2f0eee3236
@@ -9077,10 +9646,10 @@ index 0000000..ec4cc78
 +};
 diff --git a/ui/analyse/src/noSweatAnalysis.ts b/ui/analyse/src/noSweatAnalysis.ts
 new file mode 100644
-index 0000000..dd369f4
+index 0000000..df1eaf1
 --- /dev/null
 +++ b/ui/analyse/src/noSweatAnalysis.ts
-@@ -0,0 +1,758 @@
+@@ -0,0 +1,726 @@
 +import type { DrawShape } from '@lichess-org/chessground/draw';
 +import { parseUci } from 'chessops/util';
 +import { attributesModule, classModule, init } from 'snabbdom';
@@ -9089,23 +9658,14 @@ index 0000000..dd369f4
 +import { winningChances } from 'lib/ceval';
 +import { maiaExpectedScore } from 'lib/nosweat/expectedScore';
 +import { storage } from 'lib/storage';
-+import { hl, type VNode } from 'lib/view';
++import { domDialog, hl, type VNode } from 'lib/view';
 +
 +import type AnalyseCtrl from './ctrl';
 +import { engineArrows, engineShapes, engineColors } from './noSweatArrows';
-+import {
-+  encodeHistory,
-+  policy,
-+  san,
-+  scoreText,
-+  position,
-+  standardUci,
-+  legalUcis,
-+  leadingPolicy,
-+  type Candidate,
-+} from './noSweatCore';
++import { encodeHistory, policy, san, position, standardUci, legalUcis, type Candidate } from './noSweatCore';
 +import { reviewClick } from './noSweatEvents';
 +import { ReviewFish, type Review } from './noSweatFish';
++import { gameReviewQualities, gameReviewQuality } from './noSweatFullReview';
 +import { readEnginePreferences, type EnginePreferences } from './noSweatPreferences';
 +import { ratingSamples as samples, ratingChart } from './noSweatRatingChart';
 +
@@ -9225,7 +9785,7 @@ index 0000000..dd369f4
 +    const toggle = (key: 'history' | 'maiaArrows' | 'fishArrows' | 'secondMaiaEnabled', name: string) =>
 +      `<label class="setting"><span>${name}</span><input type="checkbox" data-engine-pref="${key}" ${this[key] ? 'checked' : ''}></label>`;
 +    const options: [string, string][] = ratings.map(n => [String(n), String(n)]);
-+    const view = frag<HTMLElement>(`<fieldset class="nosweat-engine-settings"><legend>Engines</legend>
++    const view = frag<HTMLElement>(`<div><fieldset class="nosweat-engine-settings"><legend>Engines</legend>
 +      ${select('model', 'Maia model', [
 +        ['5m', 'Maia3 5M · light'],
 +        ['79m', 'Maia3 79M'],
@@ -9234,7 +9794,9 @@ index 0000000..dd369f4
 +      ${toggle('secondMaiaEnabled', 'Second Maia')}${select('secondMaiaElo', 'Second Maia rating', options)}
 +      ${toggle('history', 'Use move history')}${toggle('maiaArrows', 'Show Maia arrows')}${toggle('fishArrows', 'Show Stockfish arrows')}
 +      <small>Maia downloads 36 MB for 5M or 331 MB for 79M on first use. Ratings are model inputs, not calibrated Elo.</small>
-+      </fieldset>`);
++      </fieldset><fieldset class="nosweat-review-settings"><legend>Whole-game analysis</legend>
++      <div class="nosweat-review-quality">${gameReviewQualities.map(q => `<label><input type="radio" name="nosweat-review-quality" value="${q.name}" ${q.name === gameReviewQuality(storage.get('nosweat.gameReview.quality')).name ? 'checked' : ''}><span>${q.name}</span></label>`).join('')}</div>
++      <button type="button" class="button button-empty nosweat-review-engine">Engine settings</button></fieldset></div>`);
 +    view.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-engine-pref]').forEach(input => {
 +      input.addEventListener('change', () => {
 +        const key = input.dataset.enginePref as keyof EnginePreferences;
@@ -9253,6 +9815,11 @@ index 0000000..dd369f4
 +        this.refreshReview();
 +      });
 +    });
++    view.querySelectorAll<HTMLInputElement>('input[name="nosweat-review-quality"]').forEach(input => {
++      input.onchange = () => storage.set('nosweat.gameReview.quality', input.value);
++    });
++    view.querySelector<HTMLButtonElement>('.nosweat-review-engine')!.onclick = () =>
++      site.asset.loadEsm('analyse.local', { init: this.ctrl });
 +    return view;
 +  }
 +  private readonly analysisAllowed = (): boolean =>
@@ -9442,10 +10009,7 @@ index 0000000..dd369f4
 +      ? (this.ctrl.node.ceval?.pvs ?? []).slice(0, 2)
 +      : [];
 +  }
-+  private scoreFor(uci: string): Scored | undefined {
-+    const line = this.nativeLines().find(pv => this.normalUci(pv.moves[0]) === uci);
-+    return line ? { score: line, depth: this.ctrl.node.ceval!.depth } : this.scores.get(uci);
-+  }
++
 +  private currentFishBest(): string | undefined {
 +    return this.normalUci(this.nativeLines()[0]?.moves[0]) ?? this.fishBest;
 +  }
@@ -9589,181 +10153,154 @@ index 0000000..dd369f4
 +      this.ctrl.bottomColor(),
 +    );
 +  }
-+  view(): VNode | undefined {
-+    if (!this.analysisAllowed()) return undefined;
++  private readonly expanded = [false, false];
++
++  private openRating(secondary: boolean): void {
++    const value = secondary ? this.secondMaiaElo : this.selfElo;
++    domDialog({
++      class: 'nosweat-rating-dialog',
++      modal: true,
++      show: true,
++      easyClose: 'clickOutside',
++      focus: '[aria-pressed="true"]',
++      htmlText: `<h2>Maia rating</h2><div class="nosweat-rating-grid">${ratings
++        .map(
++          n =>
++            `<button type="button" class="fbt" data-rating="${n}" aria-pressed="${n === value}">${n}</button>`,
++        )
++        .join('')}</div>`,
++      actions: [
++        {
++          selector: '[data-rating]',
++          listener: (event, dialog) => {
++            this.chooseRating(Number((event.currentTarget as HTMLElement).dataset.rating), secondary);
++            dialog.close();
++          },
++        },
++      ],
++    });
++  }
++
++  private maiaCard(secondary: boolean): VNode {
++    const rating = secondary ? this.secondMaiaElo : this.selfElo;
++    const candidates = secondary ? this.secondaryCandidates : this.candidates;
++    const score = secondary ? this.secondaryExpectedScore : this.expectedScore;
++    const color = secondary ? engineColors.maiaSecond : engineColors.maia;
 +    const side = position(this.ctrl.node.fen).turn === 'white' ? 'White' : 'Black';
-+    const row = (rating: number, candidates: Candidate[], secondary: boolean) =>
-+      hl('div.nosweat-maia-line', [
++    const expanded = this.expanded[Number(secondary)];
++    const rest = candidates.slice(4).reduce((sum, c) => sum + c.probability, 0);
++    return hl('section.nosweat-maia-card', { attrs: { 'aria-label': `Maia ${rating}` } }, [
++      hl('header', [
 +        hl(
-+          'strong',
-+          { attrs: { style: 'color:' + (secondary ? engineColors.maiaSecond : engineColors.maia) } },
-+          'M' + rating,
-+        ),
-+        hl(
-+          'span',
-+          candidates.length
-+            ? leadingPolicy(this.ctrl.node.fen, candidates)
-+            : position(this.ctrl.node.fen).isEnd()
-+              ? 'No legal moves'
-+              : !this.enabled
-+                ? 'Off'
-+                : this.status
-+                  ? 'Analyzing…'
-+                  : 'Unavailable',
-+        ),
-+        hl(
-+          'span.nosweat-maia-score',
++          'button.nosweat-maia-label',
 +          {
 +            attrs: {
-+              title: `Maia expected score for ${side}, the side to move: win probability plus half the draw probability.`,
++              type: 'button',
++              style: 'color:' + color,
++              'aria-label': `Change ${secondary ? 'second' : 'primary'} Maia rating, ${rating}`,
++              'aria-haspopup': 'dialog',
 +            },
++            hook: reviewClick(() => this.openRating(secondary)),
 +          },
-+          `${side} score ${(() => {
-+            const score = secondary ? this.secondaryExpectedScore : this.expectedScore;
-+            return score === undefined ? '—' : (score * 100).toFixed(1) + '%';
-+          })()}`,
-+        ),
-+      ]);
-+    return hl('section.nosweat-engine-lines', { attrs: { 'aria-label': 'Maia analysis channels' } }, [
-+      row(this.selfElo, this.candidates, false),
-+      this.secondMaiaEnabled && row(this.secondMaiaElo, this.secondaryCandidates, true),
-+    ]);
-+  }
-+  private candidateView(): VNode {
-+    const fen = this.ctrl.node.fen;
-+    const button = (text: string, action: () => void, disabled = false) =>
-+      hl(
-+        'button.fbt',
-+        {
-+          attrs: { type: 'button', disabled },
-+          hook: reviewClick(action),
-+        },
-+        text,
-+      );
-+    const likelihood = (values: Candidate[], uci: string) =>
-+      values.length ? ((values.find(c => c.uci === uci)?.probability ?? 0) * 100).toFixed(1) + '%' : '—';
-+    const rating = (secondary: boolean) => {
-+      const value = secondary ? this.secondMaiaElo : this.selfElo;
-+      return hl('label.nosweat-rating-picker', [
-+        hl(
-+          'span',
-+          { attrs: { style: 'color:' + (secondary ? engineColors.maiaSecond : engineColors.maia) } },
-+          secondary ? 'Maia 2' : 'Maia 1',
++          'Maia ' + rating,
 +        ),
 +        hl(
-+          'select',
++          'span.nosweat-score',
 +          {
-+            attrs: { 'aria-label': secondary ? 'Second Maia rating' : 'Primary Maia rating' },
-+            hook: {
-+              insert: vnode => {
-+                const input = vnode.elm as HTMLSelectElement;
-+                input.value = String(value);
-+                input.onchange = () => this.chooseRating(Number(input.value), secondary);
-+              },
-+              update: (_, vnode) => {
-+                (vnode.elm as HTMLSelectElement).value = String(value);
-+              },
++            attrs: {
++              title: `${side} expected score: win probability plus half draw probability`,
++              'aria-label': `${side} expected score ${score === undefined ? 'unavailable' : (score * 100).toFixed(1) + '%'}`,
 +            },
 +          },
-+          ratings.map(n => hl('option', { attrs: { value: n } }, String(n))),
++          [
++            hl('i', {
++              attrs: {
++                style: `background:${score === undefined ? 'var(--c-font-dim)' : score >= 0.55 ? '#12b886' : score <= 0.45 ? '#fa5252' : '#fab005'}`,
++              },
++            }),
++            score === undefined ? '—' : (score * 100).toFixed(1) + '%',
++          ],
 +        ),
-+      ]);
-+    };
-+    const played = this.played();
-+    return hl(
-+      'section.nosweat-candidate-panel',
-+      { attrs: { 'aria-label': 'Candidate moves and rating explorer' } },
-+      [
-+        hl('div.nosweat-panel-heading', [hl('h2', 'Candidate moves')]),
-+        hl('div.nosweat-rating-inputs', [rating(false), this.secondMaiaEnabled && rating(true)]),
-+        this.returnPath !== undefined && hl('small', 'Selected: ' + (this.ctrl.node.san ?? 'position')),
-+        this.returnPath !== undefined &&
-+          button('Return to original position', () => {
-+            const path = this.returnPath!;
-+            this.returnPath = undefined;
-+            this.ctrl.userJump(path);
-+            this.ctrl.redraw();
-+          }),
-+        this.enabled &&
-+          hl('div', [
-+            this.rows().length > 0 &&
-+              hl('table.nosweat-candidates', [
-+                hl(
-+                  'thead',
-+                  hl('tr', [
-+                    hl('th', 'Move'),
-+                    hl('th', { attrs: { style: 'color:' + engineColors.maia } }, 'M' + this.selfElo),
-+                    this.secondMaiaEnabled &&
-+                      hl(
-+                        'th',
-+                        { attrs: { style: 'color:' + engineColors.maiaSecond } },
-+                        'M' + this.secondMaiaElo,
-+                      ),
-+                    hl('th', 'SF'),
-+                  ]),
-+                ),
-+                hl(
-+                  'tbody',
-+                  this.rows().map(c => {
-+                    const scored = this.scoreFor(c.uci);
-+                    return hl('tr', { key: fen + c.uci, attrs: { 'data-move': c.uci } }, [
-+                      hl('td', [
-+                        button(san(fen, c.uci), () => this.preview(c.uci)),
-+                        c.uci === played && hl('small', 'Played'),
-+                        c.uci === this.currentFishBest() && hl('small', 'SF choice'),
-+                      ]),
-+                      hl('td', likelihood(this.candidates, c.uci)),
-+                      this.secondMaiaEnabled && hl('td', likelihood(this.secondaryCandidates, c.uci)),
++      ]),
++      candidates.length
++        ? hl('div.nosweat-policy-scroll', [
++            hl('table.nosweat-policy', [
++              hl('thead', hl('tr', [hl('th', 'Move'), hl('th', 'Probability')])),
++              hl(
++                'tbody',
++                candidates
++                  .slice(0, expanded ? undefined : 4)
++                  .map(c =>
++                    hl('tr', { key: this.ctrl.node.fen + c.uci }, [
 +                      hl(
 +                        'td',
-+                        { attrs: { title: scored ? 'Stockfish depth ' + scored.depth : 'Not evaluated' } },
-+                        scored
-+                          ? scoreText(scored.score)
-+                          : this.scores.has(c.uci)
-+                            ? this.compareBusy
-+                              ? 'Pending…'
-+                              : 'Unavailable'
-+                            : '—',
++                        hl(
++                          'button.fbt',
++                          { attrs: { type: 'button' }, hook: reviewClick(() => this.preview(c.uci)) },
++                          san(this.ctrl.node.fen, c.uci),
++                        ),
 +                      ),
-+                    ]);
-+                  }),
-+                ),
-+              ]),
-+            hl('div.nosweat-panel-actions', [
-+              button(
-+                'Compare candidates',
-+                this.compare,
-+                this.compareBusy || (!this.candidates.length && !this.secondaryCandidates.length),
++                      hl('td', (c.probability * 100).toFixed(1) + '%'),
++                    ]),
++                  ),
 +              ),
-+              button(this.allMoves ? 'Top candidates' : 'All legal moves', () => {
-+                this.allMoves = !this.allMoves;
-+                this.ctrl.redraw();
-+              }),
 +            ]),
-+            hl(
-+              'details.nosweat-rating-explorer',
-+              {
-+                attrs: { open: this.ratingTable },
-+                hook: {
-+                  insert: vnode => {
-+                    (vnode.elm as HTMLDetailsElement).ontoggle = event => {
-+                      this.ratingTable = (event.target as HTMLDetailsElement).open;
-+                      if (this.ratingTable && this.candidates.length) this.sampleRatings();
-+                    };
-+                  },
-+                },
-+              },
-+              [
-+                hl('summary', 'Moves by Rating'),
-+                this.renderRatingChart(),
-+                hl('details', [hl('summary', 'Move probabilities'), this.renderRatings()]),
-+              ],
-+            ),
-+            this.status && hl('p', { attrs: { role: 'status' } }, this.status),
-+            this.error && hl('p.error', { attrs: { role: 'alert' } }, this.error),
-+          ]),
-+      ],
-+    );
++          ])
++        : hl(
++            'p.nosweat-maia-empty',
++            !this.enabled
++              ? 'Analysis off'
++              : position(this.ctrl.node.fen).isEnd()
++                ? 'No legal moves'
++                : this.error
++                  ? 'Unavailable'
++                  : 'Analyzing…',
++          ),
++      candidates.length > 4 &&
++        hl(
++          'button.nosweat-others',
++          {
++            attrs: { type: 'button', 'aria-expanded': expanded },
++            hook: reviewClick(() => {
++              this.expanded[Number(secondary)] = !expanded;
++              this.ctrl.redraw();
++            }),
++          },
++          [
++            hl('span', expanded ? 'Leading moves' : 'Others'),
++            hl('span', expanded ? '−' : (rest * 100).toFixed(1) + '% +'),
++          ],
++        ),
++    ]);
++  }
++
++  private candidateView(): VNode {
++    return hl('section.nosweat-candidate-panel', { attrs: { 'aria-label': 'Maia analysis' } }, [
++      hl('h2', 'Maia'),
++      hl('div.nosweat-maia-cards', [this.maiaCard(false), this.secondMaiaEnabled && this.maiaCard(true)]),
++      this.returnPath !== undefined &&
++        hl(
++          'button.fbt.nosweat-return',
++          {
++            attrs: { type: 'button' },
++            hook: reviewClick(() => {
++              const path = this.returnPath!;
++              this.returnPath = undefined;
++              this.ctrl.userJump(path);
++              this.ctrl.redraw();
++            }),
++          },
++          'Return to game position',
++        ),
++      this.enabled &&
++        hl('section.nosweat-rating-explorer', [
++          hl('h3', 'Moves by Rating'),
++          this.renderRatingChart(),
++          hl('details', [hl('summary', 'Move probabilities'), this.renderRatings()]),
++        ]),
++      this.error && hl('p.error', { attrs: { role: 'alert' } }, this.error),
++      !this.error && this.status && hl('p', { attrs: { role: 'status' } }, this.status),
++    ]);
 +  }
 +  private chooseRating(rating: number, secondary = false, keepOpponent = false): void {
 +    if (secondary) this.secondMaiaElo = rating;
@@ -10416,6 +10953,135 @@ index 0000000..36b0e3f
 +    this.engine = undefined;
 +    this.protocol = undefined;
 +  }
++}
+diff --git a/ui/analyse/src/noSweatFullReview.ts b/ui/analyse/src/noSweatFullReview.ts
+new file mode 100644
+index 0000000..a1b7d9f
+--- /dev/null
++++ b/ui/analyse/src/noSweatFullReview.ts
+@@ -0,0 +1,123 @@
++// Mobile Maia / En Croissant annotations over native Lichess analysis.
++// Accuracy, ACPL, best lines and Learn from your mistakes stay native.
++import { parseUci } from 'chessops/util';
++
++import type { Glyph, TreeNodeBase } from 'lib/tree/types';
++
++import { type Annotation, type ClassificationInput, type ClassificationResult } from './noSweatClassify';
++import { legalUcis, position, standardUci, terminalScore } from './noSweatCore';
++import type { Review } from './noSweatFish';
++
++export const reviewSource = 'mobile-maia-full-review-v1';
++export const moveClasses = [
++  { symbol: '!!', id: 3, name: 'Brilliant', color: '#15aabf' },
++  { symbol: '!', id: 1, name: 'Good', color: '#12b886' },
++  { symbol: '!?', id: 5, name: 'Interesting', color: '#82c91e' },
++  { symbol: '?!', id: 6, name: 'Dubious', color: '#fab005' },
++  { symbol: '?', id: 2, name: 'Mistake', color: '#fd7e14' },
++  { symbol: '??', id: 4, name: 'Blunder', color: '#fa5252' },
++] as const;
++export const qualityGlyph = (symbol: Annotation): Glyph | undefined => {
++  const c = moveClasses.find(c => c.symbol === symbol);
++  return c && { id: c.id, name: c.name, symbol, comp: true, source: reviewSource };
++};
++
++export const gameReviewQualities = [
++  { name: 'Fast', depth: 12, movetime: 500 },
++  { name: 'Balanced', depth: 14, movetime: 1000 },
++  { name: 'Thorough', depth: 16, movetime: 1500 },
++] as const;
++export const gameReviewQuality = (name: string | null) =>
++  gameReviewQualities.find(q => q.name === name) ?? gameReviewQualities[0];
++
++export function nativeReview(node: TreeNodeBase): Review | undefined {
++  const terminal = terminalScore(node.fen);
++  if (terminal)
++    return {
++      current: { depth: 99, lines: [{ ...terminal, moves: [] }] },
++      terminal: true,
++      quality: reviewSource,
++    };
++  const evals = node.eval?.pvs;
++  if (!evals || evals.length < Math.min(2, legalUcis(node.fen).length)) return undefined;
++  const pos = position(node.fen);
++  const lines = evals.slice(0, 2).map(pv => ({
++    ...pv,
++    moves: pv.moves.split(' ').map((uci, i) => {
++      const move = parseUci(uci);
++      return i === 0 && move ? standardUci(pos, move) : uci;
++    }),
++  }));
++  if (new Set(lines.map(l => l.moves[0])).size !== lines.length) return undefined;
++  return { current: { depth: node.eval?.depth ?? 0, lines }, quality: reviewSource };
++}
++
++interface Dependencies {
++  classify(input: ClassificationInput, signal: AbortSignal): Promise<ClassificationResult>;
++  search(fen: string, signal: AbortSignal, depth: number, time: number): Promise<Review>;
++}
++export class FullGameClassifier {
++  constructor(private readonly deps: Dependencies) {}
++  async run(
++    nodes: TreeNodeBase[],
++    signal: AbortSignal,
++    current: () => boolean,
++    progress: (done: number, total: number) => void,
++    quality: { depth: number; movetime: number } = gameReviewQualities[0],
++  ): Promise<Map<number, Annotation>> {
++    const valid = () => {
++      if (signal.aborted || !current()) throw new Error('Cancelled');
++    };
++    const results = new Map<number, Annotation>();
++    const confirmations = new Map<string, Review>();
++    for (let i = 1; i < nodes.length; i++) {
++      valid();
++      progress(i - 1, nodes.length - 1);
++      if (!nodes[i].uci || nodes[i].glyphs?.some(g => !g.comp && g.id >= 1 && g.id <= 6)) continue;
++      const window = nodes.slice(Math.max(0, i - 2), i + 1);
++      const reviews = window.map(nativeReview);
++      if (reviews.some(r => !r)) continue;
++      const before = window[window.length - 2];
++      const move = parseUci(nodes[i].uci!);
++      if (!move) continue;
++      const input = {
++        positions: window.map(n => n.fen),
++        reviews: reviews as Review[],
++        move: standardUci(position(before.fen), move),
++      };
++      let result = await this.deps.classify(input, signal);
++      valid();
++      const provisional = result.provisional ?? result.symbol;
++      if (provisional === '!!' || provisional === '!') {
++        const confirmation: Review[] = [];
++        for (const [n, node] of window.entries()) {
++          valid();
++          const depth = Math.max(quality.depth + 2, input.reviews[n].current.depth + 2);
++          const key = node.fen + ':' + depth;
++          if (!confirmations.has(key))
++            confirmations.set(key, {
++              ...(await this.deps.search(node.fen, signal, depth, quality.movetime * 2)),
++              quality: reviewSource,
++            });
++          confirmation.push(confirmations.get(key)!);
++        }
++        result = await this.deps.classify({ ...input, confirmation }, signal);
++        valid();
++      }
++      if (!result.withheld) results.set(nodes[i].ply, result.symbol);
++    }
++    valid();
++    progress(nodes.length - 1, nodes.length - 1);
++    return results;
++  }
++}
++
++export function classificationCounts(nodes: TreeNodeBase[], color: Color): number[] {
++  const counts = moveClasses.map(() => 0);
++  for (const node of nodes) {
++    if (!node.uci || (node.ply % 2 === 1 ? 'white' : 'black') !== color) continue;
++    const category = moveClasses.findIndex(c => node.glyphs?.some(g => g.id === c.id));
++    if (category !== -1) counts[category]++;
++  }
++  return counts;
 +}
 diff --git a/ui/analyse/src/noSweatPreferences.ts b/ui/analyse/src/noSweatPreferences.ts
 new file mode 100644
@@ -28025,6 +28691,59 @@ index 0000000..d00400d
 +    }
 +  ]
 +}
+diff --git a/ui/analyse/tests/localReviewStart.test.ts b/ui/analyse/tests/localReviewStart.test.ts
+new file mode 100644
+index 0000000..3c938d9
+--- /dev/null
++++ b/ui/analyse/tests/localReviewStart.test.ts
+@@ -0,0 +1,47 @@
++import type { ChartGame } from 'chart';
++import assert from 'node:assert/strict';
++import { mock, test } from 'node:test';
++
++import type { Dialog } from 'lib/view';
++
++import type AnalyseCtrl from '../src/ctrl';
++
++let resolveDivision: (value: unknown) => void;
++let searches = 0;
++class DeferredEngine {
++  busy = false;
++  nodes = [];
++  getDivision() {
++    return new Promise(resolve => {
++      resolveDivision = resolve;
++    });
++  }
++  analyse() {
++    searches++;
++    throw new Error('a cancelled review must not start');
++  }
++  stop() {}
++}
++mock.module('../src/study/studyChapters.ts', { namedExports: { isFinished: () => false } });
++mock.module('../src/local/localAnalysisEngine.ts', { namedExports: { LocalAnalysisEngine: DeferredEngine } });
++document.documentElement.lang = 'en-US';
++const { LocalAnalysisDialog } = await import('../src/local/localAnalysisDialog');
++
++test('automatic review redraws immediately and cannot start work after closing during preparation', async () => {
++  localStorage.clear();
++  const ctrl = {
++    noSweat: {},
++    ceval: {
++      rules: 'chess',
++      engines: { supporting: () => [{ id: '__sf_19_smallnet', minThreads: 1, maxThreads: 2 }] },
++    },
++  } as unknown as AnalyseCtrl;
++  const state = new LocalAnalysisDialog(ctrl, {} as ChartGame);
++  let redraws = 0;
++  const pending = state.analyse({ dialog: { open: true } } as Dialog, () => redraws++);
++  assert.ok(redraws > 0, 'preparation must immediately replace the settings screen');
++  state.close();
++  resolveDivision({});
++  await pending;
++  assert.equal(searches, 0);
++});
 diff --git a/ui/analyse/tests/noSweat.test.ts b/ui/analyse/tests/noSweat.test.ts
 new file mode 100644
 index 0000000..416aaa6
@@ -28315,6 +29034,166 @@ index 0000000..e9340bd
 +  const clean = { ...nodes[1] } as TreeNodeLite;
 +  mergeReviewData(clean, from);
 +  assert.equal(clean.glyphs?.[0].source, 'mobile-maia-brilliant-v1');
++});
+diff --git a/ui/analyse/tests/noSweatFullGame.test.ts b/ui/analyse/tests/noSweatFullGame.test.ts
+new file mode 100644
+index 0000000..0b745ce
+--- /dev/null
++++ b/ui/analyse/tests/noSweatFullGame.test.ts
+@@ -0,0 +1,154 @@
++import assert from 'node:assert/strict';
++import { readFileSync } from 'node:fs';
++import { test } from 'node:test';
++
++import type { TreeNodeBase } from 'lib/tree/types';
++
++import { classify } from '../src/noSweatClassify';
++import { legalUcis, position } from '../src/noSweatCore';
++import {
++  classificationCounts,
++  FullGameClassifier,
++  gameReviewQuality,
++  nativeReview,
++  qualityGlyph,
++  reviewSource,
++} from '../src/noSweatFullReview';
++import { SearchSnapshots } from '../src/noSweatSnapshots';
++
++const game = JSON.parse(
++  readFileSync(new URL('./fixtures/noSweat/stockfish18-fast.json', import.meta.url), 'utf8'),
++).runs.find((g: any) => g.name === 'opera-1858');
++function node(index: number): TreeNodeBase {
++  const snapshots = new SearchSnapshots(
++    new Set(legalUcis(game.positions[index])),
++    Math.min(2, legalUcis(game.positions[index]).length),
++    position(game.positions[index]).turn === 'white',
++  );
++  game.scores[index].raw.forEach((line: string) => snapshots.add(line));
++  const review = snapshots.completed!;
++  return {
++    ply: index,
++    fen: game.positions[index],
++    uci: index ? game.moves[index - 1] : undefined,
++    eval: {
++      ...review.lines[0],
++      depth: review.depth,
++      pvs: review.lines.map(pv => ({ ...pv, moves: pv.moves.join(' ') })),
++    },
++  } as TreeNodeBase;
++}
++test('Fast is bounded and old/invalid quality values fall back to the lightweight preset', () => {
++  assert.deepEqual(gameReviewQuality(null), { name: 'Fast', depth: 12, movetime: 500 });
++  assert.equal(gameReviewQuality('bad').name, 'Fast');
++  assert.equal(gameReviewQuality('Balanced').depth, 14);
++  assert.equal(gameReviewQuality('Thorough').movetime, 1500);
++});
++test('native complete two-PV data produces the independently confirmed Opera brilliant', async () => {
++  const nodes = [node(18), node(19)];
++  const calls: { depth: number; time: number }[] = [];
++  const classifier = new FullGameClassifier({
++    classify: async input => classify(input),
++    search: async (fen, _signal, depth, time) => {
++      calls.push({ depth, time });
++      return nativeReview(nodes.find(n => n.fen === fen)!)!;
++    },
++  });
++  const result = await classifier.run(
++    nodes,
++    new AbortController().signal,
++    () => true,
++    () => {},
++  );
++  assert.equal(result.get(19), '!!');
++  assert.equal(calls.length, 2);
++  assert.ok(calls.every(c => c.depth >= 14 && c.time === 1000));
++  assert.equal(qualityGlyph(result.get(19)!)?.source, reviewSource);
++});
++test('a stronger-window veto withholds a standout; cancellation prevents publication', async () => {
++  const nodes = [node(18), node(19)];
++  const classifier = new FullGameClassifier({
++    classify: async input =>
++      input.confirmation ? { ...classify(input), symbol: '', withheld: true } : classify(input),
++    search: async fen => nativeReview(nodes.find(n => n.fen === fen)!)!,
++  });
++  assert.equal(
++    (
++      await classifier.run(
++        nodes,
++        new AbortController().signal,
++        () => true,
++        () => {},
++      )
++    ).has(19),
++    false,
++  );
++  const aborted = new AbortController();
++  const cancelling = new FullGameClassifier({
++    classify: async input => {
++      aborted.abort();
++      return classify(input);
++    },
++    search: async () => {
++      throw new Error('must not search after cancellation');
++    },
++  });
++  await assert.rejects(
++    cancelling.run(
++      nodes,
++      aborted.signal,
++      () => true,
++      () => {},
++    ),
++    /Cancelled/,
++  );
++});
++test('imported annotations are protected and missing/duplicate roots are not classified', async () => {
++  let classified = 0;
++  const classifier = new FullGameClassifier({
++    classify: async input => {
++      classified++;
++      return classify(input);
++    },
++    search: async () => {
++      throw new Error('no search expected');
++    },
++  });
++  const imported = { ...node(19), glyphs: [{ id: 5, symbol: '!?', name: 'Imported' }] };
++  assert.equal(
++    (
++      await classifier.run(
++        [node(18), imported],
++        new AbortController().signal,
++        () => true,
++        () => {},
++      )
++    ).size,
++    0,
++  );
++  const incomplete = node(18);
++  incomplete.eval!.pvs = incomplete.eval!.pvs.slice(0, 1);
++  assert.equal(nativeReview(incomplete), undefined);
++  assert.equal(
++    (
++      await classifier.run(
++        [incomplete, node(19)],
++        new AbortController().signal,
++        () => true,
++        () => {},
++      )
++    ).size,
++    0,
++  );
++  assert.equal(classified, 0);
++});
++test('summary counts the actual moving side, including games from a nonzero initial ply', () => {
++  const nodes = [
++    { ply: 18, fen: '', glyphs: [qualityGlyph('??')!] },
++    { ply: 19, fen: '', uci: 'c3b5', glyphs: [qualityGlyph('!!')!] },
++    { ply: 20, fen: '', uci: 'a6b5', glyphs: [qualityGlyph('?!')!] },
++    { ply: 21, fen: '', uci: 'd1d2', glyphs: [{ id: 5, name: 'Imported', symbol: '!?' }] },
++  ] as TreeNodeBase[];
++  assert.deepEqual(classificationCounts(nodes, 'white'), [1, 0, 1, 0, 0, 0]);
++  assert.deepEqual(classificationCounts(nodes, 'black'), [0, 0, 0, 1, 0, 0]);
 +});
 diff --git a/ui/analyse/tests/noSweatFullReview.test.ts b/ui/analyse/tests/noSweatFullReview.test.ts
 new file mode 100644
@@ -29210,10 +30089,10 @@ index 0000000..77aca04
 +}
 diff --git a/ui/lib/tests/cevalProtocol.test.ts b/ui/lib/tests/cevalProtocol.test.ts
 new file mode 100644
-index 0000000..4441b84
+index 0000000..547bb63
 --- /dev/null
 +++ b/ui/lib/tests/cevalProtocol.test.ts
-@@ -0,0 +1,76 @@
+@@ -0,0 +1,111 @@
 +import assert from 'node:assert/strict';
 +import { test } from 'node:test';
 +
@@ -29256,7 +30135,7 @@ index 0000000..4441b84
 +  protocol.received('readyok');
 +  const line = (depth: number, rank: number, move: string) =>
 +    protocol.received(`info depth ${depth} multipv ${rank} score cp 20 nodes 100 time 1 pv ${move}`);
-+  return { emitted, line };
++  return { emitted, line, finish: (move: string) => protocol.received('bestmove ' + move) };
 +}
 +test('Stockfish skipped-depth and same-depth rank changes keep two distinct current choices', () => {
 +  const { emitted, line } = fixture();
@@ -29289,6 +30168,41 @@ index 0000000..4441b84
 +  line(3, 1, 'd2d4');
 +  line(3, 2, 'e2e4');
 +  assert.equal(emitted.length, count + 1);
++});
++test('native search sends both depth and time bounds for fast whole-game review', () => {
++  const sent: string[] = [];
++  const protocol = new Protocol(info);
++  protocol.connected(command => sent.push(command));
++  protocol.received('uciok');
++  protocol.compute({
++    variant: 'chess',
++    threads: 1,
++    stopRequested: false,
++    search: { depth: 12, movetime: 500 },
++    multiPv: 2,
++    initialFen: fen,
++    currentFen: fen,
++    moves: [],
++    path: '',
++    ply: 0,
++    threatMode: false,
++    emit: () => {},
++  });
++  protocol.received('readyok');
++  assert.ok(sent.includes('go depth 12 movetime 500'));
++});
++
++test('a timed stop retains the last complete MultiPV iteration instead of a partial deeper root', () => {
++  const { emitted, line, finish } = fixture();
++  line(12, 1, 'e2e4');
++  line(12, 2, 'd2d4');
++  line(13, 1, 'g1f3');
++  finish('g1f3');
++  assert.equal(emitted.at(-1)!.depth, 12);
++  assert.deepEqual(
++    emitted.at(-1)!.pvs.map(pv => pv.moves[0]),
++    ['e2e4', 'd2d4'],
++  );
 +});
 diff --git a/ui/lib/tests/maiaExpectedScore.test.ts b/ui/lib/tests/maiaExpectedScore.test.ts
 new file mode 100644
@@ -29678,6 +30592,208 @@ index 0000000..249bf9a
 +    return move;
 +  }
 +}
+diff --git a/ui/round/tests/premoveContinuity.test.ts b/ui/round/tests/premoveContinuity.test.ts
+new file mode 100644
+index 0000000..64962ad
+--- /dev/null
++++ b/ui/round/tests/premoveContinuity.test.ts
+@@ -0,0 +1,196 @@
++import { Chessground } from '@lichess-org/chessground';
++import assert from 'node:assert/strict';
++import { test, mock } from 'node:test';
++
++mock.module('voice', {
++  namedExports: { makeVoiceMove: () => undefined, renderVoiceBar: () => undefined },
++});
++mock.module('keyboard-move', { namedExports: { ctrl: () => undefined, render: () => undefined } });
++const { default: RoundController } = await import('../src/ctrl');
++const ground = await import('../src/ground');
++import type { ApiMove, RoundOpts } from '../src/interfaces';
++
++// Exercise the native controller and real Chessground, including every published FEN.
++function fixture(t: any, color: Color) {
++  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
++  Object.assign(globalThis, {
++    location: window.location,
++    $: () => ({ toggleClass() {}, hasClass: () => false }),
++  });
++  Object.assign(site, {
++    blindMode: false,
++    sound: { move() {}, play() {}, saySan() {}, speech: () => false },
++  });
++  localStorage.clear();
++  const start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
++  const e4 = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR';
++  const sends: string[] = [];
++  const ctrl = new RoundController(
++    {
++      noab: true,
++      socketSend: (type: string, data: any) => {
++        if (type === 'move') sends.push(data.u);
++      },
++      data: {
++        game: {
++          id: 'fixture',
++          variant: { key: 'standard' },
++          status: { id: 20, name: 'started' },
++          turns: color === 'white' ? 1 : 0,
++          player: color === 'white' ? 'black' : 'white',
++        },
++        player: { color, id: 'test', version: 0 },
++        opponent: { color: color === 'white' ? 'black' : 'white' },
++        pref: { enablePremove: true, animationDuration: 0, submitMove: false, coords: 0 },
++        steps:
++          color === 'white'
++            ? [
++                { ply: 0, fen: start },
++                { ply: 1, fen: e4, uci: 'e2e4', san: 'e4' },
++              ]
++            : [{ ply: 0, fen: start }],
++      },
++    } as unknown as RoundOpts,
++    () => {},
++  );
++  ctrl.setTitle = () => {};
++  ctrl.chessground = Chessground(document.createElement('div'), ground.makeConfig(ctrl));
++  const updates: string[] = [];
++  for (const name of ['set', 'move', 'setPieces'] as const) {
++    const original = ctrl.chessground[name].bind(ctrl.chessground) as (...args: any[]) => any;
++    (ctrl.chessground[name] as any) = (...args: any[]) => {
++      const result = original(...args);
++      updates.push(ctrl.chessground.getFen());
++      return result;
++    };
++  }
++  const queue = (orig: Key, dest: Key) => ctrl.makeCgHooks().onPremove(orig, dest, {});
++  const reply = (ply: number, uci: string, fen: string, dests?: Record<string, string>) =>
++    ctrl.apiMove({ ply, uci, fen, san: uci, dests } as ApiMove);
++  t.after(() => {
++    ctrl.transientMove?.clear();
++    ctrl.chessground.destroy();
++    t.mock.timers.reset();
++  });
++  return { ctrl, updates, sends, queue, reply };
++}
++for (const color of ['white', 'black'] as const)
++  test(`${color}: queued knight never leaves its final projected square during replies or acknowledgements`, t => {
++    const { ctrl, updates, sends, queue, reply } = fixture(t, color);
++    const white = color === 'white';
++    queue(white ? 'g1' : 'g8', white ? 'f3' : 'f6');
++    queue(white ? 'f3' : 'f6', white ? 'g5' : 'g4');
++    updates.length = 0;
++    reply(
++      white ? 2 : 1,
++      white ? 'e7e5' : 'e2e4',
++      white
++        ? 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR'
++        : 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR',
++      white ? { g1: 'f3h3' } : { g8: 'f6h6' },
++    );
++    t.mock.timers.tick(1);
++    assert.ok(updates.length);
++    const dest = white ? 'g5' : 'g4';
++    for (const fen of updates) {
++      assert.equal(read(fen).get(dest)?.role, 'knight', `Intermediate board lost projection: ${fen}`);
++    }
++    assert.deepEqual(sends, [white ? 'g1f3' : 'g8f6']);
++    assert.equal(ctrl.premoveSequence.moves.length, 1);
++    const assertProjected = () => {
++      assert.ok(updates.length);
++      for (const fen of updates) assert.equal(read(fen).get(dest)?.role, 'knight', `Projection lost: ${fen}`);
++      updates.length = 0;
++    };
++    assertProjected();
++    reply(
++      white ? 3 : 2,
++      white ? 'g1f3' : 'g8f6',
++      white
++        ? 'rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R'
++        : 'rnbqkb1r/pppppppp/5n2/8/4P3/8/PPPP1PPP/RNBQKBNR',
++    );
++    assertProjected();
++    reply(
++      white ? 4 : 3,
++      white ? 'd7d5' : 'd2d4',
++      white
++        ? 'rnbqkbnr/ppp2ppp/8/3pp3/4P3/5N2/PPPP1PPP/RNBQKB1R'
++        : 'rnbqkb1r/pppppppp/5n2/8/3PP3/8/PPP2PPP/RNBQKBNR',
++      white ? { f3: 'g5h4e5d4d2e1h2' } : { f6: 'g4h5e4d5d7e8h7' },
++    );
++    t.mock.timers.tick(1);
++    assertProjected();
++    assert.deepEqual(sends, white ? ['g1f3', 'f3g5'] : ['g8f6', 'f6g4']);
++    assert.equal(ctrl.premoveSequence.moves.length, 0);
++    assert.equal(ctrl.chessground.state.highlight.custom?.size, 0);
++    const committed = white
++      ? 'rnbqkbnr/ppp2ppp/8/3pp1N1/4P3/8/PPPP1PPP/RNBQKB1R'
++      : 'rnbqkb1r/pppppppp/8/8/3PP1n1/8/PPP2PPP/RNBQKBNR';
++    reply(white ? 5 : 4, white ? 'f3g5' : 'f6g4', committed);
++    assert.equal(ctrl.chessground.getFen(), committed);
++    assert.deepEqual(
++      ctrl.data.steps.slice(-4).map(n => n.uci),
++      white ? ['e7e5', 'g1f3', 'd7d5', 'f3g5'] : ['e2e4', 'g8f6', 'd2d4', 'f6g4'],
++    );
++  });
++import { read } from '@lichess-org/chessground/fen';
++test('cancelling after execution reveals the accepted move, not the rest of the plan', t => {
++  const { ctrl, queue, reply, sends } = fixture(t, 'white');
++  queue('g1', 'f3');
++  queue('f3', 'g5');
++  const authoritative = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR';
++  reply(2, 'e7e5', authoritative, { g1: 'f3h3' });
++  ctrl.clearQueuedPremoves();
++  assert.equal(ctrl.chessground.state.pieces.get('f3')?.role, 'knight');
++  assert.equal(ctrl.chessground.state.pieces.has('g5'), false);
++  assert.deepEqual(sends, ['g1f3']);
++});
++test('an illegal head reveals the authoritative board and never submits a later queued move', t => {
++  const { ctrl, queue, reply, sends } = fixture(t, 'white');
++  queue('g1', 'f3');
++  queue('f3', 'g5');
++  const fen = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR';
++  reply(2, 'e7e5', fen, { g1: 'h3' });
++  t.mock.timers.tick(1);
++  assert.equal(ctrl.chessground.getFen(), fen);
++  assert.equal(ctrl.premoveSequence.moves.length, 0);
++  assert.deepEqual(sends, []);
++});
++test('a terminal opponent reply immediately reveals the real position and discards projection', t => {
++  const { ctrl, queue, sends } = fixture(t, 'white');
++  queue('g1', 'f3');
++  queue('f3', 'g5');
++  const fen = 'rnb1kbnr/pppp1ppp/8/4p3/4P2q/8/PPPP1PPP/RNBQKBNR';
++  ctrl.apiMove({
++    ply: 2,
++    uci: 'd8h4',
++    fen,
++    san: 'Qh4#',
++    status: { id: 30, name: 'mate' },
++    winner: 'black',
++  } as ApiMove);
++  assert.equal(ctrl.chessground.getFen(), fen);
++  assert.equal(ctrl.premoveSequence.moves.length, 0);
++  assert.deepEqual(sends, []);
++});
++test('the opponent clock update precedes the premove hard stop, preserving native clock timing', t => {
++  const { ctrl, queue } = fixture(t, 'white');
++  queue('g1', 'f3');
++  queue('f3', 'g5');
++  const clocks: string[] = [];
++  ctrl.clock = {
++    setClock: () => clocks.push('server clock'),
++    isRunning: () => true,
++    hardStopClock: () => clocks.push('premove stop'),
++  } as unknown as NonNullable<typeof ctrl.clock>;
++  ctrl.apiMove({
++    ply: 2,
++    uci: 'e7e5',
++    fen: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR',
++    san: 'e5',
++    dests: { g1: 'f3h3' },
++    clock: { white: 59, black: 59 },
++  });
++  assert.deepEqual(clocks, ['server clock', 'premove stop']);
++});
 diff --git a/ui/round/tests/premoveSequence.test.ts b/ui/round/tests/premoveSequence.test.ts
 new file mode 100644
 index 0000000..9fc8e4d

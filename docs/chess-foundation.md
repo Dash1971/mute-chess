@@ -125,3 +125,24 @@ boundaries. Link the existing Flotilla Mute Chess room alongside GitHub; remove 
 navigation. See `docs/native-learning-community.md` and `learning/README.md` for
 scope and licensed lesson provenance. The opening explorer is deferred by the
 owner because the live Lichess API now requires separate authentication (#42).
+
+## October 30 approved analysis and premove refinement
+
+The owner approved the revised native analysis mockup (#62): two separate Maia
+cards side by side on the left, full-width Moves by Rating below, Stockfish on the
+right. Each model label opens a 600–2600 rating button grid; each channel owns its
+leading probabilities and Others expansion. Expected score is win plus half draw
+for the side to move. Retain the native graph and Learn from your mistakes. Show
+all six validated Mobile Maia/En Croissant classes with overall native accuracy
+and ACPL, omitting phase accuracy. This explicitly supersedes the earlier
+brilliant-only limit; imported quality annotations and whole-window standout
+confirmation remain required. Whole-game analysis defaults to bounded Fast with
+lightweight native Stockfish. Quality and advanced engine controls live in
+Settings, rather than a mandatory setup dialog. Play links directly to quick
+pairing without a menu. Opening explorer remains deferred.
+
+For stacked premove continuity (#61), use Mobile Maia PR #111. Opponent moves and
+acknowledgements update the committed native state while the board publishes only
+the final projected plan. Invalid/cancelled queues and endings reveal the actual
+position. Clock updates precede premove execution; native move transport,
+promotion, sounds, legality and single premoves remain authoritative.
