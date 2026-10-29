@@ -8,7 +8,7 @@ Automated checks on 29 October 2026:
 - Public service contracts: 4 tests passed. Puzzle catalog: 2 tests passed.
 - Browser login bundle builds; deployment Python parses; changed board SCSS passes stylelint.
 - The complete native patch applies cleanly to pinned upstream `b551752d2a0e7a63459d9812825d95a633a98737`, with added-line whitespace validation.
-- Changed Scala templates/preferences parse and format with the upstream Scalafmt 3.11.5 configuration. All 15 exported assets reproduce byte for byte and match their native copies.
+- Changed Scala templates/preferences parse and format with the upstream Scalafmt 3.11.5 configuration. All 16 exported assets reproduce byte for byte and match their native copies.
 
 The upstream UI build's URL handling does not support spaces in its source path. The build ran in a temporary mirror with an unescaped path; no upstream build-tool change is included here.
 

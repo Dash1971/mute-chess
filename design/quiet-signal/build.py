@@ -64,6 +64,7 @@ def build():
         "watermark-dark.svg": svg(96, mark("#293b34")),
         "watermark-light.svg": svg(96, mark("#d5dfd4")),
         "favicon.svg": svg(96, '<style>path{fill:#315f4d}@media(prefers-color-scheme:dark){path{fill:#a7d6bb}}</style>\n' + mark("#315f4d").replace(' fill="#315f4d"', "")),
+        "favicon-alert.svg": svg(96, '<rect width="96" height="96" rx="14" fill="#a7d6bb"/>' + mark("#101719"), "Mute Chess — your turn"),
     }
     tagline, _ = lettering(font, "#a2b0ac", "Stay human. Play bots.")
     lockup = mark("#a7d6bb") + f'<g transform="translate(112 0)">{text}</g>'

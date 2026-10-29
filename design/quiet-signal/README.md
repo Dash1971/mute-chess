@@ -38,6 +38,6 @@ The original concept study was AI-generated with the owner's requested direction
 
 ## Scope
 
-This change updates the header and sign-in logos, favicons/app icons, share card, native palette and default board. Existing internal identifiers, browser storage, Nostr identity and security secrets, repository URLs, the rebrand’s prepared domain/origin configuration and service/data paths remain intact. Authenticator enrollment retains the Mute Chess issuer from the rebrand; existing codes continue to use their existing secrets.
+This change updates the header and sign-in logos, favicons/app icons (including the native turn alert and browser notification), share card, native palette and default board. Existing internal identifiers, browser storage, Nostr identity and security secrets, repository URLs, the rebrand’s prepared domain/origin configuration and service/data paths remain intact. Authenticator enrollment retains the Mute Chess issuer from the rebrand; existing codes continue to use their existing secrets.
 
 The domain migration is separate. Neuromancer/cyberpunk Easter eggs are still ideas and are not introduced by this visual refresh.
