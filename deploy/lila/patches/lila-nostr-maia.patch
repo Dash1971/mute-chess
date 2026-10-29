@@ -61,6 +61,23 @@ index efdcfe5..1639aed 100644
    def loginLang = LangPage(routes.Auth.login)(serveLogin)
  
    private def serveLogin(using ctx: Context, referrer: Option[ValidReferrer]) = NoBot:
+diff --git a/app/controllers/Cms.scala b/app/controllers/Cms.scala
+index 6d2fee0..06daf05 100644
+--- a/app/controllers/Cms.scala
++++ b/app/controllers/Cms.scala
+@@ -56,7 +56,11 @@ final class Cms(env: Env) extends LilaController(env):
+   // pages
+ 
+   val help = menuPage(CmsPageKey("help"))
+-  val tos = menuPage(CmsPageKey("tos"))
++  val tos =
++    if env.noSweat.enabled then
++      Open:
++        Ok.page(views.noSweatInfo("terms-of-service"))
++    else menuPage(CmsPageKey("tos"))
+ 
+   def lonePage(key: CmsPageKey) = Open:
+     orCreateOrNotFound(key): page =>
 diff --git a/app/controllers/Dasher.scala b/app/controllers/Dasher.scala
 index 6209054..b14132d 100644
 --- a/app/controllers/Dasher.scala
@@ -207,6 +224,24 @@ index ede74af..51e2daa 100644
      )
  
    def masterGame(id: GameId, orientation: Color) = Open:
+diff --git a/app/controllers/Main.scala b/app/controllers/Main.scala
+index 7c65f4c..ad9cdc3 100644
+--- a/app/controllers/Main.scala
++++ b/app/controllers/Main.scala
+@@ -83,11 +83,11 @@ final class Main(env: Env, assetsC: ExternalAssets) extends LilaController(env):
+ 
+   def contact = Open:
+     pageHit
+-    Ok.page(views.site.page.contact)
++    Ok.page(if env.noSweat.enabled then views.noSweatInfo("contact") else views.site.page.contact)
+ 
+   def faq = Open:
+     pageHit
+-    Ok.page(views.site.page.faq)
++    Ok.page(if env.noSweat.enabled then views.noSweatInfo("faq") else views.site.page.faq)
+ 
+   def survey = Open:
+     pageHit
 diff --git a/app/controllers/Plan.scala b/app/controllers/Plan.scala
 index 5334d5e..4ed89ec 100644
 --- a/app/controllers/Plan.scala
@@ -1029,10 +1064,10 @@ index 6fa1cc3..bdf092f 100644
    def authorLink(post: ForumPost, cssClass: Option[String] = None, withOnline: Boolean = true)(using
        Context
 diff --git a/modules/game/src/main/Env.scala b/modules/game/src/main/Env.scala
-index 43d76ae..01cb56e 100644
+index 43d76ae..e9262ba 100644
 --- a/modules/game/src/main/Env.scala
 +++ b/modules/game/src/main/Env.scala
-@@ -34,7 +34,40 @@ final class Env(
+@@ -34,7 +34,35 @@ final class Env(
  )(using scheduler: Scheduler)(using Executor, Materializer):
    private val config = appConfig.get[GameConfig]("game")(using AutoConfig.loader)
  
@@ -1043,18 +1078,13 @@ index 43d76ae..01cb56e 100644
 +    import lila.db.dsl.{ *, given }
 +    if !noSweatOnly || !game.playable then funit
 +    else if game.variant.standard && game.sourceIs(_.Friend) && game.userIds.distinct.size == 2 then
-+      for
-+        invitation <- db(CollName("challenge")).byId[Bdoc](game.id)
-+        users <- userApi.byIds(game.userIds)
-+        allowed = invitation.exists: doc =>
-+          val seats = List("challenger", "destUser").flatMap: field =>
-+            doc.getAsOpt[Bdoc](field).flatMap(_.getAsOpt[UserId]("id"))
-+          seats.distinct.size == 2 && seats.toSet == game.userIds.toSet &&
-+          doc.getAsOpt[Bdoc]("open").isEmpty &&
-+          doc.getAsOpt[Int]("status").exists(s => s == 10 || s == 15) &&
-+          users.size == 2 && users.forall(u => u.enabled.yes && !u.isBot)
-+        _ <- if allowed then funit else fufail("Game has no registered human invitation")
-+      yield ()
++      // Native ChallengeJoiner and Rematcher enforce invitation ownership/consent.
++      // Keep their Friend source path; human pool/lobby games still require Maia admission.
++      userApi
++        .byIds(game.userIds)
++        .flatMap: users =>
++          if users.size == 2 && users.forall(u => u.enabled.yes && !u.isBot) then funit
++          else fufail("Friend games require two enabled human accounts")
 +    else
 +      noSweatGames
 +        .byId[lila.db.dsl.Bdoc](game.id)
@@ -2255,7 +2285,7 @@ index 0c0ed10..0fd8c57 100644
  
    val logo = raw:
 diff --git a/modules/web/src/main/ui/layout.scala b/modules/web/src/main/ui/layout.scala
-index 1c7a30b..555396a 100644
+index 1c7a30b..963ba83 100644
 --- a/modules/web/src/main/ui/layout.scala
 +++ b/modules/web/src/main/ui/layout.scala
 @@ -17,8 +17,17 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
@@ -2319,7 +2349,7 @@ index 1c7a30b..555396a 100644
 -    s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
 -      s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
 +    if isMuteChess then
-+      """<link rel="alternate icon" type="image/png" href="/assets/nosweat/favicon-32.png?v=quiet-signal1"><link id="favicon" rel="icon" type="image/svg+xml" href="/assets/nosweat/favicon.svg?v=quiet-signal1"><link rel="stylesheet" href="/assets/nosweat/brand.css?v=channels1"><link rel="stylesheet" href="/assets/nosweat/quiet-signal.css?v=quiet-signal1">"""
++      """<link rel="alternate icon" type="image/png" href="/assets/nosweat/favicon-32.png?v=quiet-signal1"><link id="favicon" rel="icon" type="image/svg+xml" href="/assets/nosweat/favicon.svg?v=quiet-signal1"><link rel="stylesheet" href="/assets/nosweat/brand.css?v=focused1"><link rel="stylesheet" href="/assets/nosweat/quiet-signal.css?v=quiet-signal1">"""
 +    else
 +      s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
 +        s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
@@ -5571,7 +5601,7 @@ index 0000000..9dfd538
 +    case _ => emptyFrag
 diff --git a/app/views/noSweatLogin.scala b/app/views/noSweatLogin.scala
 new file mode 100644
-index 0000000..250229f
+index 0000000..5952fae
 --- /dev/null
 +++ b/app/views/noSweatLogin.scala
 @@ -0,0 +1,98 @@
@@ -5583,8 +5613,8 @@ index 0000000..250229f
 +  def apply()(using Context) =
 +    Page("Sign in")
 +      .css("bits.auth")
-+      .headAppend(link(rel := "stylesheet", href := assetPath("nosweat/nostr.css")))
-+      .headAppend(script(src := assetPath("nosweat/nostr.js"), defer)):
++      .headAppend(link(rel := "stylesheet", href := s"${assetPath("nosweat/nostr.css")}?v=key-first1"))
++      .headAppend(script(src := s"${assetPath("nosweat/nostr.js")}?v=key-first1", defer)):
 +        main(cls := "auth auth-login box box-pad")(
 +          div(cls := "auth__brand")(
 +            img(
@@ -5598,7 +5628,7 @@ index 0000000..250229f
 +              alt := "Mute Chess"
 +            )
 +          ),
-+          h1("Your key. Your chess."),
++          h1("Sign in or join"),
 +          p(cls := "nostr-intro")(
 +            "No email needed. A Nostr secret key, called an nsec, is your login. Keep it to return to your profile and games."
 +          ),
@@ -8154,12 +8184,14 @@ index 0000000..e047dba
 +}
 diff --git a/public/nosweat/nostr.css b/public/nosweat/nostr.css
 new file mode 100644
-index 0000000..d492372
+index 0000000..844ca7e
 --- /dev/null
 +++ b/public/nosweat/nostr.css
-@@ -0,0 +1,2 @@
+@@ -0,0 +1,4 @@
 +.auth-login h1{font-size:1.65em;text-align:center;margin:1em 0}.auth-login>p{line-height:1.5}.auth-login .form3{display:grid;gap:12px}.auth-login .form-control{width:100%}.auth-login .nostr-help{font-size:.85em;color:var(--c-font-dim);line-height:1.5}.auth-login #nostr-status{color:var(--c-bad)}.auth-login [hidden]{display:none!important}.auth-login #nostr-created,.auth-login #nostr-saved{display:grid;gap:12px}.auth-login .or-separator{margin:14px 0}
 +.auth-login{max-width:32em;margin-inline:auto}.auth-login .nostr-intro{margin-bottom:1.5em;color:var(--c-font-dim)}.auth-login #nostr-created{padding:1.1em;border:1px solid var(--c-border);border-radius:6px}.auth-login #nostr-created p{line-height:1.5}.auth-login .nostr-key-actions{display:flex;gap:.7em;flex-wrap:wrap}.auth-login #nostr-second-factor h2{font-size:1.3em}.auth-login #nostr-second-factor p{line-height:1.5}.auth-login #nostr-status:empty{display:none}.auth-login #nostr-status{line-height:1.5;overflow-wrap:anywhere}
++
++.auth-login .nostr-key-actions .button{width:auto;flex:1;margin:0}
 diff --git a/public/nosweat/quiet-signal.css b/public/nosweat/quiet-signal.css
 new file mode 100644
 index 0000000..bad69a2

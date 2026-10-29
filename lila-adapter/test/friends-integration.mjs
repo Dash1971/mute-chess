@@ -33,6 +33,7 @@ const setup = overrides => new URLSearchParams({variant:'1',timeMode:'1',time:'5
 async function waitFor(fn, name) { for(let i=0;i<80;i++){const value=await fn();if(value)return value;await delay(150);}throw Error('Timed out '+name); }
 async function connect(client, fullId, version) {
   const ws = new WebSocket(`ws://127.0.0.1:19664/play/${fullId}/v5?sri=friends${run}${sockets.length}&v=${version}`,{headers:{Cookie:client.cookie(),Origin:origin}});
+  ws.events=[];ws.on('message',raw=>{try{const event=JSON.parse(String(raw));ws.events.push(...(event.t==='b'?event.d:[event]));}catch{}});
   await new Promise((resolve,reject)=>{ws.once('open',resolve);ws.once('error',reject);});sockets.push(ws);return ws;
 }
 try {
@@ -63,7 +64,16 @@ try {
   wa.send(JSON.stringify({t:'resign'}));
   await waitFor(async()=> (await b.request('/game/'+id)).game.status.id>=30,'native resignation');
   const pgn=await a.request('/game/export/'+id,undefined,200,{Accept:'application/x-chess-pgn'});assert.match(pgn,/1\. e4[\s\S]*e5[\s\S]*2\. Nf3[\s\S]*Nc6/);
-  const profile=await a.request('/@/'+a.username,undefined,200,{Accept:'text/html'});assert.ok(profile.includes(id),'native game history');
+  await waitFor(async()=> (await a.request('/@/'+a.username+'/all',undefined,200,{Accept:'text/html'})).includes(id),'native game history');
+  wa.send(JSON.stringify({t:'rematch-yes'}));
+  await waitFor(()=>wb.events.some(e=>e.t==='rematchOffer'||e.d?.t==='rematchOffer'),'rematch offer');
+  wb.send(JSON.stringify({t:'rematch-yes'}));
+  const redirect=await waitFor(()=>wa.events.find(e=>e.t==='redirect')?.d,'mutually accepted rematch');
+  assert.match(redirect.id,/^[A-Za-z0-9]{12}$/);
+  const rematch=await a.request('/game/'+redirect.id);assert.equal(rematch.player.color,'black');
+  assert.equal(rematch.clock.initial,300);assert.equal(rematch.clock.increment,3);
+  const next=await connect(a,redirect.id,rematch.player.version);next.send(JSON.stringify({t:'abort'}));
+  await waitFor(async()=> (await a.request('/game/'+redirect.id)).game.status.id===25,'unplayed rematch abort');
   const declined=await a.request('/setup/friend?user='+b.username,setup());await b.request('/challenge/'+declined.challenge.id+'/decline',{},204);
   const canceled=await a.request('/setup/friend?user='+b.username,setup());await a.request('/challenge/'+canceled.challenge.id+'/cancel',{},204);
   await b.request('/rel/block/'+a.username,{});await a.request('/setup/friend?user='+b.username,setup(),403);
@@ -77,5 +87,5 @@ try {
   await a.request('/setup/friend?user='+b.username,setup({variant:'2'}),403);
   await a.request('/setup/hook/abcdefgh',setup(),403);
   await a.request('/api/challenge/'+b.username,{},403);
-  console.log(JSON.stringify({ok:true,checks:['native friends and challenges load','follow/block round trip','anonymous/open/self/bot/variant rejected','human pool HTTP denied','invitation ownership','two human clocks and moves','resignation/export/history','decline/cancel','blocked challenger refused']}));
+  console.log(JSON.stringify({ok:true,checks:['native friends and challenges load','follow/block round trip','anonymous/open/self/bot/variant rejected','human pool HTTP denied','invitation ownership','two human clocks and moves','resignation/export/history','native mutual rematch and abort','decline/cancel','blocked challenger refused']}));
 } finally {for(const ws of sockets){if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({t:'resign'}));ws.close();}}
