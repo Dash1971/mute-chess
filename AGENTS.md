@@ -1,4 +1,8 @@
-# No Sweat Chess implementation direction
+# MuteChess implementation direction
+
+## Quiet Signal brand (owner decision, 29 October 2026)
+
+The owner selected the Quiet Signal MuteChess concept and authorized its implementation and PR. Use the interrupted knight, graphite/chalk/mint palette and moss board documented in `design/quiet-signal/README.md`. This supersedes the earlier logo-only styling restriction below. Preserve native Lichess layouts and controls. Keep internal NoSweat identifiers, existing browser identity keys, services, database paths and deployed origins intact; a domain migration requires its own deployment work. Easter egg ideas remain proposals.
 
 The owner's confirmed direction is recorded in `docs/chess-foundation.md` (28 October 2026): desktop/browser only; Lichess/Lila is the base for all exposed chess play and analysis; Mobile Maia / En Croissant / maiachess.com add the specified analysis capabilities. Cyberpunk/cypherpunk is the wrapper and branding.
 

@@ -1,0 +1,11 @@
+{
+  "name": "mutechess-quiet-signal-assets",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "render": "node render.mjs"
+  },
+  "devDependencies": {
+    "sharp": "0.35.5"
+  }
+}

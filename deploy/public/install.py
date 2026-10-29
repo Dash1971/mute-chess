@@ -41,6 +41,11 @@ for repository, field in (('lila', 'upstreamLila'), ('lila-ws', 'upstreamWs')):
     if actual != release_info.get(field):
         raise SystemExit('Native upstream revision differs from the verified main release: ' + repository)
 expected_patch = (payload / 'lila-nostr-maia.patch').read_bytes()
+for brand_source in ('design/quiet-signal/build.py', 'design/quiet-signal/render.mjs',
+        'design/quiet-signal/quiet-signal.css', 'design/quiet-signal/board.svg',
+        'design/logo-explorations/final/icon.svg', 'third-party/space-grotesk/OFL.txt'):
+    if not (payload / brand_source).is_file():
+        raise SystemExit('Release payload is missing Quiet Signal source: ' + brand_source)
 if source_checker.patch_for(dev / 'sources/lila') != expected_patch:
     raise SystemExit('Native build source differs from the merged main patch')
 if hashlib.sha256(expected_patch).hexdigest() != release_info.get('nativePatchSha256'):
@@ -142,7 +147,7 @@ net.domain = "nosweatchess.org"
 net.prodDomain = "nosweatchess.org"
 net.socket.domains = ["nosweatchess.org"]
 net.base_url = "https://nosweatchess.org"
-net.site.name = "No Sweat Chess"
+net.site.name = "MuteChess"
 net.crawlable = false
 net.http.log = false
 play.http.session.cookieName = "nosweat_session"
@@ -200,6 +205,9 @@ for repository in ('lila', 'lila-ws'):
 for name in ('lila-nostr-maia.patch', 'lila-ws-bind-address.patch', 'BUILD.md', 'THIRD_PARTY.md', 'LICENSE', 'RELEASE.json'):
     shutil.copy(payload / name, source_dir / name)
 shutil.copytree(payload / 'third-party', source_dir / 'third-party')
+for brand_directory in ('quiet-signal', 'logo-explorations/final'):
+    shutil.copytree(payload / 'design' / brand_directory, source_dir / 'design' / brand_directory,
+        ignore=shutil.ignore_patterns('node_modules', '__pycache__', '.venv*'))
 shutil.copytree(release / 'lila-adapter', source_dir / 'lila-adapter', ignore=shutil.ignore_patterns('node_modules'))
 shutil.copytree(payload / 'deployment', source_dir / 'deployment')
 shutil.copytree(payload / 'analysis', source_dir / 'analysis')

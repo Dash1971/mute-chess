@@ -5,6 +5,7 @@
 .scratch/
 node_modules/
 .venv/
+.venv-brand/
 __pycache__/
 dist/
 coverage/

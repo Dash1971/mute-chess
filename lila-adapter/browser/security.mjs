@@ -22,7 +22,7 @@ if (page) {
     const bytes = crypto.getRandomValues(new Uint8Array(20));
     secret = encodeSecret(bytes); bytes.fill(0);
     element('secret').textContent = secret;
-    const uri = `otpauth://totp/${encodeURIComponent('No Sweat Chess:' + page.dataset.account)}?secret=${secret}&issuer=No%20Sweat%20Chess&algorithm=SHA1&digits=6&period=30`;
+    const uri = `otpauth://totp/${encodeURIComponent('MuteChess:' + page.dataset.account)}?secret=${secret}&issuer=MuteChess&algorithm=SHA1&digits=6&period=30`;
     element('qr').dataset.qrUrl = uri;
     element('enroll').hidden = false;
     element('setup').hidden = true;

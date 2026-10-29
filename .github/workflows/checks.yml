@@ -76,4 +76,4 @@ jobs:
           (cd ui/.build && pnpm install --frozen-lockfile)
           node "$GITHUB_WORKSPACE/puzzles/validate.mjs" /tmp/lila/node_modules/.pnpm/chessops@0.15.1/node_modules/chessops
           node ui/test
-          ./ui/build --no-install analyse round editor dasher puzzle
+          ./ui/build --no-install site lobby analyse round editor dasher puzzle

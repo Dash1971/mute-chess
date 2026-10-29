@@ -94,7 +94,7 @@ const server = http.createServer((req, res) => {
     res.writeHead(response.statusCode, output); response.pipe(res);
   });
   upstream.on('error', () => {
-    if (!res.headersSent) reject(res, 503, 'No Sweat Chess is restarting. Please try again shortly.');
+    if (!res.headersSent) reject(res, 503, 'MuteChess is restarting. Please try again shortly.');
     else res.destroy();
   });
   upstream.on('timeout', () => upstream.destroy());

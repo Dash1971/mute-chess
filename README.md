@@ -1,10 +1,10 @@
-# nosweatchess
+# MuteChess
 
 **Stay human. Play bots.**
 
-[Play No Sweat Chess](https://nosweatchess.org/club)
+[Play MuteChess](https://nosweatchess.org/club)
 
-No Sweat Chess is a free, open-source chess project built on Lichess. It combines
+MuteChess (formerly No Sweat Chess) is a free, open-source chess project built on Lichess. It combines
 human-like Maia opponents, multiple stacked premoves, and Maia alongside Stockfish
 analysis, with a familiar interface for desktop and mobile browsers.
 
@@ -26,6 +26,8 @@ analysis, with a familiar interface for desktop and mobile browsers.
 
 The alpha is available at [nosweatchess.org](https://nosweatchess.org/club).
 We're building in public, and feedback from players helps shape the project.
+The Quiet Signal visual identity is documented in [the brand guide](design/quiet-signal/README.md).
+Moving the service to mutechess.org is a separate deployment change.
 
 ## The club, 2097
 
@@ -33,7 +35,7 @@ Neural implants have put Stockfish 99 and 4750 Elo in everyone's head. Nobody ca
 trust a human opponent anymore.
 
 A few nonchippers discover an old SSD containing a copy of the Lichess repository.
-They use it to form the No Sweat Chess Club, playing bots trained on human games
+They use it to form MuteChess, playing bots trained on human games
 from the before times, 2023. The missed mates, questionable sacrifices, and
 occasional moments of brilliance are all still there.
 
@@ -57,7 +59,7 @@ device.
 
 ## Source and licenses
 
-No Sweat Chess is noncommercial and licensed under the
+MuteChess is noncommercial and licensed under the
 [GNU Affero General Public License v3.0](LICENSE).
 
 The project builds on [Lichess](https://github.com/lichess-org/lila),
