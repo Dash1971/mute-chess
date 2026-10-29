@@ -104,7 +104,7 @@ const server = http.createServer(async (request, response) => {
     }
     let body;
     try { body = JSON.parse(text); } catch { throw new AdapterError(400, 'Invalid JSON'); }
-    if (request.url === '/challenge') return send(200, auth.challenge(body.pubkey));
+    if (request.url === '/challenge') return send(200, auth.challenge(body.pubkey, body.action));
     if (request.url === '/verify') return send(200, auth.verify(body.authorization, body.rawBody));
     if (request.url === '/freeze') {
       if (!maia.healthy) throw new AdapterError(503, 'Maia unavailable');

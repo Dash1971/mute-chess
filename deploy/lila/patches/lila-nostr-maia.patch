@@ -32,6 +32,20 @@ index b3d33a8..a9c67c8 100644
    lazy val feed: Feed = wire[Feed]
    lazy val playApi: PlayApi = wire[PlayApi]
    lazy val challenge: Challenge = wire[Challenge]
+diff --git a/app/controllers/Account.scala b/app/controllers/Account.scala
+index 27a9f7d..8fbd270 100644
+--- a/app/controllers/Account.scala
++++ b/app/controllers/Account.scala
+@@ -232,7 +232,8 @@ final class Account(
+         )
+ 
+   def twoFactor = Auth { _ ?=> me ?=>
+-    if me.totpSecret.isDefined then
++    if env.noSweat.enabled then fuccess(Redirect("/club/security"))
++    else if me.totpSecret.isDefined then
+       env.security.forms.disableTwoFactor.flatMap: f =>
+         Ok.page(views.account.twoFactor.disable(f))
+     else
 diff --git a/app/controllers/Auth.scala b/app/controllers/Auth.scala
 index efdcfe5..1639aed 100644
 --- a/app/controllers/Auth.scala
@@ -364,11 +378,35 @@ index ab74f28..14968ea 100644
  
  val setup = lila.setup.ui.SetupUi(helpers)
  
+diff --git a/app/views/user/show/header.scala b/app/views/user/show/header.scala
+index 26a6045..d1d215c 100644
+--- a/app/views/user/show/header.scala
++++ b/app/views/user/show/header.scala
+@@ -42,7 +42,7 @@ object header:
+     )(
+       u.isPatron.not.so(lineIcon(u)),
+       titleTag(u.title),
+-      u.username,
++      u.publicName,
+       if ctx.blind
+       then s" : ${if isOnline.exec(u.id) then trans.site.online.txt() else trans.site.offline.txt()}"
+       else
+@@ -62,6 +62,10 @@ object header:
+               userDom(u)
+             )
+           case None => h1(userDom(u)),
++        u.profile
++          .flatMap(_.displayName)
++          .filter(_ != u.username.value)
++          .map(_ => span(cls := "user-show__handle")(s"@${u.username.value}")),
+         div(cls := "trophies")(
+           views.user.bits.perfTrophies(u, info.ranks),
+           otherTrophies(info),
 diff --git a/conf/routes b/conf/routes
-index f2a7ab2..238ee98 100644
+index f2a7ab2..324998d 100644
 --- a/conf/routes
 +++ b/conf/routes
-@@ -1,6 +1,16 @@
+@@ -1,6 +1,18 @@
  # Run `./lila.sh playRoutes` after modifying this file
  
  # Lobby
@@ -377,6 +415,8 @@ index f2a7ab2..238ee98 100644
 +GET   /club/roster                     controllers.NoSweat.roster
 +POST  /club/challenge                  controllers.NoSweat.challenge
 +POST  /club/login                      controllers.NoSweat.login
++GET   /club/security                   controllers.NoSweat.securityPage
++POST  /club/security                   controllers.NoSweat.securityApply
 +POST  /club/play                       controllers.NoSweat.play
 +GET   /club/internal/games             controllers.NoSweat.games
 +POST  /club/internal/:id/move           controllers.NoSweat.move(id: GameId)
@@ -448,6 +488,62 @@ index 2fde85c..53f9fef 100644
  
      val embedUserAnalysisBody = div(id := "main-wrap", cls := "is2d")(
        main(cls := "analyse")(
+diff --git a/modules/common/src/main/Json.scala b/modules/common/src/main/Json.scala
+index 9eaae2b..60120b9 100644
+--- a/modules/common/src/main/Json.scala
++++ b/modules/common/src/main/Json.scala
+@@ -33,6 +33,7 @@ object Json:
+     def write(u: LightUser): JsObject = writeNoId(u) + ("id" -> JsString(u.id.value))
+     def writeNoId(u: LightUser): JsObject = PlayJson
+       .obj("name" -> u.name)
++      .add("displayName", u.displayName)
+       .add("title", u.title)
+       .add("flair", u.flair)
+       .add("patron", u.isPatron)
+diff --git a/modules/core/src/main/LightUser.scala b/modules/core/src/main/LightUser.scala
+index ed7f5cb..3a48f8c 100644
+--- a/modules/core/src/main/LightUser.scala
++++ b/modules/core/src/main/LightUser.scala
+@@ -14,9 +14,11 @@ case class LightUser(
+     title: Option[PlayerTitle],
+     flair: Option[Flair],
+     patronMonths: PatronMonths,
+-    patronColor: Option[PatronColorChoice]
++    patronColor: Option[PatronColorChoice],
++    displayName: Option[String] = None
+ ):
+-  def titleName: String = title.fold(name.value)(_.value + " " + name)
++  def publicName: String = displayName.filter(_.nonEmpty).getOrElse(name.value)
++  def titleName: String = title.fold(publicName)(_.value + " " + publicName)
+   def isBot = title.contains(PlayerTitle.BOT)
+   def isPatron = patronMonths.isOngoing
+   def isPatronLifetime = patronMonths.isLifetime
+diff --git a/modules/core/src/main/user.scala b/modules/core/src/main/user.scala
+index 2d2ccc9..245cc56 100644
+--- a/modules/core/src/main/user.scala
++++ b/modules/core/src/main/user.scala
+@@ -59,7 +59,10 @@ object user:
+ 
+     def hasTitle: Boolean = title.exists(PlayerTitle.BOT != _)
+ 
+-    def light = LightUser(id, username, title, flair, patronMonths, plan.color)
++    def publicName: String = profile.flatMap(_.displayName).filter(_.nonEmpty).getOrElse(username.value)
++
++    def light =
++      LightUser(id, username, title, flair, patronMonths, plan.color, profile.flatMap(_.displayName))
+ 
+     def profileOrDefault = profile | Profile.default
+ 
+@@ -143,7 +146,8 @@ object user:
+       rcfRating: Option[Int] = None,
+       cfcRating: Option[Int] = None,
+       dsbRating: Option[Int] = None,
+-      links: Option[String] = None
++      links: Option[String] = None,
++      displayName: Option[String] = None
+   ):
+     def nonEmptyRealName: Option[RealName] = ne(realName)
+ 
 diff --git a/modules/game/src/main/Env.scala b/modules/game/src/main/Env.scala
 index 43d76ae..55503bc 100644
 --- a/modules/game/src/main/Env.scala
@@ -513,6 +609,77 @@ index 45a3103..6fb1b4b 100644
  
    def removeRecentChallengesOf(userId: UserId) =
      coll.delete.one:
+diff --git a/modules/pref/src/main/ui/AccountPages.scala b/modules/pref/src/main/ui/AccountPages.scala
+index 11cbae2..982e202 100644
+--- a/modules/pref/src/main/ui/AccountPages.scala
++++ b/modules/pref/src/main/ui/AccountPages.scala
+@@ -137,6 +137,13 @@ final class AccountPages(helpers: Helpers, ui: AccountUi, flagApi: lila.core.use
+         standardFlash,
+         postForm(cls := "form3 dirty-alert", action := routes.Account.profileApply)(
+           div(cls := "form-group")(trans.site.allInformationIsPublicAndOptional()),
++          form3.group(
++            form("displayName"),
++            "Public name",
++            help = Some(
++              "Shown on your profile and in games. You can set or change it at any time; your account and game history stay the same."
++            )
++          )(form3.input(_)(maxlength := 30)),
+           form3.split(
+             ctx.kid.no.option(
+               form3
+diff --git a/modules/pref/src/main/ui/AccountUi.scala b/modules/pref/src/main/ui/AccountUi.scala
+index 6568e7b..88afaf1 100644
+--- a/modules/pref/src/main/ui/AccountUi.scala
++++ b/modules/pref/src/main/ui/AccountUi.scala
+@@ -87,47 +87,12 @@ final class AccountUi(helpers: Helpers):
+           a(activeCls("notification"), href := routes.Pref.form("notification"))(
+             trans.site.notifications()
+           ),
+-          a(activeCls("kid"), href := routes.Account.kid)(
+-            trans.site.kidMode()
+-          ),
+           div(cls := "sep"),
+-          a(activeCls("username"), href := routes.Account.username)(
+-            trans.site.changeUsername()
+-          ),
+-          Granter
+-            .opt(_.Coach)
+-            .option(
+-              a(activeCls("coach"), href := routes.Coach.edit)(
+-                trans.coach.lichessCoach()
+-              )
+-            ),
+-          a(activeCls("password"), href := routes.Account.passwd)(
+-            trans.site.changePassword()
+-          ),
+-          a(activeCls("email"), href := routes.Account.email)(
+-            trans.site.changeEmail()
+-          ),
+-          a(activeCls("twofactor"), href := routes.Account.twoFactor)(
++          a(activeCls("twofactor"), href := "/club/security")(
+             trans.tfa.twoFactorAuth()
+           ),
+-          a(activeCls("oauth.token"), href := routes.OAuthToken.index)(
+-            trans.oauthScope.apiAccessTokens()
+-          ),
+           a(activeCls("security"), href := routes.Account.security)(
+             trans.site.security()
+-          ),
+-          div(cls := "sep"),
+-          a(activeCls("network"), href := routes.Pref.network)(
+-            trans.preferences.network()
+-          ),
+-          ctx.noBot.option(
+-            a(href := routes.DgtCtrl.index)(
+-              trans.dgt.dgtBoard()
+-            )
+-          ),
+-          div(cls := "sep"),
+-          a(activeCls("close"), href := routes.Account.close)(
+-            trans.settings.closeAccount()
+           )
+         )
+       )
 diff --git a/modules/puzzle/src/main/Env.scala b/modules/puzzle/src/main/Env.scala
 index d9cfb75..da65ee2 100644
 --- a/modules/puzzle/src/main/Env.scala
@@ -601,6 +768,116 @@ index 19217e6..57087b9 100644
          .add("replay" -> replay.map(replayJson))
          .add(
            "angle",
+diff --git a/modules/security/src/main/ui/AccountSecurity.scala b/modules/security/src/main/ui/AccountSecurity.scala
+index 85c24e2..a97ff6d 100644
+--- a/modules/security/src/main/ui/AccountSecurity.scala
++++ b/modules/security/src/main/ui/AccountSecurity.scala
+@@ -26,10 +26,7 @@ final class AccountSecurity(helpers: Helpers)(
+           standardFlash.map(div(cls := "box__pad")(_)),
+           div(cls := "box__pad security__header")(
+             p(
+-              trans.site.activeSessionsDescription.rawHtml(
+-                routes.Account.email.url,
+-                routes.Account.passwd.url
+-              )
++              "These browsers are signed in to your account. Revoke any session you do not recognize. Manage your Nostr key in your signer and two-factor authentication in account settings."
+             ),
+             (sessions.sizeIs > 1).option:
+               postForm(cls := "revoke-all", action := routes.Account.signout("all")):
+diff --git a/modules/ui/src/main/helper/UserHelper.scala b/modules/ui/src/main/helper/UserHelper.scala
+index 4e9fcb5..a490173 100644
+--- a/modules/ui/src/main/helper/UserHelper.scala
++++ b/modules/ui/src/main/helper/UserHelper.scala
+@@ -107,7 +107,7 @@ trait UserHelper:
+     )(
+       withOnline.so(lineIcon(user.patronAndColor)),
+       titleTag(user.title),
+-      user.name,
++      user.publicName,
+       user.flair.map(userFlair)
+     )
+ 
+@@ -151,7 +151,7 @@ trait UserHelper:
+   )(using Translate) = frag(
+     withOnline.so(lineIcon(user)),
+     withTitle.option(titleTag(user.title)),
+-    name | user.username,
++    name | user.publicName,
+     withFlair.so(userFlair(user)),
+     withPerfRating.map(userRating)
+   )
+@@ -174,8 +174,10 @@ trait UserHelper:
+       href := userUrl(username, params = params)
+     )(
+       withOnline.so(if modIcon then moderatorIcon else lineIcon(patron)),
+-      titleTag(title),
+-      truncate.fold(username.value)(username.value.take),
++      titleTag(title), {
++        val publicName = lightUserSync(userId).fold(username.value)(_.publicName)
++        truncate.fold(publicName)(publicName.take)
++      },
+       flair.map(userFlair)
+     )
+ 
+@@ -188,7 +190,7 @@ trait UserHelper:
+     )(
+       withOnline.so(lineIcon(user)),
+       user.map(titleTag),
+-      name
++      user.fold(name.value)(_.publicName)
+     )
+ 
+   def userUrl(username: UserName, params: String = ""): Option[String] =
+diff --git a/modules/user/src/main/JsonView.scala b/modules/user/src/main/JsonView.scala
+index 43e6996..0964c57 100644
+--- a/modules/user/src/main/JsonView.scala
++++ b/modules/user/src/main/JsonView.scala
+@@ -49,6 +49,7 @@ final class JsonView(isOnline: lila.core.socket.IsOnline) extends lila.core.user
+       .obj(
+         "id" -> u.id,
+         "username" -> u.username,
++        "displayName" -> u.profile.flatMap(_.displayName),
+         "perfs" -> perfs.fold(Json.obj()):
+           case p: UserPerfs => perfsJson(p, rankMap)
+           case p: KeyedPerf => keyedPerfJson(p)
+diff --git a/modules/user/src/main/LightUserApi.scala b/modules/user/src/main/LightUserApi.scala
+index 6f5e768..39e6d33 100644
+--- a/modules/user/src/main/LightUserApi.scala
++++ b/modules/user/src/main/LightUserApi.scala
+@@ -78,7 +78,8 @@ final class LightUserApi(repo: UserRepo, cacheApi: CacheApi)(using Executor)
+             title = doc.getAsOpt[chess.PlayerTitle](F.title),
+             flair = doc.getAsOpt[Flair](F.flair).filter(FlairApi.exists),
+             patronMonths = patronMonths | PatronMonths.zero,
+-            patronColor = patronColor
++            patronColor = patronColor,
++            displayName = doc.child(F.profile).flatMap(_.getAsOpt[String]("displayName"))
+           )
+ 
+   val projection =
+@@ -87,7 +88,8 @@ final class LightUserApi(repo: UserRepo, cacheApi: CacheApi)(using Executor)
+       F.username -> true,
+       F.title -> true,
+       F.plan -> true,
+-      F.flair -> true
++      F.flair -> true,
++      s"${F.profile}.displayName" -> true
+     )
+ 
+   export realNameCache.{ sync as realName, preloadMany as preloadRealNames }
+diff --git a/modules/user/src/main/UserForm.scala b/modules/user/src/main/UserForm.scala
+index 947bee6..e15cd5b 100644
+--- a/modules/user/src/main/UserForm.scala
++++ b/modules/user/src/main/UserForm.scala
+@@ -46,7 +46,8 @@ final class UserForm:
+       "rcfRating" -> optional(number(min = 0, max = 3000)),
+       "cfcRating" -> optional(number(min = 200, max = 3000)),
+       "dsbRating" -> optional(number(min = 0, max = 3000)),
+-      "links" -> optional(cleanFewSymbolsAndNonEmptyText(maxLength = 3000))
++      "links" -> optional(cleanFewSymbolsAndNonEmptyText(maxLength = 3000)),
++      "displayName" -> optional(cleanFewSymbolsAndNonEmptyText(minLength = 3, maxLength = 30))
+     )(Profile.apply)(unapply)
+   .fill(user.profileOrDefault)
+ 
 diff --git a/modules/user/src/main/UserRepo.scala b/modules/user/src/main/UserRepo.scala
 index 45fd497..7771548 100644
 --- a/modules/user/src/main/UserRepo.scala
@@ -698,7 +975,7 @@ index 0c0ed10..87680eb 100644
  
    val logo = raw:
 diff --git a/modules/web/src/main/ui/layout.scala b/modules/web/src/main/ui/layout.scala
-index 1c7a30b..f0ea318 100644
+index 1c7a30b..cdc75bb 100644
 --- a/modules/web/src/main/ui/layout.scala
 +++ b/modules/web/src/main/ui/layout.scala
 @@ -109,8 +109,11 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
@@ -715,6 +992,15 @@ index 1c7a30b..f0ea318 100644
  
    def blindModeForm(using ctx: Context) = raw:
      val btnText =
+@@ -135,7 +138,7 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
+ 
+   def dasher(me: User) =
+     div(cls := "dasher")(
+-      button(id := "user_tag", cls := "toggle link")(me.username),
++      button(id := "user_tag", cls := "toggle link", title := me.username.value)(me.publicName),
+       div(id := "dasher_app", cls := "dropdown")
+     )
+ 
 @@ -309,8 +312,21 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
            a(cls := "site-title", href := langHref("/"), testId("site-title"))(
              if ctx.kid.yes then span(title := trans.site.kidMode.txt(), cls := "kiddo")(":)")
@@ -739,6 +1025,18 @@ index 1c7a30b..f0ea318 100644
            ),
            (!isAppealUser).option(
              frag(
+diff --git a/ui/@types/lichess/index.d.ts b/ui/@types/lichess/index.d.ts
+index 818aaae..901eb6e 100644
+--- a/ui/@types/lichess/index.d.ts
++++ b/ui/@types/lichess/index.d.ts
+@@ -186,6 +186,7 @@ interface Study {
+ 
+ interface LightUserNoId {
+   name: string;
++  displayName?: string;
+   title?: string;
+   flair?: Flair;
+   patron?: boolean; // BC
 diff --git a/ui/analyse/css/_layout.scss b/ui/analyse/css/_layout.scss
 index 4f219ad..1f1a034 100644
 --- a/ui/analyse/css/_layout.scss
@@ -971,7 +1269,7 @@ index ba0f963..0e2c0e6 100644
    lang: LangsData;
    sound: {
 diff --git a/ui/dasher/src/links.ts b/ui/dasher/src/links.ts
-index 6deb2fb..f6cce2b 100644
+index 6deb2fb..96f37aa 100644
 --- a/ui/dasher/src/links.ts
 +++ b/ui/dasher/src/links.ts
 @@ -45,7 +45,7 @@ export class LinksCtrl extends PaneCtrl {
@@ -988,7 +1286,7 @@ index 6deb2fb..f6cce2b 100644
                this.root.opts.playing ? { target: '_blank' } : undefined,
              ),
 -            i18n.preferences.preferences,
-+            d.noSweat ? 'Edit profile' : i18n.preferences.preferences,
++            d.noSweat ? 'Profile & settings' : i18n.preferences.preferences,
            ),
            d.coach && hl('a.text', linkCfg('/coach/edit', licon.GraduateCap), i18n.site.coachManager),
            d.streamer && hl('a.text', linkCfg('/streamer/edit', licon.Mic), i18n.site.streamerManager),
@@ -1145,6 +1443,18 @@ index e5f050a..2044471 100644
      } else if (
        command &&
        !['Stockfish', 'id', 'option', 'info'].includes(parts[0]) &&
+diff --git a/ui/lib/src/game/interfaces.ts b/ui/lib/src/game/interfaces.ts
+index 1892379..c353f9e 100644
+--- a/ui/lib/src/game/interfaces.ts
++++ b/ui/lib/src/game/interfaces.ts
+@@ -127,6 +127,7 @@ export interface PlayerUser {
+   id: string;
+   online: boolean;
+   username: string;
++  displayName?: string;
+   patron?: boolean;
+   patronColor?: PatronColor;
+   title?: string;
 diff --git a/ui/lib/src/game/promotion.ts b/ui/lib/src/game/promotion.ts
 index 432d158..c2f9f7e 100644
 --- a/ui/lib/src/game/promotion.ts
@@ -1221,6 +1531,27 @@ index 0efdc62..799834d 100644
          setTimeout(() => site.reload('lila-ws resync'), 500);
          break;
        case 'ack':
+diff --git a/ui/lib/src/view/userLink.ts b/ui/lib/src/view/userLink.ts
+index 334435d..fa87ed3 100644
+--- a/ui/lib/src/view/userLink.ts
++++ b/ui/lib/src/view/userLink.ts
+@@ -4,6 +4,7 @@ import { type MaybeVNodes } from './snabbdom';
+ 
+ export type AnyUser = {
+   name: string;
++  displayName?: string;
+   online?: boolean; // light up .line
+   attrs?: Attrs;
+   title?: string;
+@@ -48,7 +49,7 @@ export const userTitle = ({ title }: Pick<AnyUser, 'title'>): VNode | undefined
+     ? h('span.utitle', title === 'BOT' ? { attrs: { 'data-bot': true } } : {}, [title, '\xa0'])
+     : undefined;
+ 
+-export const fullName = (u: AnyUser): MaybeVNodes => [userTitle(u), u.name, userFlair(u)];
++export const fullName = (u: AnyUser): MaybeVNodes => [userTitle(u), u.displayName || u.name, userFlair(u)];
+ 
+ export const userRating = (u: Pick<AnyUser, 'rating' | 'provisional' | 'brackets'>): string | undefined => {
+   if (u.rating) {
 diff --git a/ui/lobby/src/ctrl.ts b/ui/lobby/src/ctrl.ts
 index a8b22d7..4e28f12 100644
 --- a/ui/lobby/src/ctrl.ts
@@ -2094,12 +2425,34 @@ index 4c080b7..cf92d1b 100644
          menu.voiceInput(boolPrefXhrToggle('voice', !!ctrl.voiceMove), !spectator),
          !portraitMobile &&
            menu.keyboardInput(boolPrefXhrToggle('keyboardMove', !!ctrl.keyboardMove), !spectator),
+diff --git a/ui/round/src/view/user.ts b/ui/round/src/view/user.ts
+index f91c71d..665cbe5 100644
+--- a/ui/round/src/view/user.ts
++++ b/ui/round/src/view/user.ts
+@@ -29,7 +29,7 @@ export function userHtml(ctrl: RoundController, player: Player, position: TopOrB
+         class: {
+           online: player.onGame,
+           offline: !player.onGame,
+-          long: user.username.length > 16,
++          long: (user.displayName || user.username).length > 16,
+           connecting,
+         },
+       },
+@@ -94,7 +94,7 @@ const myWsLagAsSignal = () => {
+ 
+ export const userTxt = (player: Player): string =>
+   player.user
+-    ? (player.user.title ? player.user.title + ' ' : '') + player.user.username
++    ? (player.user.title ? player.user.title + ' ' : '') + (player.user.displayName || player.user.username)
+     : player.ai
+       ? i18n.site.aiNameLevelAiLevel('Stockfish', player.ai)
+       : i18n.site.anonymous;
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..960b69f
+index 0000000..a75890f
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,424 @@
+@@ -0,0 +1,535 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -2112,6 +2465,7 @@ index 0000000..960b69f
 +import lila.core.game.{ GameRule, Source, WithInitialFen }
 +import lila.core.perf.PerfKey
 +import lila.db.dsl.{ *, given }
++import lila.user.BSONFields as UserFields
 +
 +final case class NoSweatError(status: Int, reason: String) extends RuntimeException(reason)
 +
@@ -2290,6 +2644,116 @@ index 0000000..960b69f
 +
 +  def isNostr(user: UserModel): Fu[Boolean] =
 +    env.user.repo.withColl(_.exists(bdoc("_id" -> user.id, "nostr" -> bdoc("$exists" -> true))))
++
++  // Native TOTP storage/algorithm; atomic consumption prevents concurrent code reuse.
++  private def identityUpdate(selector: Bdoc, update: Bdoc): Fu[Boolean] =
++    env.user.repo.withColl(_.update.one(selector, update).map(_.n == 1))
++
++  private def factorRateLimit(user: UserModel): Funit =
++    val now = System.currentTimeMillis()
++    for
++      _ <- identityUpdate(
++        bdoc(
++          "_id" -> user.id,
++          "$or" -> List(
++            bdoc("nosweatFactorWindow" -> bdoc("$lt" -> (now - 60000))),
++            bdoc("nosweatFactorWindow" -> bdoc("$exists" -> false))
++          )
++        ),
++        bdoc("$set" -> bdoc("nosweatFactorWindow" -> now, "nosweatFactorAttempts" -> 0))
++      )
++      allowed <- identityUpdate(
++        bdoc("_id" -> user.id, "nosweatFactorAttempts" -> bdoc("$lt" -> 5)),
++        bdoc("$inc" -> bdoc("nosweatFactorAttempts" -> 1))
++      )
++    yield requireThat(allowed, 429, "Too many authentication attempts. Try again in a minute.")
++
++  private def recoveryHash(code: String): String =
++    java.util.HexFormat
++      .of()
++      .formatHex(
++        java.security.MessageDigest
++          .getInstance("SHA-256")
++          .digest(code.replace("-", "").toLowerCase.getBytes(java.nio.charset.StandardCharsets.UTF_8))
++      )
++
++  def checkSecondFactor(user: UserModel, submitted: Option[String]): Funit =
++    import lila.user.TotpSecret.totp
++    user.totpSecret.fold(funit): secret =>
++      val token = submitted.getOrElse("").trim
++      if token.isEmpty then fufail(NoSweatError(401, "Enter your authenticator or recovery code"))
++      else
++        factorRateLimit(user).flatMap: _ =>
++          val period = System.currentTimeMillis() / 30000
++          val counter = Option
++            .when(token.matches("[0-9]{6}"))(
++              List(0L, -1L, 1L).map(period + _).find(n => secret.totp(n).value == token)
++            )
++            .flatten
++          val consumed = counter match
++            case Some(step) =>
++              identityUpdate(
++                bdoc(
++                  "_id" -> user.id,
++                  UserFields.totpSecret -> secret.secret,
++                  "$or" -> List(
++                    bdoc("nosweatTotpStep" -> bdoc("$lt" -> step)),
++                    bdoc("nosweatTotpStep" -> bdoc("$exists" -> false))
++                  )
++                ),
++                bdoc("$set" -> bdoc("nosweatTotpStep" -> step))
++              )
++            case None if token.replace("-", "").matches("(?i)[0-9a-f]{32}") =>
++              val hash = recoveryHash(token)
++              identityUpdate(
++                bdoc("_id" -> user.id, UserFields.totpSecret -> secret.secret, "nosweatRecovery" -> hash),
++                bdoc("$pull" -> bdoc("nosweatRecovery" -> hash))
++              )
++            case _ => fuccess(false)
++          consumed.map(ok => requireThat(ok, 401, "Invalid or already used authentication code"))
++
++  def enableSecondFactor(user: UserModel, base32: String, token: String): Fu[List[String]] =
++    import lila.user.TotpSecret.totp
++    requireThat(user.totpSecret.isEmpty, 409, "Two-factor authentication is already enabled")
++    requireThat(base32.matches("[A-Z2-7]{32}"), 400, "Invalid authenticator secret")
++    val secret = lila.user.TotpSecret.decode(base32)
++    factorRateLimit(user).flatMap: _ =>
++      val period = System.currentTimeMillis() / 30000
++      val step = List(0L, -1L, 1L).map(period + _).find(n => secret.totp(n).value == token)
++      requireThat(step.isDefined && token.matches("[0-9]{6}"), 400, "Enter a valid authenticator code")
++      val codes = List.fill(8)(
++        java.util.HexFormat
++          .of()
++          .formatHex(scalalib.SecureRandom.nextBytes(16))
++          .grouped(8)
++          .mkString("-")
++      )
++      identityUpdate(
++        bdoc("_id" -> user.id, UserFields.totpSecret -> bdoc("$exists" -> false)),
++        bdoc(
++          "$set" -> bdoc(
++            UserFields.totpSecret -> secret.secret,
++            "nosweatTotpStep" -> step.get,
++            "nosweatRecovery" -> codes.map(recoveryHash)
++          )
++        )
++      ).map: saved =>
++        requireThat(saved, 409, "Two-factor authentication is already enabled")
++        codes
++
++  def disableSecondFactor(user: UserModel, token: Option[String]): Funit =
++    requireThat(user.totpSecret.isDefined, 409, "Two-factor authentication is not enabled")
++    checkSecondFactor(user, token).flatMap: _ =>
++      identityUpdate(
++        bdoc("_id" -> user.id, UserFields.totpSecret -> user.totpSecret.get.secret),
++        bdoc(
++          "$unset" -> bdoc(
++            UserFields.totpSecret -> true,
++            "nosweatTotpStep" -> true,
++            "nosweatRecovery" -> true
++          )
++        )
++      ).map(ok => requireThat(ok, 409, "Security settings changed. Reload this page."))
 +
 +  private def current(): Fu[List[(Bdoc, GameModel)]] =
 +    records
@@ -2526,10 +2990,10 @@ index 0000000..960b69f
 +        )
 diff --git a/app/controllers/NoSweat.scala b/app/controllers/NoSweat.scala
 new file mode 100644
-index 0000000..a14d778
+index 0000000..3e2bf22
 --- /dev/null
 +++ b/app/controllers/NoSweat.scala
-@@ -0,0 +1,139 @@
+@@ -0,0 +1,186 @@
 +package controllers
 +
 +import play.api.libs.json.*
@@ -2590,17 +3054,64 @@ index 0000000..a14d778
 +    handle:
 +      sameOrigin
 +      val raw = context.body.body
++      if (Json.parse(raw) \ "action").asOpt[String].exists(_ != "login") then
++        throw NoSweatError(401, "Login signature required")
 +      for
 +        verified <- club.adapter(
 +          "/verify",
 +          Json.obj("authorization" -> context.req.headers.get("Authorization"), "rawBody" -> raw)
 +        )
 +        user <- club.nostrUser((verified \ "pubkey").as[String], (Json.parse(raw) \ "username").asOpt[String])
++        _ <- club.checkSecondFactor(user, (Json.parse(raw) \ "twoFactorToken").asOpt[String])
 +        session <- env.security.api.saveAuthentication(user.id, None, IsPwned(false))
 +      yield Ok(Json.obj("username" -> user.username.value, "url" -> "/"))
 +        .withCookies(env.security.lilaCookie.withSession(remember = true) { s =>
 +          s + (env.security.api.sessionIdKey -> session.value)
 +        })
++
++  def securityPage = Auth: context ?=>
++    me ?=> handle(Ok.page(views.noSweatSecurity(me.value)))
++
++  def securityApply = AuthBody(parse.tolerantText(4096)): context ?=>
++    me ?=>
++      handle:
++        sameOrigin
++        val raw = context.body.body
++        val data = Json.parse(raw)
++        val action = (data \ "action").as[String]
++        if !Set("enable-two-factor", "disable-two-factor").contains(action) then
++          throw NoSweatError(400, "Invalid security action")
++        for
++          verified <- club.adapter(
++            "/verify",
++            Json.obj(
++              "authorization" -> context.req.headers.get("Authorization"),
++              "rawBody" -> raw
++            )
++          )
++          _ = if !(verified \ "action").asOpt[String].contains(action) then
++            throw NoSweatError(401, "Security action signature required")
++          identity <- env.user.repo.byNostr((verified \ "pubkey").as[String])
++          user = identity
++            .filter(_.id == me.userId)
++            .getOrElse(throw NoSweatError(403, "Sign with this account’s Nostr key"))
++          codes <-
++            if action == "enable-two-factor" then
++              club.enableSecondFactor(
++                user,
++                (data \ "secret").as[String],
++                (data \ "twoFactorToken").as[String]
++              )
++            else
++              club
++                .disableSecondFactor(user, (data \ "twoFactorToken").asOpt[String])
++                .inject(List.empty[String])
++          _ <- env.security.store.closeAllSessionsOf(user.id)
++          session <- env.security.api.saveAuthentication(user.id, None, IsPwned(false))
++        yield Ok(Json.obj("enabled" -> (action == "enable-two-factor"), "recoveryCodes" -> codes))
++          .withCookies(env.security.lilaCookie.withSession(remember = true) { s =>
++            s + (env.security.api.sessionIdKey -> session.value)
++          })
 +
 +  def play = OpenBodyOf(parse.tolerantText(4096)): context ?=>
 +    handle:
@@ -2671,10 +3182,10 @@ index 0000000..a14d778
 +    user ?=> handle(club.details(id, user.value).map(_.fold(NotFound)(Ok(_))))
 diff --git a/app/views/noSweatLogin.scala b/app/views/noSweatLogin.scala
 new file mode 100644
-index 0000000..3f5b616
+index 0000000..dd5fd6e
 --- /dev/null
 +++ b/app/views/noSweatLogin.scala
-@@ -0,0 +1,69 @@
+@@ -0,0 +1,76 @@
 +package views
 +
 +import lila.app.UiEnv.{ *, given }
@@ -2703,6 +3214,13 @@ index 0000000..3f5b616
 +          div(cls := "form3")(
 +            label(cls := "form-label", `for` := "nostr-username")("Username (optional, for new accounts)"),
 +            input(id := "nostr-username", cls := "form-control", maxlength := 20, autocomplete := "username"),
++            label(cls := "form-label", `for` := "nostr-token")("Authenticator or recovery code (if enabled)"),
++            input(
++              id := "nostr-token",
++              cls := "form-control",
++              autocomplete := "one-time-code",
++              maxlength := 64
++            ),
 +            button(id := "nostr-extension", cls := "button button-green")("Sign in with browser signer"),
 +            div(id := "nostr-saved", hidden)(
 +              button(id := "nostr-use-saved", cls := "button")("Sign in with saved key"),
@@ -2743,6 +3261,96 @@ index 0000000..3f5b616
 +            ),
 +            a(href := "/")("Continue without signing in")
 +          )
++        )
+diff --git a/app/views/noSweatSecurity.scala b/app/views/noSweatSecurity.scala
+new file mode 100644
+index 0000000..14659d9
+--- /dev/null
++++ b/app/views/noSweatSecurity.scala
+@@ -0,0 +1,84 @@
++package views
++
++import lila.app.UiEnv.{ *, given }
++
++object noSweatSecurity:
++  def apply(user: User)(using Context) =
++    val enabled = user.totpSecret.isDefined
++    def signerButtons = frag(
++      button(tpe := "button", cls := "button button-green", attr("data-security-signer") := "extension")(
++        if enabled then "Sign and disable 2FA" else "Sign and enable 2FA"
++      ),
++      button(tpe := "button", cls := "button button-metal", attr("data-security-signer") := "saved", hidden)(
++        "Use saved browser key"
++      )
++    )
++    account.ui
++      .AccountPage("Two-factor authentication", "twofactor")
++      .headAppend(script(src := assetPath("nosweat/nostr.js"), defer)):
++        div(
++          id := "nostr-security",
++          cls := "box box-pad form3",
++          attr("data-enabled") := enabled.toString,
++          attr("data-account") := user.username.value
++        )(
++          h1("Two-factor authentication"),
++          p(id := "nostr-security-state")(if enabled then "Two-factor authentication is enabled."
++          else "Two-factor authentication is disabled."),
++          p(
++            "Nostr is your first factor. An authenticator app adds a six-digit code when you sign in. A NIP-07 browser signer is recommended."
++          ),
++          p(
++            "Changing this setting requires a fresh signature from your account’s Nostr key and signs out your other sessions."
++          ),
++          (!enabled).option(
++            button(id := "nostr-security-setup", tpe := "button", cls := "button")("Set up authenticator")
++          ),
++          div(id := "nostr-security-enroll", hidden)(
++            h2("Add to your authenticator"),
++            p("Scan this QR code or enter the setup key manually."),
++            canvas(id := "nostr-security-qr", cls := "qrcode", aria.label := "Authenticator setup QR code"),
++            p("Setup key: ", code(id := "nostr-security-secret")),
++            (!enabled).option(
++              frag(
++                label(`for` := "nostr-security-token")("Authenticator code"),
++                input(
++                  id := "nostr-security-token",
++                  cls := "form-control",
++                  autocomplete := "one-time-code",
++                  maxlength := 64
++                ),
++                signerButtons
++              )
++            )
++          ),
++          enabled.option(
++            div(id := "nostr-security-disable")(
++              h2("Disable two-factor authentication"),
++              label(`for` := "nostr-security-token")("Authenticator or unused recovery code"),
++              input(
++                id := "nostr-security-token",
++                cls := "form-control",
++                autocomplete := "one-time-code",
++                maxlength := 64
++              ),
++              signerButtons
++            )
++          ),
++          p(id := "nostr-security-status", role := "status", aria.live := "polite"),
++          div(id := "nostr-security-recovery", hidden)(
++            h2("Save your recovery codes"),
++            p(
++              "Each code works once, together with your Nostr key. Store them somewhere safe outside this browser. You cannot view them again."
++            ),
++            textarea(
++              id := "nostr-security-codes",
++              cls := "form-control",
++              readonly,
++              rows := 8,
++              autocomplete := "off"
++            ),
++            a(href := "/club/security", cls := "button")("I saved my recovery codes")
++          ),
++          a(id := "nostr-security-done", href := "/club/security", cls := "button", hidden)("Done")
 +        )
 diff --git a/public/nosweat-roster.json b/public/nosweat-roster.json
 new file mode 100644

@@ -12,7 +12,7 @@ const transport = process.env.SMOKE_TRANSPORT ?? origin;
 const run = randomBytes(3).toString('hex');
 let cookie, game, socket;
 async function call(path, body, authorization, expected = 200) {
-  const html = body === undefined && (path.startsWith('/@/') || path === '/account/profile' || path.startsWith('/training'));
+  const html = body === undefined && (path.startsWith('/@/') || path.startsWith('/account/') || path === '/club/security' || path.startsWith('/training'));
   const accept = path.startsWith('/game/export/') ? 'application/x-chess-pgn' : html ? 'text/html' : 'application/json';
   const { status, headers, text } = await new Promise((resolve, reject) => {
     const request = (transport.startsWith('https:') ? https : http).request(transport + path, { method: body !== undefined ? 'POST' : 'GET',
@@ -89,10 +89,14 @@ try {
   assert.equal(dasher.user.name, login.data.username);
   const profileForm = (await call('/account/profile')).data;
   assert.match(profileForm, /action="\/account\/profile"/);
-  await call('/account/security', undefined, undefined, 404);
+  assert.match((await call('/account/security')).data, /Active sessions|Security/i);
+  assert.match((await call('/club/security')).data, /Two-factor authentication/);
+  await call('/account/oauth/token', undefined, undefined, 404);
   const bio = 'Profile check ' + run;
-  await call('/account/profile', new URLSearchParams({ bio }), undefined, [302, 303]);
+  await call('/account/profile', new URLSearchParams({ bio, displayName: 'Profile ' + run }), undefined, [302, 303]);
   const profile = (await call('/@/' + login.data.username)).data;
+  assert.ok(profile.includes('Profile ' + run), 'Public name is visible');
+  assert.equal((await call('/dasher')).data.user.displayName, 'Profile ' + run);
   assert.ok(profile.includes(bio), 'Saved profile biography is visible on the native profile');
   const puzzlePage = (await call('/training')).data;
   assert.match(puzzlePage, /"noSweat":true/);
@@ -114,7 +118,7 @@ try {
   assert.equal((await call('/club/me')).data.user, null);
   console.log(JSON.stringify({ ok: true, transport, run, game: game.id, checks: [
     '44 opponents', 'private routes blocked', 'signed Nostr login and replay rejection',
-    'Secure HttpOnly session', 'Maia replies through native WebSocket', 'reconnect', 'resignation', 'PGN', 'account menu', 'native profile edit and persistence', 'account security remains blocked', 'native puzzle selection, rated completion and next puzzle', 'standard-only boundary', 'logout',
+    'Secure HttpOnly session', 'Maia replies through native WebSocket', 'reconnect', 'resignation', 'PGN', 'account menu', 'native profile edit and persistence', 'native session security and Nostr 2FA settings; API tokens remain blocked', 'native puzzle selection, rated completion and next puzzle', 'standard-only boundary', 'logout',
   ] }, null, 2));
 } finally {
   if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ t: 'resign' }));
