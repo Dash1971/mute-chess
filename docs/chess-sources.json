@@ -56,7 +56,15 @@
     "feature_issues": [
       200,
       26
-    ]
+    ],
+    "timing": {
+      "revision": "8563954429c2fb53ce0fe0e16c73c5d8a73ccfe0",
+      "paths": [
+        "lib/src/human_timing.dart",
+        "test/human_timing_test.dart"
+      ],
+      "adaptation": "third-party/mobile-maia-timing; original-control timing tiers and total-target accounting"
+    }
   },
   "en_croissant": {
     "repository": "https://github.com/franciscoBSalgueiro/en-croissant",

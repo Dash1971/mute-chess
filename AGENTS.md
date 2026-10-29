@@ -92,3 +92,12 @@ identity. Retain recommended NIP-07 signing. Show authenticator/recovery-code in
 only after signed proof confirms 2FA is enabled, never as an initial field or an
 unauthenticated public-key probe. Preserve fresh signature-bound retries, recovery
 code replay protection and local encrypted-key storage. See #59.
+
+
+## Control-dependent human timing (owner request, October 30, 2026)
+
+Use Mobile Maia's complete timing implementation, including its 1+0 and
+2+1/3+0/3+2 tiers, selected from original clock configuration. Count inference
+inside the total target and preserve the low-clock added-wait cap. Version changes
+in frozen game policy; never replace an active game's timing silently. See
+`docs/bot-timing.md` and #60.

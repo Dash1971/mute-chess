@@ -4549,10 +4549,10 @@ index 18646b3..662a537 100644
      const $toggle = $('#notify-toggle');
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..278771a
+index 0000000..54ee714
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,631 @@
+@@ -0,0 +1,637 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -5125,6 +5125,12 @@ index 0000000..278771a
 +                  "botToMove" -> game.player.userId.contains(bot),
 +                  "botColor" -> game.player(bot).get.color.name,
 +                  "policy" -> Json.parse(doc.getAsOpt[String]("snapshot").get),
++                  "clock" -> game.clock.map(c =>
++                    Json.obj(
++                      "initial" -> c.config.limitSeconds,
++                      "increment" -> c.config.incrementSeconds
++                    )
++                  ),
 +                  "state" -> state
 +                )
 +          .map(Json.toJson(_))

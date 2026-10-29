@@ -50,7 +50,7 @@ async function play(game) {
     const started = performance.now();
     const moves = game.state.moves ? game.state.moves.split(' ') : [];
     const policy = effectivePolicy(game.policy, game.ply, roster);
-    const targetMs = targetTime();
+    const targetMs = targetTime({ baseSeconds: game.clock?.initial ?? null, incrementSeconds: game.clock?.increment ?? 0 });
     const result = await maia.predict(moves, policy);
     const elapsed = performance.now() - started;
     const remaining = (game.botColor === 'white' ? game.state.wtime : game.state.btime) ?? 60000;

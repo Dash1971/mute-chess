@@ -29,6 +29,28 @@ test('timing includes inference and stops adding delays when the clock is low', 
   assert.equal(addedWait(2000, 500, 2000), 0);
   assert.equal(addedWait(2000, 500, 60000), 1500);
   let index = 0; const values = [0.5, 0.5, 0.5];
-  const target = targetTime(() => values[index++]);
+  const target = targetTime({}, () => values[index++]);
   assert.ok(target >= 550 && target <= 4500);
+});
+
+// Independent vectors from Mobile Maia's pinned Dart human_timing_test.dart.
+function sample(baseSeconds, incrementSeconds, values) {
+  let index=0; const value=targetTime({baseSeconds,incrementSeconds},()=>values[index++]);
+  assert.equal(index,values.length);return value;
+}
+test('Mobile Maia fast-control timing includes rare pauses before scaling and capping',()=>{
+  for(const [draws,expected] of [
+    [[0,.5,.5],275], [[0,0,.06],2250], [[0,0,.059999,0],3000], [[0,0,0,.999999999],3000],
+  ])assert.equal(sample(60,0,draws),expected);
+  assert.equal(sample(120,1,[0,.5,.5]),413);
+  assert.equal(sample(180,0,[0,0,0,.999999999]),4500);
+  for(const control of [[120,1],[180,0],[180,2]])
+    assert.equal(sample(...control,[.5,.5,.5]),Math.round(Math.exp(.50-Math.sqrt(-2*Math.log(.5))*.44)*.75*1000));
+});
+test('other controls keep the unscaled timing and tier selection never uses time remaining',()=>{
+  const draws=[.25,.1,.5],legacy=sample(null,0,draws);
+  for(const control of [[60,1],[60,2],[300,0],[300,3],[600,0],[600,5],[900,10],[1800,0],[1800,20],[30,0],[120,0]])
+    assert.equal(sample(...control,draws),legacy);
+  assert.ok(sample(60,0,draws)<sample(180,0,draws));
+  assert.ok(sample(180,0,draws)<sample(300,0,draws));
 });

@@ -61,6 +61,10 @@ try {
   await waitFor(async()=> (await b.request('/game/'+id)).game.turns===3,'second white move');
   wb.send(JSON.stringify({t:'move',d:{u:'b8c6',a:2}}));
   await waitFor(async()=> (await a.request('/game/'+id)).game.turns===4,'second black move');
+  for(const [client,ws,uci,turn,ack] of [
+    [a,wa,'f1b5',5,3],[b,wb,'a7a6',6,3],[a,wa,'b5a4',7,4],
+    [b,wb,'g8f6',8,4],[a,wa,'e1g1',9,5],[b,wb,'f8e7',10,5],
+  ]) { ws.send(JSON.stringify({t:'move',d:{u:uci,a:ack}}));await waitFor(async()=> (await client.request('/game/'+id)).game.turns===turn,'normal rated game before rematch'); }
   wa.send(JSON.stringify({t:'resign'}));
   await waitFor(async()=> (await b.request('/game/'+id)).game.status.id>=30,'native resignation');
   const pgn=await a.request('/game/export/'+id,undefined,200,{Accept:'application/x-chess-pgn'});assert.match(pgn,/1\. e4[\s\S]*e5[\s\S]*2\. Nf3[\s\S]*Nc6/);
@@ -76,7 +80,7 @@ try {
   await waitFor(async()=> (await a.request('/game/'+redirect.id)).game.status.id===25,'unplayed rematch abort');
   const declined=await a.request('/setup/friend?user='+b.username,setup());await b.request('/challenge/'+declined.challenge.id+'/decline',{},204);
   const canceled=await a.request('/setup/friend?user='+b.username,setup());await a.request('/challenge/'+canceled.challenge.id+'/cancel',{},204);
-  await b.request('/rel/block/'+a.username,{});await a.request('/setup/friend?user='+b.username,setup(),403);
+  await b.request('/rel/block/'+a.username,{});await a.request('/setup/friend?user='+b.username,setup(),400);
   await b.request('/rel/unblock/'+a.username,{});await a.request('/rel/unfollow/'+b.username,{});
   // Separate requests respect the native per-IP setup budget.
   await delay(61000);
