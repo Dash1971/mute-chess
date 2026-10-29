@@ -6,7 +6,9 @@ A release must carry RELEASE.json with `gitCommit`, `branch: "main"`, and `sourc
 
 # Public native alpha
 
-The owner authorized deploying nosweatchess.org after the native Maia/Nostr slice.
+The native Maia/Nostr alpha has an existing public deployment. This checkout
+prepares the Mute Chess branding and `mutechess.org` cutover. The owner authorized
+source publication; deployment remains separate. See [the rebrand notes](../../docs/mute-chess-rebrand.md).
 This is a separate runtime from the private development stack and the retired
 Node prototype. Codex assisted implementation and automated verification; no
 human manual acceptance or upstream contribution is claimed.
@@ -81,7 +83,7 @@ The gateway handles HTTPS-origin forwarding, same-host static assets, native
 WebSocket upgrades and the corresponding-source download. It blocks internal
 adapter routes and unrelated Lichess surfaces. Tunnel ingress routes only the
 apex and www to the loopback gateway; www redirects to the apex. Preserve mail
-records. Production Nostr challenges sign `https://nosweatchess.org/club/login`.
+records. Production Nostr challenges sign `https://mutechess.org/club/login`.
 The adapter uses `PUBLIC_ORIGIN` for these signatures and the native Host header,
 while `LILA_ORIGIN` remains loopback.
 

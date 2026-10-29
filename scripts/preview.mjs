@@ -48,7 +48,7 @@ const server = http.createServer(async (req, res) => {
   }
 });
 server.listen(port, "127.0.0.1", () =>
-  console.log(`nosweatchess desktop preview: http://127.0.0.1:${port}`),
+  console.log(`Mute Chess desktop preview: http://127.0.0.1:${port}`),
 );
 process.once("SIGINT", () => server.close());
 process.once("SIGTERM", () => server.close());

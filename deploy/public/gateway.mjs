@@ -2,7 +2,7 @@ import http from 'node:http';
 import { isIP } from 'node:net';
 import { createReadStream, statSync, realpathSync, readFileSync } from 'node:fs';
 
-const domain = 'nosweatchess.org';
+const domain = 'mutechess.org';
 const source = '/opt/nosweatchess/current/source.tar.gz';
 const revision = JSON.parse(readFileSync('/opt/nosweatchess/current/RELEASE.json', 'utf8')).gitCommit;
 const buckets = new Map();
@@ -49,7 +49,7 @@ const server = http.createServer((req, res) => {
     if (!['GET', 'HEAD'].includes(req.method)) return reject(res, 405, 'Method not allowed');
     const file = statSync(source);
     res.writeHead(200, { 'Content-Type': 'application/gzip', 'Content-Length': file.size,
-      'Content-Disposition': 'attachment; filename="nosweatchess-source.tar.gz"', 'Cache-Control': 'no-store',
+      'Content-Disposition': 'attachment; filename="mutechess-source.tar.gz"', 'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff' });
     if (req.method === 'HEAD') return res.end();
     return createReadStream(source).on('error', () => res.destroy()).pipe(res);
@@ -94,7 +94,7 @@ const server = http.createServer((req, res) => {
     res.writeHead(response.statusCode, output); response.pipe(res);
   });
   upstream.on('error', () => {
-    if (!res.headersSent) reject(res, 503, 'No Sweat Chess is restarting. Please try again shortly.');
+    if (!res.headersSent) reject(res, 503, 'Mute Chess is restarting. Please try again shortly.');
     else res.destroy();
   });
   upstream.on('timeout', () => upstream.destroy());
@@ -124,4 +124,4 @@ server.on('upgrade', (req, socket, head) => {
 server.headersTimeout = 10000;
 server.requestTimeout = 30000;
 server.maxConnections = 512;
-server.listen(29660, '127.0.0.1', () => console.log('No Sweat Chess public gateway ready on loopback'));
+server.listen(29660, '127.0.0.1', () => console.log('Mute Chess public gateway ready on loopback'));
