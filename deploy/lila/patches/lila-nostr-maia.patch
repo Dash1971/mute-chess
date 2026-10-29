@@ -278,6 +278,42 @@ index 1c7a30b..f0ea318 100644
            ),
            (!isAppealUser).option(
              frag(
+diff --git a/ui/analyse/css/_layout.scss b/ui/analyse/css/_layout.scss
+index 4f219ad..1f1a034 100644
+--- a/ui/analyse/css/_layout.scss
++++ b/ui/analyse/css/_layout.scss
+@@ -174,6 +174,31 @@ $analyse-gauge-gap: 4px;
+       min-height: 10em;
+     }
+ 
++    // The optional explorer scrolls in the side column, without changing the
++    // board row or pushing native move controls below an expanded table.
++    &:has(.nosweat-candidate-panel) {
++      .analyse__side {
++        grid-row: 1 / 3;
++        height: var(---cg-height);
++        overflow-y: auto;
++        overflow-x: hidden;
++        display: block;
++        scrollbar-gutter: stable;
++      }
++
++      .nosweat-candidate-panel {
++        flex-shrink: 0;
++      }
++
++      .mchat {
++        grid-row: 6;
++      }
++
++      .chat__members {
++        grid-row: 7;
++      }
++    }
++
+     @include crosstable-large;
+   }
+ }
 diff --git a/ui/analyse/src/autoShape.ts b/ui/analyse/src/autoShape.ts
 index 83be1dd..88f50d2 100644
 --- a/ui/analyse/src/autoShape.ts
