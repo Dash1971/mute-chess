@@ -74,4 +74,4 @@ jobs:
           pnpm install --frozen-lockfile
           (cd ui/.build && pnpm install --frozen-lockfile)
           node ui/test
-          ./ui/build --no-install analyse round
+          ./ui/build --no-install analyse round editor dasher
