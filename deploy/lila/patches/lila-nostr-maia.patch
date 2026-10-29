@@ -776,7 +776,7 @@ index 4f219ad..1f1a034 100644
    }
  }
 diff --git a/ui/analyse/src/autoShape.ts b/ui/analyse/src/autoShape.ts
-index 83be1dd..88f50d2 100644
+index 83be1dd..31e1146 100644
 --- a/ui/analyse/src/autoShape.ts
 +++ b/ui/analyse/src/autoShape.ts
 @@ -141,7 +141,7 @@ export function compute(ctrl: AnalyseCtrl): DrawShape[] {
@@ -788,16 +788,7 @@ index 83be1dd..88f50d2 100644
      if (nEval.best && isUci(nEval.best))
        shapes = shapes.concat(makeShapesFromUci(rcolor, 'paleGreen', nEval.best));
      if (!hovering && ctrl.ceval.search.multiPv) {
-@@ -186,6 +186,8 @@ export function compute(ctrl: AnalyseCtrl): DrawShape[] {
-   }
-   if (ctrl.showMoveAnnotations()) {
-     const glyphs = ctrl.visibleGlyphs();
-+    const computed = ctrl.noSweat?.computedGlyph(ctrl.path, ctrl.node);
-+    if (computed && !glyphs.some(g => g.id <= 6)) glyphs.push(computed);
-     const liveGlyph = ctrl.liveAnnotate?.get(ctrl.path);
-     if (liveGlyph && ctrl.settings.showLiveAnnotations && !glyphs.some(g => g.id <= 6))
-       glyphs.push(liveGlyph);
-@@ -215,7 +217,7 @@ export function compute(ctrl: AnalyseCtrl): DrawShape[] {
+@@ -215,7 +215,7 @@ export function compute(ctrl: AnalyseCtrl): DrawShape[] {
      }
    }
  
@@ -900,69 +891,20 @@ index 5019c1b..91a4271 100644
    const fen = makeFen(start.toSetup());
    const variant: VariantKey = rulesToVariantKey[start.rules] || start.rules;
 diff --git a/ui/analyse/src/serverSideUnderboard.ts b/ui/analyse/src/serverSideUnderboard.ts
-index cfbd78b..5aee40b 100644
+index cfbd78b..4ee7197 100644
 --- a/ui/analyse/src/serverSideUnderboard.ts
 +++ b/ui/analyse/src/serverSideUnderboard.ts
-@@ -15,6 +15,28 @@ export const stockfishName = 'Stockfish 19';
+@@ -15,6 +15,8 @@ export const stockfishName = 'Stockfish 19';
  
  export default function (element: HTMLElement, ctrl: AnalyseCtrl) {
    $(element).replaceWith(ctrl.opts.$underboard);
-+  // Browser review is available even for short games the server cannot analyse.
-+  if (ctrl.noSweat) {
-+    const menu = document.querySelector('.analyse__underboard__menu');
-+    const panels = document.querySelector('.analyse__underboard__panels');
-+    if (menu && panels) {
-+      if (!menu.querySelector('[data-panel="computer-analysis"]')) {
-+        const button = document.createElement('button');
-+        button.className = 'computer-analysis';
-+        button.dataset.panel = 'computer-analysis';
-+        button.setAttribute('role', 'tab');
-+        button.textContent = button.title = i18n.site.computerAnalysis;
-+        menu.prepend(button);
-+      }
-+      let panel = panels.querySelector<HTMLElement>('.computer-analysis');
-+      if (!panel) {
-+        panel = document.createElement('div');
-+        panel.className = 'computer-analysis';
-+        panels.prepend(panel);
-+      }
-+      ctrl.noSweat.mountReview(panel);
-+    }
-+  }
++  // No public fishnet worker is configured. Keep the native on-device review.
++  if (ctrl.noSweat) document.querySelector('form.future-game-analysis')?.remove();
    const data = ctrl.data;
    const $panels = $('.analyse__underboard__panels > div');
    const $menu = $('.analyse__underboard__menu');
-@@ -58,6 +80,7 @@ export default function (element: HTMLElement, ctrl: AnalyseCtrl) {
-       }
-     });
-     pubsub.on('analysis.server.progress', (d: AnalyseData) => {
-+      if (ctrl.noSweat) return;
-       if (!advChart) startAdvantageChart();
-       else advChart.updateData(d, ctrl.mainline);
-       const deleteBtn = document.querySelector<HTMLElement>('.analysis-chart .delete')!;
-@@ -75,7 +98,7 @@ export default function (element: HTMLElement, ctrl: AnalyseCtrl) {
-     `<div id="acpl-chart-container-loader"><span>${stockfishName}<br>server analysis</span>${spinnerHtml}</div>`;
- 
-   function startAdvantageChart() {
--    if (advChart || site.blindMode) return;
-+    if (ctrl.noSweat || advChart || site.blindMode) return;
-     const loading = !ctrl.hasFullComputerAnalysis();
-     const $panel = $panels.filter('.computer-analysis');
-     if (!$('#acpl-chart-container').length) {
-diff --git a/ui/analyse/src/treeView/inlineView.ts b/ui/analyse/src/treeView/inlineView.ts
-index 7616e25..72e0224 100644
---- a/ui/analyse/src/treeView/inlineView.ts
-+++ b/ui/analyse/src/treeView/inlineView.ts
-@@ -188,6 +188,7 @@ export class InlineView {
-         ctrl.allowedEval(node) || false,
-         glyphs,
-       ),
-+      ctrl.showMoveGlyphs() && ctrl.noSweat?.computedMoveView(path, node),
-     ]);
-   }
- 
 diff --git a/ui/analyse/src/view/components.ts b/ui/analyse/src/view/components.ts
-index 1690fe3..9c91622 100644
+index 1690fe3..593342c 100644
 --- a/ui/analyse/src/view/components.ts
 +++ b/ui/analyse/src/view/components.ts
 @@ -104,6 +104,7 @@ export function renderMain(
@@ -973,17 +915,6 @@ index 1690fe3..9c91622 100644
            if (old.data!.gaugeOn !== gaugeOn) dispatchChessgroundResize();
            vnode.data!.gaugeOn = gaugeOn;
          },
-@@ -161,7 +162,9 @@ export const renderUnderboard = ({ ctrl, deps, study }: ViewContext): VNode =>
-       hook:
-         ctrl.synthetic || playable(ctrl.data) ? undefined : onInsert(elm => serverSideUnderboard(elm, ctrl)),
-     },
--    study ? deps?.studyView.underboard(ctrl) : [renderInputs(ctrl)],
-+    study
-+      ? deps?.studyView.underboard(ctrl)
-+      : [ctrl.synthetic && ctrl.noSweat?.reviewView(), renderInputs(ctrl)],
-   );
- 
- export function renderInputs(ctrl: AnalyseCtrl): VNode | undefined {
 diff --git a/ui/analyse/src/view/main.ts b/ui/analyse/src/view/main.ts
 index 83a184c..e7693b7 100644
 --- a/ui/analyse/src/view/main.ts
@@ -4789,74 +4720,12 @@ index 0000000..3f188fa
 +    self.postMessage({ error: String(error) });
 +  }
 +};
-diff --git a/ui/analyse/src/noSweatAccuracy.ts b/ui/analyse/src/noSweatAccuracy.ts
-new file mode 100644
-index 0000000..746fe6d
---- /dev/null
-+++ b/ui/analyse/src/noSweatAccuracy.ts
-@@ -0,0 +1,56 @@
-+// Mobile Maia GameAccuracy / StockfishReview.whiteWinPercent, AGPL-3.0.
-+// Exact constants and volatility-weighted/harmonic aggregation are intentional.
-+export interface GameAccuracy {
-+  white: number | null;
-+  black: number | null;
-+}
-+export function whiteWinPercent(score: EvalScore): number {
-+  if (score.cp === undefined && score.mate === undefined) throw new Error('Missing evaluation');
-+  const value =
-+    score.mate === undefined
-+      ? Math.max(-1000, Math.min(1000, score.cp!))
-+      : (21 - Math.min(10, Math.abs(score.mate))) * 100 * (score.mate > 0 ? 1 : -1);
-+  return 100 / (1 + Math.exp(-0.00368208 * value));
-+}
-+export function moveAccuracy(before: number, after: number): number {
-+  if (after >= before) return 100;
-+  return Math.max(
-+    0,
-+    Math.min(
-+      100,
-+      103.1668100711649 * Math.exp(-0.04354415386753951 * (before - after)) - 3.166924740191411 + 1,
-+    ),
-+  );
-+}
-+function deviation(values: number[]): number {
-+  const mean = values.reduce((a, b) => a + b, 0) / values.length;
-+  return Math.sqrt(values.reduce((sum, n) => sum + (n - mean) ** 2, 0) / values.length);
-+}
-+function mean(moves: [number, number][]): number | null {
-+  if (!moves.length) return null;
-+  const weight = moves.reduce((sum, m) => sum + m[1], 0);
-+  const weighted = moves.reduce((sum, m) => sum + m[0] * m[1], 0) / weight;
-+  const harmonic = moves.some(m => m[0] === 0)
-+    ? 0
-+    : moves.length / moves.reduce((sum, m) => sum + 1 / m[0], 0);
-+  return (weighted + harmonic) / 2;
-+}
-+export function gameAccuracy(scores: EvalScore[], startsWithWhite = true): GameAccuracy {
-+  if (scores.length < 2) return { white: null, black: null };
-+  const percents = scores.map(whiteWinPercent);
-+  const size = Math.max(2, Math.min(8, Math.floor(scores.length / 10)));
-+  const windows: number[][] = [];
-+  for (let i = 0; i < Math.min(size, percents.length) - 2; i++) windows.push(percents.slice(0, size));
-+  for (let start = 0; start + size <= percents.length; start++)
-+    windows.push(percents.slice(start, start + size));
-+  const white: [number, number][] = [];
-+  const black: [number, number][] = [];
-+  for (let ply = 0; ply + 1 < scores.length; ply++) {
-+    const whiteMoved = (ply % 2 === 0) === startsWithWhite;
-+    const before = whiteMoved ? percents[ply] : 100 - percents[ply];
-+    const after = whiteMoved ? percents[ply + 1] : 100 - percents[ply + 1];
-+    const weight = Math.max(0.5, Math.min(12, deviation(windows[ply])));
-+    (whiteMoved ? white : black).push([moveAccuracy(before, after), weight]);
-+  }
-+  return { white: mean(white), black: mean(black) };
-+}
 diff --git a/ui/analyse/src/noSweatAnalysis.ts b/ui/analyse/src/noSweatAnalysis.ts
 new file mode 100644
-index 0000000..09bc345
+index 0000000..9d2bad2
 --- /dev/null
 +++ b/ui/analyse/src/noSweatAnalysis.ts
-@@ -0,0 +1,1002 @@
+@@ -0,0 +1,808 @@
 +import type { DrawShape } from '@lichess-org/chessground/draw';
 +import { parseUci } from 'chessops/util';
 +import { attributesModule, classModule, init } from 'snabbdom';
@@ -4864,13 +4733,10 @@ index 0000000..09bc345
 +import { frag } from 'lib';
 +import { winningChances } from 'lib/ceval';
 +import { storage } from 'lib/storage';
-+import type { Glyph, TreeNode } from 'lib/tree/types';
 +import { hl, type VNode } from 'lib/view';
 +
 +import type AnalyseCtrl from './ctrl';
 +import { engineArrows, engineShapes, engineColors } from './noSweatArrows';
-+import { ClassifierClient } from './noSweatClassifierClient';
-+import type { ClassificationInput, ClassificationResult } from './noSweatClassify';
 +import {
 +  encodeHistory,
 +  policy,
@@ -4882,10 +4748,9 @@ index 0000000..09bc345
 +  leadingPolicy,
 +  type Candidate,
 +} from './noSweatCore';
++import { reviewClick } from './noSweatEvents';
 +import { ReviewFish, type Review } from './noSweatFish';
-+import { GameReview, reviewQualities, type ReviewNode, type ReviewQuality } from './noSweatGameReview';
 +import { readEnginePreferences, type EnginePreferences } from './noSweatPreferences';
-+import { reviewView, reviewClick, classificationLabels, classificationClasses } from './noSweatReviewView';
 +
 +interface MaiaClient {
 +  predict(input: {
@@ -4907,22 +4772,8 @@ index 0000000..09bc345
 +}
 +const ratings = Array.from({ length: 21 }, (_, i) => 600 + i * 100);
 +const samples = [600, 1100, 1600, 2100, 2600];
-+const label: Record<string, string> = {
-+  '!!': 'Brilliant',
-+  '!': 'Good',
-+  '!?': 'Interesting',
-+  '?!': 'Dubious',
-+  '?': 'Mistake',
-+  '??': 'Blunder',
-+};
-+
 +export class NoSweatAnalysis {
 +  enabled = false;
-+  quality: ReviewQuality = 'fast';
-+  readonly gameReview: GameReview;
-+  private readonly gameFish: ReviewFish;
-+  private readonly gameClassifier: ClassifierClient;
-+  private reviewRedraw?: () => void;
 +  model = '5m';
 +  selfElo = 1500;
 +  opponentElo = 1500;
@@ -4952,10 +4803,6 @@ index 0000000..09bc345
 +  private readonly cache = new Map<string, Candidate[]>();
 +  private readonly fish: ReviewFish;
 +  private readonly reviewCache = new Map<string, Review>();
-+  private classifier?: Worker;
-+  private classifierTimer?: ReturnType<typeof setTimeout>;
-+  private classifierCancel?: () => void;
-+  private readonly annotations = new Map<string, ClassificationResult>();
 +  private fishBest?: string;
 +  private compareBusy = false;
 +
@@ -4964,15 +4811,6 @@ index 0000000..09bc345
 +    this.enabled = !!ctrl.cevalEnabled();
 +    ctrl.ceval.storedPv(2);
 +    queueMicrotask(() => this.positionChanged());
-+    this.gameFish = new ReviewFish(() => this.refreshReview());
-+    this.gameClassifier = new ClassifierClient(
-+      () => new Worker(site.asset.url(site.asset.jsModule('analyse.nosweatWorker')), { type: 'module' }),
-+    );
-+    this.gameReview = new GameReview({
-+      search: (fen, signal, depth, time) => this.gameFish.search(fen, [], signal, depth, time),
-+      classify: (input, signal) => this.gameClassifier.classify(input, signal),
-+      changed: () => this.refreshReview(),
-+    });
 +    this.fish = new ReviewFish(s => {
 +      this.status = s;
 +      this.ctrl.redraw();
@@ -4980,8 +4818,6 @@ index 0000000..09bc345
 +    window.addEventListener('pagehide', this.shutdown);
 +    document.addEventListener('visibilitychange', () => {
 +      if (document.hidden) {
-+        this.gameReview.stop();
-+        this.gameClassifier.release();
 +        this.cancel();
 +        this.status = 'Paused while this tab is hidden';
 +        this.ctrl.redraw();
@@ -4989,87 +4825,10 @@ index 0000000..09bc345
 +    });
 +  }
 +  private readonly refreshReview = (): void => {
-+    this.reviewRedraw?.();
 +    this.ctrl.setAutoShapes();
 +    this.ctrl.redraw();
 +  };
-+  private readonly shutdown = (): void => {
-+    this.release();
-+    this.gameReview.stop();
-+    this.gameClassifier.release();
-+    this.gameFish.destroy();
-+  };
-+  private mainlineNodes(): ReviewNode[] {
-+    let path = '';
-+    try {
-+      return this.ctrl.mainline.map((node, i, line) => {
-+        if (i) path += node.id;
-+        const move = node.uci && parseUci(node.uci);
-+        return {
-+          fen: node.fen,
-+          path,
-+          san: node.san,
-+          uci: i && move ? standardUci(position(line[i - 1].fen), move) : undefined,
-+        };
-+      });
-+    } catch {
-+      return [];
-+    }
-+  }
-+  startGameReview = (): void => {
-+    if (!this.ctrl.isCevalAllowed()) return;
-+    if (this.gameReview.report?.state === 'failed') this.gameFish.destroy();
-+    void this.gameReview.start(this.mainlineNodes(), this.quality).finally(() => {
-+      if (!this.gameReview.running) this.gameClassifier.release();
-+    });
-+  };
-+  reviewView(): VNode {
-+    return reviewView(
-+      this.gameReview.report,
-+      this.gameReview.running,
-+      this.startGameReview,
-+      () => this.gameReview.stop(),
-+      path => {
-+        this.ctrl.userJump(path);
-+        this.ctrl.redraw();
-+      },
-+      this.ctrl.path,
-+      this.mainlineNodes().length > 1,
-+    );
-+  }
-+  mountReview(element: HTMLElement): void {
-+    const patch = init([classModule, attributesModule]);
-+    element.replaceChildren();
-+    const root = document.createElement('div');
-+    element.append(root);
-+    let vnode: VNode | HTMLElement = root;
-+    this.reviewRedraw = () => {
-+      vnode = patch(vnode, this.reviewView());
-+    };
-+    this.reviewRedraw();
-+  }
-+  computedGlyph(path: string, node: TreeNode): Glyph | undefined {
-+    const result = this.gameReview.resultAt(path, node.fen);
-+    const ids: Record<string, number> = { '!': 1, '?': 2, '!!': 3, '??': 4, '!?': 5, '?!': 6 };
-+    if (!result?.symbol) return undefined;
-+    return {
-+      id: ids[result.symbol],
-+      symbol: result.symbol,
-+      name: 'Computer review: ' + classificationLabels[result.symbol],
-+      comp: true,
-+    };
-+  }
-+  computedMoveView(path: string, node: TreeNode): VNode | undefined {
-+    const glyph = this.computedGlyph(path, node);
-+    if (!glyph) return undefined;
-+    return hl(
-+      'span.nosweat-computed-glyph.' + classificationClasses[glyph.symbol],
-+      {
-+        attrs: { title: glyph.name, 'aria-label': glyph.name },
-+      },
-+      glyph.symbol,
-+    );
-+  }
++  private readonly shutdown = (): void => this.release();
 +  private enginePreferences(): EnginePreferences {
 +    return {
 +      model: this.model === '79m' ? '79m' : '5m',
@@ -5080,7 +4839,6 @@ index 0000000..09bc345
 +      history: this.history,
 +      maiaArrows: this.maiaArrows,
 +      fishArrows: this.fishArrows,
-+      quality: this.quality,
 +    };
 +  }
 +  engineSettings(): HTMLElement {
@@ -5102,11 +4860,6 @@ index 0000000..09bc345
 +      ${select('selfElo', 'Primary Maia rating', options)}${select('opponentElo', 'Primary opponent input', options)}
 +      ${toggle('secondMaiaEnabled', 'Second Maia')}${select('secondMaiaElo', 'Second Maia rating', options)}
 +      ${toggle('history', 'Use move history')}${toggle('maiaArrows', 'Show Maia arrows')}${toggle('fishArrows', 'Show Stockfish arrows')}
-+      ${select(
-+        'quality',
-+        'Game review quality',
-+        Object.entries(reviewQualities).map(([key, value]) => [key, value.name]),
-+      )}
 +      <small>Maia downloads 36 MB for 5M or 331 MB for 79M on first use. Ratings are model inputs, not calibrated Elo.</small>
 +      </fieldset>`);
 +    view.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-engine-pref]').forEach(input => {
@@ -5157,11 +4910,6 @@ index 0000000..09bc345
 +    clearTimeout(this.timer);
 +    clearInterval(this.progress);
 +    this.progress = undefined;
-+    this.classifierCancel?.();
-+    this.classifierCancel = undefined;
-+    this.classifier?.terminate();
-+    this.classifier = undefined;
-+    clearTimeout(this.classifierTimer);
 +    this.compareBusy = false;
 +  }
 +  release = (): void => {
@@ -5171,8 +4919,6 @@ index 0000000..09bc345
 +    this.fish.destroy();
 +  };
 +  positionChanged(force = false): void {
-+    this.gameReview.observe(this.mainlineNodes(), this.quality);
-+    this.reviewRedraw?.();
 +    const context =
 +      this.key() + JSON.stringify([this.secondMaiaEnabled, this.secondMaiaElo]) + this.ctrl.path;
 +    if (!force && context === this.context) return;
@@ -5420,66 +5166,6 @@ index 0000000..09bc345
 +      this.ctrl.redraw();
 +    })().catch(e => this.failure(e, generation));
 +  };
-+  private readonly annotationKey = (fens = this.historyFens()): string => JSON.stringify(fens.slice(-3));
-+  private runClassifier(input: ClassificationInput, generation: number): Promise<ClassificationResult> {
-+    return new Promise((resolve, reject) => {
-+      const worker = (this.classifier = new Worker(
-+        site.asset.url(site.asset.jsModule('analyse.nosweatWorker')),
-+        { type: 'module' },
-+      ));
-+      const stop = (error?: Error, result?: ClassificationResult) => {
-+        worker.terminate();
-+        if (this.classifier === worker) this.classifier = undefined;
-+        clearTimeout(this.classifierTimer);
-+        this.classifierCancel = undefined;
-+        if (error) reject(error);
-+        else resolve(result!);
-+      };
-+      this.classifierCancel = () => stop(new Error('Cancelled'));
-+      this.classifierTimer = setTimeout(
-+        () => stop(new Error('Capture search timed out; annotation unavailable')),
-+        10000,
-+      );
-+      worker.onerror = () => stop(new Error('Classification worker failed'));
-+      worker.onmessage = ({ data }) => {
-+        if (!this.valid(generation)) {
-+          stop(new Error('Cancelled'));
-+          return;
-+        }
-+        stop(data.error ? new Error(data.error) : undefined, data.result);
-+      };
-+      worker.postMessage(input);
-+    });
-+  }
-+  classifyMove = (): void => {
-+    if (this.compareBusy) return;
-+    const generation = this.generation;
-+    const nodes = this.ctrl.nodeList.slice(-3);
-+    if (nodes.length < 2) return;
-+    this.compareBusy = true;
-+    this.error = '';
-+    this.status = 'Reviewing the move with Stockfish…';
-+    this.ctrl.redraw();
-+    (async () => {
-+      const positions = nodes.map(n => n.fen);
-+      const reviews: Review[] = [];
-+      for (const fen of positions) reviews.push(await this.review(fen, generation));
-+      const parent = position(positions[positions.length - 2]);
-+      const move = parseUci(nodes[nodes.length - 1].uci!);
-+      if (!move) throw new Error('Move unavailable');
-+      this.status = 'Checking material and annotation evidence…';
-+      this.ctrl.redraw();
-+      const result = await this.runClassifier(
-+        { positions, reviews, move: standardUci(parent, move) },
-+        generation,
-+      );
-+      if (!this.valid(generation)) return;
-+      this.annotations.set(this.annotationKey(positions), result);
-+      this.compareBusy = false;
-+      this.status = '';
-+      this.ctrl.redraw();
-+    })().catch(e => this.failure(e, generation));
-+  };
 +  shapes(): DrawShape[] {
 +    if (!this.enabled || !this.ctrl.isCevalAllowed() || document.hidden || this.ctrl.threatMode()) return [];
 +    const lines = this.nativeLines();
@@ -5576,7 +5262,6 @@ index 0000000..09bc345
 +      ]);
 +    };
 +    const played = this.played();
-+    const annotation = this.annotations.get(this.annotationKey());
 +    return hl(
 +      'section.nosweat-candidate-panel',
 +      { attrs: { 'aria-label': 'Candidate moves and rating explorer' } },
@@ -5650,17 +5335,7 @@ index 0000000..09bc345
 +                this.allMoves = !this.allMoves;
 +                this.ctrl.redraw();
 +              }),
-+              button(
-+                'Review this move',
-+                this.classifyMove,
-+                this.compareBusy || this.ctrl.nodeList.length < 2,
-+              ),
 +            ]),
-+            annotation &&
-+              hl(
-+                'p.nosweat-annotation',
-+                `${this.ctrl.node.san ?? 'Move'}: ${annotation.symbol ? label[annotation.symbol] + ' (' + annotation.symbol + ')' : 'No special annotation'}. Accuracy ${annotation.accuracy.toFixed(1)}%.`,
-+              ),
 +            hl(
 +              'details.nosweat-rating-explorer',
 +              {
@@ -6103,6 +5778,21 @@ index 0000000..079746f
 +++ b/ui/analyse/src/noSweatCore.ts
 @@ -0,0 +1 @@
 +export * from 'lib/nosweat/core';
+diff --git a/ui/analyse/src/noSweatEvents.ts b/ui/analyse/src/noSweatEvents.ts
+new file mode 100644
+index 0000000..8c1ab43
+--- /dev/null
++++ b/ui/analyse/src/noSweatEvents.ts
+@@ -0,0 +1,9 @@
++import { type Hooks, type VNode } from 'lib/view/snabbdom';
++
++// Native bind() installs only once. Candidate actions change as the report progresses.
++export const reviewClick = (action: (event: MouseEvent) => void): Hooks => {
++  const attach = (vnode: VNode) => {
++    (vnode.elm as HTMLElement | SVGElement).onclick = action;
++  };
++  return { insert: attach, update: (_, vnode) => attach(vnode) };
++};
 diff --git a/ui/analyse/src/noSweatFish.ts b/ui/analyse/src/noSweatFish.ts
 new file mode 100644
 index 0000000..36b0e3f
@@ -6316,184 +6006,6 @@ index 0000000..36b0e3f
 +    this.protocol = undefined;
 +  }
 +}
-diff --git a/ui/analyse/src/noSweatGameReview.ts b/ui/analyse/src/noSweatGameReview.ts
-new file mode 100644
-index 0000000..474ca27
---- /dev/null
-+++ b/ui/analyse/src/noSweatGameReview.ts
-@@ -0,0 +1,172 @@
-+import { gameAccuracy, type GameAccuracy } from './noSweatAccuracy';
-+import type { ClassificationInput, ClassificationResult } from './noSweatClassify';
-+import type { Review } from './noSweatFish';
-+
-+export const reviewQualities = {
-+  fast: { name: 'Fast', depth: 12, time: 500 },
-+  balanced: { name: 'Balanced', depth: 14, time: 1000 },
-+  thorough: { name: 'Thorough', depth: 16, time: 1500 },
-+} as const;
-+export type ReviewQuality = keyof typeof reviewQualities;
-+export interface ReviewNode {
-+  fen: string;
-+  uci?: string;
-+  san?: string;
-+  path: string;
-+}
-+export interface GameReport {
-+  key: string;
-+  quality: ReviewQuality;
-+  nodes: ReviewNode[];
-+  reviews: Review[];
-+  moves: (ClassificationResult | undefined)[];
-+  unavailable: number[];
-+  accuracy?: GameAccuracy;
-+  state: 'idle' | 'evaluating' | 'classifying' | 'confirming' | 'complete' | 'stopped' | 'failed';
-+  completed: number;
-+  total: number;
-+  error?: string;
-+}
-+interface Dependencies {
-+  search: (fen: string, signal: AbortSignal, depth: number, time: number) => Promise<Review>;
-+  classify: (input: ClassificationInput, signal: AbortSignal) => Promise<ClassificationResult>;
-+  changed: () => void;
-+}
-+export const gameReviewKey = (nodes: ReviewNode[], quality: ReviewQuality): string =>
-+  JSON.stringify(['sf19-small-mobilemaia-full-v1', quality, nodes.map(n => [n.path, n.fen, n.uci])]);
-+export class GameReview {
-+  report?: GameReport;
-+  private abort?: AbortController;
-+  private generation = 0;
-+  private readonly cache = new Map<string, Review>();
-+  constructor(private readonly deps: Dependencies) {}
-+  observe(nodes: ReviewNode[], quality: ReviewQuality): void {
-+    if (this.report && this.report.key !== gameReviewKey(nodes, quality)) {
-+      this.report = undefined;
-+      this.stop();
-+    }
-+  }
-+  resultAt(path: string, fen: string): ClassificationResult | undefined {
-+    const report = this.report;
-+    if (!report) return undefined;
-+    const index = report.nodes.findIndex(n => n.path === path && n.fen === fen);
-+    return index > 0 ? report.moves[index - 1] : undefined;
-+  }
-+  get running(): boolean {
-+    return !!this.abort;
-+  }
-+  stop(): void {
-+    this.generation++;
-+    this.abort?.abort();
-+    this.abort = undefined;
-+    if (this.report && ['evaluating', 'classifying', 'confirming'].includes(this.report.state))
-+      this.report.state = 'stopped';
-+    this.deps.changed();
-+  }
-+  async start(nodes: ReviewNode[], quality: ReviewQuality): Promise<void> {
-+    if (this.report?.state === 'complete') this.cache.clear();
-+    this.stop();
-+    if (nodes.length < 2) return;
-+    const generation = this.generation;
-+    const abort = (this.abort = new AbortController());
-+    const current = () => generation === this.generation && !abort.signal.aborted;
-+    const mode = reviewQualities[quality];
-+    const report: GameReport = (this.report = {
-+      key: gameReviewKey(nodes, quality),
-+      quality,
-+      nodes: nodes.map(n => ({ ...n })),
-+      reviews: [],
-+      moves: Array.from({ length: nodes.length - 1 }, () => undefined),
-+      unavailable: [],
-+      state: 'evaluating',
-+      completed: 0,
-+      total: nodes.length,
-+    });
-+    this.deps.changed();
-+    const search = async (fen: string, confirmation = false): Promise<Review> => {
-+      if (!current()) throw new Error('Cancelled');
-+      const depth = mode.depth + (confirmation ? 2 : 0);
-+      const key = JSON.stringify([fen, quality, depth, mode.time]);
-+      const cached = this.cache.get(key);
-+      if (cached) return cached;
-+      const result = await this.deps.search(fen, abort.signal, depth, mode.time);
-+      if (!current()) throw new Error('Cancelled');
-+      const review = { ...result, quality };
-+      this.cache.set(key, review);
-+      if (this.cache.size > 800) this.cache.delete(this.cache.keys().next().value!);
-+      return review;
-+    };
-+    try {
-+      for (const node of report.nodes) {
-+        report.reviews.push(await search(node.fen));
-+        if (!current()) return;
-+        report.completed++;
-+        this.deps.changed();
-+      }
-+      report.accuracy = gameAccuracy(
-+        report.reviews.map(r => r.current.lines[0]),
-+        report.nodes[0].fen.split(' ')[1] === 'w',
-+      );
-+      report.state = 'classifying';
-+      report.completed = 0;
-+      report.total = nodes.length - 1;
-+      this.deps.changed();
-+      for (let ply = 1; ply < nodes.length; ply++) {
-+        if (!current()) return;
-+        const first = Math.max(0, ply - 2);
-+        const input: ClassificationInput = {
-+          positions: nodes.slice(first, ply + 1).map(n => n.fen),
-+          reviews: report.reviews.slice(first, ply + 1),
-+          move: nodes[ply].uci!,
-+        };
-+        try {
-+          report.moves[ply - 1] = await this.deps.classify(input, abort.signal);
-+        } catch {
-+          if (!current()) return;
-+          report.unavailable.push(ply);
-+        }
-+        if (!current()) return;
-+        report.completed++;
-+        this.deps.changed();
-+      }
-+      // Match Mobile Maia's six-search budget for uncorroborated standout windows.
-+      report.state = 'confirming';
-+      let budget = 6;
-+      this.deps.changed();
-+      for (let ply = 1; ply < nodes.length; ply++) {
-+        const provisional = report.moves[ply - 1];
-+        if (!provisional?.withheld || !['!', '!!'].includes(provisional.provisional ?? '')) continue;
-+        const first = provisional.provisional === '!' ? Math.max(0, ply - 2) : ply - 1;
-+        const cost = ply - first + 1;
-+        if (cost > budget) continue;
-+        budget -= cost;
-+        const baselineFirst = Math.max(0, ply - 2);
-+        try {
-+          const confirmation = await Promise.all(nodes.slice(first, ply + 1).map(n => search(n.fen, true)));
-+          if (!current()) return;
-+          const input: ClassificationInput = {
-+            positions: nodes.slice(baselineFirst, ply + 1).map(n => n.fen),
-+            reviews: report.reviews.slice(baselineFirst, ply + 1),
-+            move: nodes[ply].uci!,
-+            confirmation,
-+          };
-+          report.moves[ply - 1] = await this.deps.classify(input, abort.signal);
-+          if (!current()) return;
-+        } catch {
-+          if (!current()) return; /* Unsupported standout stays withheld; baseline review is unchanged. */
-+        }
-+        this.deps.changed();
-+      }
-+      if (!current()) return;
-+      report.state = 'complete';
-+      this.abort = undefined;
-+      this.deps.changed();
-+    } catch (error) {
-+      if (!current()) return;
-+      report.state = 'failed';
-+      report.error = String(error instanceof Error ? error.message : error);
-+      this.abort = undefined;
-+      this.deps.changed();
-+    }
-+  }
-+}
 diff --git a/ui/analyse/src/noSweatPreferences.ts b/ui/analyse/src/noSweatPreferences.ts
 new file mode 100644
 index 0000000..987d947
@@ -6501,203 +6013,6 @@ index 0000000..987d947
 +++ b/ui/analyse/src/noSweatPreferences.ts
 @@ -0,0 +1 @@
 +export * from 'lib/nosweat/preferences';
-diff --git a/ui/analyse/src/noSweatReviewView.ts b/ui/analyse/src/noSweatReviewView.ts
-new file mode 100644
-index 0000000..8f9d07c
---- /dev/null
-+++ b/ui/analyse/src/noSweatReviewView.ts
-@@ -0,0 +1,191 @@
-+import { hl, type Hooks, type VNode } from 'lib/view/snabbdom';
-+
-+import { whiteWinPercent } from './noSweatAccuracy';
-+import { scoreText } from './noSweatCore';
-+import type { GameReport } from './noSweatGameReview';
-+
-+// Native bind() installs only once. Review actions change as the report progresses.
-+export const reviewClick = (action: (event: MouseEvent) => void): Hooks => {
-+  const attach = (vnode: VNode) => {
-+    (vnode.elm as HTMLElement | SVGElement).onclick = action;
-+  };
-+  return { insert: attach, update: (_, vnode) => attach(vnode) };
-+};
-+
-+export const classificationLabels: Record<string, string> = {
-+  '!!': 'Brilliant',
-+  '!': 'Good',
-+  '!?': 'Interesting',
-+  '?!': 'Dubious',
-+  '?': 'Mistake',
-+  '??': 'Blunder',
-+};
-+export const classificationClasses: Record<string, string> = {
-+  '!!': 'brilliant',
-+  '!': 'good',
-+  '!?': 'interesting',
-+  '?!': 'dubious',
-+  '?': 'mistake',
-+  '??': 'blunder',
-+};
-+export function reviewView(
-+  report: GameReport | undefined,
-+  running: boolean,
-+  start: () => void,
-+  stop: () => void,
-+  jump: (path: string) => void,
-+  currentPath: string,
-+  available = true,
-+): VNode {
-+  const button = (text: string, action: () => void, disabled = false) =>
-+    hl(
-+      'button.button.button-empty',
-+      {
-+        attrs: { type: 'button', disabled },
-+        hook: reviewClick(action),
-+      },
-+      text,
-+    );
-+  const phase =
-+    report?.state === 'evaluating'
-+      ? 'Analyzing positions'
-+      : report?.state === 'classifying'
-+        ? 'Classifying moves'
-+        : 'Verifying standout moves';
-+  const complete = report?.state === 'complete';
-+  return hl('section.nosweat-game-review', { attrs: { 'aria-label': 'Whole-game computer analysis' } }, [
-+    hl('div.nosweat-review-heading', [
-+      hl('h2', 'Computer analysis'),
-+      running
-+        ? button('Stop', stop)
-+        : button(
-+            report?.state === 'stopped' ? 'Resume analysis' : complete ? 'Analyze again' : 'Analyze game',
-+            start,
-+            !available,
-+          ),
-+    ]),
-+    running &&
-+      hl(
-+        'p',
-+        { attrs: { role: 'status' } },
-+        report?.state === 'confirming' ? phase : `${phase}: ${report?.completed} / ${report?.total}`,
-+      ),
-+    report?.state === 'stopped' &&
-+      hl('p', { attrs: { role: 'status' } }, 'Analysis stopped. Resume to finish this game.'),
-+    report?.error && hl('p.error', { attrs: { role: 'alert' } }, report.error),
-+    report?.accuracy &&
-+      hl('div', [
-+        hl('table.nosweat-accuracy', [
-+          hl('thead', [hl('tr', [hl('th', ''), hl('th', 'White'), hl('th', 'Black')])]),
-+          hl('tbody', [
-+            hl('tr', [
-+              hl('th', 'Accuracy'),
-+              ...(['white', 'black'] as const).map(color =>
-+                hl(
-+                  'td',
-+                  {
-+                    attrs: { 'data-color': color },
-+                  },
-+                  report.accuracy![color] === null ? '—' : report.accuracy![color].toFixed(1) + '%',
-+                ),
-+              ),
-+            ]),
-+          ]),
-+        ]),
-+        renderGraph(report, currentPath, jump),
-+        hl('table.nosweat-classifications', [
-+          hl('thead', [hl('tr', [hl('th', 'Classification'), hl('th', 'White'), hl('th', 'Black')])]),
-+          hl(
-+            'tbody',
-+            Object.entries(classificationLabels).map(([symbol, name]) => {
-+              const paths = (white: boolean) =>
-+                report.moves.flatMap((move, i) =>
-+                  move?.symbol === symbol && (report.nodes[i].fen.split(' ')[1] === 'w') === white
-+                    ? [report.nodes[i + 1].path]
-+                    : [],
-+                );
-+              return hl('tr', { attrs: { 'data-classification': classificationClasses[symbol] } }, [
-+                hl('th', `${symbol} ${name}`),
-+                ...[true, false].map(white => {
-+                  const matches = paths(white);
-+                  return hl('td', [
-+                    button(
-+                      String(matches.length),
-+                      () => {
-+                        const current = report.nodes.findIndex(node => node.path === currentPath);
-+                        const after = matches.find(
-+                          path => report.nodes.findIndex(node => node.path === path) > current,
-+                        );
-+                        const target = after ?? matches[0];
-+                        if (target !== undefined) jump(target);
-+                      },
-+                      !matches.length,
-+                    ),
-+                  ]);
-+                }),
-+              ]);
-+            }),
-+          ),
-+        ]),
-+        report.unavailable.length > 0 &&
-+          hl(
-+            'p',
-+            `${report.unavailable.length} move classifications unavailable. Accuracy uses the complete Stockfish review.`,
-+          ),
-+        !complete && !running && hl('small', 'This review is incomplete.'),
-+      ]),
-+  ]);
-+}
-+function renderGraph(report: GameReport, currentPath: string, jump: (path: string) => void): VNode {
-+  const points = report.reviews.map((r, i) => ({
-+    x: (i / (report.reviews.length - 1)) * 600,
-+    y: (100 - whiteWinPercent(r.current.lines[0])) * 1.2,
-+  }));
-+  return hl(
-+    'svg.nosweat-review-graph',
-+    {
-+      attrs: {
-+        viewBox: '0 0 600 120',
-+        role: 'group',
-+        'aria-label': 'Game evaluation: White winning chances. Select a move to navigate.',
-+      },
-+    },
-+    [
-+      hl('line', { attrs: { x1: 0, y1: 60, x2: 600, y2: 60, stroke: 'currentColor', opacity: 0.3 } }),
-+      hl('polyline', {
-+        attrs: {
-+          points: points.map(p => `${p.x},${p.y}`).join(' '),
-+          fill: 'none',
-+          stroke: 'currentColor',
-+          'stroke-width': 2,
-+        },
-+      }),
-+      ...points.map((p, i) =>
-+        hl(
-+          'a',
-+          {
-+            attrs: {
-+              href: '#',
-+              'aria-label': `${report.nodes[i].san ?? 'Start position'}: ${scoreText(report.reviews[i].current.lines[0])}`,
-+            },
-+            hook: reviewClick(event => {
-+              event.preventDefault();
-+              jump(report.nodes[i].path);
-+            }),
-+          },
-+          [
-+            hl('circle', {
-+              attrs: {
-+                cx: p.x,
-+                cy: p.y,
-+                r: 4,
-+                fill: 'currentColor',
-+                opacity: report.nodes[i].path === currentPath ? 1 : 0.25,
-+              },
-+            }),
-+          ],
-+        ),
-+      ),
-+    ],
-+  );
-+}
 diff --git a/ui/analyse/src/noSweatSnapshots.ts b/ui/analyse/src/noSweatSnapshots.ts
 new file mode 100644
 index 0000000..759163b
@@ -24269,30 +23584,22 @@ index 0000000..10a1c3f
 +});
 diff --git a/ui/analyse/tests/noSweatFullReview.test.ts b/ui/analyse/tests/noSweatFullReview.test.ts
 new file mode 100644
-index 0000000..cd7806e
+index 0000000..0a1dd6a
 --- /dev/null
 +++ b/ui/analyse/tests/noSweatFullReview.test.ts
-@@ -0,0 +1,408 @@
+@@ -0,0 +1,241 @@
 +import assert from 'node:assert/strict';
 +import { describe, test } from 'node:test';
 +
-+import { gameAccuracy, moveAccuracy, whiteWinPercent } from '../src/noSweatAccuracy';
 +import { engineArrows, engineShapes, engineColors } from '../src/noSweatArrows';
 +import { ClassifierClient } from '../src/noSweatClassifierClient';
 +import { classify, type ClassificationResult } from '../src/noSweatClassify';
 +import { after } from '../src/noSweatCore';
++import { reviewClick } from '../src/noSweatEvents';
 +import type { Review } from '../src/noSweatFish';
-+import { GameReview, gameReviewKey, reviewQualities, type ReviewNode } from '../src/noSweatGameReview';
 +import { readEnginePreferences } from '../src/noSweatPreferences';
-+import { reviewClick } from '../src/noSweatReviewView';
 +import pgnImport from '../src/pgnImport';
 +const start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-+const line = (): ReviewNode[] => {
-+  const nodes: ReviewNode[] = [{ fen: start, path: '' }];
-+  for (const [i, uci] of ['e2e4', 'e7e5', 'g1f3', 'b8c6'].entries())
-+    nodes.push({ fen: after(nodes.at(-1)!.fen, uci), uci, path: 'x'.repeat(i + 1) });
-+  return nodes;
-+};
 +const result = (overrides: Partial<ClassificationResult> = {}): ClassificationResult => ({
 +  symbol: '',
 +  accuracy: 100,
@@ -24301,25 +23608,7 @@ index 0000000..cd7806e
 +  version: 'test',
 +  ...overrides,
 +});
-+const review = (depth = 12): Review => ({
-+  current: {
-+    depth,
-+    lines: [
-+      { cp: 20, moves: ['e2e4'] },
-+      { cp: 0, moves: ['d2d4'] },
-+    ],
-+  },
-+  previous: {
-+    depth: depth - 1,
-+    lines: [
-+      { cp: 20, moves: ['e2e4'] },
-+      { cp: 0, moves: ['d2d4'] },
-+    ],
-+  },
-+});
-+const near = (actual: number | null, expected: number) =>
-+  assert.ok(actual !== null && Math.abs(actual - expected) < 1e-10, `${actual} != ${expected}`);
-+describe('Mobile Maia whole-game review', () => {
++describe('Native analysis extensions', () => {
 +  test('review controls replace stale start, stop and navigation actions on redraw', () => {
 +    let action = '';
 +    const element = { onclick: undefined as (() => void) | undefined };
@@ -24341,27 +23630,6 @@ index 0000000..cd7806e
 +    }).update!(vnode, vnode);
 +    element.onclick!();
 +    assert.equal(action, 'g4');
-+  });
-+  test('accuracy matches independent Mobile Maia numeric references, including volatility windows and mates', () => {
-+    const samples = [20, -40, -10, -180, -120, -260, -220, -500, -450].map(cp => ({ cp }));
-+    const score = gameAccuracy(samples);
-+    near(score.white, 56.109833517752875);
-+    near(score.black, 86.48031060445908);
-+    const long = gameAccuracy(Array.from({ length: 61 }, (_, i) => ({ cp: -300 + i * 10 })));
-+    near(long.white, 100);
-+    near(long.black, 97.2948770298707);
-+    const mate = gameAccuracy([3, 2, 1, -1, -2].map(mate => ({ mate })));
-+    near(mate.white, 2);
-+    near(mate.black, 100);
-+    const mobile = gameAccuracy([0, 0, 300, 300].map(cp => ({ cp })));
-+    near(mobile.white, 100);
-+    near(mobile.black, 32.39810425271999);
-+    assert.equal(moveAccuracy(50, 50), 100);
-+    assert.equal(moveAccuracy(40, 60), 100);
-+    assert.deepEqual(gameAccuracy([]), { white: null, black: null });
-+    assert.equal(gameAccuracy([{ cp: 0 }, { cp: -10 }], false).white, null);
-+    near(gameAccuracy([{ cp: 0 }, { cp: -10 }], false).black, 100);
-+    assert.throws(() => whiteWinPercent({}), /Missing/);
 +  });
 +  test('two separate Maia channels draw only their top moves at full width', () => {
 +    const arrows = engineArrows([{ uci: 'e2e4' }, { uci: 'd2d4', width: 12 }], 'c2c4', 'g1f3');
@@ -24466,7 +23734,6 @@ index 0000000..cd7806e
 +      readEnginePreferences(
 +        JSON.stringify({
 +          model: '79m',
-+          quality: 'thorough',
 +          selfElo: 2600,
 +          opponentElo: 600,
 +          history: false,
@@ -24475,7 +23742,6 @@ index 0000000..cd7806e
 +      ),
 +      {
 +        model: '79m',
-+        quality: 'thorough',
 +        selfElo: 2600,
 +        opponentElo: 600,
 +        secondMaiaEnabled: true,
@@ -24495,126 +23761,8 @@ index 0000000..cd7806e
 +      }),
 +    );
 +    assert.equal(invalid.model, '5m');
-+    assert.equal(invalid.quality, 'fast');
 +    assert.equal(invalid.selfElo, 1500);
 +    assert.equal(invalid.history, true);
-+  });
-+  test('evaluates every position, publishes whole-game accuracy, then classifies every move', async () => {
-+    const nodes = line();
-+    const calls: string[] = [];
-+    const phases: string[] = [];
-+    const runner = new GameReview({
-+      search: async (fen, _signal, depth, time) => {
-+        assert.equal(depth, 12);
-+        assert.equal(time, 500);
-+        calls.push(fen);
-+        return review();
-+      },
-+      classify: async input => {
-+        assert.ok(runner.report?.accuracy);
-+        assert.equal(input.reviews.length, input.positions.length);
-+        return result();
-+      },
-+      changed: () => {
-+        if (runner?.report) phases.push(runner.report.state);
-+      },
-+    });
-+    await runner.start(nodes, 'fast');
-+    assert.deepEqual(
-+      calls,
-+      nodes.map(n => n.fen),
-+    );
-+    assert.equal(runner.report?.state, 'complete');
-+    assert.equal(runner.report?.moves.length, 4);
-+    assert.ok(phases.includes('classifying'));
-+    assert.equal(runner.running, false);
-+    const original = runner.report;
-+    runner.observe(
-+      nodes.map(n => ({ ...n })),
-+      'fast',
-+    );
-+    assert.equal(runner.report, original);
-+    // Browsing to another path does not change the immutable game key.
-+    assert.equal(gameReviewKey(nodes, 'fast'), gameReviewKey(nodes, 'fast'));
-+    assert.notEqual(gameReviewKey(nodes, 'balanced'), gameReviewKey(nodes, 'fast'));
-+  });
-+  test('stop and a changed PGN prevent late searches from publishing stale results; resume reuses completed work', async () => {
-+    const nodes = line();
-+    let resolve!: (r: Review) => void;
-+    let first = true;
-+    const runner = new GameReview({
-+      search: async () => {
-+        if (first) {
-+          first = false;
-+          return new Promise<Review>(r => (resolve = r));
-+        }
-+        return review();
-+      },
-+      classify: async () => result(),
-+      changed: () => {},
-+    });
-+    const pending = runner.start(nodes, 'fast');
-+    runner.stop();
-+    resolve(review());
-+    await pending;
-+    assert.equal(runner.report?.state, 'stopped');
-+    assert.equal(runner.report?.reviews.length, 0);
-+    await runner.start(nodes, 'fast');
-+    assert.equal(runner.report?.state, 'complete');
-+    runner.observe(nodes.slice(0, 2), 'fast');
-+    assert.equal(runner.report, undefined);
-+    assert.equal(runner.running, false);
-+  });
-+  test('an unfinished evaluation is never counted as a full-game accuracy score', async () => {
-+    let count = 0;
-+    const runner = new GameReview({
-+      search: async () => {
-+        if (++count === 3) throw new Error('engine unavailable');
-+        return review();
-+      },
-+      classify: async () => result(),
-+      changed: () => {},
-+    });
-+    await runner.start(line(), 'balanced');
-+    assert.equal(runner.report?.state, 'failed');
-+    assert.equal(runner.report?.accuracy, undefined);
-+    assert.equal(runner.report?.reviews.length, 2);
-+  });
-+  test('classification failures retain accuracy and explicitly mark the affected moves unavailable', async () => {
-+    const runner = new GameReview({
-+      search: async () => review(),
-+      classify: async () => {
-+        throw new Error('worker stopped');
-+      },
-+      changed: () => {},
-+    });
-+    await runner.start(line(), 'thorough');
-+    assert.equal(runner.report?.state, 'complete');
-+    assert.ok(runner.report?.accuracy);
-+    assert.deepEqual(runner.report?.unavailable, [1, 2, 3, 4]);
-+  });
-+  test('standout confirmation has a six-search budget and leaves baseline graph scores unchanged', async () => {
-+    let confirmations = 0;
-+    const runner = new GameReview({
-+      search: async (_fen, _signal, depth, time) => {
-+        assert.equal(time, 500);
-+        if (depth === 14) confirmations++;
-+        return review(depth);
-+      },
-+      classify: async input =>
-+        input.confirmation ? result({ symbol: '!!' }) : result({ withheld: true, provisional: '!!' }),
-+      changed: () => {},
-+    });
-+    await runner.start(line(), 'fast');
-+    assert.ok(confirmations <= 6);
-+    assert.ok(confirmations > 0);
-+    assert.ok(runner.report?.reviews.every(r => r.current.depth === 12));
-+    assert.equal(runner.report?.state, 'complete');
-+    assert.deepEqual(reviewQualities, {
-+      fast: { name: 'Fast', depth: 12, time: 500 },
-+      balanced: { name: 'Balanced', depth: 14, time: 1000 },
-+      thorough: { name: 'Thorough', depth: 16, time: 1500 },
-+    });
 +  });
 +  test('explicit whole-window confirmation can veto an apparently stable standout', () => {
 +    const before = {
@@ -24882,11 +24030,10 @@ index 0000000..1a77e83
 +};
 diff --git a/ui/lib/src/nosweat/preferences.ts b/ui/lib/src/nosweat/preferences.ts
 new file mode 100644
-index 0000000..bd02d0d
+index 0000000..2cdb291
 --- /dev/null
 +++ b/ui/lib/src/nosweat/preferences.ts
-@@ -0,0 +1,46 @@
-+type ReviewQuality = 'fast' | 'balanced' | 'thorough';
+@@ -0,0 +1,42 @@
 +export interface EnginePreferences {
 +  model: '5m' | '79m';
 +  selfElo: number;
@@ -24896,7 +24043,6 @@ index 0000000..bd02d0d
 +  history: boolean;
 +  maiaArrows: boolean;
 +  fishArrows: boolean;
-+  quality: ReviewQuality;
 +}
 +export const defaultEnginePreferences: EnginePreferences = {
 +  model: '5m',
@@ -24907,7 +24053,6 @@ index 0000000..bd02d0d
 +  history: true,
 +  maiaArrows: true,
 +  fishArrows: true,
-+  quality: 'fast',
 +};
 +export function readEnginePreferences(raw: string | null): EnginePreferences {
 +  let input: Partial<EnginePreferences> = {};
@@ -24929,7 +24074,6 @@ index 0000000..bd02d0d
 +    history: boolean('history'),
 +    maiaArrows: boolean('maiaArrows'),
 +    fishArrows: boolean('fishArrows'),
-+    quality: input.quality === 'balanced' || input.quality === 'thorough' ? input.quality : 'fast',
 +  };
 +}
 diff --git a/ui/lib/src/nosweat/reviewMaia.ts b/ui/lib/src/nosweat/reviewMaia.ts

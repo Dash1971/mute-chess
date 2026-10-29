@@ -27,3 +27,8 @@ No Sweat Chess supports standard chess only. Do not expose or add chess variants
 ## Issue-to-release workflow (owner decision, 29 October 2026)
 
 For every new feature, create a GitHub issue first. Implement on a short-lived codex/ branch, create a PR referencing the issue with Closes/Fixes, review and pass required checks, merge on GitHub, verify the linked issue is closed, then deploy the verified main commit. Preserve one permanent main branch. Apply this to the active requested features as well; related fixes may share a PR with separate linked issues. Do not deploy unmerged code.
+
+
+## Native computer analysis restoration (owner decision, 29 October 2026)
+
+Restore the original Lichess computer-analysis chart, accuracy, judgments, review controls and analysis editor. Do not replace them with a custom full-game review, accuracy calculation, chart or classification dashboard. Stacked premoves, Maia integration and additive brilliant-move detection are the intended improvements. Preserve native judgment semantics and imported glyphs. Brilliant detection must use the validated Mobile Maia/En Croissant evidence without replacing native analysis. Until a dedicated fishnet service is configured, whole-game analysis uses Lichess’s native on-device Analysis editor; do not expose a server-analysis request that cannot complete.
