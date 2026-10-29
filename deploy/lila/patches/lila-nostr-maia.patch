@@ -3789,10 +3789,10 @@ index 0000000..746fe6d
 +}
 diff --git a/ui/analyse/src/noSweatAnalysis.ts b/ui/analyse/src/noSweatAnalysis.ts
 new file mode 100644
-index 0000000..a56a7d2
+index 0000000..d4f2251
 --- /dev/null
 +++ b/ui/analyse/src/noSweatAnalysis.ts
-@@ -0,0 +1,703 @@
+@@ -0,0 +1,704 @@
 +import type { DrawShape } from '@lichess-org/chessground/draw';
 +import { parseUci } from 'chessops/util';
 +import { attributesModule, classModule, init } from 'snabbdom';
@@ -4083,6 +4083,7 @@ index 0000000..a56a7d2
 +  };
 +  positionChanged(force = false): void {
 +    this.gameReview.observe(this.mainlineNodes(), this.quality);
++    this.reviewRedraw?.();
 +    const context = this.key() + this.ctrl.path;
 +    if (!force && context === this.context) return;
 +    this.context = context;
