@@ -2667,7 +2667,7 @@ index 2759a13..49e32aa 100644
 +  return localAnalysisDialog(options.ctrl, options.start);
  }
 diff --git a/ui/analyse/src/local/localAnalysisDialog.tsx b/ui/analyse/src/local/localAnalysisDialog.tsx
-index 3a429c5..80351e4 100644
+index 3a429c5..582cd6e 100644
 --- a/ui/analyse/src/local/localAnalysisDialog.tsx
 +++ b/ui/analyse/src/local/localAnalysisDialog.tsx
 @@ -9,7 +9,8 @@ import { numberFormat } from 'lib/i18n';
@@ -2680,11 +2680,16 @@ index 3a429c5..80351e4 100644
  import {
    type Dialog,
    type LooseVNodes,
-@@ -27,15 +28,20 @@ import { isFinished } from '@/study/studyChapters';
+@@ -23,25 +24,31 @@ import {
+ } from 'lib/view';
+ import { text as xhrText } from 'lib/xhr';
  
+-import { isFinished } from '@/study/studyChapters';
+-
  import type AnalyseCtrl from '../ctrl';
  import type { AnalysisEngineInfo } from '../interfaces';
 +import { gameReviewQuality } from '../noSweatFullReview';
++import { isFinished } from '../study/studyChapters';
  import { LocalAnalysisEngine } from './localAnalysisEngine';
  
 -export async function localAnalysisDialog(ctrl: AnalyseCtrl): Promise<void> {
@@ -2703,7 +2708,16 @@ index 3a429c5..80351e4 100644
      render: state.render,
    });
  }
-@@ -56,9 +62,18 @@ class LocalAnalysisDialog {
+ 
+-class LocalAnalysisDialog {
++export class LocalAnalysisDialog {
+   private engine?: LocalAnalysisEngine;
++  private running = false;
++  private closed = false;
+   private chartData: Parameters<ChartGame['acpl']>[1];
+   private chart?: AcplChart;
+   private status?: LooseVNodes;
+@@ -56,9 +63,18 @@ class LocalAnalysisDialog {
      private readonly chartGame: ChartGame,
    ) {
      const info = this.bestEngineDefaults;
@@ -2725,7 +2739,7 @@ index 3a429c5..80351e4 100644
      this.engineId(this.customSearch.engine!.id);
      const quality = storedIntProp('local-analysis.quality', 0);
      this.quality = (value?: number) => quality(Math.max(this.minQuality, value ?? quality()));
-@@ -124,7 +139,7 @@ class LocalAnalysisDialog {
+@@ -124,7 +140,7 @@ class LocalAnalysisDialog {
          <button
            class={['button analyse-btn', !this.canAnalyse && 'none']}
            on={{ click: async () => this.analyse(dialog, redraw) }}>
@@ -2734,19 +2748,35 @@ index 3a429c5..80351e4 100644
          </button>
          <button class={['button ok-btn', this.engine && 'none']} on={{ click: () => dialog.close('ok') }}>
            {i18n.site.ok}
-@@ -138,7 +153,7 @@ class LocalAnalysisDialog {
+@@ -134,15 +150,21 @@ class LocalAnalysisDialog {
+   };
+ 
+   readonly close = () => {
++    this.closed = true;
+     pubsub.off('ceval.engine.download', this.updateDownloadStatus);
      this.engine?.stop();
    };
  
 -  private async analyse(dlg: Dialog, redraw: Redraw): Promise<void> {
 +  async analyse(dlg: Dialog, redraw: Redraw): Promise<void> {
++    if (this.closed || this.running || !this.engine) return;
      const then = performance.now();
-     const engine = this.engine!;
+-    const engine = this.engine!;
++    const engine = this.engine;
++    this.running = true;
++    this.status = 'Preparing analysis…';
++    redraw();
      try {
-@@ -158,12 +173,47 @@ class LocalAnalysisDialog {
+       const division = await engine.getDivision();
++      if (this.closed) return;
+       this.chartData = {
+         ...this.ctrl.data,
+         game: { ...this.ctrl.data.game, division },
+@@ -158,12 +180,48 @@ class LocalAnalysisDialog {
          },
        );
        await this.ctrl.idbTree.saveAnalysis(result);
++      if (this.closed) return;
 +      const mergeResult = () =>
 +        this.ctrl.mergeMainlineAnalysisData({
 +          ...result.localUpdate,
@@ -2792,7 +2822,17 @@ index 3a429c5..80351e4 100644
        this.engine = undefined;
        redraw();
      } catch (e) {
-@@ -266,7 +316,7 @@ class LocalAnalysisDialog {
+@@ -172,6 +230,9 @@ class LocalAnalysisDialog {
+         await alert(String(e));
+       }
+       dlg.close('cancel');
++    } finally {
++      this.running = false;
++      if (dlg.dialog.open) redraw();
+     }
+   }
+ 
+@@ -266,7 +327,7 @@ class LocalAnalysisDialog {
        this.ctrl.idbTree.hasLocalAnalysis && this.ctrl.publishedEvalEngine,
      ].filter(Boolean);
  
@@ -2801,7 +2841,7 @@ index 3a429c5..80351e4 100644
        preludes.push(<p>{i18n.localAnalysis.chooseYourEngineSettings}</p>);
        if (
          !ceval.engines
-@@ -327,7 +377,14 @@ class LocalAnalysisDialog {
+@@ -327,7 +388,14 @@ class LocalAnalysisDialog {
              'local-analysis-engine',
            )}
          </div>
@@ -2817,7 +2857,21 @@ index 3a429c5..80351e4 100644
          <div class="setting">
            <label for="local-analysis-threads">{i18n.site.threads}</label>
            <input
-@@ -479,11 +536,15 @@ class LocalAnalysisDialog {
+@@ -430,11 +498,11 @@ class LocalAnalysisDialog {
+   }
+ 
+   private get isIdle() {
+-    return !this.engine?.busy;
++    return !this.running && !this.engine?.busy;
+   }
+ 
+   private get canAnalyse() {
+-    return this.engine?.busy === false;
++    return !this.running && this.engine?.busy === false;
+   }
+ 
+   private get canPublish() {
+@@ -479,11 +547,15 @@ class LocalAnalysisDialog {
      return {
        engine: { id: engine.id, threads: this.threads(), hashSize: this.hashSize() },
        search: () => ({
@@ -2836,7 +2890,7 @@ index 3a429c5..80351e4 100644
        }),
        canBackground: true,
      };
-@@ -491,8 +552,10 @@ class LocalAnalysisDialog {
+@@ -491,8 +563,10 @@ class LocalAnalysisDialog {
  
    private get bestEngineDefaults(): { id: string; threads: number; hashSize: number } {
      const engine = this.bestBrowserEngine; // TODO - allow external engines once supported
@@ -2849,7 +2903,7 @@ index 3a429c5..80351e4 100644
      return { id: engine.id, threads, hashSize };
    }
  
-@@ -502,6 +565,9 @@ class LocalAnalysisDialog {
+@@ -502,6 +576,9 @@ class LocalAnalysisDialog {
    }
  
    private get bestBrowserEngine(): BaseEngineInfo {
@@ -28637,6 +28691,59 @@ index 0000000..d00400d
 +    }
 +  ]
 +}
+diff --git a/ui/analyse/tests/localReviewStart.test.ts b/ui/analyse/tests/localReviewStart.test.ts
+new file mode 100644
+index 0000000..3c938d9
+--- /dev/null
++++ b/ui/analyse/tests/localReviewStart.test.ts
+@@ -0,0 +1,47 @@
++import type { ChartGame } from 'chart';
++import assert from 'node:assert/strict';
++import { mock, test } from 'node:test';
++
++import type { Dialog } from 'lib/view';
++
++import type AnalyseCtrl from '../src/ctrl';
++
++let resolveDivision: (value: unknown) => void;
++let searches = 0;
++class DeferredEngine {
++  busy = false;
++  nodes = [];
++  getDivision() {
++    return new Promise(resolve => {
++      resolveDivision = resolve;
++    });
++  }
++  analyse() {
++    searches++;
++    throw new Error('a cancelled review must not start');
++  }
++  stop() {}
++}
++mock.module('../src/study/studyChapters.ts', { namedExports: { isFinished: () => false } });
++mock.module('../src/local/localAnalysisEngine.ts', { namedExports: { LocalAnalysisEngine: DeferredEngine } });
++document.documentElement.lang = 'en-US';
++const { LocalAnalysisDialog } = await import('../src/local/localAnalysisDialog');
++
++test('automatic review redraws immediately and cannot start work after closing during preparation', async () => {
++  localStorage.clear();
++  const ctrl = {
++    noSweat: {},
++    ceval: {
++      rules: 'chess',
++      engines: { supporting: () => [{ id: '__sf_19_smallnet', minThreads: 1, maxThreads: 2 }] },
++    },
++  } as unknown as AnalyseCtrl;
++  const state = new LocalAnalysisDialog(ctrl, {} as ChartGame);
++  let redraws = 0;
++  const pending = state.analyse({ dialog: { open: true } } as Dialog, () => redraws++);
++  assert.ok(redraws > 0, 'preparation must immediately replace the settings screen');
++  state.close();
++  resolveDivision({});
++  await pending;
++  assert.equal(searches, 0);
++});
 diff --git a/ui/analyse/tests/noSweat.test.ts b/ui/analyse/tests/noSweat.test.ts
 new file mode 100644
 index 0000000..416aaa6
