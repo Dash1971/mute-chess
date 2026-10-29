@@ -3,6 +3,7 @@ import { decode, nsecEncode } from 'nostr-tools/nip19';
 import { saveKey, loadKey, forgetKey } from './key-store.mjs';
 import { signedCall } from './auth-client.mjs';
 import './security.mjs';
+import './patron.mjs';
 
 const element = id => document.getElementById('nostr-' + id);
 let generated;

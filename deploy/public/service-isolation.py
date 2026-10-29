@@ -6,10 +6,12 @@ This changes service configuration, not the selected application release.
 """
 import argparse
 import json
+import ipaddress
 import os
 from pathlib import Path
 import pwd
 import secrets
+import socket
 import stat
 import subprocess
 
@@ -39,7 +41,20 @@ def accounts():
     return result
 
 
-def policy(uids, connector_uid):
+def lightning_addresses():
+    addresses = set()
+    for host in ('walletofsatoshi.com', 'livingroomofsatoshi.com'):
+        for item in socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM):
+            address = ipaddress.ip_address(item[4][0])
+            if not address.is_global:
+                raise RuntimeError('Lightning provider resolved to a non-public address')
+            addresses.add(str(address))
+    if not addresses:
+        raise RuntimeError('Lightning provider addresses unavailable')
+    return tuple(sorted(addresses))
+
+
+def policy(uids, connector_uid, payment_ips=()):
     lines = [
         'destroy table inet nosweatchess_isolation',
         'table inet nosweatchess_isolation {',
@@ -60,6 +75,14 @@ def policy(uids, connector_uid):
         if ports:
             ps = ', '.join(map(str, ports))
             lines.append(f'  meta skuid {uid} ip daddr 127.0.0.1 tcp dport {{ {ps} }} accept')
+        if role == 'adapter' and payment_ips:
+            for family, version in [('ip', 4), ('ip6', 6)]:
+                ips = [str(ipaddress.ip_address(ip)) for ip in payment_ips
+                       if ipaddress.ip_address(ip).version == version]
+                if ips:
+                    lines.append(f'  meta skuid {uid} {family} daddr {{ {", ".join(ips)} }} tcp dport 443 accept')
+            for transport in ('tcp', 'udp'):
+                lines.append(f'  meta skuid {uid} ip daddr {{ 127.0.0.53, 127.0.0.54 }} {transport} dport 53 accept')
         lines.append(f'  meta skuid {uid} counter reject')
     lines += [
         f'  meta skuid {connector_uid} ip daddr 127.0.0.1 tcp dport 29660 accept',
@@ -73,7 +96,7 @@ def policy(uids, connector_uid):
     return '\n'.join(lines)
 
 
-def unit(role):
+def unit(role, payment_ips=()):
     base = '/opt/nosweatchess'
     current = base + '/current'
     etc = '/etc/nosweatchess'
@@ -88,6 +111,8 @@ def unit(role):
         'gateway': (f'{base}/tools/node --max-old-space-size=96 {current}/gateway.mjs', current, '192M', ''),
     }
     command, working, memory, extra = commands[role]
+    if role == 'adapter':
+        extra += ''.join(f'IPAddressAllow={ipaddress.ip_address(ip)}\n' for ip in payment_ips)
     dependencies = 'After=network.target nosweatchess-isolation.service\nRequires=nosweatchess-isolation.service\n'
     if role in ('app', 'ws', 'adapter'):
         dependencies += 'After=nosweatchess-mongo.service nosweatchess-redis.service\nRequires=nosweatchess-mongo.service nosweatchess-redis.service\n'
@@ -177,13 +202,17 @@ def configure(root=Path('/')):
     secure(ws, gid=people['ws'].pw_gid, mode=0o640)
     unit_dir = at('/etc/systemd/system')
     unit_dir.mkdir(parents=True, exist_ok=True)
+    payment_ips = lightning_addresses() if root == Path('/') else ()
+    allowlist = etc / 'lightning-addresses.json'
+    allowlist.write_text(json.dumps(payment_ips) + '\n')
+    secure(allowlist)
     for role in ROLES:
         path = unit_dir / ('nosweatchess-' + role + '.service')
-        path.write_text(unit(role))
+        path.write_text(unit(role, payment_ips))
         secure(path, mode=0o644)
     rules = etc / 'isolation.nft'
     rules.write_text(policy({role: person.pw_uid for role, person in people.items()},
-                            pwd.getpwnam('cloudflared').pw_uid))
+                            pwd.getpwnam('cloudflared').pw_uid, payment_ips))
     secure(rules)
     filter_unit = unit_dir / 'nosweatchess-isolation.service'
     filter_unit.write_text('''[Unit]
