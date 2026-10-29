@@ -513,6 +513,94 @@ index 45a3103..6fb1b4b 100644
  
    def removeRecentChallengesOf(userId: UserId) =
      coll.delete.one:
+diff --git a/modules/puzzle/src/main/Env.scala b/modules/puzzle/src/main/Env.scala
+index d9cfb75..da65ee2 100644
+--- a/modules/puzzle/src/main/Env.scala
++++ b/modules/puzzle/src/main/Env.scala
+@@ -48,7 +48,8 @@ final class Env(
+     path = db(config.pathColl)
+   )
+ 
+-  private val gameJson: GameJson = wire[GameJson]
++  private val catalogPuzzles = appConfig.getOptional[Boolean]("nosweat.enabled").getOrElse(false)
++  private val gameJson = new GameJson(gameRepo, cacheApi, lightUserApi, catalogPuzzles)
+ 
+   val jsonView = wire[JsonView]
+ 
+@@ -116,7 +117,7 @@ final class Env(
+   scheduler.scheduleAtFixedRate(10.minutes, 1.day): () =>
+     tagger.addAllMissing
+ 
+-  if mode.isProd then
++  if mode.isProd && !catalogPuzzles then
+     scheduler.scheduleAtFixedRate(10.minutes, 10.minutes): () =>
+       pathApi.isStale.foreach: stale =>
+         if stale then logger.error("Puzzle paths appear to be stale! check that the regen cron is up")
+diff --git a/modules/puzzle/src/main/GameJson.scala b/modules/puzzle/src/main/GameJson.scala
+index b7da393..31a633d 100644
+--- a/modules/puzzle/src/main/GameJson.scala
++++ b/modules/puzzle/src/main/GameJson.scala
+@@ -10,7 +10,8 @@ import lila.core.LightUser
+ final private class GameJson(
+     gameRepo: lila.core.game.GameRepo,
+     cacheApi: lila.memo.CacheApi,
+-    lightUserApi: lila.core.user.LightUserApi
++    lightUserApi: lila.core.user.LightUserApi,
++    val catalogPuzzles: Boolean = false
+ )(using Executor, lila.core.i18n.Translator):
+ 
+   given play.api.i18n.Lang = lila.core.i18n.defaultLang
+@@ -18,6 +19,30 @@ final private class GameJson(
+   def apply(gameId: GameId, plies: Ply, bc: Boolean): Fu[JsObject] =
+     (if bc then bcCache else cache).get(writeKey(gameId, plies))
+ 
++  // The open puzzle export contains the position and line, not the original game.
++  // Keep its real source link and FEN; never manufacture players or game metadata.
++  def apply(puzzle: Puzzle): Fu[JsObject] =
++    if !catalogPuzzles then apply(puzzle.gameId, puzzle.initialPly, false)
++    else
++      gameRepo
++        .gameFromSecondary(puzzle.gameId)
++        .flatMap:
++          case Some(game) => noCache(game, puzzle.initialPly)
++          case None =>
++            val move = Fen
++              .read(puzzle.fen)
++              .flatMap(_.move(puzzle.line.head).toOption)
++              .getOrElse(sys.error(s"Invalid catalog puzzle ${puzzle.id}"))
++            fuccess(
++              Json.obj(
++                "id" -> puzzle.gameId,
++                "players" -> Json.arr(),
++                "pgn" -> move.toSanStr,
++                "initialFen" -> puzzle.fen,
++                "source" -> s"https://lichess.org/${puzzle.gameId}/${puzzle.color.name}#${puzzle.initialPly + 1}"
++              )
++            )
++
+   def noCache(game: Game, plies: Ply): Fu[JsObject] =
+     lightUserApi.preloadMany(game.userIds).inject(generate(game, plies))
+ 
+diff --git a/modules/puzzle/src/main/JsonView.scala b/modules/puzzle/src/main/JsonView.scala
+index 19217e6..57087b9 100644
+--- a/modules/puzzle/src/main/JsonView.scala
++++ b/modules/puzzle/src/main/JsonView.scala
+@@ -25,13 +25,10 @@ final class JsonView(
+       replay: Option[PuzzleReplay],
+       withInitialPos: Boolean = false
+   )(using Translate)(using Option[Me], Perf): Fu[JsObject] =
+-    gameJson(
+-      gameId = puzzle.gameId,
+-      plies = puzzle.initialPly,
+-      bc = false
+-    ).map: gameJson =>
++    gameJson(puzzle).map: gameJson =>
+       puzzleAndGamejson(puzzle, gameJson, withInitialPos = withInitialPos)
+         .add("user" -> userJson)
++        .add("noSweat" -> this.gameJson.catalogPuzzles)
+         .add("replay" -> replay.map(replayJson))
+         .add(
+           "angle",
 diff --git a/modules/user/src/main/UserRepo.scala b/modules/user/src/main/UserRepo.scala
 index 45fd497..7771548 100644
 --- a/modules/user/src/main/UserRepo.scala
@@ -952,7 +1040,7 @@ index ba0f963..0e2c0e6 100644
    lang: LangsData;
    sound: {
 diff --git a/ui/dasher/src/links.ts b/ui/dasher/src/links.ts
-index 6deb2fb..d44a87c 100644
+index 6deb2fb..f6cce2b 100644
 --- a/ui/dasher/src/links.ts
 +++ b/ui/dasher/src/links.ts
 @@ -45,7 +45,7 @@ export class LinksCtrl extends PaneCtrl {
@@ -964,31 +1052,32 @@ index 6deb2fb..d44a87c 100644
            hl(
              'a.text',
              linkCfg(
-@@ -53,8 +53,9 @@ export class LinksCtrl extends PaneCtrl {
+@@ -53,7 +53,7 @@ export class LinksCtrl extends PaneCtrl {
                licon.Gear,
                this.root.opts.playing ? { target: '_blank' } : undefined,
              ),
 -            i18n.preferences.preferences,
 +            d.noSweat ? 'Edit profile' : i18n.preferences.preferences,
            ),
-+          d.noSweat && hl('a.text', linkCfg('/pref/game-display', licon.Gear), i18n.preferences.preferences),
            d.coach && hl('a.text', linkCfg('/coach/edit', licon.GraduateCap), i18n.site.coachManager),
            d.streamer && hl('a.text', linkCfg('/streamer/edit', licon.Mic), i18n.site.streamerManager),
-           hl('form.logout', { attrs: { method: 'post', action: '/logout' } }, [
 diff --git a/ui/editor/src/ctrl.ts b/ui/editor/src/ctrl.ts
-index 66f717e..16cfeec 100644
+index 66f717e..52d80a1 100644
 --- a/ui/editor/src/ctrl.ts
 +++ b/ui/editor/src/ctrl.ts
-@@ -98,7 +98,7 @@ export default class EditorCtrl implements CevalHandler {
+@@ -98,7 +98,10 @@ export default class EditorCtrl implements CevalHandler {
  
      this.castlingToggles = { K: false, Q: false, k: false, q: false };
      const params = new URLSearchParams(location.search);
 -    this.variant = this.cfg.embed ? 'standard' : ((params.get('variant') || 'standard') as VariantKey);
-+    this.variant = this.cfg.embed || this.cfg.standardOnly ? 'standard' : ((params.get('variant') || 'standard') as VariantKey);
++    this.variant =
++      this.cfg.embed || this.cfg.standardOnly
++        ? 'standard'
++        : ((params.get('variant') || 'standard') as VariantKey);
      const fenPassedIn: FEN | null = cfg.fen || params.get('fen');
      this.initialFen = (fenPassedIn || INITIAL_FEN).replace(/_/g, ' ');
      this.guessCastlingToggles = false;
-@@ -483,6 +483,7 @@ export default class EditorCtrl implements CevalHandler {
+@@ -483,6 +486,7 @@ export default class EditorCtrl implements CevalHandler {
      );
  
    setVariant(variant: VariantKey): void {
@@ -1009,25 +1098,50 @@ index 5cf97b4..42325aa 100644
    baseUrl: string;
    fen?: FEN;
 diff --git a/ui/editor/src/view.ts b/ui/editor/src/view.ts
-index 5b17c23..1da29f2 100644
+index 5b17c23..c672423 100644
 --- a/ui/editor/src/view.ts
 +++ b/ui/editor/src/view.ts
-@@ -272,6 +272,7 @@ function controls(ctrl: EditorCtrl, state: EditorState): VNode {
+@@ -272,21 +272,25 @@ function controls(ctrl: EditorCtrl, state: EditorState): VNode {
            ]),
          ]
        : [
-+          ...(ctrl.cfg.standardOnly ? [] : [
-           div([
-             select(
-               {
-@@ -286,6 +287,7 @@ function controls(ctrl: EditorCtrl, state: EditorState): VNode {
-               },
-               variants.map(variant => variantOption(variant, ctrl.variant)),
-             ),
-+          ])
-           ]),
+-          div([
+-            select(
+-              {
+-                id: 'variants',
+-                on: {
+-                  change(e) {
+-                    const value = (e.target as HTMLSelectElement).value;
+-                    if (value === 'chess960') ctrl.setRandom960Position();
+-                    ctrl.setVariant(value as VariantKey);
+-                  },
+-                },
+-              },
+-              variants.map(variant => variantOption(variant, ctrl.variant)),
+-            ),
+-          ]),
++          ...(ctrl.cfg.standardOnly
++            ? []
++            : [
++                div([
++                  select(
++                    {
++                      id: 'variants',
++                      on: {
++                        change(e) {
++                          const value = (e.target as HTMLSelectElement).value;
++                          if (value === 'chess960') ctrl.setRandom960Position();
++                          ctrl.setVariant(value as VariantKey);
++                        },
++                      },
++                    },
++                    variants.map(variant => variantOption(variant, ctrl.variant)),
++                  ),
++                ]),
++              ]),
            chess960PositionIdSelector,
            div('.actions', [
+             fromImageButton(ctrl, licon.Eye),
 diff --git a/ui/lib/src/ceval/ctrl.ts b/ui/lib/src/ceval/ctrl.ts
 index b00837d..e173701 100644
 --- a/ui/lib/src/ceval/ctrl.ts
@@ -1361,6 +1475,214 @@ index bfe17e8..c95e1c7 100644
      active === 'now_playing' || nbPlaying || isBot
        ? tab(ctrl, 'now_playing', active, [
            ...i18n.site.nbGamesInPlay.asArray(nbPlaying, nbPlaying >= 100 ? '99+' : nbPlaying.toString()),
+diff --git a/ui/puzzle/src/autoShape.ts b/ui/puzzle/src/autoShape.ts
+index 8097367..0eb4f00 100644
+--- a/ui/puzzle/src/autoShape.ts
++++ b/ui/puzzle/src/autoShape.ts
+@@ -67,6 +67,7 @@ export default function (ctrl: PuzzleCtrl): DrawShape[] {
+       });
+     } else shapes = shapes.concat(makeAutoShapesFromUci(opposite(color), n.threat.pvs[0].moves[0], 'red'));
+   }
++  if (ctrl.maia && !hovering && !ctrl.threatMode()) shapes = ctrl.maia.shapes();
+   const feedback = feedbackAnnotation(n);
+   const hint =
+     ctrl.hintSquare() !== undefined ? { orig: makeSquare(ctrl.hintSquare()!), brush: 'green' } : undefined;
+diff --git a/ui/puzzle/src/ctrl.ts b/ui/puzzle/src/ctrl.ts
+index a1bcd99..285d3e3 100755
+--- a/ui/puzzle/src/ctrl.ts
++++ b/ui/puzzle/src/ctrl.ts
+@@ -40,6 +40,7 @@ import type {
+ import keyboard from './keyboard';
+ import moveTest from './moveTest';
+ import { pgnToTree, mergeSolution, nextCorrectMove } from './moveTree';
++import { PuzzleMaia } from './noSweatMaia';
+ import Report from './report';
+ import PuzzleSession from './session';
+ import PuzzleStreak from './streak';
+@@ -50,6 +51,7 @@ export default class PuzzleCtrl implements CevalHandler {
+   next: Deferred<PuzzleData | ReplayEnd> = defer<PuzzleData>();
+   tree: TreeWrapper;
+   ceval: CevalCtrl;
++  maia?: PuzzleMaia;
+   autoNext: StoredProp<boolean>;
+   rated: StoredProp<boolean>;
+   ground: Prop<CgApi> = prop<CgApi | undefined>(undefined) as Prop<CgApi>;
+@@ -125,7 +127,7 @@ export default class PuzzleCtrl implements CevalHandler {
+           ...engine,
+           endpoint: this.opts.externalEngineEndpoint,
+         })) || [],
+-      initialFen: undefined, // always standard starting position
++      initialFen: this.data.game.initialFen,
+       emit: (ev, meta) => {
+         if (!ev) {
+           this.cevalEnabled(false);
+@@ -146,6 +148,10 @@ export default class PuzzleCtrl implements CevalHandler {
+       onUciHover: this.setAutoShapes,
+     });
+ 
++    if (this.data.noSweat) {
++      this.ceval.storedPv(2);
++      this.maia = new PuzzleMaia(this);
++    }
+     this.keyboardHelp = propWithEffect(location.hash === '#keyboard', this.redraw);
+     keyboard(this);
+     this.report = new Report();
+@@ -187,6 +193,7 @@ export default class PuzzleCtrl implements CevalHandler {
+     this.node = treeOps.last(this.nodeList)!;
+     this.mainline = treeOps.mainlineNodeList(this.tree.root);
+     this.showHint(false);
++    this.maia?.sync();
+   };
+ 
+   setChessground = (cg: CgApi): void => {
+@@ -246,9 +253,11 @@ export default class PuzzleCtrl implements CevalHandler {
+ 
+   initiate = (fromData: PuzzleData): void => {
+     this.data = fromData;
+-    this.tree = makeTree(pgnToTree(this.data.game.pgn.split(' ')));
++    this.tree = makeTree(pgnToTree(this.data.game.pgn.split(' '), this.data.game.initialFen));
+     const initialPath = treePath.fromNodeList(treeOps.mainlineNodeList(this.tree.root));
+     this.mode = 'play';
++    this.maia?.cancel();
++    if (this.ceval) this.ceval.init({ ...this.ceval.opts, initialFen: this.data.game.initialFen });
+     this.next = defer();
+     this.round = undefined;
+     this.resultSent = false;
+@@ -547,10 +556,12 @@ export default class PuzzleCtrl implements CevalHandler {
+   isCevalAllowed = (): boolean => this.mode === 'view';
+ 
+   startCevalIfEnabled = (): void => {
++    this.maia?.sync();
+     if (this.cevalEnabled()) this.doStartCeval();
+   };
+ 
+   private readonly doStartCeval = throttle(800, () => {
++    if (!this.cevalEnabled()) return;
+     this.ceval.reset();
+     this.ceval.start(this.path, this.nodeList, this.threatMode(), this.data.puzzle.id);
+   });
+@@ -567,6 +578,7 @@ export default class PuzzleCtrl implements CevalHandler {
+       this.ceval.reset();
+     }
+     this.autoScrollRequested = true;
++    this.maia?.sync();
+     this.setAutoShapes();
+     this.ceval.showEnginePrefs(false);
+     this.redraw();
+@@ -619,10 +631,10 @@ export default class PuzzleCtrl implements CevalHandler {
+ 
+   userJumpPlyDelta = (plyDelta: Ply) => {
+     // ensure we are jumping to a valid ply
+-    let maxValidPly = this.mainline.length - 1;
++    let maxValidPly = last(this.mainline)!.ply;
+     if (last(this.mainline)?.puzzle === 'fail' && this.mode !== 'view') maxValidPly -= 1;
+-    const newPly = Math.min(Math.max(this.node.ply + plyDelta, 0), maxValidPly);
+-    this.userJump(treePath.fromNodeList(this.mainline.slice(0, newPly + 1)));
++    const newPly = Math.min(Math.max(this.node.ply + plyDelta, this.tree.root.ply), maxValidPly);
++    this.userJump(treePath.fromNodeList(this.mainline.filter(node => node.ply <= newPly)));
+   };
+ 
+   toggleHint = (): void => {
+diff --git a/ui/puzzle/src/interfaces.ts b/ui/puzzle/src/interfaces.ts
+index 766d81b..4540ad4 100644
+--- a/ui/puzzle/src/interfaces.ts
++++ b/ui/puzzle/src/interfaces.ts
+@@ -63,6 +63,7 @@ export interface Angle {
+ }
+ 
+ export interface PuzzleData {
++  noSweat?: boolean;
+   puzzle: Puzzle;
+   angle: Angle;
+   game: PuzzleGame;
+@@ -85,8 +86,10 @@ export interface PuzzleGame {
+     key: keyof typeof perfIcons;
+     name: string;
+   };
+-  rated: boolean;
+-  players: [PuzzlePlayer, PuzzlePlayer];
++  rated?: boolean;
++  initialFen?: FEN;
++  source?: string;
++  players: PuzzlePlayer[];
+   pgn: string;
+   clock?: string;
+ }
+diff --git a/ui/puzzle/src/moveTree.ts b/ui/puzzle/src/moveTree.ts
+index da36657..40ba614 100644
+--- a/ui/puzzle/src/moveTree.ts
++++ b/ui/puzzle/src/moveTree.ts
+@@ -12,17 +12,18 @@ import type { TreeNode, TreePath } from 'lib/tree/types';
+ 
+ import type PuzzleCtrl from './ctrl';
+ 
+-export function pgnToTree(pgn: San[]): TreeNode {
+-  const pos = Chess.default();
++export function pgnToTree(pgn: San[], initialFen = INITIAL_FEN): TreeNode {
++  const pos = Chess.fromSetup(parseFen(initialFen).unwrap()).unwrap();
++  const initialPly = (pos.fullmoves - 1) * 2 + (pos.turn === 'black' ? 1 : 0);
+   const root: TreeNode = completeNode('standard')({
+-    ply: 0,
+-    fen: INITIAL_FEN,
++    ply: initialPly,
++    fen: initialFen,
+   });
+   let current = root;
+   pgn.forEach((san, i) => {
+     const move = parseSan(pos, san)!;
+     pos.play(move);
+-    const nextNode = makeNode(pos.clone(), move, i + 1, san);
++    const nextNode = makeNode(pos.clone(), move, initialPly + i + 1, san);
+     current.children.push(nextNode);
+     current = nextNode;
+   });
+diff --git a/ui/puzzle/src/view/main.ts b/ui/puzzle/src/view/main.ts
+index 4cbdc96..8f4b59c 100644
+--- a/ui/puzzle/src/view/main.ts
++++ b/ui/puzzle/src/view/main.ts
+@@ -62,8 +62,8 @@ function controls(ctrl: PuzzleCtrl): VNode {
+         ),
+       },
+       [
+-        jumpButton(licon.JumpFirst, 'first', !node.ply),
+-        jumpButton(licon.JumpPrev, 'prev', !node.ply),
++        jumpButton(licon.JumpFirst, 'first', node.ply === ctrl.tree.root.ply),
++        jumpButton(licon.JumpPrev, 'prev', node.ply === ctrl.tree.root.ply),
+         jumpButton(licon.JumpNext, 'next', !nextNode),
+         jumpButton(licon.JumpLast, 'last', !nextNode, notOnLastMove),
+         boardMenuToggleButton(ctrl.menu, i18n.site.menu),
+@@ -136,7 +136,9 @@ export default function (ctrl: PuzzleCtrl): VNode {
+         hl(
+           'div.ceval-wrap',
+           { class: { none: !ctrl.showEvaluation() } },
+-          ctrl.showEvaluation() ? [cevalView.renderCeval(ctrl), cevalView.renderPvs(ctrl)] : [],
++          ctrl.showEvaluation()
++            ? [cevalView.renderCeval(ctrl), cevalView.renderPvs(ctrl), ctrl.maia?.view()]
++            : [],
+         ),
+         renderAnalyse(ctrl),
+         feedbackView(ctrl),
+diff --git a/ui/puzzle/src/view/side.ts b/ui/puzzle/src/view/side.ts
+index 8c13b00..3fd8521 100644
+--- a/ui/puzzle/src/view/side.ts
++++ b/ui/puzzle/src/view/side.ts
+@@ -59,6 +59,16 @@ const puzzleInfos = (ctrl: PuzzleCtrl): VNode => {
+ 
+ function gameInfos(ctrl: PuzzleCtrl): VNode {
+   const { game, puzzle } = ctrl.data;
++  if (game.source)
++    return hl('div.infos', [
++      hl('p', 'Lichess puzzle database · CC0'),
++      ctrl.mode === 'view' &&
++        hl(
++          'a',
++          { attrs: { href: game.source, target: '_blank', rel: 'noopener noreferrer' } },
++          'View original game',
++        ),
++    ]);
+   const gameName = game.clock && game.perf ? `${game.clock} • ${game.perf.name}` : 'import';
+   return hl('div.infos', { attrs: game.perf && dataIcon(perfIcons[game.perf.key]) }, [
+     hl('div', [
 diff --git a/ui/round/src/ctrl.ts b/ui/round/src/ctrl.ts
 index ca1efc8..6c32c9f 100644
 --- a/ui/round/src/ctrl.ts
@@ -5468,92 +5790,11 @@ index 0000000..877021d
 +}
 diff --git a/ui/analyse/src/noSweatArrows.ts b/ui/analyse/src/noSweatArrows.ts
 new file mode 100644
-index 0000000..595739d
+index 0000000..ddf9d0d
 --- /dev/null
 +++ b/ui/analyse/src/noSweatArrows.ts
-@@ -0,0 +1,82 @@
-+// Mobile Maia review.dart / ReviewBoardOverlayPainter, AGPL-3.0.
-+import type { DrawShape } from '@lichess-org/chessground/draw';
-+export const engineColors = {
-+  stockfish: '#3d9be9',
-+  stockfishSecond: '#8ac8f5',
-+  maia: '#e89b3c',
-+  maiaSecond: '#e85d68',
-+};
-+export interface EngineArrow {
-+  uci: string;
-+  tail: string[];
-+  head: string[];
-+  width: number;
-+}
-+const valid = (uci?: string): uci is string => !!uci && /^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci);
-+// Each Maia channel contributes ONE top move, not its top three probabilities.
-+export function engineArrows(
-+  stockfish: { uci: string; width?: number }[],
-+  primary?: string,
-+  secondary?: string,
-+): EngineArrow[] {
-+  const sf = [
-+    ...new Map(
-+      stockfish
-+        .filter(s => valid(s.uci))
-+        .slice(0, 2)
-+        .map(s => [s.uci, s]),
-+    ).values(),
-+  ];
-+  const maia = new Map<string, string[]>();
-+  for (const [move, color] of [
-+    [primary, engineColors.maia],
-+    [secondary, engineColors.maiaSecond],
-+  ] as const)
-+    if (valid(move)) maia.set(move, [...(maia.get(move) ?? []), color]);
-+  const result: EngineArrow[] = [];
-+  sf.forEach((s, i) => {
-+    const color = i ? engineColors.stockfishSecond : engineColors.stockfish;
-+    const agreed = maia.get(s.uci);
-+    result.push({ uci: s.uci, tail: [color], head: agreed ?? [color], width: agreed ? 25 : (s.width ?? 25) });
-+    maia.delete(s.uci);
-+  });
-+  for (const [uci, colors] of maia) result.push({ uci, tail: colors, head: colors, width: 25 });
-+  return result;
-+}
-+// One owned Chessground custom SVG per unique move. Agreement is painted once:
-+// SF shaft + Maia head; two Maias share a split head (and split shaft without SF).
-+// Chessground anchors a custom 100x100 SVG at the square corner (its outer
-+// viewBox starts at -3.5). Translate to (50,50) before rotating around the center.
-+export function engineShapes(arrows: EngineArrow[], orientation: Color): DrawShape[] {
-+  return arrows.map(arrow => {
-+    const { uci, tail, head, width } = arrow;
-+    const sign = orientation === 'white' ? 1 : -1;
-+    const dx = (uci.charCodeAt(2) - uci.charCodeAt(0)) * sign;
-+    const dy = (Number(uci[1]) - Number(uci[3])) * sign;
-+    const distance = Math.hypot(dx, dy) * 100;
-+    const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
-+    const headHeight = 48 * Math.cos(Math.PI / 5);
-+    const headHalf = 48 * Math.sin(Math.PI / 5);
-+    const end = distance - headHeight;
-+    const shaft =
-+      tail.length === 1
-+        ? `<path d="M33.333 0 H${end}" stroke="${tail[0]}" stroke-width="${width}"/>`
-+        : tail
-+            .map(
-+              (color, i) =>
-+                `<path d="M33.333 ${i ? width / 4 : -width / 4} H${end}" stroke="${color}" stroke-width="${width / 2 + 0.1}"/>`,
-+            )
-+            .join('');
-+    const tip =
-+      head.length === 1
-+        ? `<path d="M${end} ${-headHalf} L${distance} 0 L${end} ${headHalf} Z" fill="${head[0]}"/>`
-+        : `<path d="M${end} ${-headHalf} L${distance} 0 L${end} 0 Z" fill="${head[0]}"/><path d="M${end} 0 L${distance} 0 L${end} ${headHalf} Z" fill="${head[1]}"/>`;
-+    return {
-+      orig: uci.slice(0, 2) as Key,
-+      dest: uci.slice(2, 4) as Key,
-+      customSvg: {
-+        html: `<g class="nosweat-engine-arrow" data-move="${uci}" data-tail="${tail.join(',')}" data-head="${head.join(',')}" transform="translate(50,50) rotate(${angle})" fill="none">${shaft}${tip}</g>`,
-+      },
-+    };
-+  });
-+}
+@@ -0,0 +1 @@
++export * from 'lib/nosweat/arrows';
 diff --git a/ui/analyse/src/noSweatClassifierClient.ts b/ui/analyse/src/noSweatClassifierClient.ts
 new file mode 100644
 index 0000000..cfd17fa
@@ -5786,108 +6027,11 @@ index 0000000..4400b0e
 +}
 diff --git a/ui/analyse/src/noSweatCore.ts b/ui/analyse/src/noSweatCore.ts
 new file mode 100644
-index 0000000..4b6b4be
+index 0000000..079746f
 --- /dev/null
 +++ b/ui/analyse/src/noSweatCore.ts
-@@ -0,0 +1,98 @@
-+// Maia3 encoding/vocabulary: CSSLab 1e13597c and Mobile Maia; see provenance.
-+import { Chess } from 'chessops/chess';
-+import { makeFen, parseFen } from 'chessops/fen';
-+import { makeSan } from 'chessops/san';
-+import type { Move, NormalMove } from 'chessops/types';
-+import { makeUci, parseUci } from 'chessops/util';
-+import { normalizeMove } from 'chessops/variant';
-+
-+export const position = (fen: string): Chess => Chess.fromSetup(parseFen(fen).unwrap()).unwrap();
-+export function legalMoves(pos: Chess): NormalMove[] {
-+  const moves: NormalMove[] = [];
-+  const ctx = pos.ctx();
-+  for (const [from, tos] of pos.allDests(ctx))
-+    for (const to of tos) {
-+      const promotions =
-+        pos.board.get(from)?.role === 'pawn' && (to < 8 || to >= 56)
-+          ? (['queen', 'rook', 'bishop', 'knight'] as const)
-+          : [undefined];
-+      for (const promotion of promotions) moves.push({ from, to, promotion });
-+    }
-+  return moves;
-+}
-+export function standardUci(pos: Chess, move: Move): string {
-+  // Chessops represents castling as king-to-rook; Maia and standard UCI use c/g.
-+  if (
-+    'from' in move &&
-+    pos.board.get(move.from)?.role === 'king' &&
-+    pos.board.get(move.to)?.color === pos.turn
-+  ) {
-+    return makeUci({ ...move, to: move.from + (move.to > move.from ? 2 : -2) });
-+  }
-+  return makeUci(move);
-+}
-+export const legalUcis = (fen: string): string[] => {
-+  const pos = position(fen);
-+  return legalMoves(pos).map(m => standardUci(pos, m));
-+};
-+export const san = (fen: string, uci: string): string => {
-+  const pos = position(fen);
-+  const move = parseUci(uci);
-+  return move && pos.isLegal(move) ? makeSan(pos, move) : uci;
-+};
-+export function after(fen: string, uci: string): string {
-+  const pos = position(fen);
-+  const parsed = parseUci(uci);
-+  if (!parsed || !pos.isLegal(parsed)) throw new Error('Illegal candidate');
-+  pos.play(normalizeMove(pos, parsed));
-+  return makeFen(pos.toSetup());
-+}
-+export function policyIndex(uci: string, black: boolean): number {
-+  if (black) uci = uci[0] + (9 - Number(uci[1])) + uci[2] + (9 - Number(uci[3])) + uci.slice(4);
-+  const square = (f: string, rank: string) => f.charCodeAt(0) - 97 + (Number(rank) - 1) * 8;
-+  if (uci.length === 5)
-+    return 4096 + (uci.charCodeAt(0) - 97) * 32 + (uci.charCodeAt(2) - 97) * 4 + 'qrbn'.indexOf(uci[4]);
-+  return square(uci[0], uci[1]) * 64 + square(uci[2], uci[3]);
-+}
-+export interface Candidate {
-+  uci: string;
-+  probability: number;
-+}
-+export function policy(fen: string, logits: Float32Array): Candidate[] {
-+  if (logits.length !== 4352 || !logits.every(Number.isFinite)) throw new Error('Invalid Maia policy');
-+  const black = position(fen).turn === 'black';
-+  const moves = legalUcis(fen);
-+  const values = moves.map(m => logits[policyIndex(m, black)]);
-+  const max = Math.max(...values);
-+  const weights = values.map(x => Math.exp(x - max));
-+  const sum = weights.reduce((a, b) => a + b, 0);
-+  return moves
-+    .map((uci, i) => ({ uci, probability: weights[i] / sum }))
-+    .sort((a, b) => b.probability - a.probability);
-+}
-+export function encodeHistory(history: string[], enabled: boolean): Float32Array {
-+  const frames = enabled ? history.slice(-8) : history.slice(-1);
-+  if (!frames.length) throw new Error('Missing position history');
-+  while (frames.length < 8) frames.unshift(frames[0]);
-+  const tokens = new Float32Array(64 * 97);
-+  frames.forEach((fen, frame) => {
-+    const pos = position(fen);
-+    const black = pos.turn === 'black';
-+    for (const [square, piece] of pos.board) {
-+      const target = black ? square ^ 56 : square;
-+      const role = ['pawn', 'knight', 'bishop', 'rook', 'queen', 'king'].indexOf(piece.role);
-+      tokens[target * 97 + frame * 12 + role + (piece.color === pos.turn ? 0 : 6)] = 1;
-+    }
-+  });
-+  return tokens;
-+}
-+export function scoreText(score?: EvalScore): string {
-+  if (!score) return 'Unavailable';
-+  if (score.mate !== undefined) return score.mate === 0 ? 'Checkmate' : `#${score.mate}`;
-+  return score.cp === undefined ? 'Unavailable' : `${score.cp >= 0 ? '+' : ''}${(score.cp / 100).toFixed(2)}`;
-+}
-+export const terminalScore = (fen: string): EvalScore | undefined => {
-+  const pos = position(fen);
-+  if (!pos.isEnd()) return undefined;
-+  return pos.isCheckmate() ? { mate: pos.turn === 'white' ? -1 : 1 } : { cp: 0 };
-+};
+@@ -0,0 +1 @@
++export * from 'lib/nosweat/core';
 diff --git a/ui/analyse/src/noSweatFish.ts b/ui/analyse/src/noSweatFish.ts
 new file mode 100644
 index 0000000..36b0e3f
@@ -6281,56 +6425,11 @@ index 0000000..474ca27
 +}
 diff --git a/ui/analyse/src/noSweatPreferences.ts b/ui/analyse/src/noSweatPreferences.ts
 new file mode 100644
-index 0000000..4393ce8
+index 0000000..987d947
 --- /dev/null
 +++ b/ui/analyse/src/noSweatPreferences.ts
-@@ -0,0 +1,46 @@
-+import type { ReviewQuality } from './noSweatGameReview';
-+export interface EnginePreferences {
-+  model: '5m' | '79m';
-+  selfElo: number;
-+  opponentElo: number;
-+  secondMaiaEnabled: boolean;
-+  secondMaiaElo: number;
-+  history: boolean;
-+  maiaArrows: boolean;
-+  fishArrows: boolean;
-+  quality: ReviewQuality;
-+}
-+export const defaultEnginePreferences: EnginePreferences = {
-+  model: '5m',
-+  selfElo: 1500,
-+  opponentElo: 1500,
-+  secondMaiaEnabled: true,
-+  secondMaiaElo: 2400,
-+  history: true,
-+  maiaArrows: true,
-+  fishArrows: true,
-+  quality: 'fast',
-+};
-+export function readEnginePreferences(raw: string | null): EnginePreferences {
-+  let input: Partial<EnginePreferences> = {};
-+  try {
-+    input = JSON.parse(raw ?? '{}') ?? {};
-+  } catch {
-+    /* Invalid browser preference falls back safely. */
-+  }
-+  const rating = (n: unknown, fallback = 1500) =>
-+    typeof n === 'number' && Number.isInteger(n) && n >= 600 && n <= 2600 && n % 100 === 0 ? n : fallback;
-+  const boolean = (key: 'history' | 'maiaArrows' | 'fishArrows') =>
-+    typeof input[key] === 'boolean' ? input[key] : true;
-+  return {
-+    model: input.model === '79m' ? '79m' : '5m',
-+    selfElo: rating(input.selfElo),
-+    opponentElo: rating(input.opponentElo),
-+    secondMaiaEnabled: typeof input.secondMaiaEnabled === 'boolean' ? input.secondMaiaEnabled : true,
-+    secondMaiaElo: rating(input.secondMaiaElo, 2400),
-+    history: boolean('history'),
-+    maiaArrows: boolean('maiaArrows'),
-+    fishArrows: boolean('fishArrows'),
-+    quality: input.quality === 'balanced' || input.quality === 'thorough' ? input.quality : 'fast',
-+  };
-+}
+@@ -0,0 +1 @@
++export * from 'lib/nosweat/preferences';
 diff --git a/ui/analyse/src/noSweatReviewView.ts b/ui/analyse/src/noSweatReviewView.ts
 new file mode 100644
 index 0000000..8f9d07c
@@ -24099,14 +24198,13 @@ index 0000000..10a1c3f
 +});
 diff --git a/ui/analyse/tests/noSweatFullReview.test.ts b/ui/analyse/tests/noSweatFullReview.test.ts
 new file mode 100644
-index 0000000..d3fca99
+index 0000000..cd7806e
 --- /dev/null
 +++ b/ui/analyse/tests/noSweatFullReview.test.ts
-@@ -0,0 +1,386 @@
+@@ -0,0 +1,408 @@
 +import assert from 'node:assert/strict';
 +import { describe, test } from 'node:test';
 +
-+import pgnImport from '../src/pgnImport';
 +import { gameAccuracy, moveAccuracy, whiteWinPercent } from '../src/noSweatAccuracy';
 +import { engineArrows, engineShapes, engineColors } from '../src/noSweatArrows';
 +import { ClassifierClient } from '../src/noSweatClassifierClient';
@@ -24116,6 +24214,7 @@ index 0000000..d3fca99
 +import { GameReview, gameReviewKey, reviewQualities, type ReviewNode } from '../src/noSweatGameReview';
 +import { readEnginePreferences } from '../src/noSweatPreferences';
 +import { reviewClick } from '../src/noSweatReviewView';
++import pgnImport from '../src/pgnImport';
 +const start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 +const line = (): ReviewNode[] => {
 +  const nodes: ReviewNode[] = [{ fen: start, path: '' }];
@@ -24242,7 +24341,7 @@ index 0000000..d3fca99
 +          const translation = html.match(/translate\(([-.\d]+),([-.\d]+)\)/);
 +          const tx = Number(translation?.[1] ?? 0);
 +          const ty = Number(translation?.[2] ?? 0);
-+          const angle = Number(html.match(/rotate\(([-.\d]+)\)/)![1]) * Math.PI / 180;
++          const angle = (Number(html.match(/rotate\(([-.\d]+)\)/)![1]) * Math.PI) / 180;
 +          const distance = Number(html.match(/ L([-.\d]+) 0/)![1]);
 +          const square = (key: string) => {
 +            const file = key.charCodeAt(0) - 97;
@@ -24251,10 +24350,19 @@ index 0000000..d3fca99
 +          };
 +          const from = square(uci.slice(0, 2));
 +          const to = square(uci.slice(2, 4));
-+          const pixel = (x: number, y: number) => [(from[0] + x / 100) * size / 8, (from[1] + y / 100) * size / 8];
++          const pixel = (x: number, y: number) => [
++            ((from[0] + x / 100) * size) / 8,
++            ((from[1] + y / 100) * size) / 8,
++          ];
 +          const origin = pixel(tx, ty);
 +          const tip = pixel(tx + Math.cos(angle) * distance, ty + Math.sin(angle) * distance);
-+          const close = (actual: number[], square: number[]) => actual.forEach((n, axis) => assert.ok(Math.abs(n - (square[axis] + .5) * size / 8) < 1e-8, `${uci} ${orientation} ${size}: ${actual} vs ${square}`));
++          const close = (actual: number[], square: number[]) =>
++            actual.forEach((n, axis) =>
++              assert.ok(
++                Math.abs(n - ((square[axis] + 0.5) * size) / 8) < 1e-8,
++                `${uci} ${orientation} ${size}: ${actual} vs ${square}`,
++              ),
++            );
 +          close(origin, from);
 +          close(tip, to);
 +        }
@@ -24262,10 +24370,23 @@ index 0000000..d3fca99
 +    }
 +  });
 +  test('standard-only analysis rejects variant PGNs while retaining standard FEN positions', () => {
-+    for (const variant of ['Atomic', 'Chess960', 'Crazyhouse', 'Antichess', 'Three-check', 'Horde', 'King of the Hill', 'Racing Kings'])
++    for (const variant of [
++      'Atomic',
++      'Chess960',
++      'Crazyhouse',
++      'Antichess',
++      'Three-check',
++      'Horde',
++      'King of the Hill',
++      'Racing Kings',
++    ])
 +      assert.throws(() => pgnImport(`[Variant "${variant}"]\n\n*`, true), /Only standard chess/);
 +    assert.equal(pgnImport('1. e4 e5 *', true).game!.variant.key, 'standard');
-+    assert.equal(pgnImport('[SetUp "1"]\n[FEN "8/8/8/8/8/2k5/5p2/7K b - - 0 1"]\n\n1... f1=Q# *', true).game!.variant.key, 'standard');
++    assert.equal(
++      pgnImport('[SetUp "1"]\n[FEN "8/8/8/8/8/2k5/5p2/7K b - - 0 1"]\n\n1... f1=Q# *', true).game!.variant
++        .key,
++      'standard',
++    );
 +    assert.equal(pgnImport('[Variant "Atomic"]\n\n*').game!.variant.key, 'atomic');
 +  });
 +  test('engine settings validate persisted input instead of trusting browser JSON', () => {
@@ -24489,6 +24610,365 @@ index 0000000..d3fca99
 +    client.release();
 +  });
 +});
+diff --git a/ui/lib/src/nosweat/arrows.ts b/ui/lib/src/nosweat/arrows.ts
+new file mode 100644
+index 0000000..595739d
+--- /dev/null
++++ b/ui/lib/src/nosweat/arrows.ts
+@@ -0,0 +1,82 @@
++// Mobile Maia review.dart / ReviewBoardOverlayPainter, AGPL-3.0.
++import type { DrawShape } from '@lichess-org/chessground/draw';
++export const engineColors = {
++  stockfish: '#3d9be9',
++  stockfishSecond: '#8ac8f5',
++  maia: '#e89b3c',
++  maiaSecond: '#e85d68',
++};
++export interface EngineArrow {
++  uci: string;
++  tail: string[];
++  head: string[];
++  width: number;
++}
++const valid = (uci?: string): uci is string => !!uci && /^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci);
++// Each Maia channel contributes ONE top move, not its top three probabilities.
++export function engineArrows(
++  stockfish: { uci: string; width?: number }[],
++  primary?: string,
++  secondary?: string,
++): EngineArrow[] {
++  const sf = [
++    ...new Map(
++      stockfish
++        .filter(s => valid(s.uci))
++        .slice(0, 2)
++        .map(s => [s.uci, s]),
++    ).values(),
++  ];
++  const maia = new Map<string, string[]>();
++  for (const [move, color] of [
++    [primary, engineColors.maia],
++    [secondary, engineColors.maiaSecond],
++  ] as const)
++    if (valid(move)) maia.set(move, [...(maia.get(move) ?? []), color]);
++  const result: EngineArrow[] = [];
++  sf.forEach((s, i) => {
++    const color = i ? engineColors.stockfishSecond : engineColors.stockfish;
++    const agreed = maia.get(s.uci);
++    result.push({ uci: s.uci, tail: [color], head: agreed ?? [color], width: agreed ? 25 : (s.width ?? 25) });
++    maia.delete(s.uci);
++  });
++  for (const [uci, colors] of maia) result.push({ uci, tail: colors, head: colors, width: 25 });
++  return result;
++}
++// One owned Chessground custom SVG per unique move. Agreement is painted once:
++// SF shaft + Maia head; two Maias share a split head (and split shaft without SF).
++// Chessground anchors a custom 100x100 SVG at the square corner (its outer
++// viewBox starts at -3.5). Translate to (50,50) before rotating around the center.
++export function engineShapes(arrows: EngineArrow[], orientation: Color): DrawShape[] {
++  return arrows.map(arrow => {
++    const { uci, tail, head, width } = arrow;
++    const sign = orientation === 'white' ? 1 : -1;
++    const dx = (uci.charCodeAt(2) - uci.charCodeAt(0)) * sign;
++    const dy = (Number(uci[1]) - Number(uci[3])) * sign;
++    const distance = Math.hypot(dx, dy) * 100;
++    const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
++    const headHeight = 48 * Math.cos(Math.PI / 5);
++    const headHalf = 48 * Math.sin(Math.PI / 5);
++    const end = distance - headHeight;
++    const shaft =
++      tail.length === 1
++        ? `<path d="M33.333 0 H${end}" stroke="${tail[0]}" stroke-width="${width}"/>`
++        : tail
++            .map(
++              (color, i) =>
++                `<path d="M33.333 ${i ? width / 4 : -width / 4} H${end}" stroke="${color}" stroke-width="${width / 2 + 0.1}"/>`,
++            )
++            .join('');
++    const tip =
++      head.length === 1
++        ? `<path d="M${end} ${-headHalf} L${distance} 0 L${end} ${headHalf} Z" fill="${head[0]}"/>`
++        : `<path d="M${end} ${-headHalf} L${distance} 0 L${end} 0 Z" fill="${head[0]}"/><path d="M${end} 0 L${distance} 0 L${end} ${headHalf} Z" fill="${head[1]}"/>`;
++    return {
++      orig: uci.slice(0, 2) as Key,
++      dest: uci.slice(2, 4) as Key,
++      customSvg: {
++        html: `<g class="nosweat-engine-arrow" data-move="${uci}" data-tail="${tail.join(',')}" data-head="${head.join(',')}" transform="translate(50,50) rotate(${angle})" fill="none">${shaft}${tip}</g>`,
++      },
++    };
++  });
++}
+diff --git a/ui/lib/src/nosweat/core.ts b/ui/lib/src/nosweat/core.ts
+new file mode 100644
+index 0000000..4b6b4be
+--- /dev/null
++++ b/ui/lib/src/nosweat/core.ts
+@@ -0,0 +1,98 @@
++// Maia3 encoding/vocabulary: CSSLab 1e13597c and Mobile Maia; see provenance.
++import { Chess } from 'chessops/chess';
++import { makeFen, parseFen } from 'chessops/fen';
++import { makeSan } from 'chessops/san';
++import type { Move, NormalMove } from 'chessops/types';
++import { makeUci, parseUci } from 'chessops/util';
++import { normalizeMove } from 'chessops/variant';
++
++export const position = (fen: string): Chess => Chess.fromSetup(parseFen(fen).unwrap()).unwrap();
++export function legalMoves(pos: Chess): NormalMove[] {
++  const moves: NormalMove[] = [];
++  const ctx = pos.ctx();
++  for (const [from, tos] of pos.allDests(ctx))
++    for (const to of tos) {
++      const promotions =
++        pos.board.get(from)?.role === 'pawn' && (to < 8 || to >= 56)
++          ? (['queen', 'rook', 'bishop', 'knight'] as const)
++          : [undefined];
++      for (const promotion of promotions) moves.push({ from, to, promotion });
++    }
++  return moves;
++}
++export function standardUci(pos: Chess, move: Move): string {
++  // Chessops represents castling as king-to-rook; Maia and standard UCI use c/g.
++  if (
++    'from' in move &&
++    pos.board.get(move.from)?.role === 'king' &&
++    pos.board.get(move.to)?.color === pos.turn
++  ) {
++    return makeUci({ ...move, to: move.from + (move.to > move.from ? 2 : -2) });
++  }
++  return makeUci(move);
++}
++export const legalUcis = (fen: string): string[] => {
++  const pos = position(fen);
++  return legalMoves(pos).map(m => standardUci(pos, m));
++};
++export const san = (fen: string, uci: string): string => {
++  const pos = position(fen);
++  const move = parseUci(uci);
++  return move && pos.isLegal(move) ? makeSan(pos, move) : uci;
++};
++export function after(fen: string, uci: string): string {
++  const pos = position(fen);
++  const parsed = parseUci(uci);
++  if (!parsed || !pos.isLegal(parsed)) throw new Error('Illegal candidate');
++  pos.play(normalizeMove(pos, parsed));
++  return makeFen(pos.toSetup());
++}
++export function policyIndex(uci: string, black: boolean): number {
++  if (black) uci = uci[0] + (9 - Number(uci[1])) + uci[2] + (9 - Number(uci[3])) + uci.slice(4);
++  const square = (f: string, rank: string) => f.charCodeAt(0) - 97 + (Number(rank) - 1) * 8;
++  if (uci.length === 5)
++    return 4096 + (uci.charCodeAt(0) - 97) * 32 + (uci.charCodeAt(2) - 97) * 4 + 'qrbn'.indexOf(uci[4]);
++  return square(uci[0], uci[1]) * 64 + square(uci[2], uci[3]);
++}
++export interface Candidate {
++  uci: string;
++  probability: number;
++}
++export function policy(fen: string, logits: Float32Array): Candidate[] {
++  if (logits.length !== 4352 || !logits.every(Number.isFinite)) throw new Error('Invalid Maia policy');
++  const black = position(fen).turn === 'black';
++  const moves = legalUcis(fen);
++  const values = moves.map(m => logits[policyIndex(m, black)]);
++  const max = Math.max(...values);
++  const weights = values.map(x => Math.exp(x - max));
++  const sum = weights.reduce((a, b) => a + b, 0);
++  return moves
++    .map((uci, i) => ({ uci, probability: weights[i] / sum }))
++    .sort((a, b) => b.probability - a.probability);
++}
++export function encodeHistory(history: string[], enabled: boolean): Float32Array {
++  const frames = enabled ? history.slice(-8) : history.slice(-1);
++  if (!frames.length) throw new Error('Missing position history');
++  while (frames.length < 8) frames.unshift(frames[0]);
++  const tokens = new Float32Array(64 * 97);
++  frames.forEach((fen, frame) => {
++    const pos = position(fen);
++    const black = pos.turn === 'black';
++    for (const [square, piece] of pos.board) {
++      const target = black ? square ^ 56 : square;
++      const role = ['pawn', 'knight', 'bishop', 'rook', 'queen', 'king'].indexOf(piece.role);
++      tokens[target * 97 + frame * 12 + role + (piece.color === pos.turn ? 0 : 6)] = 1;
++    }
++  });
++  return tokens;
++}
++export function scoreText(score?: EvalScore): string {
++  if (!score) return 'Unavailable';
++  if (score.mate !== undefined) return score.mate === 0 ? 'Checkmate' : `#${score.mate}`;
++  return score.cp === undefined ? 'Unavailable' : `${score.cp >= 0 ? '+' : ''}${(score.cp / 100).toFixed(2)}`;
++}
++export const terminalScore = (fen: string): EvalScore | undefined => {
++  const pos = position(fen);
++  if (!pos.isEnd()) return undefined;
++  return pos.isCheckmate() ? { mate: pos.turn === 'white' ? -1 : 1 } : { cp: 0 };
++};
+diff --git a/ui/lib/src/nosweat/preferences.ts b/ui/lib/src/nosweat/preferences.ts
+new file mode 100644
+index 0000000..bd02d0d
+--- /dev/null
++++ b/ui/lib/src/nosweat/preferences.ts
+@@ -0,0 +1,46 @@
++type ReviewQuality = 'fast' | 'balanced' | 'thorough';
++export interface EnginePreferences {
++  model: '5m' | '79m';
++  selfElo: number;
++  opponentElo: number;
++  secondMaiaEnabled: boolean;
++  secondMaiaElo: number;
++  history: boolean;
++  maiaArrows: boolean;
++  fishArrows: boolean;
++  quality: ReviewQuality;
++}
++export const defaultEnginePreferences: EnginePreferences = {
++  model: '5m',
++  selfElo: 1500,
++  opponentElo: 1500,
++  secondMaiaEnabled: true,
++  secondMaiaElo: 2400,
++  history: true,
++  maiaArrows: true,
++  fishArrows: true,
++  quality: 'fast',
++};
++export function readEnginePreferences(raw: string | null): EnginePreferences {
++  let input: Partial<EnginePreferences> = {};
++  try {
++    input = JSON.parse(raw ?? '{}') ?? {};
++  } catch {
++    /* Invalid browser preference falls back safely. */
++  }
++  const rating = (n: unknown, fallback = 1500) =>
++    typeof n === 'number' && Number.isInteger(n) && n >= 600 && n <= 2600 && n % 100 === 0 ? n : fallback;
++  const boolean = (key: 'history' | 'maiaArrows' | 'fishArrows') =>
++    typeof input[key] === 'boolean' ? input[key] : true;
++  return {
++    model: input.model === '79m' ? '79m' : '5m',
++    selfElo: rating(input.selfElo),
++    opponentElo: rating(input.opponentElo),
++    secondMaiaEnabled: typeof input.secondMaiaEnabled === 'boolean' ? input.secondMaiaEnabled : true,
++    secondMaiaElo: rating(input.secondMaiaElo, 2400),
++    history: boolean('history'),
++    maiaArrows: boolean('maiaArrows'),
++    fishArrows: boolean('fishArrows'),
++    quality: input.quality === 'balanced' || input.quality === 'thorough' ? input.quality : 'fast',
++  };
++}
+diff --git a/ui/lib/src/nosweat/reviewMaia.ts b/ui/lib/src/nosweat/reviewMaia.ts
+new file mode 100644
+index 0000000..77aca04
+--- /dev/null
++++ b/ui/lib/src/nosweat/reviewMaia.ts
+@@ -0,0 +1,109 @@
++import { encodeHistory, policy, type Candidate } from './core';
++import type { EnginePreferences } from './preferences';
++
++export const reviewAllowed = (mode: string, enabled: boolean, hidden: boolean, threat: boolean): boolean =>
++  mode === 'view' && enabled && !hidden && !threat;
++
++export interface MaiaInference {
++  predict(input: {
++    tokens: Float32Array;
++    selfElo: number;
++    opponentElo: number;
++    includeValue: boolean;
++  }): Promise<Float32Array>;
++  release(): void;
++}
++export interface ReviewContext {
++  id: string;
++  fens: string[];
++  preferences: EnginePreferences;
++}
++// An unavailable context means assistance is prohibited, not merely hidden.
++// All result publication is tied to the complete context and generation.
++export class ReviewMaia {
++  primary: Candidate[] = [];
++  secondary: Candidate[] = [];
++  status = '';
++  private key = '';
++  private generation = 0;
++  private client?: MaiaInference;
++  private tail: Promise<unknown> = Promise.resolve();
++  constructor(
++    private readonly load: (model: '5m' | '79m') => Promise<MaiaInference>,
++    private readonly changed: () => void,
++  ) {}
++  set(context?: ReviewContext): void {
++    const key = context ? JSON.stringify(context) : '';
++    if (key === this.key) return;
++    const previousModel = this.key && (JSON.parse(this.key) as ReviewContext).preferences.model;
++    this.key = key;
++    const generation = ++this.generation;
++    this.primary = [];
++    this.secondary = [];
++    this.status = context ? 'Loading local Maia…' : '';
++    if (!context || (previousModel && previousModel !== context.preferences.model)) {
++      this.client?.release();
++      this.client = undefined;
++    }
++    this.changed();
++    if (!context) return;
++    this.tail = this.tail
++      .catch(() => {})
++      .then(async () => {
++        if (generation !== this.generation) return;
++        try {
++          if (!this.client) {
++            const client = await this.load(context.preferences.model);
++            if (generation !== this.generation) {
++              client.release();
++              return;
++            }
++            this.client = client;
++          }
++          const { preferences: prefs, fens } = context;
++          const tokens = encodeHistory(fens, prefs.history);
++          const predict = async (selfElo: number) =>
++            policy(
++              fens[fens.length - 1],
++              await this.client!.predict({
++                tokens,
++                selfElo,
++                opponentElo: prefs.opponentElo,
++                includeValue: false,
++              }),
++            );
++          const primary = await predict(prefs.selfElo);
++          if (generation !== this.generation) return;
++          const secondary = prefs.secondMaiaEnabled ? await predict(prefs.secondMaiaElo) : [];
++          if (generation !== this.generation) return;
++          this.primary = primary;
++          this.secondary = secondary;
++          this.status = '';
++          this.changed();
++        } catch {
++          if (generation !== this.generation) return;
++          this.client?.release();
++          this.client = undefined;
++          this.status = 'Maia unavailable';
++          this.changed();
++        }
++      });
++  }
++  cancel(): void {
++    this.set(undefined);
++  }
++}
++
++export async function loadBrowserMaia(model: '5m' | '79m'): Promise<MaiaInference> {
++  const moduleUrl = '/assets/nosweat/analysis/maia-client.js?v=analysis1';
++  const [module, response] = await Promise.all([
++    import(moduleUrl),
++    fetch('/assets/nosweat/analysis/config.json', { cache: 'no-store', signal: AbortSignal.timeout(15000) }),
++  ]);
++  if (!response.ok) throw new Error('Maia configuration unavailable');
++  const config = { ...(await response.json()), browserModel: model };
++  return new module.MaiaClient({
++    config: async () => config,
++    worker: () => new Worker('/assets/nosweat/analysis/maia-worker.js?v=analysis1', { type: 'module' }),
++  });
++}
 diff --git a/ui/lib/tests/cevalProtocol.test.ts b/ui/lib/tests/cevalProtocol.test.ts
 new file mode 100644
 index 0000000..4441b84
@@ -24570,6 +25050,224 @@ index 0000000..4441b84
 +  line(3, 1, 'd2d4');
 +  line(3, 2, 'e2e4');
 +  assert.equal(emitted.length, count + 1);
++});
+diff --git a/ui/lib/tests/noSweatReviewMaia.test.ts b/ui/lib/tests/noSweatReviewMaia.test.ts
+new file mode 100644
+index 0000000..f719c6b
+--- /dev/null
++++ b/ui/lib/tests/noSweatReviewMaia.test.ts
+@@ -0,0 +1,108 @@
++import { Chess } from 'chessops/chess';
++import { makeFen } from 'chessops/fen';
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++
++import { defaultEnginePreferences } from '../src/nosweat/preferences';
++import { ReviewMaia, reviewAllowed, type MaiaInference } from '../src/nosweat/reviewMaia';
++const fen = makeFen(Chess.default().toSetup());
++const context = { id: 'first', fens: [fen], preferences: defaultEnginePreferences };
++const tick = () => new Promise(resolve => setTimeout(resolve, 0));
++function deferred<T>() {
++  let resolve!: (value: T) => void;
++  const promise = new Promise<T>(r => (resolve = r));
++  return { promise, resolve };
++}
++
++test('review assistance never loads without an allowed context; cancellation withholds pending results', async () => {
++  let loads = 0;
++  let releases = 0;
++  let predictions = 0;
++  const result = deferred<Float32Array>();
++  const engine = new ReviewMaia(
++    async () => {
++      loads++;
++      return {
++        predict: async () => {
++          predictions++;
++          return result.promise;
++        },
++        release: () => releases++,
++      };
++    },
++    () => {},
++  );
++  engine.set(undefined);
++  await tick();
++  assert.equal(loads, 0);
++  engine.set(context);
++  await tick();
++  assert.equal(predictions, 1);
++  engine.cancel();
++  result.resolve(new Float32Array(4352));
++  await tick();
++  assert.equal(releases, 1);
++  assert.deepEqual(engine.primary, []);
++  assert.deepEqual(engine.secondary, []);
++  assert.equal(predictions, 1);
++});
++
++test('navigation rejects old policy and preserves two independent Maia inputs', async () => {
++  const old = deferred<Float32Array>();
++  const inputs: number[] = [];
++  const engine = new ReviewMaia(
++    async () => ({
++      predict: async input => {
++        inputs.push(input.selfElo);
++        return inputs.length === 1 ? old.promise : new Float32Array(4352);
++      },
++      release: () => {},
++    }),
++    () => {},
++  );
++  engine.set(context);
++  await tick();
++  engine.set({ ...context, id: 'second' });
++  old.resolve(new Float32Array(4352));
++  await tick();
++  await tick();
++  assert.deepEqual(inputs, [1500, 1500, 2400]);
++  assert.ok(engine.primary.length);
++  assert.ok(engine.secondary.length);
++  engine.cancel();
++  assert.deepEqual(engine.primary, []);
++});
++
++test('a client created after cancellation is released and never performs inference', async () => {
++  const loaded = deferred<MaiaInference>();
++  let released = 0;
++  let predicted = 0;
++  const engine = new ReviewMaia(
++    () => loaded.promise,
++    () => {},
++  );
++  engine.set(context);
++  await tick();
++  engine.cancel();
++  loaded.resolve({
++    predict: async () => {
++      predicted++;
++      return new Float32Array(4352);
++    },
++    release: () => released++,
++  });
++  await tick();
++  assert.equal(released, 1);
++  assert.equal(predicted, 0);
++});
++
++test('puzzle assistance is available only in visible review with the engine enabled', () => {
++  for (const mode of ['play', 'try', 'view'])
++    for (const enabled of [false, true])
++      for (const hidden of [false, true])
++        for (const threat of [false, true])
++          assert.equal(
++            reviewAllowed(mode, enabled, hidden, threat),
++            mode === 'view' && enabled && !hidden && !threat,
++          );
++});
+diff --git a/ui/puzzle/src/noSweatMaia.ts b/ui/puzzle/src/noSweatMaia.ts
+new file mode 100644
+index 0000000..946dbee
+--- /dev/null
++++ b/ui/puzzle/src/noSweatMaia.ts
+@@ -0,0 +1,78 @@
++import { winningChances } from 'lib/ceval';
++import { fenColor } from 'lib/game';
++import { engineArrows, engineShapes } from 'lib/nosweat/arrows';
++import { san } from 'lib/nosweat/core';
++import { readEnginePreferences } from 'lib/nosweat/preferences';
++import { loadBrowserMaia, ReviewMaia, reviewAllowed } from 'lib/nosweat/reviewMaia';
++import { storage } from 'lib/storage';
++import { hl } from 'lib/view';
++
++import type PuzzleCtrl from './ctrl';
++
++export class PuzzleMaia {
++  private readonly engine: ReviewMaia;
++  private readonly preferences = () =>
++    readEnginePreferences(storage.make('nosweat.enginePreferences.v2').get());
++  constructor(private readonly ctrl: PuzzleCtrl) {
++    this.engine = new ReviewMaia(loadBrowserMaia, () => {
++      ctrl.setAutoShapes();
++      ctrl.redraw();
++    });
++    window.addEventListener('pagehide', this.cancel);
++    document.addEventListener('visibilitychange', this.sync);
++  }
++  cancel = (): void => this.engine.cancel();
++  private readonly allowed = () =>
++    reviewAllowed(this.ctrl.mode, this.ctrl.cevalEnabled(), document.hidden, this.ctrl.threatMode());
++  sync = (): void => {
++    const prefs = this.preferences();
++    this.engine.set(
++      this.allowed() && prefs.maiaArrows && !this.ctrl.node.outcome()
++        ? {
++            id: this.ctrl.data.puzzle.id,
++            fens: this.ctrl.nodeList.map(n => n.fen),
++            preferences: prefs,
++          }
++        : undefined,
++    );
++  };
++  shapes() {
++    if (!this.allowed()) return [];
++    const prefs = this.preferences();
++    const pvs = prefs.fishArrows ? (this.ctrl.node.ceval?.pvs ?? []).slice(0, 2) : [];
++    const color = fenColor(this.ctrl.node.fen);
++    const fish = pvs.map((pv, i) => ({
++      uci: pv.moves[0],
++      width: i
++        ? Math.max(3.125, ((12 - Math.max(0, winningChances.povDiff(color, pvs[0], pv)) * 50) * 100) / 64)
++        : 25,
++    }));
++    return engineShapes(
++      engineArrows(
++        fish,
++        prefs.maiaArrows ? this.engine.primary[0]?.uci : undefined,
++        prefs.maiaArrows ? this.engine.secondary[0]?.uci : undefined,
++      ),
++      this.ctrl.flipped() ? (this.ctrl.pov === 'white' ? 'black' : 'white') : this.ctrl.pov,
++    );
++  }
++  view() {
++    if (!this.allowed()) return undefined;
++    const prefs = this.preferences();
++    if (!prefs.maiaArrows) return undefined;
++    const move = (uci?: string) => (uci ? san(this.ctrl.node.fen, uci) : this.engine.status);
++    return hl('div.pv_box', { attrs: { 'aria-label': 'Maia analysis channels', 'aria-live': 'polite' } }, [
++      hl(
++        'div',
++        { attrs: { style: 'color:#e89b3c' } },
++        `M${prefs.selfElo} ${move(this.engine.primary[0]?.uci)}`,
++      ),
++      prefs.secondMaiaEnabled &&
++        hl(
++          'div',
++          { attrs: { style: 'color:#e85d68' } },
++          `M${prefs.secondMaiaElo} ${move(this.engine.secondary[0]?.uci)}`,
++        ),
++    ]);
++  }
++}
+diff --git a/ui/puzzle/tests/noSweatCatalog.test.ts b/ui/puzzle/tests/noSweatCatalog.test.ts
+new file mode 100644
+index 0000000..83f2957
+--- /dev/null
++++ b/ui/puzzle/tests/noSweatCatalog.test.ts
+@@ -0,0 +1,14 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++
++import { pgnToTree } from '../src/moveTree';
++
++test('catalog puzzles retain absolute ply and the pre-opponent FEN', () => {
++  const fen = 'q3k1nr/1pp1nQpp/3p4/1P2p3/4P3/B1PP1b2/B5PP/5K2 b k - 0 17';
++  const root = pgnToTree(['Kd7'], fen);
++  assert.equal(root.ply, 33);
++  assert.equal(root.fen, fen);
++  assert.equal(root.children[0].ply, 34);
++  assert.equal(root.children[0].san, 'Kd7');
++  assert.equal(root.children[0].fen.split(' ')[1], 'w');
 +});
 diff --git a/ui/round/src/premoveSequence.ts b/ui/round/src/premoveSequence.ts
 new file mode 100644

@@ -1,0 +1,13 @@
+{
+  "count": 50000,
+  "csvSha256": "d9b0bf5c050c51c5c27e23f05f74bd576b91a7f1a260a6d1878f24155bef3ef6",
+  "gzipSha256": "63aa9ad4f909ad6b89c3408afe4b384e0bca86deb17ad7dc40b753df47fa4faf",
+  "minimumRating": 399,
+  "maximumRating": 3015,
+  "sourceUrl": "https://database.lichess.org/lichess_db_puzzle.csv.zst",
+  "sourcePage": "https://database.lichess.org/#puzzles",
+  "license": "CC0-1.0",
+  "retrievedAtUtc": "2026-10-29",
+  "sourceLastModified": "Fri, 02 Oct 2026 08:51:45 GMT",
+  "selection": "First 50000 CSV rows with Popularity >= 80, NbPlays >= 100, RatingDeviation <= 100"
+}

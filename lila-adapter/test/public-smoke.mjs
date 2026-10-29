@@ -92,11 +92,27 @@ try {
   await call('/account/profile', new URLSearchParams({ bio }), undefined, [302, 303]);
   const profile = (await call('/@/' + login.data.username)).data;
   assert.ok(profile.includes(bio), 'Saved profile biography is visible on the native profile');
+  const puzzlePage = (await call('/training')).data;
+  assert.match(puzzlePage, /"noSweat":true/);
+  assert.match(puzzlePage, /"initialFen":/);
+  const puzzleId = puzzlePage.match(/"puzzle":\{"id":"([A-Za-z0-9]{5})"/)?.[1];
+  assert.ok(puzzleId, 'Native trainer selected a catalog puzzle for the test Nostr account');
+  const completed = (await call('/training/complete/mix/' + puzzleId, new URLSearchParams({ win:'true', rated:'true' }))).data;
+  assert.equal(completed.round.win, true);
+  assert.equal(typeof completed.round.ratingDiff, 'number');
+  assert.ok(completed.next.puzzle.id && completed.next.puzzle.id !== puzzleId);
+  assert.equal(completed.next.noSweat, true);
+  assert.equal(typeof completed.next.game.initialFen, 'string');
+  await call('/training/batch', undefined, undefined, 404);
+  await call('/training/coordinate', undefined, undefined, 404);
+  await call('/analysis/atomic', undefined, undefined, 400);
+  await call('/swag', undefined, undefined, 404);
+  await call('/variant', undefined, undefined, 404);
   await call('/logout', {});
   assert.equal((await call('/club/me')).data.user, null);
   console.log(JSON.stringify({ ok: true, transport, run, game: game.id, checks: [
     '44 opponents', 'private routes blocked', 'signed Nostr login and replay rejection',
-    'Secure HttpOnly session', 'Maia replies through native WebSocket', 'reconnect', 'resignation', 'PGN', 'account menu', 'native profile edit and persistence', 'account security remains blocked', 'logout',
+    'Secure HttpOnly session', 'Maia replies through native WebSocket', 'reconnect', 'resignation', 'PGN', 'account menu', 'native profile edit and persistence', 'account security remains blocked', 'native puzzle selection, rated completion and next puzzle', 'standard-only boundary', 'logout',
   ] }, null, 2));
 } finally {
   if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ t: 'resign' }));
