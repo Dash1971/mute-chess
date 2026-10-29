@@ -235,7 +235,7 @@ subprocess.run(['systemd-analyze', 'verify', *[
     for role in ('isolation', 'gateway', 'app', 'ws', 'adapter', 'mongo', 'redis')
 ]], check=True)
 subprocess.run(['systemctl', 'daemon-reload'], check=True)
-subprocess.run(['systemctl', 'enable', '--now', 'nosweatchess-isolation'], check=True)
+isolation.activate_policy()
 subprocess.run(['systemctl', 'enable', '--now', 'nosweatchess-mongo', 'nosweatchess-redis'], check=True)
 # Seed only missing catalog puzzles after the isolated database is ready.
 for attempt in range(30):
