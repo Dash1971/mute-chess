@@ -1,6 +1,6 @@
 {
-  "name": "MuteChess",
-  "short_name": "MuteChess",
+  "name": "Mute Chess",
+  "short_name": "Mute Chess",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

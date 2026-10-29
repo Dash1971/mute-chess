@@ -392,8 +392,8 @@ export function pgn(g: Game) {
   const escape = (s: string) =>
     s.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
   const tags = {
-    Event: "nosweatchess private technical alpha — unrated",
-    Site: "nosweatchess",
+    Event: "Mute Chess private technical alpha — unrated",
+    Site: "Mute Chess",
     Date: g.createdAt.slice(0, 10).replaceAll("-", "."),
     White: g.humanColor === "white" ? g.username : g.bot.name,
     Black: g.humanColor === "black" ? g.username : g.bot.name,

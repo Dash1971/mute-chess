@@ -143,11 +143,11 @@ play.server.http.address = "127.0.0.1"
 play.server.http.port = 29663
 mongodb.uri = "mongodb://127.0.0.1:27019/nosweat?appName=nosweatchess"
 redis.uri = "redis://127.0.0.1:16380"
-net.domain = "nosweatchess.org"
-net.prodDomain = "nosweatchess.org"
-net.socket.domains = ["nosweatchess.org"]
-net.base_url = "https://nosweatchess.org"
-net.site.name = "MuteChess"
+net.domain = "mutechess.org"
+net.prodDomain = "mutechess.org"
+net.socket.domains = ["mutechess.org"]
+net.base_url = "https://mutechess.org"
+net.site.name = "Mute Chess"
 net.crawlable = false
 net.http.log = false
 play.http.session.cookieName = "nosweat_session"
@@ -165,13 +165,13 @@ http.port = 29664
 http.use-nginx-forwarded-ip = true
 mongo.uri = "mongodb://127.0.0.1:27019/nosweat?appName=nosweatchess-ws"
 redis.uri = "redis://127.0.0.1:16380"
-csrf.origin = "https://nosweatchess.org"
+csrf.origin = "https://mutechess.org"
 cookie.name = "nosweat_session"
 netty.threads = 2
 ''')
 (etc / 'adapter.env').write_text(f'''ADAPTER_TOKEN={adapter_token}
 LILA_ORIGIN=http://127.0.0.1:29663
-PUBLIC_ORIGIN=https://nosweatchess.org
+PUBLIC_ORIGIN=https://mutechess.org
 ADAPTER_PORT=29665
 MAIA_MODEL=/srv/nosweatchess/maia3-79m.onnx
 MAIA_PYTHON=/opt/nosweatchess/venv/bin/python
@@ -213,7 +213,7 @@ shutil.copytree(payload / 'deployment', source_dir / 'deployment')
 shutil.copytree(payload / 'analysis', source_dir / 'analysis')
 shutil.copytree(payload / 'puzzles', source_dir / 'puzzles')
 with tarfile.open(release / 'source.tar.gz', 'w:gz') as archive:
-    archive.add(source_dir, arcname='nosweatchess-source')
+    archive.add(source_dir, arcname='mutechess-source')
 (release / 'source.tar.gz').chmod(0o644)
 
 current = base / 'current'

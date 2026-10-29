@@ -22,7 +22,7 @@ KNIGHT = (
 )
 
 
-def svg(width, content, title="MuteChess"):
+def svg(width, content, title="Mute Chess"):
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} 96" role="img">\n'
         f"<title>{escape(title)}</title>\n{content}\n</svg>\n"
@@ -55,8 +55,8 @@ def build():
     text, width = lettering(font, "#e7e9dc")
     light_text, _ = lettering(font, "#24312d")
     assets = {
-        "icon.svg": svg(96, mark("#a7d6bb"), "MuteChess — Quiet Signal knight"),
-        "icon-light.svg": svg(96, mark("#315f4d"), "MuteChess — Quiet Signal knight"),
+        "icon.svg": svg(96, mark("#a7d6bb"), "Mute Chess — Quiet Signal knight"),
+        "icon-light.svg": svg(96, mark("#315f4d"), "Mute Chess — Quiet Signal knight"),
         "textmark.svg": svg(width, text),
         "textmark-light.svg": svg(width, light_text),
         "wordmark.svg": svg(width + 112, mark("#a7d6bb") + f'<g transform="translate(112 0)">{text}</g>'),
@@ -69,7 +69,7 @@ def build():
     lockup = mark("#a7d6bb") + f'<g transform="translate(112 0)">{text}</g>'
     assets["social.svg"] = (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img">\n'
-        '<title>MuteChess — Stay human. Play bots.</title>\n'
+        '<title>Mute Chess — Stay human. Play bots.</title>\n'
         '<rect width="1200" height="630" fill="#101719"/>\n'
         f'<g transform="translate(175 165) scale(1.7)">{lockup}</g>\n'
         f'<g transform="translate(185 355) scale(0.72)">{tagline}</g>\n'
@@ -80,7 +80,7 @@ def build():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--native-dir", type=Path)
+    parser.add_argument("--native-dir", "--lila-root", dest="native_dir", type=Path)
     args = parser.parse_args()
     assets = build()
     destinations = [ROOT / "design/logo-explorations/final"]

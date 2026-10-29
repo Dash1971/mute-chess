@@ -25,7 +25,7 @@ for name in ("nn-61e7af4bb97d.nnue", "nn-1a298aa575a0.nnue"):
     temporary = destination.with_suffix(".nnue.part")
     request = urllib.request.Request(
         f"https://media.githubusercontent.com/media/lichess-org/lila/{revision}/{relative}",
-        headers={"User-Agent": "NoSweatChess-private-development"},
+        headers={"User-Agent": "MuteChess-private-development"},
     )
     digest = hashlib.sha256()
     size = 0

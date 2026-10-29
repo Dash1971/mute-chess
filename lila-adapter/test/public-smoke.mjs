@@ -7,7 +7,7 @@ import { digest } from '../nostr-auth.mjs';
 import http from 'node:http';
 import https from 'node:https';
 
-const origin = 'https://nosweatchess.org';
+const origin = 'https://mutechess.org';
 const transport = process.env.SMOKE_TRANSPORT ?? origin;
 const run = randomBytes(3).toString('hex');
 let cookie, game, socket;
@@ -17,7 +17,7 @@ async function call(path, body, authorization, expected = 200) {
   const { status, headers, text } = await new Promise((resolve, reject) => {
     const request = (transport.startsWith('https:') ? https : http).request(transport + path, { method: body !== undefined ? 'POST' : 'GET',
     headers: { Accept: accept,
-      ...(body === undefined ? {} : { 'Content-Type': body instanceof URLSearchParams ? 'application/x-www-form-urlencoded' : 'application/json' }), Host: 'nosweatchess.org', Origin: origin,
+      ...(body === undefined ? {} : { 'Content-Type': body instanceof URLSearchParams ? 'application/x-www-form-urlencoded' : 'application/json' }), Host: 'mutechess.org', Origin: origin,
       ...(cookie ? { Cookie: cookie } : {}), ...(authorization ? { Authorization: authorization } : {}) },
     timeout: 15000 }, response => {
       let text = ''; response.setEncoding('utf8');
@@ -42,7 +42,7 @@ async function connect() {
   const data = await round();
   const base = transport.replace(/^http/, 'ws');
   socket = new WebSocket(`${base}/play/${game.url.slice(1)}/v5?sri=public${run}&v=${data.player.version}`, {
-    headers: { Host: 'nosweatchess.org', Origin: origin, Cookie: cookie },
+    headers: { Host: 'mutechess.org', Origin: origin, Cookie: cookie },
   });
   const events = [];
   socket.on('message', raw => { try { events.push(JSON.parse(String(raw))); } catch {} });

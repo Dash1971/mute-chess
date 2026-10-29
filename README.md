@@ -1,10 +1,10 @@
-# MuteChess
+# Mute Chess
 
 **Stay human. Play bots.**
 
-[Play MuteChess](https://nosweatchess.org/club)
+[Mute Chess](https://mutechess.org/club)
 
-MuteChess (formerly No Sweat Chess) is a free, open-source chess project built on Lichess. It combines
+Mute Chess is a free, open-source chess project built on Lichess. It combines
 human-like Maia opponents, multiple stacked premoves, and Maia alongside Stockfish
 analysis, with a familiar interface for desktop and mobile browsers.
 
@@ -24,10 +24,10 @@ analysis, with a familiar interface for desktop and mobile browsers.
 - **Nostr accounts.** Use a Nostr identity for your account and saved games, or
   play casual games anonymously.
 
-The alpha is available at [nosweatchess.org](https://nosweatchess.org/club).
+The new home is [mutechess.org](https://mutechess.org/club). The domain cutover
+is prepared in source and requires a separate deployment.
 We're building in public, and feedback from players helps shape the project.
 The Quiet Signal visual identity is documented in [the brand guide](design/quiet-signal/README.md).
-Moving the service to mutechess.org is a separate deployment change.
 
 ## The club, 2097
 
@@ -35,7 +35,7 @@ Neural implants have put Stockfish 99 and 4750 Elo in everyone's head. Nobody ca
 trust a human opponent anymore.
 
 A few nonchippers discover an old SSD containing a copy of the Lichess repository.
-They use it to form MuteChess, playing bots trained on human games
+They use it to form the Mute Chess Club, playing bots trained on human games
 from the before times, 2023. The missed mates, questionable sacrifices, and
 occasional moments of brilliance are all still there.
 
@@ -47,10 +47,10 @@ Contributions and forks are welcome. Help improve the chess experience, test on
 different browsers and devices, improve accessibility, work on analysis tools,
 or make the documentation clearer.
 
-- [Report a bug or suggest an improvement](https://github.com/Dash1971/no-sweat-chess/issues).
-- [Explore the product roadmap](https://github.com/Dash1971/no-sweat-chess/issues/3).
-- [Discuss bot identities](https://github.com/Dash1971/no-sweat-chess/issues/1)
-  and [help with strength calibration](https://github.com/Dash1971/no-sweat-chess/issues/2).
+- [Report a bug or suggest an improvement](https://github.com/Dash1971/mute-chess/issues).
+- [Explore the product roadmap](https://github.com/Dash1971/mute-chess/issues/3).
+- [Discuss bot identities](https://github.com/Dash1971/mute-chess/issues/1)
+  and [help with strength calibration](https://github.com/Dash1971/mute-chess/issues/2).
 - Open a pull request, or fork the project and share what you build.
 
 For substantial changes, open an issue first so we can discuss the approach.
@@ -59,7 +59,7 @@ device.
 
 ## Source and licenses
 
-MuteChess is noncommercial and licensed under the
+Mute Chess is noncommercial and licensed under the
 [GNU Affero General Public License v3.0](LICENSE).
 
 The project builds on [Lichess](https://github.com/lichess-org/lila),

@@ -44,8 +44,8 @@ for (const destination of destinations)
   for (const [filename, bytes] of outputs)
     await writeFile(path.join(destination, filename), bytes);
 const manifest = {
-  name: "MuteChess",
-  short_name: "MuteChess",
+  name: "Mute Chess",
+  short_name: "Mute Chess",
   start_url: "/",
   scope: "/",
   display: "standalone",

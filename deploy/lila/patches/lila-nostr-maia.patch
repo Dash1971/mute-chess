@@ -321,7 +321,7 @@ index b408a91..5bb78aa 100644
            preventIndexing.option(noRobots),
            noTranslate,
 diff --git a/app/views/lobby/home.scala b/app/views/lobby/home.scala
-index 2db52a9..a85a2ff 100644
+index 2db52a9..fd8489e 100644
 --- a/app/views/lobby/home.scala
 +++ b/app/views/lobby/home.scala
 @@ -18,14 +18,6 @@ object home:
@@ -355,7 +355,7 @@ index 2db52a9..a85a2ff 100644
 -          title = "The best free, adless Chess server",
 +          image = assetFullUrl(if env.noSweat.enabled then "nosweat/social.png"
 +          else "logo/lichess-tile-wide.png").some,
-+          title = if env.noSweat.enabled then "MuteChess — Stay human. Play bots."
++          title = if env.noSweat.enabled then "Mute Chess — Stay human. Play bots."
 +          else "The best free, adless Chess server",
            url = netBaseUrl.into(Url),
 -          description = trans.site.siteDescription.txt()
@@ -415,7 +415,7 @@ index 2db52a9..a85a2ff 100644
            div(cls := "lobby__about")(
              ctx.blind.option(h2(trans.site.about())),
 -            a(href := "/about")(trans.site.aboutX("Lichess")),
-+            a(href := "/about")(trans.site.aboutX(if env.noSweat.enabled then "MuteChess" else "Lichess")),
++            a(href := "/about")(trans.site.aboutX(if env.noSweat.enabled then "Mute Chess" else "Lichess")),
              a(href := "/faq")(trans.faq.faqAbbreviation()),
              a(href := "/contact")(trans.contact.contact()),
              a(href := "/app")(trans.site.mobileApp()),
@@ -1021,7 +1021,7 @@ index 28e5bc4..66c01ad 100644
        )
        .add("fen" -> fen)
 diff --git a/modules/web/src/main/ui/bits.scala b/modules/web/src/main/ui/bits.scala
-index 0c0ed10..87680eb 100644
+index 0c0ed10..01a040d 100644
 --- a/modules/web/src/main/ui/bits.scala
 +++ b/modules/web/src/main/ui/bits.scala
 @@ -46,29 +46,7 @@ z-index: 99;
@@ -1051,12 +1051,12 @@ index 0c0ed10..87680eb 100644
 -      targetBlank,
 -      noFollow
 -    )("Twitch")
-+    a(href := "https://github.com/Dash1971/no-sweat-chess", targetBlank, noFollow)("GitHub")
++    a(href := "https://github.com/Dash1971/mute-chess", targetBlank, noFollow)("GitHub")
    )
  
    val logo = raw:
 diff --git a/modules/web/src/main/ui/layout.scala b/modules/web/src/main/ui/layout.scala
-index 1c7a30b..1eb2559 100644
+index 1c7a30b..00aae34 100644
 --- a/modules/web/src/main/ui/layout.scala
 +++ b/modules/web/src/main/ui/layout.scala
 @@ -17,8 +17,17 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
@@ -1122,7 +1122,7 @@ index 1c7a30b..1eb2559 100644
 +          a(
 +            cls := "site-title",
 +            href := langHref("/"),
-+            aria.label := isMuteChess.option("MuteChess home"),
++            aria.label := isMuteChess.option("Mute Chess home"),
 +            testId("site-title")
 +          )(
              if ctx.kid.yes then span(title := trans.site.kidMode.txt(), cls := "kiddo")(":)")
@@ -1144,12 +1144,12 @@ index 1c7a30b..1eb2559 100644
 +                img(
 +                  cls := "nosweat-wordmark nosweat-dark",
 +                  src := assetPath("nosweat/textmark.svg"),
-+                  alt := "MuteChess"
++                  alt := "Mute Chess"
 +                ),
 +                img(
 +                  cls := "nosweat-wordmark nosweat-light",
 +                  src := assetPath("nosweat/textmark-light.svg"),
-+                  alt := "MuteChess"
++                  alt := "Mute Chess"
 +                )
 +              )
 +            else frag(div(cls := "site-icon", dataIcon := Icon.Logo), div(cls := "site-name")(siteNameFrag))
@@ -2594,10 +2594,10 @@ index f91c71d..665cbe5 100644
        : i18n.site.anonymous;
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..a75890f
+index 0000000..3e43808
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,535 @@
+@@ -0,0 +1,536 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -2770,7 +2770,8 @@ index 0000000..a75890f
 +              "anonymous",
 +              "admin",
 +              "system",
-+              "nosweatchess"
++              "nosweatchess",
++              "mutechess"
 +            )
 +            requireThat(!reserved.contains(name.toLowerCase), 409, "That is a reserved system name")
 +            requireThat(
@@ -3327,7 +3328,7 @@ index 0000000..3e2bf22
 +    user ?=> handle(club.details(id, user.value).map(_.fold(NotFound)(Ok(_))))
 diff --git a/app/views/noSweatLogin.scala b/app/views/noSweatLogin.scala
 new file mode 100644
-index 0000000..b2d5761
+index 0000000..06f646f
 --- /dev/null
 +++ b/app/views/noSweatLogin.scala
 @@ -0,0 +1,76 @@
@@ -3346,12 +3347,12 @@ index 0000000..b2d5761
 +            img(
 +              cls := "nosweat-login-wordmark nosweat-dark",
 +              src := assetPath("nosweat/wordmark.svg"),
-+              alt := "MuteChess"
++              alt := "Mute Chess"
 +            ),
 +            img(
 +              cls := "nosweat-login-wordmark nosweat-light",
 +              src := assetPath("nosweat/wordmark-light.svg"),
-+              alt := "MuteChess"
++              alt := "Mute Chess"
 +            )
 +          ),
 +          h1("Sign in with Nostr"),
@@ -5697,44 +5698,44 @@ HcmV?d00001
 
 diff --git a/public/nosweat/favicon.svg b/public/nosweat/favicon.svg
 new file mode 100644
-index 0000000..ed7fd45
+index 0000000..93a5484
 --- /dev/null
 +++ b/public/nosweat/favicon.svg
 @@ -0,0 +1,5 @@
 +<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img">
-+<title>MuteChess</title>
++<title>Mute Chess</title>
 +<style>path{fill:#315f4d}@media(prefers-color-scheme:dark){path{fill:#a7d6bb}}</style>
 +<path transform="translate(6 3)" d="M35 10L32 2Q39 1 44 8C66 12 80 28 80 52V60H51V66H77L73 76Q80 81 80 88H16L37 52Q43 43 45 37Q46 34 43 34Q40 34 36 38L23 45Q18 49 13 47L6 44Q3 42 2 35L28 13Z"/>
 +</svg>
 diff --git a/public/nosweat/icon-light.svg b/public/nosweat/icon-light.svg
 new file mode 100644
-index 0000000..32d7ce5
+index 0000000..40c923e
 --- /dev/null
 +++ b/public/nosweat/icon-light.svg
 @@ -0,0 +1,4 @@
 +<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img">
-+<title>MuteChess — Quiet Signal knight</title>
++<title>Mute Chess — Quiet Signal knight</title>
 +<path transform="translate(6 3)" d="M35 10L32 2Q39 1 44 8C66 12 80 28 80 52V60H51V66H77L73 76Q80 81 80 88H16L37 52Q43 43 45 37Q46 34 43 34Q40 34 36 38L23 45Q18 49 13 47L6 44Q3 42 2 35L28 13Z" fill="#315f4d"/>
 +</svg>
 diff --git a/public/nosweat/icon.svg b/public/nosweat/icon.svg
 new file mode 100644
-index 0000000..2662a4b
+index 0000000..75eb93d
 --- /dev/null
 +++ b/public/nosweat/icon.svg
 @@ -0,0 +1,4 @@
 +<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img">
-+<title>MuteChess — Quiet Signal knight</title>
++<title>Mute Chess — Quiet Signal knight</title>
 +<path transform="translate(6 3)" d="M35 10L32 2Q39 1 44 8C66 12 80 28 80 52V60H51V66H77L73 76Q80 81 80 88H16L37 52Q43 43 45 37Q46 34 43 34Q40 34 36 38L23 45Q18 49 13 47L6 44Q3 42 2 35L28 13Z" fill="#a7d6bb"/>
 +</svg>
 diff --git a/public/nosweat/manifest.json b/public/nosweat/manifest.json
 new file mode 100644
-index 0000000..b6702f0
+index 0000000..e047dba
 --- /dev/null
 +++ b/public/nosweat/manifest.json
 @@ -0,0 +1,24 @@
 +{
-+  "name": "MuteChess",
-+  "short_name": "MuteChess",
++  "name": "Mute Chess",
++  "short_name": "Mute Chess",
 +  "start_url": "/",
 +  "scope": "/",
 +  "display": "standalone",
@@ -6472,12 +6473,12 @@ HcmV?d00001
 
 diff --git a/public/nosweat/social.svg b/public/nosweat/social.svg
 new file mode 100644
-index 0000000..26831d5
+index 0000000..5a88328
 --- /dev/null
 +++ b/public/nosweat/social.svg
 @@ -0,0 +1,37 @@
 +<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img">
-+<title>MuteChess — Stay human. Play bots.</title>
++<title>Mute Chess — Stay human. Play bots.</title>
 +<rect width="1200" height="630" fill="#101719"/>
 +<g transform="translate(175 165) scale(1.7)"><path transform="translate(6 3)" d="M35 10L32 2Q39 1 44 8C66 12 80 28 80 52V60H51V66H77L73 76Q80 81 80 88H16L37 52Q43 43 45 37Q46 34 43 34Q40 34 36 38L23 45Q18 49 13 47L6 44Q3 42 2 35L28 13Z" fill="#a7d6bb"/><g transform="translate(112 0)"><g transform="translate(0 72) scale(0.075 -0.075)" fill="#e7e9dc">
 +<path transform="translate(0 0)" d="M73.15 0V494.25H185.601V438.5H202.551Q215.901 463.85 246.426 483.225Q276.951 502.6 328.05 502.6Q382.1 502.6 414.888 480.963Q447.675 459.325 464.5 425.45H481.45Q498.45 458.5 530.325 480.55Q562.2 502.6 620.6 502.6Q667.3 502.6 704.713 482.925Q742.125 463.25 764.363 424.275Q786.6 385.3 786.6 327.225V0H672.149V318.75Q672.149 361.675 649.312 384.1Q626.475 406.524 585.15 406.524Q539.525 406.524 513.313 377.275Q487.1 348.025 487.1 293.35V0H372.65V318.75Q372.65 361.675 349.812 384.1Q326.975 406.524 285.65 406.524Q240.025 406.524 213.813 377.275Q187.601 348.025 187.601 293.35V0Z"/>
@@ -6515,12 +6516,12 @@ index 0000000..26831d5
 +</svg>
 diff --git a/public/nosweat/textmark-light.svg b/public/nosweat/textmark-light.svg
 new file mode 100644
-index 0000000..d5a503c
+index 0000000..a21f022
 --- /dev/null
 +++ b/public/nosweat/textmark-light.svg
 @@ -0,0 +1,14 @@
 +<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 403 96" role="img">
-+<title>MuteChess</title>
++<title>Mute Chess</title>
 +<g transform="translate(0 72) scale(0.075 -0.075)" fill="#24312d">
 +<path transform="translate(0 0)" d="M73.15 0V494.25H185.601V438.5H202.551Q215.901 463.85 246.426 483.225Q276.951 502.6 328.05 502.6Q382.1 502.6 414.888 480.963Q447.675 459.325 464.5 425.45H481.45Q498.45 458.5 530.325 480.55Q562.2 502.6 620.6 502.6Q667.3 502.6 704.713 482.925Q742.125 463.25 764.363 424.275Q786.6 385.3 786.6 327.225V0H672.149V318.75Q672.149 361.675 649.312 384.1Q626.475 406.524 585.15 406.524Q539.525 406.524 513.313 377.275Q487.1 348.025 487.1 293.35V0H372.65V318.75Q372.65 361.675 349.812 384.1Q326.975 406.524 285.65 406.524Q240.025 406.524 213.813 377.275Q187.601 348.025 187.601 293.35V0Z"/>
 +<path transform="translate(855 0)" d="M261.8 -8.35Q204.85 -8.35 161.175 17.363Q117.5 43.075 93.062 89.638Q68.625 136.2 68.625 198.25V494.25H183.076V207.2Q183.076 147.175 212.763 117.863Q242.45 88.551 296.25 88.551Q357.225 88.551 392.375 128.976Q427.524 169.4 427.524 243.825V494.25H541.975V0H429.524V69.375H412.574Q399.524 41.925 365.125 16.787Q330.725 -8.35 261.8 -8.35Z"/>
@@ -6535,12 +6536,12 @@ index 0000000..d5a503c
 +</svg>
 diff --git a/public/nosweat/textmark.svg b/public/nosweat/textmark.svg
 new file mode 100644
-index 0000000..3196d2a
+index 0000000..144238d
 --- /dev/null
 +++ b/public/nosweat/textmark.svg
 @@ -0,0 +1,14 @@
 +<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 403 96" role="img">
-+<title>MuteChess</title>
++<title>Mute Chess</title>
 +<g transform="translate(0 72) scale(0.075 -0.075)" fill="#e7e9dc">
 +<path transform="translate(0 0)" d="M73.15 0V494.25H185.601V438.5H202.551Q215.901 463.85 246.426 483.225Q276.951 502.6 328.05 502.6Q382.1 502.6 414.888 480.963Q447.675 459.325 464.5 425.45H481.45Q498.45 458.5 530.325 480.55Q562.2 502.6 620.6 502.6Q667.3 502.6 704.713 482.925Q742.125 463.25 764.363 424.275Q786.6 385.3 786.6 327.225V0H672.149V318.75Q672.149 361.675 649.312 384.1Q626.475 406.524 585.15 406.524Q539.525 406.524 513.313 377.275Q487.1 348.025 487.1 293.35V0H372.65V318.75Q372.65 361.675 349.812 384.1Q326.975 406.524 285.65 406.524Q240.025 406.524 213.813 377.275Q187.601 348.025 187.601 293.35V0Z"/>
 +<path transform="translate(855 0)" d="M261.8 -8.35Q204.85 -8.35 161.175 17.363Q117.5 43.075 93.062 89.638Q68.625 136.2 68.625 198.25V494.25H183.076V207.2Q183.076 147.175 212.763 117.863Q242.45 88.551 296.25 88.551Q357.225 88.551 392.375 128.976Q427.524 169.4 427.524 243.825V494.25H541.975V0H429.524V69.375H412.574Q399.524 41.925 365.125 16.787Q330.725 -8.35 261.8 -8.35Z"/>
@@ -6555,32 +6556,32 @@ index 0000000..3196d2a
 +</svg>
 diff --git a/public/nosweat/watermark-dark.svg b/public/nosweat/watermark-dark.svg
 new file mode 100644
-index 0000000..3b981c9
+index 0000000..28d0144
 --- /dev/null
 +++ b/public/nosweat/watermark-dark.svg
 @@ -0,0 +1,4 @@
 +<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img">
-+<title>MuteChess</title>
++<title>Mute Chess</title>
 +<path transform="translate(6 3)" d="M35 10L32 2Q39 1 44 8C66 12 80 28 80 52V60H51V66H77L73 76Q80 81 80 88H16L37 52Q43 43 45 37Q46 34 43 34Q40 34 36 38L23 45Q18 49 13 47L6 44Q3 42 2 35L28 13Z" fill="#293b34"/>
 +</svg>
 diff --git a/public/nosweat/watermark-light.svg b/public/nosweat/watermark-light.svg
 new file mode 100644
-index 0000000..fcf6740
+index 0000000..27a2a0d
 --- /dev/null
 +++ b/public/nosweat/watermark-light.svg
 @@ -0,0 +1,4 @@
 +<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img">
-+<title>MuteChess</title>
++<title>Mute Chess</title>
 +<path transform="translate(6 3)" d="M35 10L32 2Q39 1 44 8C66 12 80 28 80 52V60H51V66H77L73 76Q80 81 80 88H16L37 52Q43 43 45 37Q46 34 43 34Q40 34 36 38L23 45Q18 49 13 47L6 44Q3 42 2 35L28 13Z" fill="#d5dfd4"/>
 +</svg>
 diff --git a/public/nosweat/wordmark-light.svg b/public/nosweat/wordmark-light.svg
 new file mode 100644
-index 0000000..5088f96
+index 0000000..af93257
 --- /dev/null
 +++ b/public/nosweat/wordmark-light.svg
 @@ -0,0 +1,14 @@
 +<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 515 96" role="img">
-+<title>MuteChess</title>
++<title>Mute Chess</title>
 +<path transform="translate(6 3)" d="M35 10L32 2Q39 1 44 8C66 12 80 28 80 52V60H51V66H77L73 76Q80 81 80 88H16L37 52Q43 43 45 37Q46 34 43 34Q40 34 36 38L23 45Q18 49 13 47L6 44Q3 42 2 35L28 13Z" fill="#315f4d"/><g transform="translate(112 0)"><g transform="translate(0 72) scale(0.075 -0.075)" fill="#24312d">
 +<path transform="translate(0 0)" d="M73.15 0V494.25H185.601V438.5H202.551Q215.901 463.85 246.426 483.225Q276.951 502.6 328.05 502.6Q382.1 502.6 414.888 480.963Q447.675 459.325 464.5 425.45H481.45Q498.45 458.5 530.325 480.55Q562.2 502.6 620.6 502.6Q667.3 502.6 704.713 482.925Q742.125 463.25 764.363 424.275Q786.6 385.3 786.6 327.225V0H672.149V318.75Q672.149 361.675 649.312 384.1Q626.475 406.524 585.15 406.524Q539.525 406.524 513.313 377.275Q487.1 348.025 487.1 293.35V0H372.65V318.75Q372.65 361.675 349.812 384.1Q326.975 406.524 285.65 406.524Q240.025 406.524 213.813 377.275Q187.601 348.025 187.601 293.35V0Z"/>
 +<path transform="translate(855 0)" d="M261.8 -8.35Q204.85 -8.35 161.175 17.363Q117.5 43.075 93.062 89.638Q68.625 136.2 68.625 198.25V494.25H183.076V207.2Q183.076 147.175 212.763 117.863Q242.45 88.551 296.25 88.551Q357.225 88.551 392.375 128.976Q427.524 169.4 427.524 243.825V494.25H541.975V0H429.524V69.375H412.574Q399.524 41.925 365.125 16.787Q330.725 -8.35 261.8 -8.35Z"/>
@@ -6595,12 +6596,12 @@ index 0000000..5088f96
 +</svg>
 diff --git a/public/nosweat/wordmark.svg b/public/nosweat/wordmark.svg
 new file mode 100644
-index 0000000..d9e3ec2
+index 0000000..b207c43
 --- /dev/null
 +++ b/public/nosweat/wordmark.svg
 @@ -0,0 +1,14 @@
 +<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 515 96" role="img">
-+<title>MuteChess</title>
++<title>Mute Chess</title>
 +<path transform="translate(6 3)" d="M35 10L32 2Q39 1 44 8C66 12 80 28 80 52V60H51V66H77L73 76Q80 81 80 88H16L37 52Q43 43 45 37Q46 34 43 34Q40 34 36 38L23 45Q18 49 13 47L6 44Q3 42 2 35L28 13Z" fill="#a7d6bb"/><g transform="translate(112 0)"><g transform="translate(0 72) scale(0.075 -0.075)" fill="#e7e9dc">
 +<path transform="translate(0 0)" d="M73.15 0V494.25H185.601V438.5H202.551Q215.901 463.85 246.426 483.225Q276.951 502.6 328.05 502.6Q382.1 502.6 414.888 480.963Q447.675 459.325 464.5 425.45H481.45Q498.45 458.5 530.325 480.55Q562.2 502.6 620.6 502.6Q667.3 502.6 704.713 482.925Q742.125 463.25 764.363 424.275Q786.6 385.3 786.6 327.225V0H672.149V318.75Q672.149 361.675 649.312 384.1Q626.475 406.524 585.15 406.524Q539.525 406.524 513.313 377.275Q487.1 348.025 487.1 293.35V0H372.65V318.75Q372.65 361.675 349.812 384.1Q326.975 406.524 285.65 406.524Q240.025 406.524 213.813 377.275Q187.601 348.025 187.601 293.35V0Z"/>
 +<path transform="translate(855 0)" d="M261.8 -8.35Q204.85 -8.35 161.175 17.363Q117.5 43.075 93.062 89.638Q68.625 136.2 68.625 198.25V494.25H183.076V207.2Q183.076 147.175 212.763 117.863Q242.45 88.551 296.25 88.551Q357.225 88.551 392.375 128.976Q427.524 169.4 427.524 243.825V494.25H541.975V0H429.524V69.375H412.574Q399.524 41.925 365.125 16.787Q330.725 -8.35 261.8 -8.35Z"/>
@@ -25349,7 +25350,7 @@ index 0000000..d00400d
 +}
 diff --git a/ui/analyse/tests/noSweat.test.ts b/ui/analyse/tests/noSweat.test.ts
 new file mode 100644
-index 0000000..10a1c3f
+index 0000000..416aaa6
 --- /dev/null
 +++ b/ui/analyse/tests/noSweat.test.ts
 @@ -0,0 +1,144 @@
@@ -25373,7 +25374,7 @@ index 0000000..10a1c3f
 +const fixture = (name: string) =>
 +  JSON.parse(readFileSync(new URL('./fixtures/noSweat/' + name, import.meta.url), 'utf8'));
 +const start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-+describe('No Sweat native analysis extensions', () => {
++describe('Mute Chess native analysis extensions', () => {
 +  test('all 3075 independent EC scoring boundary cases are unchanged', () => {
 +    const data = fixture('annotation-boundaries.json');
 +    data.contexts.forEach((context: any, i: number) =>

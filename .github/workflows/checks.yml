@@ -61,6 +61,8 @@ jobs:
           git -C /tmp/lila fetch --depth=1 https://github.com/lichess-org/lila.git b551752d2a0e7a63459d9812825d95a633a98737
           git -C /tmp/lila checkout --detach FETCH_HEAD
           git -C /tmp/lila apply "$GITHUB_WORKSPACE/deploy/lila/patches/lila-nostr-maia.patch"
+          python "$GITHUB_WORKSPACE/deploy/public/native-source.py" /tmp/lila > /tmp/lila-reconstructed.patch
+          cmp /tmp/lila-reconstructed.patch "$GITHUB_WORKSPACE/deploy/lila/patches/lila-nostr-maia.patch"
           git init /tmp/lila-ws
           git -C /tmp/lila-ws fetch --depth=1 https://github.com/lichess-org/lila-ws.git 5089b84b5fe2da3f3e9e69d29363115cfddfc758
           git -C /tmp/lila-ws checkout --detach FETCH_HEAD
