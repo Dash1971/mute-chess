@@ -58,3 +58,5 @@ remain available. Stockfish keeps native puzzle review and alternative lines.
 The owner clarified that no En Croissant puzzle port is needed. Codex assisted
 implementation and automated qualification; no human manual testing or upstream
 contribution is claimed.
+
+Puzzle review uses the same leading-three move/percentage formatter as the analysis board. “All legal moves” expands a full comparison table for both Maia inputs, ordered by the primary channel. Every legal policy entry is included; small nonzero probabilities are displayed as <0.1% with a more precise hover value. Clicking a move explores it through the native puzzle variation controller. This display uses the existing inference result and adds no extra engine searches.
