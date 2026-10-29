@@ -207,6 +207,61 @@ index ede74af..51e2daa 100644
      )
  
    def masterGame(id: GameId, orientation: Color) = Open:
+diff --git a/app/controllers/Plan.scala b/app/controllers/Plan.scala
+index 5334d5e..4ed89ec 100644
+--- a/app/controllers/Plan.scala
++++ b/app/controllers/Plan.scala
+@@ -23,25 +23,31 @@ final class Plan(env: Env) extends LilaController(env):
+   import lila.plan.logger
+ 
+   def index(page: Int = 1) = Open:
+-    pageHit
+-    Reasonable(page):
+-      if HTTPRequest.isXhr(req) then
+-        Ok.snipAsync:
+-          env.plan.api.paginator(page).map(views.plan.topPatrons)
+-      else
+-        ctx.me.foldUse(indexAnon): me ?=>
+-          import lila.plan.PlanApi.SyncResult.*
+-          env.plan.api
+-            .sync(me)
+-            .flatMap:
+-              case ReloadUser => Redirect(routes.Plan.index())
+-              case Synced(Some(patron), None, None) =>
+-                env.user.repo.email(me).flatMap { email =>
+-                  renderIndex(email, patron.some)
+-                }
+-              case Synced(Some(patron), Some(stripeCus), _) => indexStripePatron(patron, stripeCus)
+-              case Synced(Some(_), _, Some(payPalSub)) => indexPayPalPatron(payPalSub)
+-              case _ => indexFreeUser
++    if env.noSweat.enabled then
++      ctx.me
++        .fold(fuccess(Option.empty[String]))(u => env.noSweat.nostrPublicKey(u.value))
++        .flatMap: pubkey =>
++          Ok.page(views.noSweatPatron(pubkey)).map(_.withHeaders("Cache-Control" -> "no-store"))
++    else
++      pageHit
++      Reasonable(page):
++        if HTTPRequest.isXhr(req) then
++          Ok.snipAsync:
++            env.plan.api.paginator(page).map(views.plan.topPatrons)
++        else
++          ctx.me.foldUse(indexAnon): me ?=>
++            import lila.plan.PlanApi.SyncResult.*
++            env.plan.api
++              .sync(me)
++              .flatMap:
++                case ReloadUser => Redirect(routes.Plan.index())
++                case Synced(Some(patron), None, None) =>
++                  env.user.repo.email(me).flatMap { email =>
++                    renderIndex(email, patron.some)
++                  }
++                case Synced(Some(patron), Some(stripeCus), _) => indexStripePatron(patron, stripeCus)
++                case Synced(Some(_), _, Some(payPalSub)) => indexPayPalPatron(payPalSub)
++                case _ => indexFreeUser
+ 
+   def list = Open:
+     ctx.me.foldUse(Redirect(routes.Plan.index()).toFuccess): me ?=>
 diff --git a/app/controllers/UserAnalysis.scala b/app/controllers/UserAnalysis.scala
 index 8ce37a2..89c9561 100644
 --- a/app/controllers/UserAnalysis.scala
@@ -321,13 +376,21 @@ index b408a91..5bb78aa 100644
            preventIndexing.option(noRobots),
            noTranslate,
 diff --git a/app/views/lobby/home.scala b/app/views/lobby/home.scala
-index 2db52a9..fd8489e 100644
+index 2db52a9..ce36820 100644
 --- a/app/views/lobby/home.scala
 +++ b/app/views/lobby/home.scala
-@@ -18,14 +18,6 @@ object home:
-           span(trans.patron.becomePatron())
-         )
-       )
+@@ -10,22 +10,6 @@ object home:
+ 
+   def apply(homepage: Homepage)(using ctx: Context) =
+     import homepage.*
+-    val donateLink =
+-      a(cls := "lobby__support-link", href := routes.Plan.index())(
+-        iconTag(patronIconChar),
+-        span(cls := "lobby__support-link__text")(
+-          strong(trans.patron.donate()),
+-          span(trans.patron.becomePatron())
+-        )
+-      )
 -    val swagLink =
 -      a(cls := "lobby__support-link", href := "/swag")(
 -        iconTag(Icon.Tshirt),
@@ -339,7 +402,7 @@ index 2db52a9..fd8489e 100644
      Page("")
        .copy(fullTitle = s"$siteName • ${trans.site.freeOnlineChess.txt()}".some)
        .i18n(_.variant)
-@@ -35,6 +27,7 @@ object home:
+@@ -35,6 +19,7 @@ object home:
            Json
              .obj(
                "data" -> data,
@@ -347,7 +410,7 @@ index 2db52a9..fd8489e 100644
                "showRatings" -> ctx.pref.showRatings
              )
              .add("hasUnreadLichessMessage", hasUnreadLichessMessage)
-@@ -45,10 +38,14 @@ object home:
+@@ -45,10 +30,14 @@ object home:
        .css("lobby")
        .graph(
          OpenGraph(
@@ -365,7 +428,7 @@ index 2db52a9..fd8489e 100644
          )
        )
        .hrefLangs(lila.ui.LangPath("/")):
-@@ -93,6 +90,13 @@ object home:
+@@ -93,6 +82,13 @@ object home:
                  ctx.blind.option(h2(trans.site.timeline())),
                  views.timeline.entries(userTimeline)
                )
@@ -379,7 +442,7 @@ index 2db52a9..fd8489e 100644
              else
                div(cls := "about-side")(
                  ctx.blind.option(h2(trans.site.about())),
-@@ -118,21 +122,24 @@ object home:
+@@ -118,21 +114,22 @@ object home:
                button(cls := "button button-metal lobby__start__button lobby__start__button--hook")(
                  trans.site.createLobbyGame()
                ),
@@ -400,9 +463,8 @@ index 2db52a9..fd8489e 100644
              )
            ),
 -          div(cls := "lobby__support")(donateLink, swagLink),
-+          div(cls := "lobby__support")(donateLink),
            div(cls := "lobby__tv")(
-             donateLink,
+-            donateLink,
              featured.map(g => views.game.mini(Pov.naturalOrientation(g), tv = true))
            ),
            div(cls := "lobby__puzzle")(
@@ -410,7 +472,7 @@ index 2db52a9..fd8489e 100644
              puzzle.map(p => views.puzzle.bits.dailyLink(p)())
            ),
            views.ublog.ui.homeCarousel(ublogPosts),
-@@ -142,7 +149,7 @@ object home:
+@@ -142,7 +139,7 @@ object home:
            ctx.noBot.option(bits.underboards(tours, simuls)),
            div(cls := "lobby__about")(
              ctx.blind.option(h2(trans.site.about())),
@@ -457,7 +519,7 @@ index 26a6045..d1d215c 100644
            views.user.bits.perfTrophies(u, info.ranks),
            otherTrophies(info),
 diff --git a/conf/routes b/conf/routes
-index f2a7ab2..324998d 100644
+index f2a7ab2..4396222 100644
 --- a/conf/routes
 +++ b/conf/routes
 @@ -1,6 +1,18 @@
@@ -479,6 +541,17 @@ index f2a7ab2..324998d 100644
  GET   /                                controllers.Lobby.home
  GET   /lobby/seeks                     controllers.Lobby.seeks
  
+@@ -333,6 +345,10 @@ GET   /$lang<\w\w\w?>/learn            controllers.Learn.indexLang(lang: Languag
+ 
+ # Patron
+ GET   /patron                          controllers.Plan.index(page: Int ?= 1)
++GET   /club/patron                     controllers.NoSweat.patronPage
++GET   /club/patron/pending              controllers.NoSweat.patronPending
++POST  /club/patron/invoice              controllers.NoSweat.patronInvoice
++POST  /club/patron/receipt              controllers.NoSweat.patronReceipt
+ GET   /patron/thanks                   controllers.Plan.thanks
+ GET   /patron/list                     controllers.Plan.list
+ POST  /patron/style                    controllers.Plan.style
 diff --git a/modules/analyse/src/main/ui/AnalyseUi.scala b/modules/analyse/src/main/ui/AnalyseUi.scala
 index 2fde85c..53f9fef 100644
 --- a/modules/analyse/src/main/ui/AnalyseUi.scala
@@ -663,6 +736,34 @@ index 45a3103..6fb1b4b 100644
  
    def removeRecentChallengesOf(userId: UserId) =
      coll.delete.one:
+diff --git a/modules/plan/src/main/PlanApi.scala b/modules/plan/src/main/PlanApi.scala
+index 0e35266..8dbe5e8 100644
+--- a/modules/plan/src/main/PlanApi.scala
++++ b/modules/plan/src/main/PlanApi.scala
+@@ -560,6 +560,23 @@ final class PlanApi(
+   private[plan] def freeMonths(userStr: String, nbMonths: Int): Funit =
+     userApi.byId(UserStr(userStr)).flatMapz(freeMonths(_, nbMonths))
+ 
++  // Only called after a wallet-signed receipt matches a server-issued invoice.
++  // Fixed paid-at expiry and $max make retries/crash recovery idempotent.
++  def grantNoSweatZap(user: User, until: Instant): Funit =
++    if user.plan.lifetime then funit
++    else
++      for
++        _ <- mongo.patron.update.one(
++          bid(user.id),
++          bdoc(
++            "$set" -> bdoc("free" -> Patron.Free(nowInstant, by = none)),
++            "$max" -> bdoc("expiresAt" -> until)
++          ),
++          upsert = true
++        )
++        _ <- setDbUserPlan(user.mapPlan(_.enable))
++      yield ()
++
+   def freeMonths(user: User, nbMonths: Int): Funit =
+     for _ <- mongo.patron.update
+         .one(
 diff --git a/modules/pref/src/main/Pref.scala b/modules/pref/src/main/Pref.scala
 index 13f0c7f..060fd36 100644
 --- a/modules/pref/src/main/Pref.scala
@@ -1559,6 +1660,38 @@ index 96ce0df..a93b740 100644
      renderMoveList(ctrl, deps, concealOf),
      deps?.gbEdit.running(ctrl) ? deps?.gbEdit.render(ctrl) : undefined,
      renderBackToLiveButton(ctrl),
+diff --git a/ui/bits/src/bits.qrcode.ts b/ui/bits/src/bits.qrcode.ts
+index a53a9f6..4b9c0e3 100644
+--- a/ui/bits/src/bits.qrcode.ts
++++ b/ui/bits/src/bits.qrcode.ts
+@@ -1,12 +1,18 @@
+ import QRCode from 'qrcode';
+ 
+-const qrs = document.querySelectorAll<HTMLCanvasElement>('canvas.qrcode');
+-
+-for (const qr of qrs) {
+-  if (!qr.dataset.qrUrl) continue;
+-
+-  QRCode.toCanvas(qr, qr.dataset.qrUrl, {
+-    margin: 2,
+-    width: qr.dataset.width ? parseInt(qr.dataset.width) : 320,
+-  });
++export async function initModule(): Promise<void> {
++  const qrs = Array.from(document.querySelectorAll<HTMLCanvasElement>('canvas.qrcode')).filter(
++    qr => qr.dataset.qrUrl,
++  );
++  await Promise.all(
++    qrs.map(qr =>
++      QRCode.toCanvas(qr, qr.dataset.qrUrl!, {
++        margin: 2,
++        width: qr.dataset.width ? parseInt(qr.dataset.width) : 320,
++      }),
++    ),
++  );
+ }
++
++// Preserve native pages that include this module for its initial side effect.
++void initModule();
 diff --git a/ui/chart/src/acpl.ts b/ui/chart/src/acpl.ts
 index d06272b..4a8de31 100644
 --- a/ui/chart/src/acpl.ts
@@ -2998,10 +3131,10 @@ index f91c71d..665cbe5 100644
        : i18n.site.anonymous;
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..3e43808
+index 0000000..9ffaac1
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,536 @@
+@@ -0,0 +1,627 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -3050,10 +3183,14 @@ index 0000000..3e43808
 +      s"Bearer $token".getBytes(java.nio.charset.StandardCharsets.UTF_8)
 +    )
 +
-+  def adapter(path: String, body: JsValue): Fu[JsValue] =
++  def adapter(
++      path: String,
++      body: JsValue,
++      timeout: scala.concurrent.duration.FiniteDuration = 5.seconds
++  ): Fu[JsValue] =
 +    ws.url(s"$adapterUrl$path")
 +      .withHttpHeaders("Authorization" -> s"Bearer $token", "Content-Type" -> "application/json")
-+      .withRequestTimeout(5.seconds)
++      .withRequestTimeout(timeout)
 +      .post(Json.stringify(body))
 +      .map: response =>
 +        val result = Json.parse(response.body)
@@ -3063,6 +3200,93 @@ index 0000000..3e43808
 +            (result \ "error").asOpt[String].getOrElse("Adapter unavailable")
 +          )
 +        result
++
++  private val donations = env.mongo.mainDb(CollName("nosweat_donation"))
++
++  def nostrPublicKey(user: UserModel): Fu[Option[String]] =
++    env.user.repo.withColl(_.byId[Bdoc](user.id)).map(_.flatMap(_.getAsOpt[String]("nostr")))
++
++  def patronPending(user: UserModel): Fu[JsValue] =
++    donations
++      .find(bdoc("userId" -> user.id, "paid" -> false, "expiresAt" -> bdoc("$gt" -> nowInstant)))
++      .sort(sort.desc("createdAt"))
++      .cursor[Bdoc]()
++      .list(5)
++      .map: docs =>
++        Json.toJson(docs.flatMap(_.getAsOpt[String]("invoice")))
++
++  def patronInvoice(user: UserModel, data: JsValue): Fu[JsValue] =
++    for
++      pubkey <- nostrPublicKey(user)
++      _ = requireThat(
++        pubkey.contains((data \ "request" \ "pubkey").as[String]),
++        403,
++        "Sign with this account’s Nostr key"
++      )
++      now = System.currentTimeMillis()
++      _ <- identityUpdate(
++        bdoc(
++          "_id" -> user.id,
++          "$or" -> List(
++            bdoc("nosweatInvoiceWindow" -> bdoc("$lt" -> (now - 60000))),
++            bdoc("nosweatInvoiceWindow" -> bdoc("$exists" -> false))
++          )
++        ),
++        bdoc("$set" -> bdoc("nosweatInvoiceWindow" -> now, "nosweatInvoiceAttempts" -> 0))
++      )
++      allowed <- identityUpdate(
++        bdoc("_id" -> user.id, "nosweatInvoiceAttempts" -> bdoc("$lt" -> 5)),
++        bdoc("$inc" -> bdoc("nosweatInvoiceAttempts" -> 1))
++      )
++      _ = requireThat(allowed, 429, "Please wait a minute before creating another invoice")
++      result <- adapter("/patron/invoice", data, 20.seconds)
++      _ = requireThat(pubkey.contains((result \ "donor").as[String]), 403, "Wrong payment sender")
++      createdAt = java.time.Instant.ofEpochSecond((result \ "createdAt").as[Long])
++      _ <- donations.insert.one(
++        bdoc(
++          "_id" -> (result \ "paymentHash").as[String],
++          "userId" -> user.id,
++          "invoice" -> (result \ "invoice").as[String],
++          "donor" -> (result \ "donor").as[String],
++          "requestId" -> (result \ "requestId").as[String],
++          "createdAt" -> createdAt,
++          "expiresAt" -> createdAt.plusSeconds((result \ "expiresIn").as[Long]),
++          "paid" -> false
++        )
++      )
++    yield result
++
++  def patronReceipt(user: UserModel, data: JsValue): Fu[JsValue] =
++    for
++      checked <- adapter("/patron/receipt", data)
++      pubkey <- nostrPublicKey(user)
++      _ = requireThat(
++        pubkey.contains((checked \ "donor").as[String]),
++        403,
++        "This donation belongs to another account"
++      )
++      payment = (checked \ "paymentHash").as[String]
++      recorded <- donations.byId[Bdoc](payment)
++      doc = recorded.getOrElse(
++        throw NoSweatError(
++          400,
++          "No matching donation invoice. Create an invoice on this page for patron wings."
++        )
++      )
++      _ = requireThat(
++        doc.getAsOpt[UserId]("userId").contains(user.id) &&
++          doc.getAsOpt[String]("invoice").contains((checked \ "invoice").as[String]) &&
++          doc.getAsOpt[String]("requestId").contains((checked \ "requestId").as[String]),
++        400,
++        "Receipt does not match this donation"
++      )
++      until = java.time.Instant.ofEpochSecond((checked \ "paidAt").as[Long]).plusSeconds(30L * 86400)
++      _ <- env.plan.api.grantNoSweatZap(user, until)
++      _ <- donations.update.one(
++        bid(payment),
++        set("paid" -> true, "receiptId" -> (checked \ "receiptId").as[String], "patronUntil" -> until)
++      )
++    yield Json.obj("confirmed" -> true, "until" -> until.toString)
 +
 +  private def initialize(): Funit =
 +    roster
@@ -3540,10 +3764,10 @@ index 0000000..3e43808
 +        )
 diff --git a/app/controllers/NoSweat.scala b/app/controllers/NoSweat.scala
 new file mode 100644
-index 0000000..3e2bf22
+index 0000000..c7f20ba
 --- /dev/null
 +++ b/app/controllers/NoSweat.scala
-@@ -0,0 +1,186 @@
+@@ -0,0 +1,208 @@
 +package controllers
 +
 +import play.api.libs.json.*
@@ -3618,6 +3842,28 @@ index 0000000..3e2bf22
 +        .withCookies(env.security.lilaCookie.withSession(remember = true) { s =>
 +          s + (env.security.api.sessionIdKey -> session.value)
 +        })
++
++  def patronPage = Open:
++    handle:
++      ctx.me
++        .fold(fuccess(Option.empty[String]))(u => club.nostrPublicKey(u.value))
++        .flatMap: pubkey =>
++          Ok.page(views.noSweatPatron(pubkey))
++
++  def patronPending = Auth: context ?=>
++    me ?=> handle(club.patronPending(me.value).map(Ok(_)))
++
++  def patronInvoice = AuthBody(parse.tolerantText(8192)): context ?=>
++    me ?=>
++      handle:
++        sameOrigin
++        club.patronInvoice(me.value, Json.parse(context.body.body)).map(Ok(_))
++
++  def patronReceipt = AuthBody(parse.tolerantText(16384)): context ?=>
++    me ?=>
++      handle:
++        sameOrigin
++        club.patronReceipt(me.value, Json.parse(context.body.body)).map(Ok(_))
 +
 +  def securityPage = Auth: context ?=>
 +    me ?=> handle(Ok.page(views.noSweatSecurity(me.value)))
@@ -3810,6 +4056,102 @@ index 0000000..06f646f
 +              "Only your public key and a signed login challenge go to the server. Signing in does not publish to Nostr relays."
 +            ),
 +            a(href := "/")("Continue without signing in")
++          )
++        )
+diff --git a/app/views/noSweatPatron.scala b/app/views/noSweatPatron.scala
+new file mode 100644
+index 0000000..1465204
+--- /dev/null
++++ b/app/views/noSweatPatron.scala
+@@ -0,0 +1,90 @@
++package views
++
++import lila.app.UiEnv.{ *, given }
++
++object noSweatPatron:
++  def apply(pubkey: Option[String])(using ctx: Context) =
++    Page("Support Mute Chess")
++      .css("bits.patron")
++      .csp(csp =>
++        csp.copy(connectSrc =
++          csp.connectSrc ::: List(
++            "https://mempool.space",
++            "wss://relay.damus.io",
++            "wss://nos.lol",
++            "wss://relay.primal.net"
++          )
++        )
++      )
++      .headAppend(script(src := assetPath("nosweat/nostr.js?lightning=1"), defer)):
++        main(cls := "box box-pad form3", id := "nostr-patron", attr("data-pubkey") := pubkey.getOrElse(""))(
++          h1("Support Mute Chess"),
++          p("Keep free, open-source chess running. Donate with Bitcoin over Lightning."),
++          ctx.me
++            .exists(_.isPatron)
++            .option(p(iconTag(patronIconChar), " Your patron wings are active. Thank you!")),
++          p(
++            "You can also zap ",
++            a(href := "https://primal.net/p/npub1w6l8e4mqa4ruqs2vdvwhdxhp9ke9ax8kpncy2wy26tja3d7rzpgq06c9jl")(
++              "Mute Chess on Nostr"
++            ),
++            "."
++          ),
++          pubkey.fold[Frag](
++            frag(
++              p(
++                a(href := "/login?referrer=/patron")("Sign in with Nostr"),
++                " to donate here and get patron wings for 30 days."
++              ),
++              p("Or send a direct Lightning donation:"),
++              code("eerieatlas700@walletofsatoshi.com")
++            )
++          )(_ =>
++            frag(
++              p(
++                "Choose any amount. A confirmed payment through this page grants patron wings for 30 days. No subscription."
++              ),
++              label(`for` := "patron-amount")("Amount"),
++              input(
++                id := "patron-amount",
++                tpe := "number",
++                min := "1",
++                step := "1",
++                value := "1000",
++                required
++              ),
++              label(`for` := "patron-currency")("Denomination"),
++              select(id := "patron-currency")(
++                option(value := "sats")("Satoshis"),
++                option(value := "USD")("USD")
++              ),
++              p(id := "patron-quote"),
++              button(id := "patron-create", tpe := "button", cls := "button")("Create Lightning invoice"),
++              button(id := "patron-saved", tpe := "button", cls := "button button-metal", hidden)(
++                "Use saved browser key"
++              ),
++              p(
++                "A NIP-07 browser signer is recommended. Signing requests an invoice; pay it with your Lightning wallet."
++              )
++            )
++          ),
++          div(id := "patron-payment", pubkey.isDefined.option(hidden))(
++            canvas(id := "patron-qr", cls := "qrcode", aria.label := "Lightning payment QR code"),
++            p(a(id := "patron-open", cls := "button button-green")("Open Lightning wallet")),
++            pubkey.isDefined.option(
++              frag(
++                p(id := "patron-invoice-amount"),
++                button(id := "patron-copy", tpe := "button", cls := "button button-empty")("Copy invoice"),
++                button(id := "patron-check", tpe := "button", cls := "button button-empty")("Check payment")
++              )
++            )
++          ),
++          p(id := "patron-status", role := "status", aria.live := "polite"),
++          p(
++            "Direct address: ",
++            a(href := "lightning:eerieatlas700@walletofsatoshi.com")("eerieatlas700@walletofsatoshi.com")
++          ),
++          p(cls := "weak")(
++            "For automatic wings, use an invoice created here while signed in. Direct wallet donations and zaps also support the project."
 +          )
 +        )
 diff --git a/app/views/noSweatSecurity.scala b/app/views/noSweatSecurity.scala
@@ -26440,6 +26782,67 @@ index 0000000..0a1dd6a
 +    assert.equal(workers.length, 2);
 +    client.release();
 +  });
++});
+diff --git a/ui/bits/css/build/bits.patron.scss b/ui/bits/css/build/bits.patron.scss
+new file mode 100644
+index 0000000..4e58196
+--- /dev/null
++++ b/ui/bits/css/build/bits.patron.scss
+@@ -0,0 +1,16 @@
++@import '../../../lib/css/plugin';
++@import '../../../lib/css/form/form3';
++
++#nostr-patron {
++  width: 100%;
++  max-width: 40em;
++  height: min-content;
++  margin: 0 auto;
++  border: $border;
++
++  .qrcode {
++    display: block;
++    max-width: 100%;
++    margin: 1em auto;
++  }
++}
+diff --git a/ui/bits/tests/qrcode.test.ts b/ui/bits/tests/qrcode.test.ts
+new file mode 100644
+index 0000000..418a874
+--- /dev/null
++++ b/ui/bits/tests/qrcode.test.ts
+@@ -0,0 +1,33 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++
++test('the native QR module initializes dynamically and redraws a replacement invoice', async () => {
++  const original = globalThis.document;
++  const frames: Uint8ClampedArray[] = [];
++  const canvas = {
++    dataset: { qrUrl: 'LIGHTNING:INVOICE-ONE' },
++    width: 0,
++    height: 0,
++    style: {},
++    getContext: () => ({
++      createImageData: (width: number, height: number) => ({
++        data: new Uint8ClampedArray(width * height * 4),
++      }),
++      clearRect: () => {},
++      putImageData: (image: { data: Uint8ClampedArray }) => frames.push(image.data.slice()),
++    }),
++  };
++  globalThis.document = { querySelectorAll: () => [canvas] } as unknown as Document;
++  try {
++    const { initModule } = await import('../src/bits.qrcode');
++    await initModule();
++    const first = frames.at(-1);
++    assert.equal(canvas.width, 320);
++    assert.ok(first?.some(value => value !== 0));
++    canvas.dataset.qrUrl = 'LIGHTNING:INVOICE-TWO';
++    await initModule();
++    assert.notDeepEqual(frames.at(-1), first);
++  } finally {
++    globalThis.document = original;
++  }
 +});
 diff --git a/ui/chart/src/moveClassifications.ts b/ui/chart/src/moveClassifications.ts
 new file mode 100644

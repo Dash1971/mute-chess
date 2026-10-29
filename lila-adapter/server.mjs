@@ -5,6 +5,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { NostrAuth, AdapterError } from './nostr-auth.mjs';
 import { Maia } from './maia.mjs';
+import { createZapInvoice, validateZapReceipt } from './lightning.mjs';
 import { freeze, effectivePolicy, targetTime, addedWait } from './policy.mjs';
 
 const token = process.env.ADAPTER_TOKEN;
@@ -106,6 +107,11 @@ const server = http.createServer(async (request, response) => {
     try { body = JSON.parse(text); } catch { throw new AdapterError(400, 'Invalid JSON'); }
     if (request.url === '/challenge') return send(200, auth.challenge(body.pubkey, body.action));
     if (request.url === '/verify') return send(200, auth.verify(body.authorization, body.rawBody));
+    if (request.url === '/patron/invoice') return send(200, await createZapInvoice(body.request));
+    if (request.url === '/patron/receipt') {
+      try { return send(200, validateZapReceipt(body.receipt)); }
+      catch { throw new AdapterError(400, 'Invalid or untrusted payment receipt'); }
+    }
     if (request.url === '/freeze') {
       if (!maia.healthy) throw new AdapterError(503, 'Maia unavailable');
       const bot = roster.find(bot => bot.id === body.bot);

@@ -27,3 +27,5 @@ Mobile Maia premove projection, browser inference worker/client/encoder and En C
 ## Lichess puzzle database
 
 The starter puzzle catalog in puzzles/ is a pinned subset of https://database.lichess.org/#puzzles, CC0-1.0. See puzzles/catalog.json, README.md and CC0-1.0.txt for source, selection and exact hashes. Native Lila puzzle code retains its upstream AGPL-3.0 license.
+
+Lightning invoice and zap verification uses pinned `@noble/curves` 2.0.1, `@noble/hashes` 2.0.1 and `@scure/base` 2.0.0 (MIT), also used by the pinned nostr-tools dependency. Their original distribution licenses and package-lock integrity hashes are retained. BOLT-11 and NIP-57 are protocol references; the integration does not copy another wallet implementation.

@@ -8,6 +8,19 @@ spec.loader.exec_module(isolation)
 
 
 class ServiceBoundaryTests(unittest.TestCase):
+    def test_lightning_egress_is_confined_to_adapter_https_and_local_dns(self):
+        ips = ('8.8.8.8', '2606:4700:4700::1111')
+        uids = {role: i + 900 for i, role in enumerate(isolation.ROLES)}
+        rules = isolation.policy(uids, 910, ips)
+        uid = uids['adapter']
+        self.assertIn(f'meta skuid {uid} ip daddr {{ 8.8.8.8 }} tcp dport 443 accept', rules)
+        self.assertIn(f'meta skuid {uid} ip6 daddr {{ 2606:4700:4700::1111 }} tcp dport 443 accept', rules)
+        for role in isolation.ROLES:
+            unit = isolation.unit(role, ips)
+            self.assertEqual('IPAddressAllow=8.8.8.8' in unit, role == 'adapter')
+        self.assertNotIn('tcp dport 443 accept', isolation.policy(uids, 910))
+        self.assertLess(rules.index(f'meta skuid {uid} ip daddr {{ 8.8.8.8 }}'), rules.index(f'meta skuid {uid} counter reject'))
+
     def test_gateway_and_adapter_have_no_database_or_persistent_write_access(self):
         for role in ('gateway', 'adapter'):
             self.assertNotIn(27019, isolation.PORTS[role])

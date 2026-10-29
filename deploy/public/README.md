@@ -62,7 +62,7 @@ New connections from each identity are limited as follows:
 | Gateway | Loopback native HTTP 29663 and WebSockets 29664 |
 | Application | Loopback Mongo 27019, Redis 16380 and adapter 29665 |
 | WebSockets | Loopback Mongo 27019 and Redis 16380 |
-| Adapter | Loopback native HTTP 29663 |
+| Adapter | Loopback native HTTP 29663; HTTPS only to the installer-resolved Wallet of Satoshi/Living Room of Satoshi addresses; local stub DNS |
 | Mongo / Redis | None; replies to clients remain allowed |
 | Cloudflare connector | Loopback gateway 29660, local stub DNS, Cloudflare tunnel endpoints on 7844 |
 
@@ -138,3 +138,7 @@ Edit profile includes an optional public name, editable after signup. Canonical 
 `/club/security` enrolls or disables authenticator 2FA with a fresh action-bound Nostr signature. Login requires a second factor whenever native TOTP is present. Authenticator counters and hashed recovery codes are consumed atomically; five factor attempts are permitted per account per minute. Enrollment/disable revoke existing sessions and establish a new current session. The browser generates the setup secret locally, displays a local QR/manual key, then submits the signed secret and authenticator confirmation. Recovery codes appear once and require the Nostr key to use.
 
 Native session management is available at `/account/security`; password/email and API-token management remain unavailable. Run `node lila-adapter/test/account-security.mjs` against the isolated private stack for disposable-account qualification; `ACCOUNT_TEST_ORIGIN` selects a different origin. The script never uses an existing account and prints no keys, secrets, cookies or recovery codes.
+
+## Lightning patrons
+
+The header Donate link uses the owner-confirmed Wallet of Satoshi address and official Mute Chess npub. Signed-in donors can choose sats/USD and generate a NIP-57 invoice for native patron wings after a verified receipt; anonymous direct LNURL support remains available. The adapter has narrowly scoped provider HTTPS/DNS egress. See [the payment flow, settlement checks and qualification](../../docs/lightning-patrons.md). No private wallet or recipient signing key is deployed.

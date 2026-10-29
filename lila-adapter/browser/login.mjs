@@ -3,6 +3,7 @@ import { decode, nsecEncode } from 'nostr-tools/nip19';
 import { saveKey, loadKey, forgetKey } from './key-store.mjs';
 import { signedCall } from './auth-client.mjs';
 import './security.mjs';
+import './patron.mjs';
 
 const element = id => document.getElementById('nostr-' + id);
 let generated;
@@ -16,7 +17,8 @@ async function signIn(signer, localKey) {
   element('nsec').value = '';
   element('backup').value = '';
   generated?.fill(0); generated = undefined;
-  location.assign(result.url || '/');
+  const returnToSupport = new URLSearchParams(location.search).get('referrer') === '/patron';
+  location.assign(returnToSupport ? '/patron' : result.url || '/');
 }
 function localSigner(key) {
   return { getPublicKey: () => getPublicKey(key), signEvent: event => finalizeEvent(event, key) };

@@ -8,7 +8,10 @@
     "start": "node server.mjs"
   },
   "dependencies": {
-    "nostr-tools": "2.25.2"
+    "nostr-tools": "2.25.2",
+    "@noble/curves": "2.0.1",
+    "@noble/hashes": "2.0.1",
+    "@scure/base": "2.0.0"
   },
   "devDependencies": {
     "ws": "8.22.0",
