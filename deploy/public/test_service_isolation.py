@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('isolation', Path(__file__).with_name('service-isolation.py'))
 isolation = importlib.util.module_from_spec(spec)
@@ -8,6 +9,32 @@ spec.loader.exec_module(isolation)
 
 
 class ServiceBoundaryTests(unittest.TestCase):
+    def test_activation_replaces_stale_kernel_rules_even_when_the_oneshot_is_active(self):
+        for initially_active in (False, True):
+            state = {'active': initially_active, 'kernel': 'previous-policy'}
+
+            def systemctl(*args):
+                if args[1] == 'enable' and not state['active']:
+                    state.update(active=True, kernel='installed-policy')
+                if args[1] == 'reload':
+                    self.assertTrue(state['active'])
+                    state['kernel'] = 'installed-policy'
+                return ''
+
+            with patch.object(isolation, 'run', side_effect=systemctl):
+                isolation.activate_policy()
+            self.assertEqual(state['kernel'], 'installed-policy')
+
+    def test_policy_reload_failure_aborts_activation(self):
+        def systemctl(*args):
+            if args[1] == 'reload':
+                raise RuntimeError('Policy could not be applied')
+            return ''
+
+        with patch.object(isolation, 'run', side_effect=systemctl):
+            with self.assertRaisesRegex(RuntimeError, 'Policy could not be applied'):
+                isolation.activate_policy()
+
     def test_lightning_egress_is_confined_to_adapter_https_and_local_dns(self):
         ips = ('8.8.8.8', '2606:4700:4700::1111')
         uids = {role: i + 900 for i, role in enumerate(isolation.ROLES)}

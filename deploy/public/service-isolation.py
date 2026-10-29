@@ -26,6 +26,13 @@ def run(*args):
     return subprocess.run(args, check=True, capture_output=True, text=True).stdout
 
 
+def activate_policy():
+    # RemainAfterExit keeps the old rules active across installations. Starting
+    # an already-active oneshot does not rerun ExecStart; reload applies the file.
+    run('systemctl', 'enable', '--now', 'nosweatchess-isolation')
+    run('systemctl', 'reload', 'nosweatchess-isolation')
+
+
 def accounts():
     result = {}
     for role, name in USERS.items():
