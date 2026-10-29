@@ -1678,23 +1678,29 @@ index 4cbdc96..8f4b59c 100644
          renderAnalyse(ctrl),
          feedbackView(ctrl),
 diff --git a/ui/puzzle/src/view/side.ts b/ui/puzzle/src/view/side.ts
-index 8c13b00..3fd8521 100644
+index 8c13b00..aff5608 100644
 --- a/ui/puzzle/src/view/side.ts
 +++ b/ui/puzzle/src/view/side.ts
-@@ -59,6 +59,16 @@ const puzzleInfos = (ctrl: PuzzleCtrl): VNode => {
+@@ -59,6 +59,22 @@ const puzzleInfos = (ctrl: PuzzleCtrl): VNode => {
  
  function gameInfos(ctrl: PuzzleCtrl): VNode {
    const { game, puzzle } = ctrl.data;
 +  if (game.source)
-+    return hl('div.infos', [
-+      hl('p', 'Lichess puzzle database · CC0'),
-+      ctrl.mode === 'view' &&
-+        hl(
-+          'a',
-+          { attrs: { href: game.source, target: '_blank', rel: 'noopener noreferrer' } },
-+          'View original game',
-+        ),
-+    ]);
++    return hl(
++      'div.infos',
++      hl('div', [
++        hl('p', 'Lichess puzzle database · CC0'),
++        ctrl.mode === 'view' &&
++          hl(
++            'p',
++            hl(
++              'a',
++              { attrs: { href: game.source, target: '_blank', rel: 'noopener noreferrer' } },
++              'View original game',
++            ),
++          ),
++      ]),
++    );
    const gameName = game.clock && game.perf ? `${game.clock} • ${game.perf.name}` : 'import';
    return hl('div.infos', { attrs: game.perf && dataIcon(perfIcons[game.perf.key]) }, [
      hl('div', [
