@@ -7,8 +7,8 @@ A release must carry RELEASE.json with `gitCommit`, `branch: "main"`, and `sourc
 # Public native alpha
 
 The native Maia/Nostr alpha has an existing public deployment. This checkout
-prepares the Mute Chess branding and `mutechess.org` cutover locally; publication
-is pending the owner securing the domain. See [the rebrand notes](../../docs/mute-chess-rebrand.md).
+prepares the Mute Chess branding and `mutechess.org` cutover. The owner authorized
+source publication; deployment remains separate. See [the rebrand notes](../../docs/mute-chess-rebrand.md).
 This is a separate runtime from the private development stack and the retired
 Node prototype. Codex assisted implementation and automated verification; no
 human manual acceptance or upstream contribution is claimed.

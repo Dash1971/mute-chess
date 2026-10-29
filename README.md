@@ -24,8 +24,8 @@ analysis, with a familiar interface for desktop and mobile browsers.
 - **Nostr accounts.** Use a Nostr identity for your account and saved games, or
   play casual games anonymously.
 
-The intended home is [mutechess.org](https://mutechess.org/club); the domain and
-public repository rename are pending publication.
+The new home is [mutechess.org](https://mutechess.org/club). The domain cutover
+is prepared in source and requires a separate deployment.
 We're building in public, and feedback from players helps shape the project.
 
 ## The club, 2097

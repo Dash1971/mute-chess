@@ -1,9 +1,9 @@
 # Mute Chess: the club in 2097
 
 The public name is **Mute Chess** and the domain is `mutechess.org`.
-The repository's new name is `Dash1971/mute-chess`. The rebrand is prepared
-locally on 29 October 2026; the GitHub rename and publication are pending the
-owner securing the domain. The local rebrand checkout is `mute-chess`.
+The repository is `Dash1971/mute-chess`, renamed on 29 October 2026 after the
+owner authorized publication. The local rebrand checkout is `mute-chess`. The
+domain cutover requires a separate deployment.
 Infrastructure names, system users, database names, browser identity stores and
 deployed paths retain their current names for compatibility with existing data.
 

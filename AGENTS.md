@@ -34,12 +34,13 @@ For every new feature, create a GitHub issue first. Implement on a short-lived c
 Restore the original Lichess computer-analysis chart, accuracy, judgments, review controls and analysis editor. Do not replace them with a custom full-game review, accuracy calculation, chart or classification dashboard. Stacked premoves, Maia integration and additive brilliant-move detection are the intended improvements. Preserve native judgment semantics and imported glyphs. Brilliant detection must use the validated Mobile Maia/En Croissant evidence without replacing native analysis. Until a dedicated fishnet service is configured, whole-game analysis uses Lichess’s native on-device Analysis editor; do not expose a server-analysis request that cannot complete.
 
 
-## Local Mute Chess rebrand (owner decision, 29 October 2026)
+## Mute Chess rebrand (owner decision, 29 October 2026)
 
-The public brand is Mute Chess, the intended domain is mutechess.org and the
-repository name is mute-chess. Prepare this rebrand locally only. Do not push,
-create GitHub issues/PRs, rename the hosted repository or deploy until the owner
-authorizes publication after securing the domain. This explicitly overrides the
-issue-first workflow for this unpublished preparation. Preserve persisted
-identity stores, database/schema fields, internal protocol/configuration names,
-service accounts and deployment paths; a branding change must not reset data.
+The public brand is Mute Chess, the domain is mutechess.org and the repository
+is Dash1971/mute-chess. The owner authorized publishing the prepared local
+rebrand on 29 October 2026; the hosted repository has been renamed. Follow the
+normal issue/PR/check workflow for source publication. Domain routing and live
+deployment remain separate work. Preserve persisted identity stores,
+database/schema fields, internal protocol/configuration names, service accounts
+and deployment paths; a branding change must not reset data. Preserve the
+separate, ongoing Quiet Signal design implementation.

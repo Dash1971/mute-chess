@@ -1,15 +1,15 @@
-# Mute Chess rebrand — local preparation
+# Mute Chess rebrand
 
 Prepared on 29 October 2026, on `codex/mute-chess-branding` in the local
-`mute-chess` checkout. This branch starts from the account-security revision
-`283b855`; integrate the account-security work through its existing review first.
+`mute-chess` checkout. The rebrand was rebased onto main revision `baa8754`
+after the account-security work merged in PR #35.
 
 The public brand is **Mute Chess**, the package name is `mutechess`, the intended
-repository name is `Dash1971/mute-chess`, and the owner is securing
-`mutechess.org`. Documentation links and deployment domain/origin settings are
-prepared for those destinations. Nothing has been pushed, renamed on GitHub or
-deployed by this rebrand. The existing Git remote remains unchanged until the
-hosted repository is renamed.
+repository name is `Dash1971/mute-chess`, and the domain is `mutechess.org`.
+The owner authorized source publication on 29 October 2026. The hosted repository
+has been renamed and the shared Git remote updated. Documentation links and
+deployment domain/origin settings are prepared for those destinations; live
+domain routing and deployment remain separate.
 
 The current rook design and Oxanium lettering are retained. Dark/light wordmarks
 now spell “Mute Chess”; native header/login alternatives and SVG titles use the
@@ -24,13 +24,13 @@ filesystem paths remain compatible with existing state. The reserved-name list
 keeps the previous system name and adds `mutechess`. New authenticator setup uses
 Mute Chess as its issuer; existing authenticator secrets continue to work.
 
-## Publication after owner approval
+## Publication and later deployment
 
-After the owner confirms the domain is secured and authorizes publication,
-rename the hosted repository to `mute-chess`, update the Git remote, and follow
-the existing issue/PR/check/merge workflow. Remove the pending-publication wording
-from the README when the new site is available. Build the entire native app/UI
-from the reviewed patch, then deploy only verified main as usual.
+Source publication follows [issue #37](https://github.com/Dash1971/mute-chess/issues/37)
+and the existing PR/check/merge workflow. The unfinished Quiet Signal design
+implementation in the other checkout remains separate from this rebrand.
+Build the entire native app/UI from the reviewed patch before a future release,
+then deploy only verified main as usual.
 
 Configure DNS, TLS/tunnel routing and the same-origin HTTP/WebSocket endpoint
 for `mutechess.org` together. The gateway, Lila, websocket CSRF origin and Nostr
