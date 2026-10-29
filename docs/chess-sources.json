@@ -1,6 +1,6 @@
 {
-  "recorded_date": "2026-10-28",
-  "status": "native Lila/lila-ws with Maia and Nostr adapters; unrated two-game alpha; augmented analysis and full wrapper remain work",
+  "recorded_date": "2026-10-29",
+  "status": "native Lila/lila-ws with Nostr rated and anonymous casual bot play; stacked premoves, browser Maia/Stockfish and full-game accuracy/classification; persistent reports and calibration remain work",
   "lichess": {
     "repository": "https://github.com/lichess-org/lila",
     "revision": "b551752d2a0e7a63459d9812825d95a633a98737",
@@ -35,8 +35,8 @@
   },
   "mobile_maia": {
     "repository": "https://github.com/Dash1971/maia-chess-android-preview",
-    "revision": "8563954429c2fb53ce0fe0e16c73c5d8a73ccfe0",
-    "status": "inspected clean local source; no application modifications",
+    "revision": "78d45c2563bdd565614e776212254d2eb33fee59",
+    "status": "read-only local reference for full-game accuracy, quality/confirmation, classification and stacked premoves; no Mobile Maia changes",
     "paths": [
       "lib/src/review_widgets.dart",
       "lib/src/review.dart",
@@ -49,7 +49,9 @@
       "test/move_classifier_cancellation_test.dart",
       "test/stockfish_snapshot_test.dart",
       "test/fixtures/classification",
-      "THIRD_PARTY_NOTICES.md"
+      "THIRD_PARTY_NOTICES.md",
+      "lib/src/premoves.dart",
+      "test/review_page_test.dart"
     ],
     "feature_issues": [
       200,

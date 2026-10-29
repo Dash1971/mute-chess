@@ -237,7 +237,7 @@ index 45fd497..7771548 100644
  
    def filterExists(ids: Set[UserId]): Fu[List[UserId]] =
 diff --git a/modules/web/src/main/ui/layout.scala b/modules/web/src/main/ui/layout.scala
-index 1c7a30b..6ad9daa 100644
+index 1c7a30b..4b12853 100644
 --- a/modules/web/src/main/ui/layout.scala
 +++ b/modules/web/src/main/ui/layout.scala
 @@ -109,8 +109,11 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
@@ -247,7 +247,7 @@ index 1c7a30b..6ad9daa 100644
 -    s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
 -      s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
 +    if siteName.startsWith("No Sweat Chess") then
-+      """<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/nosweat/icon.svg"><link rel="stylesheet" href="/assets/nosweat/brand.css?v=analysis2">"""
++      """<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/nosweat/icon.svg"><link rel="stylesheet" href="/assets/nosweat/brand.css?v=review1">"""
 +    else
 +      s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
 +        s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
@@ -279,10 +279,19 @@ index 1c7a30b..6ad9daa 100644
            (!isAppealUser).option(
              frag(
 diff --git a/ui/analyse/src/autoShape.ts b/ui/analyse/src/autoShape.ts
-index 83be1dd..08ac037 100644
+index 83be1dd..3ad5b99 100644
 --- a/ui/analyse/src/autoShape.ts
 +++ b/ui/analyse/src/autoShape.ts
-@@ -215,7 +215,7 @@ export function compute(ctrl: AnalyseCtrl): DrawShape[] {
+@@ -186,6 +186,8 @@ export function compute(ctrl: AnalyseCtrl): DrawShape[] {
+   }
+   if (ctrl.showMoveAnnotations()) {
+     const glyphs = ctrl.visibleGlyphs();
++    const computed = ctrl.noSweat?.computedGlyph(ctrl.path, ctrl.node);
++    if (computed && !glyphs.some(g => g.id <= 6)) glyphs.push(computed);
+     const liveGlyph = ctrl.liveAnnotate?.get(ctrl.path);
+     if (liveGlyph && ctrl.settings.showLiveAnnotations && !glyphs.some(g => g.id <= 6))
+       glyphs.push(liveGlyph);
+@@ -215,7 +217,7 @@ export function compute(ctrl: AnalyseCtrl): DrawShape[] {
      }
    }
  
@@ -328,6 +337,101 @@ index 643bb4a..95672f2 100644
      if (this.node.pos().isErr || this.node.outcome()) this.ceval.reset();
      this.withCg(cg => {
        cg.set(this.makeCgOpts());
+diff --git a/ui/analyse/src/serverSideUnderboard.ts b/ui/analyse/src/serverSideUnderboard.ts
+index cfbd78b..5aee40b 100644
+--- a/ui/analyse/src/serverSideUnderboard.ts
++++ b/ui/analyse/src/serverSideUnderboard.ts
+@@ -15,6 +15,28 @@ export const stockfishName = 'Stockfish 19';
+ 
+ export default function (element: HTMLElement, ctrl: AnalyseCtrl) {
+   $(element).replaceWith(ctrl.opts.$underboard);
++  // Browser review is available even for short games the server cannot analyse.
++  if (ctrl.noSweat) {
++    const menu = document.querySelector('.analyse__underboard__menu');
++    const panels = document.querySelector('.analyse__underboard__panels');
++    if (menu && panels) {
++      if (!menu.querySelector('[data-panel="computer-analysis"]')) {
++        const button = document.createElement('button');
++        button.className = 'computer-analysis';
++        button.dataset.panel = 'computer-analysis';
++        button.setAttribute('role', 'tab');
++        button.textContent = button.title = i18n.site.computerAnalysis;
++        menu.prepend(button);
++      }
++      let panel = panels.querySelector<HTMLElement>('.computer-analysis');
++      if (!panel) {
++        panel = document.createElement('div');
++        panel.className = 'computer-analysis';
++        panels.prepend(panel);
++      }
++      ctrl.noSweat.mountReview(panel);
++    }
++  }
+   const data = ctrl.data;
+   const $panels = $('.analyse__underboard__panels > div');
+   const $menu = $('.analyse__underboard__menu');
+@@ -58,6 +80,7 @@ export default function (element: HTMLElement, ctrl: AnalyseCtrl) {
+       }
+     });
+     pubsub.on('analysis.server.progress', (d: AnalyseData) => {
++      if (ctrl.noSweat) return;
+       if (!advChart) startAdvantageChart();
+       else advChart.updateData(d, ctrl.mainline);
+       const deleteBtn = document.querySelector<HTMLElement>('.analysis-chart .delete')!;
+@@ -75,7 +98,7 @@ export default function (element: HTMLElement, ctrl: AnalyseCtrl) {
+     `<div id="acpl-chart-container-loader"><span>${stockfishName}<br>server analysis</span>${spinnerHtml}</div>`;
+ 
+   function startAdvantageChart() {
+-    if (advChart || site.blindMode) return;
++    if (ctrl.noSweat || advChart || site.blindMode) return;
+     const loading = !ctrl.hasFullComputerAnalysis();
+     const $panel = $panels.filter('.computer-analysis');
+     if (!$('#acpl-chart-container').length) {
+diff --git a/ui/analyse/src/treeView/inlineView.ts b/ui/analyse/src/treeView/inlineView.ts
+index 7616e25..72e0224 100644
+--- a/ui/analyse/src/treeView/inlineView.ts
++++ b/ui/analyse/src/treeView/inlineView.ts
+@@ -188,6 +188,7 @@ export class InlineView {
+         ctrl.allowedEval(node) || false,
+         glyphs,
+       ),
++      ctrl.showMoveGlyphs() && ctrl.noSweat?.computedMoveView(path, node),
+     ]);
+   }
+ 
+diff --git a/ui/analyse/src/view/components.ts b/ui/analyse/src/view/components.ts
+index 1690fe3..2ab34ea 100644
+--- a/ui/analyse/src/view/components.ts
++++ b/ui/analyse/src/view/components.ts
+@@ -161,7 +161,9 @@ export const renderUnderboard = ({ ctrl, deps, study }: ViewContext): VNode =>
+       hook:
+         ctrl.synthetic || playable(ctrl.data) ? undefined : onInsert(elm => serverSideUnderboard(elm, ctrl)),
+     },
+-    study ? deps?.studyView.underboard(ctrl) : [renderInputs(ctrl)],
++    study
++      ? deps?.studyView.underboard(ctrl)
++      : [ctrl.synthetic && ctrl.noSweat?.reviewView(), renderInputs(ctrl)],
+   );
+ 
+ export function renderInputs(ctrl: AnalyseCtrl): VNode | undefined {
+diff --git a/ui/analyse/src/view/settingsView.ts b/ui/analyse/src/view/settingsView.ts
+index 89b6efa..81bc593 100644
+--- a/ui/analyse/src/view/settingsView.ts
++++ b/ui/analyse/src/view/settingsView.ts
+@@ -106,10 +106,12 @@ export async function showSettingsDialog(ctrl: AnalyseCtrl): Promise<Dialog> {
+     scrollableDiv.style.height = `${height}px`;
+   };
+   if (!isTouchDevice()) window.addEventListener('resize', flexTamer);
++  const view = settingsView(ctrl.settings);
++  if (ctrl.noSweat) view.querySelector('.column:last-child')?.append(ctrl.noSweat.engineSettings());
+   return domDialog({
+     class: 'analysis-settings-dialog',
+     htmlText: '<h2>Analysis settings</h2>',
+-    insert: [{ nodes: settingsView(ctrl.settings) }],
++    insert: [{ nodes: view }],
+     modal: !isTouchDevice(),
+     easyClose: 'clickOutside',
+     show: true,
 diff --git a/ui/analyse/src/view/tools.ts b/ui/analyse/src/view/tools.ts
 index 96ce0df..a93b740 100644
 --- a/ui/analyse/src/view/tools.ts
@@ -3487,10 +3591,10 @@ index 0000000..f8dcde1
 +]
 diff --git a/public/nosweat/brand.css b/public/nosweat/brand.css
 new file mode 100644
-index 0000000..ff03dd2
+index 0000000..0e55dff
 --- /dev/null
 +++ b/public/nosweat/brand.css
-@@ -0,0 +1,24 @@
+@@ -0,0 +1,45 @@
 +.site-title .nosweat-header-icon{width:38px;height:38px;margin-right:7px}.site-title .nosweat-wordmark{width:174px;height:50px;object-fit:contain}.nosweat-light{display:none}.light .nosweat-dark{display:none}.light .nosweat-light{display:block}.nosweat-login-wordmark{width:272px;max-width:100%;height:62px}.auth__brand{justify-content:center}@media(max-width:799px){.site-title .nosweat-wordmark{display:none!important}.site-title .nosweat-header-icon{width:36px;height:36px;margin:0}}
 +
 +main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-dark.svg")}.light main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-light.svg")}
@@ -3515,6 +3619,27 @@ index 0000000..ff03dd2
 +.nosweat-candidates button,.nosweat-ratings button { text-transform:none; }
 +cg-board square.nosweat-premove-origin { background:rgb(20 30 85 / .16); }
 +cg-board square.nosweat-premove-dest { background:rgb(20 30 85 / .28); }
++
++.nosweat-engine-settings .setting { display:flex; align-items:center; justify-content:space-between; gap:1em; padding:.35em 0; }
++.nosweat-engine-settings select { max-width:13em; padding:.3em; }
++.nosweat-engine-settings small { display:block; margin-top:.7em; color:var(--c-font-dim); }
++.nosweat-game-review { padding:1em; background:var(--c-bg-box); border-radius:4px; }
++.nosweat-review-heading { display:flex; align-items:center; justify-content:space-between; gap:1em; margin-bottom:.7em; }
++.nosweat-review-heading h2 { margin:0; font-size:1.15em; }
++.nosweat-game-review table { width:100%; text-align:center; border-collapse:collapse; margin:.6em 0; }
++.nosweat-game-review th:first-child { text-align:left; }
++.nosweat-game-review th,.nosweat-game-review td { padding:.3em .5em; border-bottom:1px solid var(--c-border); }
++.nosweat-accuracy td { font-size:1.5em; }
++.nosweat-classifications button { min-width:3em; padding:.15em .5em; }
++.nosweat-review-graph { width:100%; max-height:150px; color:var(--c-font); background:var(--c-bg-low); }
++.nosweat-review-graph a:focus circle { stroke:var(--c-primary); stroke-width:3; }
++.nosweat-computed-glyph { font-weight:bold; margin-left:.12em; }
++.nosweat-computed-glyph.brilliant { color:#15aabf; }
++.nosweat-computed-glyph.good { color:#12b886; }
++.nosweat-computed-glyph.interesting { color:#82c91e; }
++.nosweat-computed-glyph.dubious { color:#fab005; }
++.nosweat-computed-glyph.mistake { color:#fd7e14; }
++.nosweat-computed-glyph.blunder { color:#fa5252; }
 diff --git a/public/nosweat/icon.svg b/public/nosweat/icon.svg
 new file mode 100644
 index 0000000..50723d8
@@ -3580,33 +3705,112 @@ index 0000000..1a8bfb7
 \ No newline at end of file
 diff --git a/ui/analyse/src/analyse.nosweatWorker.ts b/ui/analyse/src/analyse.nosweatWorker.ts
 new file mode 100644
-index 0000000..32670b1
+index 0000000..3f188fa
 --- /dev/null
 +++ b/ui/analyse/src/analyse.nosweatWorker.ts
-@@ -0,0 +1,8 @@
-+import { classify, type ClassificationInput } from './noSweatClassify';
+@@ -0,0 +1,16 @@
++import { classify, naiveMaterial, type ClassificationInput } from './noSweatClassify';
++const material = new Map<string, number>();
++const evaluate = (fen: string): number => {
++  if (material.has(fen)) return material.get(fen)!;
++  const value = naiveMaterial(fen);
++  material.set(fen, value);
++  if (material.size > 4000) material.delete(material.keys().next().value!);
++  return value;
++};
 +self.onmessage = (event: MessageEvent<ClassificationInput>) => {
 +  try {
-+    self.postMessage({ result: classify(event.data) });
++    self.postMessage({ result: classify(event.data, evaluate) });
 +  } catch (error) {
 +    self.postMessage({ error: String(error) });
 +  }
 +};
+diff --git a/ui/analyse/src/noSweatAccuracy.ts b/ui/analyse/src/noSweatAccuracy.ts
+new file mode 100644
+index 0000000..746fe6d
+--- /dev/null
++++ b/ui/analyse/src/noSweatAccuracy.ts
+@@ -0,0 +1,56 @@
++// Mobile Maia GameAccuracy / StockfishReview.whiteWinPercent, AGPL-3.0.
++// Exact constants and volatility-weighted/harmonic aggregation are intentional.
++export interface GameAccuracy {
++  white: number | null;
++  black: number | null;
++}
++export function whiteWinPercent(score: EvalScore): number {
++  if (score.cp === undefined && score.mate === undefined) throw new Error('Missing evaluation');
++  const value =
++    score.mate === undefined
++      ? Math.max(-1000, Math.min(1000, score.cp!))
++      : (21 - Math.min(10, Math.abs(score.mate))) * 100 * (score.mate > 0 ? 1 : -1);
++  return 100 / (1 + Math.exp(-0.00368208 * value));
++}
++export function moveAccuracy(before: number, after: number): number {
++  if (after >= before) return 100;
++  return Math.max(
++    0,
++    Math.min(
++      100,
++      103.1668100711649 * Math.exp(-0.04354415386753951 * (before - after)) - 3.166924740191411 + 1,
++    ),
++  );
++}
++function deviation(values: number[]): number {
++  const mean = values.reduce((a, b) => a + b, 0) / values.length;
++  return Math.sqrt(values.reduce((sum, n) => sum + (n - mean) ** 2, 0) / values.length);
++}
++function mean(moves: [number, number][]): number | null {
++  if (!moves.length) return null;
++  const weight = moves.reduce((sum, m) => sum + m[1], 0);
++  const weighted = moves.reduce((sum, m) => sum + m[0] * m[1], 0) / weight;
++  const harmonic = moves.some(m => m[0] === 0)
++    ? 0
++    : moves.length / moves.reduce((sum, m) => sum + 1 / m[0], 0);
++  return (weighted + harmonic) / 2;
++}
++export function gameAccuracy(scores: EvalScore[], startsWithWhite = true): GameAccuracy {
++  if (scores.length < 2) return { white: null, black: null };
++  const percents = scores.map(whiteWinPercent);
++  const size = Math.max(2, Math.min(8, Math.floor(scores.length / 10)));
++  const windows: number[][] = [];
++  for (let i = 0; i < Math.min(size, percents.length) - 2; i++) windows.push(percents.slice(0, size));
++  for (let start = 0; start + size <= percents.length; start++)
++    windows.push(percents.slice(start, start + size));
++  const white: [number, number][] = [];
++  const black: [number, number][] = [];
++  for (let ply = 0; ply + 1 < scores.length; ply++) {
++    const whiteMoved = (ply % 2 === 0) === startsWithWhite;
++    const before = whiteMoved ? percents[ply] : 100 - percents[ply];
++    const after = whiteMoved ? percents[ply + 1] : 100 - percents[ply + 1];
++    const weight = Math.max(0.5, Math.min(12, deviation(windows[ply])));
++    (whiteMoved ? white : black).push([moveAccuracy(before, after), weight]);
++  }
++  return { white: mean(white), black: mean(black) };
++}
 diff --git a/ui/analyse/src/noSweatAnalysis.ts b/ui/analyse/src/noSweatAnalysis.ts
 new file mode 100644
-index 0000000..d966868
+index 0000000..d4f2251
 --- /dev/null
 +++ b/ui/analyse/src/noSweatAnalysis.ts
-@@ -0,0 +1,611 @@
+@@ -0,0 +1,704 @@
 +import type { DrawShape } from '@lichess-org/chessground/draw';
 +import { parseUci } from 'chessops/util';
++import { attributesModule, classModule, init } from 'snabbdom';
 +
++import { frag } from 'lib';
++import { storage } from 'lib/storage';
++import type { Glyph, TreeNode } from 'lib/tree/types';
 +import { bind, hl, type VNode } from 'lib/view';
 +
 +import type AnalyseCtrl from './ctrl';
++import { maiaShapes, primaryArrowWidth } from './noSweatArrows';
++import { ClassifierClient } from './noSweatClassifierClient';
 +import type { ClassificationInput, ClassificationResult } from './noSweatClassify';
 +import { encodeHistory, policy, san, scoreText, position, standardUci, type Candidate } from './noSweatCore';
 +import { ReviewFish, type Review } from './noSweatFish';
++import { GameReview, reviewQualities, type ReviewNode, type ReviewQuality } from './noSweatGameReview';
++import { readEnginePreferences, type EnginePreferences } from './noSweatPreferences';
++import { reviewView, classificationLabels, classificationClasses } from './noSweatReviewView';
 +
 +interface MaiaClient {
 +  predict(input: {
@@ -3639,6 +3843,11 @@ index 0000000..d966868
 +
 +export class NoSweatAnalysis {
 +  enabled = false;
++  quality: ReviewQuality = 'fast';
++  readonly gameReview: GameReview;
++  private readonly gameFish: ReviewFish;
++  private readonly gameClassifier: ClassifierClient;
++  private reviewRedraw?: () => void;
 +  model = '5m';
 +  selfElo = 1500;
 +  opponentElo = 1500;
@@ -3672,18 +3881,168 @@ index 0000000..d966868
 +  private compareBusy = false;
 +
 +  constructor(readonly ctrl: AnalyseCtrl) {
++    Object.assign(this, readEnginePreferences(storage.make('nosweat.enginePreferences.v2').get()));
++    this.gameFish = new ReviewFish(() => this.refreshReview());
++    this.gameClassifier = new ClassifierClient(
++      () => new Worker(site.asset.url(site.asset.jsModule('analyse.nosweatWorker')), { type: 'module' }),
++    );
++    this.gameReview = new GameReview({
++      search: (fen, signal, depth, time) => this.gameFish.search(fen, [], signal, depth, time),
++      classify: (input, signal) => this.gameClassifier.classify(input, signal),
++      changed: () => this.refreshReview(),
++    });
 +    this.fish = new ReviewFish(s => {
 +      this.status = s;
 +      this.ctrl.redraw();
 +    });
-+    window.addEventListener('pagehide', this.release);
++    window.addEventListener('pagehide', this.shutdown);
 +    document.addEventListener('visibilitychange', () => {
 +      if (document.hidden) {
++        this.gameReview.stop();
++        this.gameClassifier.release();
 +        this.cancel();
 +        this.status = 'Paused while this tab is hidden';
 +        this.ctrl.redraw();
 +      } else if (this.enabled) this.positionChanged(true);
 +    });
++  }
++  private readonly refreshReview = (): void => {
++    this.reviewRedraw?.();
++    this.ctrl.setAutoShapes();
++    this.ctrl.redraw();
++  };
++  private readonly shutdown = (): void => {
++    this.release();
++    this.gameReview.stop();
++    this.gameClassifier.release();
++    this.gameFish.destroy();
++  };
++  private mainlineNodes(): ReviewNode[] {
++    let path = '';
++    try {
++      return this.ctrl.mainline.map((node, i, line) => {
++        if (i) path += node.id;
++        const move = node.uci && parseUci(node.uci);
++        return {
++          fen: node.fen,
++          path,
++          san: node.san,
++          uci: i && move ? standardUci(position(line[i - 1].fen), move) : undefined,
++        };
++      });
++    } catch {
++      return [];
++    }
++  }
++  startGameReview = (): void => {
++    if (!this.ctrl.isCevalAllowed()) return;
++    if (this.gameReview.report?.state === 'failed') this.gameFish.destroy();
++    void this.gameReview.start(this.mainlineNodes(), this.quality).finally(() => {
++      if (!this.gameReview.running) this.gameClassifier.release();
++    });
++  };
++  reviewView(): VNode {
++    return reviewView(
++      this.gameReview.report,
++      this.gameReview.running,
++      this.startGameReview,
++      () => this.gameReview.stop(),
++      path => {
++        this.ctrl.userJump(path);
++        this.ctrl.redraw();
++      },
++      this.ctrl.path,
++      this.mainlineNodes().length > 1,
++    );
++  }
++  mountReview(element: HTMLElement): void {
++    const patch = init([classModule, attributesModule]);
++    element.replaceChildren();
++    const root = document.createElement('div');
++    element.append(root);
++    let vnode: VNode | HTMLElement = root;
++    this.reviewRedraw = () => {
++      vnode = patch(vnode, this.reviewView());
++    };
++    this.reviewRedraw();
++  }
++  computedGlyph(path: string, node: TreeNode): Glyph | undefined {
++    const result = this.gameReview.resultAt(path, node.fen);
++    const ids: Record<string, number> = { '!': 1, '?': 2, '!!': 3, '??': 4, '!?': 5, '?!': 6 };
++    if (!result?.symbol) return undefined;
++    return {
++      id: ids[result.symbol],
++      symbol: result.symbol,
++      name: 'Computer review: ' + classificationLabels[result.symbol],
++      comp: true,
++    };
++  }
++  computedMoveView(path: string, node: TreeNode): VNode | undefined {
++    const glyph = this.computedGlyph(path, node);
++    if (!glyph) return undefined;
++    return hl(
++      'span.nosweat-computed-glyph.' + classificationClasses[glyph.symbol],
++      {
++        attrs: { title: glyph.name, 'aria-label': glyph.name },
++      },
++      glyph.symbol,
++    );
++  }
++  private enginePreferences(): EnginePreferences {
++    return {
++      model: this.model === '79m' ? '79m' : '5m',
++      selfElo: this.selfElo,
++      opponentElo: this.opponentElo,
++      history: this.history,
++      maiaArrows: this.maiaArrows,
++      fishArrows: this.fishArrows,
++      quality: this.quality,
++    };
++  }
++  engineSettings(): HTMLElement {
++    const select = (key: keyof EnginePreferences, name: string, options: [string, string][]) =>
++      `<label class="setting"><span>${name}</span><select data-engine-pref="${key}" aria-label="${name}">${options
++        .map(
++          ([value, text]) =>
++            `<option value="${value}" ${String(this[key]) === value ? 'selected' : ''}>${text}</option>`,
++        )
++        .join('')}</select></label>`;
++    const toggle = (key: 'history' | 'maiaArrows' | 'fishArrows', name: string) =>
++      `<label class="setting"><span>${name}</span><input type="checkbox" data-engine-pref="${key}" ${this[key] ? 'checked' : ''}></label>`;
++    const options: [string, string][] = ratings.map(n => [String(n), String(n)]);
++    const view = frag<HTMLElement>(`<fieldset class="nosweat-engine-settings"><legend>Engines</legend>
++      ${select('model', 'Maia model', [
++        ['5m', 'Maia3 5M · light'],
++        ['79m', 'Maia3 79M'],
++      ])}
++      ${select('selfElo', 'Maia rating', options)}${select('opponentElo', 'Opponent rating', options)}
++      ${toggle('history', 'Use move history')}${toggle('maiaArrows', 'Show Maia arrows')}${toggle('fishArrows', 'Show comparison arrow')}
++      ${select(
++        'quality',
++        'Game review quality',
++        Object.entries(reviewQualities).map(([key, value]) => [key, value.name]),
++      )}
++      <small>Maia downloads 36 MB for 5M or 331 MB for 79M on first use. Ratings are model inputs, not calibrated Elo.</small>
++      </fieldset>`);
++    view.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-engine-pref]').forEach(input => {
++      input.addEventListener('change', () => {
++        const key = input.dataset.enginePref as keyof EnginePreferences;
++        const value =
++          input instanceof HTMLInputElement
++            ? input.checked
++            : key === 'selfElo' || key === 'opponentElo'
++              ? Number(input.value)
++              : input.value;
++        const next = readEnginePreferences(JSON.stringify({ ...this.enginePreferences(), [key]: value }));
++        if (next.model !== this.model) this.release();
++        Object.assign(this, next);
++        storage.make('nosweat.enginePreferences.v2').set(JSON.stringify(next));
++        this.positionChanged(true);
++        this.ctrl.setAutoShapes();
++        this.refreshReview();
++      });
++    });
++    return view;
 +  }
 +  private readonly valid = (generation: number): boolean =>
 +    generation === this.generation &&
@@ -3723,6 +4082,8 @@ index 0000000..d966868
 +    this.fish.destroy();
 +  };
 +  positionChanged(force = false): void {
++    this.gameReview.observe(this.mainlineNodes(), this.quality);
++    this.reviewRedraw?.();
 +    const context = this.key() + this.ctrl.path;
 +    if (!force && context === this.context) return;
 +    this.context = context;
@@ -3970,38 +4331,15 @@ index 0000000..d966868
 +  shapes(): DrawShape[] {
 +    if (!this.enabled || !this.ctrl.isCevalAllowed() || document.hidden || !this.candidates.length) return [];
 +    const shapes: DrawShape[] = [];
-+    if (this.maiaArrows)
-+      for (const c of this.candidates.slice(0, 3))
-+        shapes.push({
-+          orig: c.uci.slice(0, 2) as Key,
-+          dest: c.uci.slice(2, 4) as Key,
-+          brush: 'yellow',
-+          modifiers: { lineWidth: Math.max(2, Math.round(10 * c.probability)) },
-+        });
++    if (this.maiaArrows) shapes.push(...maiaShapes(this.candidates));
 +    if (this.fishArrows && this.fishBest)
 +      shapes.push({
 +        orig: this.fishBest.slice(0, 2) as Key,
 +        dest: this.fishBest.slice(2, 4) as Key,
 +        brush: 'paleBlue',
++        modifiers: { lineWidth: primaryArrowWidth },
 +      });
 +    return shapes;
-+  }
-+  private control(labelText: string, value: number, change: (n: number) => void): VNode {
-+    return hl('label', [
-+      labelText,
-+      hl(
-+        'select',
-+        {
-+          attrs: { 'aria-label': labelText },
-+          hook: bind('change', e => {
-+            change(Number((e.target as HTMLSelectElement).value));
-+            this.positionChanged(true);
-+            this.ctrl.redraw();
-+          }),
-+        },
-+        ratings.map(n => hl('option', { attrs: { value: n, selected: n === value } }, String(n))),
-+      ),
-+    ]);
 +  }
 +  view(): VNode | undefined {
 +    if (!this.ctrl.isCevalAllowed() || this.ctrl.data.game.variant.key !== 'standard') return undefined;
@@ -4017,18 +4355,6 @@ index 0000000..d966868
 +        },
 +        text,
 +      );
-+    const check = (name: string, value: boolean, change: () => void) =>
-+      hl('label', [
-+        hl('input', {
-+          attrs: { type: 'checkbox', checked: value },
-+          hook: bind('change', () => {
-+            change();
-+            this.ctrl.setAutoShapes();
-+            this.ctrl.redraw();
-+          }),
-+        }),
-+        name,
-+      ]);
 +    return hl('section.nosweat-analysis', { attrs: { 'aria-label': 'Maia and Stockfish analysis' } }, [
 +      hl('div.nosweat-analysis__heading', [
 +        hl('strong', 'Maia + Stockfish'),
@@ -4044,44 +4370,10 @@ index 0000000..d966868
 +        'p.nosweat-analysis__note',
 +        this.enabled
 +          ? 'Maia likelihood · Stockfish quality (White’s perspective)'
-+          : 'Runs in your browser. First download: 36 MB for 5M, 331 MB for 79M.',
++          : 'Human move predictions alongside Stockfish.',
 +      ),
-+      hl('div.nosweat-analysis__settings', [
-+        hl('label', [
-+          'Model',
-+          hl(
-+            'select',
-+            {
-+              attrs: { 'aria-label': 'Maia analysis model' },
-+              hook: bind('change', e => {
-+                this.release();
-+                this.model = (e.target as HTMLSelectElement).value;
-+                this.positionChanged(true);
-+                this.ctrl.redraw();
-+              }),
-+            },
-+            ['5m', '79m'].map(m =>
-+              hl(
-+                'option',
-+                { attrs: { value: m, selected: this.model === m } },
-+                m === '5m' ? 'Maia3 5M · light' : 'Maia3 79M · live-bot model',
-+              ),
-+            ),
-+          ),
-+        ]),
-+        this.control('Mover input', this.selfElo, n => (this.selfElo = n)),
-+        this.control('Opponent input', this.opponentElo, n => (this.opponentElo = n)),
-+        check('8-position history', this.history, () => {
-+          this.history = !this.history;
-+          this.positionChanged(true);
-+        }),
-+      ]),
 +      this.enabled &&
 +        hl('div', [
-+          hl('div.nosweat-analysis__options', [
-+            check('Maia arrows (amber)', this.maiaArrows, () => (this.maiaArrows = !this.maiaArrows)),
-+            check('Comparison arrow (blue)', this.fishArrows, () => (this.fishArrows = !this.fishArrows)),
-+          ]),
 +          this.returnPath !== undefined &&
 +            button('Return to original position', () => {
 +              const path = this.returnPath!;
@@ -4142,10 +4434,6 @@ index 0000000..d966868
 +          this.ratingTable && this.renderRatings(),
 +          this.status && hl('p', { attrs: { role: 'status' } }, this.status),
 +          this.error && hl('p.error', { attrs: { role: 'alert' } }, this.error),
-+          hl(
-+            'small',
-+            'Ratings are Maia conditioning inputs, not calibrated Elo. Raw legal-move probabilities; no Temperature/Top-P filtering.',
-+          ),
 +        ]),
 +    ]);
 +  }
@@ -4209,12 +4497,82 @@ index 0000000..d966868
 +    ]);
 +  }
 +}
+diff --git a/ui/analyse/src/noSweatArrows.ts b/ui/analyse/src/noSweatArrows.ts
+new file mode 100644
+index 0000000..c4707df
+--- /dev/null
++++ b/ui/analyse/src/noSweatArrows.ts
+@@ -0,0 +1,12 @@
++import type { DrawShape } from '@lichess-org/chessground/draw';
++
++import type { Candidate } from './noSweatCore';
++// Match Lila's primary Stockfish arrow. Likelihood is a table value, not shaft width.
++export const primaryArrowWidth = 15;
++export const maiaShapes = (candidates: Candidate[]): DrawShape[] =>
++  candidates.slice(0, 3).map(c => ({
++    orig: c.uci.slice(0, 2) as Key,
++    dest: c.uci.slice(2, 4) as Key,
++    brush: 'yellow',
++    modifiers: { lineWidth: primaryArrowWidth },
++  }));
+diff --git a/ui/analyse/src/noSweatClassifierClient.ts b/ui/analyse/src/noSweatClassifierClient.ts
+new file mode 100644
+index 0000000..cfd17fa
+--- /dev/null
++++ b/ui/analyse/src/noSweatClassifierClient.ts
+@@ -0,0 +1,46 @@
++import type { ClassificationInput, ClassificationResult } from './noSweatClassify';
++export class ClassifierClient {
++  private worker?: Worker;
++  private cancel?: () => void;
++  constructor(private readonly create: () => Worker) {}
++  classify(input: ClassificationInput, signal: AbortSignal): Promise<ClassificationResult> {
++    if (signal.aborted) return Promise.reject(new Error('Cancelled'));
++    if (this.cancel) return Promise.reject(new Error('Classifier is busy'));
++    const worker = (this.worker ??= this.create());
++    return new Promise((resolve, reject) => {
++      const finish = (error?: Error, result?: ClassificationResult) => {
++        clearTimeout(timer);
++        signal.removeEventListener('abort', aborted);
++        this.cancel = undefined;
++        worker.onmessage = null;
++        worker.onerror = null;
++        if (error) {
++          worker.terminate();
++          if (this.worker === worker) this.worker = undefined;
++          reject(error);
++        } else resolve(result!);
++      };
++      const aborted = () => finish(new Error('Cancelled'));
++      const timer = setTimeout(
++        () => finish(new Error('Capture search timed out; classification unavailable')),
++        10000,
++      );
++      this.cancel = aborted;
++      signal.addEventListener('abort', aborted, { once: true });
++      worker.onmessage = ({ data }) => {
++        if (this.worker === worker) finish(data.error ? new Error(data.error) : undefined, data.result);
++      };
++      worker.onerror = () => finish(new Error('Classification worker failed'));
++      try {
++        worker.postMessage(input);
++      } catch (error) {
++        finish(new Error(String(error)));
++      }
++    });
++  }
++  release(): void {
++    this.cancel?.();
++    this.worker?.terminate();
++    this.worker = undefined;
++  }
++}
 diff --git a/ui/analyse/src/noSweatClassify.ts b/ui/analyse/src/noSweatClassify.ts
 new file mode 100644
-index 0000000..219f1ac
+index 0000000..4400b0e
 --- /dev/null
 +++ b/ui/analyse/src/noSweatClassify.ts
-@@ -0,0 +1,149 @@
+@@ -0,0 +1,172 @@
 +// En Croissant v0.15.0 / Mobile Maia port. GPL-3.0; see analysis/PROVENANCE.md.
 +import type { Chess } from 'chessops/chess';
 +import type { NormalMove } from 'chessops/types';
@@ -4315,15 +4673,17 @@ index 0000000..219f1ac
 +  positions: string[];
 +  reviews: Review[];
 +  move: string;
++  confirmation?: Review[];
 +}
 +export interface ClassificationResult {
 +  symbol: Annotation;
++  provisional?: Annotation;
 +  accuracy: number;
 +  cpLoss: number;
 +  withheld: boolean;
 +  version: string;
 +}
-+export function classify(input: ClassificationInput): ClassificationResult {
++export function classify(input: ClassificationInput, evaluateMaterial = naiveMaterial): ClassificationResult {
 +  const { positions, reviews, move } = input;
 +  const n = reviews.length;
 +  if (n < 2 || positions.length !== n) throw new Error('Incomplete decision window');
@@ -4333,17 +4693,36 @@ index 0000000..219f1ac
 +  const color = position(positions[n - 2]).turn;
 +  const sacrifice =
 +    !position(positions[n - 1]).isEnd() &&
-+    naiveMaterial(positions[n - 2]) > -naiveMaterial(positions[n - 1]) + 100;
++    evaluateMaterial(positions[n - 2]) > -evaluateMaterial(positions[n - 1]) + 100;
 +  const predicate = (b: Snapshot, a: Snapshot, p?: Snapshot): Annotation =>
 +    annotation(p?.lines[0], b, a.lines[0], color, move, sacrifice);
 +  let symbol = predicate(before.current, after.current, previous?.current);
++  const provisional = symbol;
 +  let withheld = false;
 +  if (symbol === '!!' || symbol === '!') {
 +    const needsPrevious = symbol === '!' && n > 2;
-+    const previousBefore = before.previous;
-+    const previousAfter = after.terminal ? after.current : after.previous;
-+    const previousPrevious = needsPrevious ? previous?.previous : undefined;
++    const checked = input.confirmation;
++    const previousBefore = checked ? checked[checked.length - 2]?.current : before.previous;
++    const previousAfter = checked
++      ? checked[checked.length - 1]?.current
++      : after.terminal
++        ? after.current
++        : after.previous;
++    const previousPrevious = checked ? checked[checked.length - 3]?.current : previous?.previous;
++    const sufficient =
++      !checked ||
++      checked.every((r, i) => {
++        const original = reviews[reviews.length - checked.length + i];
++        return (
++          original &&
++          r.quality === original.quality &&
++          r.current.depth >= original.current.depth &&
++          (!original.terminal ||
++            JSON.stringify(r.current.lines[0]) === JSON.stringify(original.current.lines[0]))
++        );
++      });
 +    if (
++      !sufficient ||
 +      !previousBefore ||
 +      !previousAfter ||
 +      (needsPrevious && !previousPrevious) ||
@@ -4353,15 +4732,17 @@ index 0000000..219f1ac
 +      withheld = true;
 +    }
 +  }
++
 +  return {
 +    symbol,
++    provisional,
 +    withheld,
 +    accuracy: accuracy(before.current.lines[0], after.current.lines[0], color),
 +    cpLoss: Math.max(
 +      0,
 +      normalized(before.current.lines[0], color) - normalized(after.current.lines[0], color),
 +    ),
-+    version: 'ec015-mobilemaia-window-v1',
++    version: 'ec015-mobilemaia-window-v2',
 +  };
 +}
 diff --git a/ui/analyse/src/noSweatCore.ts b/ui/analyse/src/noSweatCore.ts
@@ -4470,10 +4851,10 @@ index 0000000..4b6b4be
 +};
 diff --git a/ui/analyse/src/noSweatFish.ts b/ui/analyse/src/noSweatFish.ts
 new file mode 100644
-index 0000000..2e7e46d
+index 0000000..36b0e3f
 --- /dev/null
 +++ b/ui/analyse/src/noSweatFish.ts
-@@ -0,0 +1,206 @@
+@@ -0,0 +1,207 @@
 +import type { BrowserEngineInfo } from 'lib/ceval';
 +// Use Lila's native Stockfish loader/assets with a separate bounded review queue.
 +import { StockfishWebEngine } from 'lib/ceval/engines/stockfishWebEngine';
@@ -4486,6 +4867,7 @@ index 0000000..2e7e46d
 +  current: Snapshot;
 +  previous?: Snapshot;
 +  terminal?: boolean;
++  quality?: string;
 +}
 +const info: BrowserEngineInfo = {
 +  id: 'nosweat-review-sf19-small',
@@ -4679,6 +5061,427 @@ index 0000000..2e7e46d
 +    this.engine = undefined;
 +    this.protocol = undefined;
 +  }
++}
+diff --git a/ui/analyse/src/noSweatGameReview.ts b/ui/analyse/src/noSweatGameReview.ts
+new file mode 100644
+index 0000000..474ca27
+--- /dev/null
++++ b/ui/analyse/src/noSweatGameReview.ts
+@@ -0,0 +1,172 @@
++import { gameAccuracy, type GameAccuracy } from './noSweatAccuracy';
++import type { ClassificationInput, ClassificationResult } from './noSweatClassify';
++import type { Review } from './noSweatFish';
++
++export const reviewQualities = {
++  fast: { name: 'Fast', depth: 12, time: 500 },
++  balanced: { name: 'Balanced', depth: 14, time: 1000 },
++  thorough: { name: 'Thorough', depth: 16, time: 1500 },
++} as const;
++export type ReviewQuality = keyof typeof reviewQualities;
++export interface ReviewNode {
++  fen: string;
++  uci?: string;
++  san?: string;
++  path: string;
++}
++export interface GameReport {
++  key: string;
++  quality: ReviewQuality;
++  nodes: ReviewNode[];
++  reviews: Review[];
++  moves: (ClassificationResult | undefined)[];
++  unavailable: number[];
++  accuracy?: GameAccuracy;
++  state: 'idle' | 'evaluating' | 'classifying' | 'confirming' | 'complete' | 'stopped' | 'failed';
++  completed: number;
++  total: number;
++  error?: string;
++}
++interface Dependencies {
++  search: (fen: string, signal: AbortSignal, depth: number, time: number) => Promise<Review>;
++  classify: (input: ClassificationInput, signal: AbortSignal) => Promise<ClassificationResult>;
++  changed: () => void;
++}
++export const gameReviewKey = (nodes: ReviewNode[], quality: ReviewQuality): string =>
++  JSON.stringify(['sf19-small-mobilemaia-full-v1', quality, nodes.map(n => [n.path, n.fen, n.uci])]);
++export class GameReview {
++  report?: GameReport;
++  private abort?: AbortController;
++  private generation = 0;
++  private readonly cache = new Map<string, Review>();
++  constructor(private readonly deps: Dependencies) {}
++  observe(nodes: ReviewNode[], quality: ReviewQuality): void {
++    if (this.report && this.report.key !== gameReviewKey(nodes, quality)) {
++      this.report = undefined;
++      this.stop();
++    }
++  }
++  resultAt(path: string, fen: string): ClassificationResult | undefined {
++    const report = this.report;
++    if (!report) return undefined;
++    const index = report.nodes.findIndex(n => n.path === path && n.fen === fen);
++    return index > 0 ? report.moves[index - 1] : undefined;
++  }
++  get running(): boolean {
++    return !!this.abort;
++  }
++  stop(): void {
++    this.generation++;
++    this.abort?.abort();
++    this.abort = undefined;
++    if (this.report && ['evaluating', 'classifying', 'confirming'].includes(this.report.state))
++      this.report.state = 'stopped';
++    this.deps.changed();
++  }
++  async start(nodes: ReviewNode[], quality: ReviewQuality): Promise<void> {
++    if (this.report?.state === 'complete') this.cache.clear();
++    this.stop();
++    if (nodes.length < 2) return;
++    const generation = this.generation;
++    const abort = (this.abort = new AbortController());
++    const current = () => generation === this.generation && !abort.signal.aborted;
++    const mode = reviewQualities[quality];
++    const report: GameReport = (this.report = {
++      key: gameReviewKey(nodes, quality),
++      quality,
++      nodes: nodes.map(n => ({ ...n })),
++      reviews: [],
++      moves: Array.from({ length: nodes.length - 1 }, () => undefined),
++      unavailable: [],
++      state: 'evaluating',
++      completed: 0,
++      total: nodes.length,
++    });
++    this.deps.changed();
++    const search = async (fen: string, confirmation = false): Promise<Review> => {
++      if (!current()) throw new Error('Cancelled');
++      const depth = mode.depth + (confirmation ? 2 : 0);
++      const key = JSON.stringify([fen, quality, depth, mode.time]);
++      const cached = this.cache.get(key);
++      if (cached) return cached;
++      const result = await this.deps.search(fen, abort.signal, depth, mode.time);
++      if (!current()) throw new Error('Cancelled');
++      const review = { ...result, quality };
++      this.cache.set(key, review);
++      if (this.cache.size > 800) this.cache.delete(this.cache.keys().next().value!);
++      return review;
++    };
++    try {
++      for (const node of report.nodes) {
++        report.reviews.push(await search(node.fen));
++        if (!current()) return;
++        report.completed++;
++        this.deps.changed();
++      }
++      report.accuracy = gameAccuracy(
++        report.reviews.map(r => r.current.lines[0]),
++        report.nodes[0].fen.split(' ')[1] === 'w',
++      );
++      report.state = 'classifying';
++      report.completed = 0;
++      report.total = nodes.length - 1;
++      this.deps.changed();
++      for (let ply = 1; ply < nodes.length; ply++) {
++        if (!current()) return;
++        const first = Math.max(0, ply - 2);
++        const input: ClassificationInput = {
++          positions: nodes.slice(first, ply + 1).map(n => n.fen),
++          reviews: report.reviews.slice(first, ply + 1),
++          move: nodes[ply].uci!,
++        };
++        try {
++          report.moves[ply - 1] = await this.deps.classify(input, abort.signal);
++        } catch {
++          if (!current()) return;
++          report.unavailable.push(ply);
++        }
++        if (!current()) return;
++        report.completed++;
++        this.deps.changed();
++      }
++      // Match Mobile Maia's six-search budget for uncorroborated standout windows.
++      report.state = 'confirming';
++      let budget = 6;
++      this.deps.changed();
++      for (let ply = 1; ply < nodes.length; ply++) {
++        const provisional = report.moves[ply - 1];
++        if (!provisional?.withheld || !['!', '!!'].includes(provisional.provisional ?? '')) continue;
++        const first = provisional.provisional === '!' ? Math.max(0, ply - 2) : ply - 1;
++        const cost = ply - first + 1;
++        if (cost > budget) continue;
++        budget -= cost;
++        const baselineFirst = Math.max(0, ply - 2);
++        try {
++          const confirmation = await Promise.all(nodes.slice(first, ply + 1).map(n => search(n.fen, true)));
++          if (!current()) return;
++          const input: ClassificationInput = {
++            positions: nodes.slice(baselineFirst, ply + 1).map(n => n.fen),
++            reviews: report.reviews.slice(baselineFirst, ply + 1),
++            move: nodes[ply].uci!,
++            confirmation,
++          };
++          report.moves[ply - 1] = await this.deps.classify(input, abort.signal);
++          if (!current()) return;
++        } catch {
++          if (!current()) return; /* Unsupported standout stays withheld; baseline review is unchanged. */
++        }
++        this.deps.changed();
++      }
++      if (!current()) return;
++      report.state = 'complete';
++      this.abort = undefined;
++      this.deps.changed();
++    } catch (error) {
++      if (!current()) return;
++      report.state = 'failed';
++      report.error = String(error instanceof Error ? error.message : error);
++      this.abort = undefined;
++      this.deps.changed();
++    }
++  }
++}
+diff --git a/ui/analyse/src/noSweatPreferences.ts b/ui/analyse/src/noSweatPreferences.ts
+new file mode 100644
+index 0000000..583d821
+--- /dev/null
++++ b/ui/analyse/src/noSweatPreferences.ts
+@@ -0,0 +1,40 @@
++import type { ReviewQuality } from './noSweatGameReview';
++export interface EnginePreferences {
++  model: '5m' | '79m';
++  selfElo: number;
++  opponentElo: number;
++  history: boolean;
++  maiaArrows: boolean;
++  fishArrows: boolean;
++  quality: ReviewQuality;
++}
++export const defaultEnginePreferences: EnginePreferences = {
++  model: '5m',
++  selfElo: 1500,
++  opponentElo: 1500,
++  history: true,
++  maiaArrows: true,
++  fishArrows: true,
++  quality: 'fast',
++};
++export function readEnginePreferences(raw: string | null): EnginePreferences {
++  let input: Partial<EnginePreferences> = {};
++  try {
++    input = JSON.parse(raw ?? '{}') ?? {};
++  } catch {
++    /* Invalid browser preference falls back safely. */
++  }
++  const rating = (n: unknown) =>
++    typeof n === 'number' && Number.isInteger(n) && n >= 600 && n <= 2600 && n % 100 === 0 ? n : 1500;
++  const boolean = (key: 'history' | 'maiaArrows' | 'fishArrows') =>
++    typeof input[key] === 'boolean' ? input[key] : true;
++  return {
++    model: input.model === '79m' ? '79m' : '5m',
++    selfElo: rating(input.selfElo),
++    opponentElo: rating(input.opponentElo),
++    history: boolean('history'),
++    maiaArrows: boolean('maiaArrows'),
++    fishArrows: boolean('fishArrows'),
++    quality: input.quality === 'balanced' || input.quality === 'thorough' ? input.quality : 'fast',
++  };
++}
+diff --git a/ui/analyse/src/noSweatReviewView.ts b/ui/analyse/src/noSweatReviewView.ts
+new file mode 100644
+index 0000000..0eb1493
+--- /dev/null
++++ b/ui/analyse/src/noSweatReviewView.ts
+@@ -0,0 +1,191 @@
++import { hl, type Hooks, type VNode } from 'lib/view/snabbdom';
++
++import { whiteWinPercent } from './noSweatAccuracy';
++import { scoreText } from './noSweatCore';
++import type { GameReport } from './noSweatGameReview';
++
++// Native bind() installs only once. Review actions change as the report progresses.
++export const reviewClick = (action: (event: MouseEvent) => void): Hooks => {
++  const attach = (vnode: VNode) => {
++    (vnode.elm as HTMLElement | SVGElement).onclick = action;
++  };
++  return { insert: attach, update: (_, vnode) => attach(vnode) };
++};
++
++export const classificationLabels: Record<string, string> = {
++  '!!': 'Brilliant',
++  '!': 'Good',
++  '!?': 'Interesting',
++  '?!': 'Dubious',
++  '?': 'Mistake',
++  '??': 'Blunder',
++};
++export const classificationClasses: Record<string, string> = {
++  '!!': 'brilliant',
++  '!': 'good',
++  '!?': 'interesting',
++  '?!': 'dubious',
++  '?': 'mistake',
++  '??': 'blunder',
++};
++export function reviewView(
++  report: GameReport | undefined,
++  running: boolean,
++  start: () => void,
++  stop: () => void,
++  jump: (path: string) => void,
++  currentPath: string,
++  available = true,
++): VNode {
++  const button = (text: string, action: () => void, disabled = false) =>
++    hl(
++      'button.button.button-empty',
++      {
++        attrs: { type: 'button', disabled },
++        hook: reviewClick(action),
++      },
++      text,
++    );
++  const phase =
++    report?.state === 'evaluating'
++      ? 'Analysing positions'
++      : report?.state === 'classifying'
++        ? 'Classifying moves'
++        : 'Verifying standout moves';
++  const complete = report?.state === 'complete';
++  return hl('section.nosweat-game-review', { attrs: { 'aria-label': 'Whole-game computer analysis' } }, [
++    hl('div.nosweat-review-heading', [
++      hl('h2', 'Computer analysis'),
++      running
++        ? button('Stop', stop)
++        : button(
++            report?.state === 'stopped' ? 'Resume analysis' : complete ? 'Analyse again' : 'Analyse game',
++            start,
++            !available,
++          ),
++    ]),
++    running &&
++      hl(
++        'p',
++        { attrs: { role: 'status' } },
++        report?.state === 'confirming' ? phase : `${phase}: ${report?.completed} / ${report?.total}`,
++      ),
++    report?.state === 'stopped' &&
++      hl('p', { attrs: { role: 'status' } }, 'Analysis stopped. Resume to finish this game.'),
++    report?.error && hl('p.error', { attrs: { role: 'alert' } }, report.error),
++    report?.accuracy &&
++      hl('div', [
++        hl('table.nosweat-accuracy', [
++          hl('thead', [hl('tr', [hl('th', ''), hl('th', 'White'), hl('th', 'Black')])]),
++          hl('tbody', [
++            hl('tr', [
++              hl('th', 'Accuracy'),
++              ...(['white', 'black'] as const).map(color =>
++                hl(
++                  'td',
++                  {
++                    attrs: { 'data-color': color },
++                  },
++                  report.accuracy![color] === null ? '—' : report.accuracy![color].toFixed(1) + '%',
++                ),
++              ),
++            ]),
++          ]),
++        ]),
++        renderGraph(report, currentPath, jump),
++        hl('table.nosweat-classifications', [
++          hl('thead', [hl('tr', [hl('th', 'Classification'), hl('th', 'White'), hl('th', 'Black')])]),
++          hl(
++            'tbody',
++            Object.entries(classificationLabels).map(([symbol, name]) => {
++              const paths = (white: boolean) =>
++                report.moves.flatMap((move, i) =>
++                  move?.symbol === symbol && (report.nodes[i].fen.split(' ')[1] === 'w') === white
++                    ? [report.nodes[i + 1].path]
++                    : [],
++                );
++              return hl('tr', { attrs: { 'data-classification': classificationClasses[symbol] } }, [
++                hl('th', `${symbol} ${name}`),
++                ...[true, false].map(white => {
++                  const matches = paths(white);
++                  return hl('td', [
++                    button(
++                      String(matches.length),
++                      () => {
++                        const current = report.nodes.findIndex(node => node.path === currentPath);
++                        const after = matches.find(
++                          path => report.nodes.findIndex(node => node.path === path) > current,
++                        );
++                        const target = after ?? matches[0];
++                        if (target !== undefined) jump(target);
++                      },
++                      !matches.length,
++                    ),
++                  ]);
++                }),
++              ]);
++            }),
++          ),
++        ]),
++        report.unavailable.length > 0 &&
++          hl(
++            'p',
++            `${report.unavailable.length} move classifications unavailable. Accuracy uses the complete Stockfish review.`,
++          ),
++        !complete && !running && hl('small', 'This review is incomplete.'),
++      ]),
++  ]);
++}
++function renderGraph(report: GameReport, currentPath: string, jump: (path: string) => void): VNode {
++  const points = report.reviews.map((r, i) => ({
++    x: (i / (report.reviews.length - 1)) * 600,
++    y: (100 - whiteWinPercent(r.current.lines[0])) * 1.2,
++  }));
++  return hl(
++    'svg.nosweat-review-graph',
++    {
++      attrs: {
++        viewBox: '0 0 600 120',
++        role: 'group',
++        'aria-label': 'Game evaluation: White winning chances. Select a move to navigate.',
++      },
++    },
++    [
++      hl('line', { attrs: { x1: 0, y1: 60, x2: 600, y2: 60, stroke: 'currentColor', opacity: 0.3 } }),
++      hl('polyline', {
++        attrs: {
++          points: points.map(p => `${p.x},${p.y}`).join(' '),
++          fill: 'none',
++          stroke: 'currentColor',
++          'stroke-width': 2,
++        },
++      }),
++      ...points.map((p, i) =>
++        hl(
++          'a',
++          {
++            attrs: {
++              href: '#',
++              'aria-label': `${report.nodes[i].san ?? 'Start position'}: ${scoreText(report.reviews[i].current.lines[0])}`,
++            },
++            hook: reviewClick(event => {
++              event.preventDefault();
++              jump(report.nodes[i].path);
++            }),
++          },
++          [
++            hl('circle', {
++              attrs: {
++                cx: p.x,
++                cy: p.y,
++                r: 4,
++                fill: 'currentColor',
++                opacity: report.nodes[i].path === currentPath ? 1 : 0.25,
++              },
++            }),
++          ],
++        ),
++      ),
++    ],
++  );
 +}
 diff --git a/ui/analyse/src/noSweatSnapshots.ts b/ui/analyse/src/noSweatSnapshots.ts
 new file mode 100644
@@ -22247,6 +23050,332 @@ index 0000000..10a1c3f
 +    assert.equal(classify(input).symbol, '!');
 +    assert.equal(accuracy({ mate: 1 }, { mate: 1 }, 'white'), 100);
 +    assert.deepEqual(terminalScore('7k/6Q1/5K2/8/8/8/8/8 b - - 0 1'), { mate: 1 });
++  });
++});
+diff --git a/ui/analyse/tests/noSweatFullReview.test.ts b/ui/analyse/tests/noSweatFullReview.test.ts
+new file mode 100644
+index 0000000..148ba88
+--- /dev/null
++++ b/ui/analyse/tests/noSweatFullReview.test.ts
+@@ -0,0 +1,320 @@
++import assert from 'node:assert/strict';
++import { describe, test } from 'node:test';
++
++import { gameAccuracy, moveAccuracy, whiteWinPercent } from '../src/noSweatAccuracy';
++import { maiaShapes, primaryArrowWidth } from '../src/noSweatArrows';
++import { ClassifierClient } from '../src/noSweatClassifierClient';
++import { classify, type ClassificationResult } from '../src/noSweatClassify';
++import { after } from '../src/noSweatCore';
++import type { Review } from '../src/noSweatFish';
++import { GameReview, gameReviewKey, reviewQualities, type ReviewNode } from '../src/noSweatGameReview';
++import { readEnginePreferences } from '../src/noSweatPreferences';
++import { reviewClick } from '../src/noSweatReviewView';
++const start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
++const line = (): ReviewNode[] => {
++  const nodes: ReviewNode[] = [{ fen: start, path: '' }];
++  for (const [i, uci] of ['e2e4', 'e7e5', 'g1f3', 'b8c6'].entries())
++    nodes.push({ fen: after(nodes.at(-1)!.fen, uci), uci, path: 'x'.repeat(i + 1) });
++  return nodes;
++};
++const result = (overrides: Partial<ClassificationResult> = {}): ClassificationResult => ({
++  symbol: '',
++  accuracy: 100,
++  cpLoss: 0,
++  withheld: false,
++  version: 'test',
++  ...overrides,
++});
++const review = (depth = 12): Review => ({
++  current: {
++    depth,
++    lines: [
++      { cp: 20, moves: ['e2e4'] },
++      { cp: 0, moves: ['d2d4'] },
++    ],
++  },
++  previous: {
++    depth: depth - 1,
++    lines: [
++      { cp: 20, moves: ['e2e4'] },
++      { cp: 0, moves: ['d2d4'] },
++    ],
++  },
++});
++const near = (actual: number | null, expected: number) =>
++  assert.ok(actual !== null && Math.abs(actual - expected) < 1e-10, `${actual} != ${expected}`);
++describe('Mobile Maia whole-game review', () => {
++  test('review controls replace stale start, stop and navigation actions on redraw', () => {
++    let action = '';
++    const element = { onclick: undefined as (() => void) | undefined };
++    const vnode = { elm: element } as unknown as Parameters<
++      NonNullable<ReturnType<typeof reviewClick>['insert']>
++    >[0];
++    reviewClick(() => {
++      action = 'start';
++    }).insert!(vnode);
++    element.onclick!();
++    assert.equal(action, 'start');
++    reviewClick(() => {
++      action = 'stop';
++    }).update!(vnode, vnode);
++    element.onclick!();
++    assert.equal(action, 'stop');
++    reviewClick(() => {
++      action = 'g4';
++    }).update!(vnode, vnode);
++    element.onclick!();
++    assert.equal(action, 'g4');
++  });
++  test('accuracy matches independent Mobile Maia numeric references, including volatility windows and mates', () => {
++    const samples = [20, -40, -10, -180, -120, -260, -220, -500, -450].map(cp => ({ cp }));
++    const score = gameAccuracy(samples);
++    near(score.white, 56.109833517752875);
++    near(score.black, 86.48031060445908);
++    const long = gameAccuracy(Array.from({ length: 61 }, (_, i) => ({ cp: -300 + i * 10 })));
++    near(long.white, 100);
++    near(long.black, 97.2948770298707);
++    const mate = gameAccuracy([3, 2, 1, -1, -2].map(mate => ({ mate })));
++    near(mate.white, 2);
++    near(mate.black, 100);
++    const mobile = gameAccuracy([0, 0, 300, 300].map(cp => ({ cp })));
++    near(mobile.white, 100);
++    near(mobile.black, 32.39810425271999);
++    assert.equal(moveAccuracy(50, 50), 100);
++    assert.equal(moveAccuracy(40, 60), 100);
++    assert.deepEqual(gameAccuracy([]), { white: null, black: null });
++    assert.equal(gameAccuracy([{ cp: 0 }, { cp: -10 }], false).white, null);
++    near(gameAccuracy([{ cp: 0 }, { cp: -10 }], false).black, 100);
++    assert.throws(() => whiteWinPercent({}), /Missing/);
++  });
++  test('Maia arrows have the primary SF width even for very unlikely moves', () => {
++    const shapes = maiaShapes([
++      { uci: 'e2e4', probability: 0.99 },
++      { uci: 'd2d4', probability: 0.009 },
++      { uci: 'g1f3', probability: 0.001 },
++    ]);
++    assert.equal(primaryArrowWidth, 15);
++    assert.deepEqual(
++      shapes.map(s => s.modifiers?.lineWidth),
++      [15, 15, 15],
++    );
++  });
++  test('engine settings validate persisted input instead of trusting browser JSON', () => {
++    assert.equal(readEnginePreferences('{').selfElo, 1500);
++    assert.deepEqual(
++      readEnginePreferences(
++        JSON.stringify({
++          model: '79m',
++          quality: 'thorough',
++          selfElo: 2600,
++          opponentElo: 600,
++          history: false,
++          maiaArrows: false,
++        }),
++      ),
++      {
++        model: '79m',
++        quality: 'thorough',
++        selfElo: 2600,
++        opponentElo: 600,
++        history: false,
++        maiaArrows: false,
++        fishArrows: true,
++      },
++    );
++    const invalid = readEnginePreferences(
++      JSON.stringify({
++        model: 'remote',
++        quality: 'unbounded',
++        selfElo: 999999,
++        opponentElo: '1500',
++        history: 'false',
++      }),
++    );
++    assert.equal(invalid.model, '5m');
++    assert.equal(invalid.quality, 'fast');
++    assert.equal(invalid.selfElo, 1500);
++    assert.equal(invalid.history, true);
++  });
++  test('evaluates every position, publishes whole-game accuracy, then classifies every move', async () => {
++    const nodes = line();
++    const calls: string[] = [];
++    const phases: string[] = [];
++    const runner = new GameReview({
++      search: async (fen, _signal, depth, time) => {
++        assert.equal(depth, 12);
++        assert.equal(time, 500);
++        calls.push(fen);
++        return review();
++      },
++      classify: async input => {
++        assert.ok(runner.report?.accuracy);
++        assert.equal(input.reviews.length, input.positions.length);
++        return result();
++      },
++      changed: () => {
++        if (runner?.report) phases.push(runner.report.state);
++      },
++    });
++    await runner.start(nodes, 'fast');
++    assert.deepEqual(
++      calls,
++      nodes.map(n => n.fen),
++    );
++    assert.equal(runner.report?.state, 'complete');
++    assert.equal(runner.report?.moves.length, 4);
++    assert.ok(phases.includes('classifying'));
++    assert.equal(runner.running, false);
++    const original = runner.report;
++    runner.observe(
++      nodes.map(n => ({ ...n })),
++      'fast',
++    );
++    assert.equal(runner.report, original);
++    // Browsing to another path does not change the immutable game key.
++    assert.equal(gameReviewKey(nodes, 'fast'), gameReviewKey(nodes, 'fast'));
++    assert.notEqual(gameReviewKey(nodes, 'balanced'), gameReviewKey(nodes, 'fast'));
++  });
++  test('stop and a changed PGN prevent late searches from publishing stale results; resume reuses completed work', async () => {
++    const nodes = line();
++    let resolve!: (r: Review) => void;
++    let first = true;
++    const runner = new GameReview({
++      search: async () => {
++        if (first) {
++          first = false;
++          return new Promise<Review>(r => (resolve = r));
++        }
++        return review();
++      },
++      classify: async () => result(),
++      changed: () => {},
++    });
++    const pending = runner.start(nodes, 'fast');
++    runner.stop();
++    resolve(review());
++    await pending;
++    assert.equal(runner.report?.state, 'stopped');
++    assert.equal(runner.report?.reviews.length, 0);
++    await runner.start(nodes, 'fast');
++    assert.equal(runner.report?.state, 'complete');
++    runner.observe(nodes.slice(0, 2), 'fast');
++    assert.equal(runner.report, undefined);
++    assert.equal(runner.running, false);
++  });
++  test('an unfinished evaluation is never counted as a full-game accuracy score', async () => {
++    let count = 0;
++    const runner = new GameReview({
++      search: async () => {
++        if (++count === 3) throw new Error('engine unavailable');
++        return review();
++      },
++      classify: async () => result(),
++      changed: () => {},
++    });
++    await runner.start(line(), 'balanced');
++    assert.equal(runner.report?.state, 'failed');
++    assert.equal(runner.report?.accuracy, undefined);
++    assert.equal(runner.report?.reviews.length, 2);
++  });
++  test('classification failures retain accuracy and explicitly mark the affected moves unavailable', async () => {
++    const runner = new GameReview({
++      search: async () => review(),
++      classify: async () => {
++        throw new Error('worker stopped');
++      },
++      changed: () => {},
++    });
++    await runner.start(line(), 'thorough');
++    assert.equal(runner.report?.state, 'complete');
++    assert.ok(runner.report?.accuracy);
++    assert.deepEqual(runner.report?.unavailable, [1, 2, 3, 4]);
++  });
++  test('standout confirmation has a six-search budget and leaves baseline graph scores unchanged', async () => {
++    let confirmations = 0;
++    const runner = new GameReview({
++      search: async (_fen, _signal, depth, time) => {
++        assert.equal(time, 500);
++        if (depth === 14) confirmations++;
++        return review(depth);
++      },
++      classify: async input =>
++        input.confirmation ? result({ symbol: '!!' }) : result({ withheld: true, provisional: '!!' }),
++      changed: () => {},
++    });
++    await runner.start(line(), 'fast');
++    assert.ok(confirmations <= 6);
++    assert.ok(confirmations > 0);
++    assert.ok(runner.report?.reviews.every(r => r.current.depth === 12));
++    assert.equal(runner.report?.state, 'complete');
++    assert.deepEqual(reviewQualities, {
++      fast: { name: 'Fast', depth: 12, time: 500 },
++      balanced: { name: 'Balanced', depth: 14, time: 1000 },
++      thorough: { name: 'Thorough', depth: 16, time: 1500 },
++    });
++  });
++  test('explicit whole-window confirmation can veto an apparently stable standout', () => {
++    const before = {
++      depth: 12,
++      lines: [
++        { cp: 200, moves: ['e2e4'] },
++        { cp: -500, moves: ['d2d4'] },
++      ],
++    };
++    const next = { depth: 12, lines: [{ cp: 200, moves: ['e7e5'] }] };
++    const reviews: Review[] = [
++      { current: before, previous: before, quality: 'fast' },
++      { current: next, previous: next, quality: 'fast' },
++    ];
++    const base = { positions: [start, after(start, 'e2e4')], reviews, move: 'e2e4' };
++    assert.equal(classify(base).symbol, '!');
++    assert.equal(
++      classify({
++        ...base,
++        confirmation: [
++          reviews[0],
++          { ...reviews[1], current: { depth: 14, lines: [{ cp: -600, moves: ['e7e5'] }] } },
++        ],
++      }).symbol,
++      '',
++    );
++    assert.equal(
++      classify({ ...base, confirmation: reviews.map(r => ({ ...r, quality: 'thorough' })) }).withheld,
++      true,
++    );
++  });
++  test('classifier ownership rejects cancellation and isolates a stale worker from the next job', async () => {
++    class FakeWorker {
++      onmessage: any;
++      onerror: any;
++      terminated = false;
++      postMessage() {}
++      terminate() {
++        this.terminated = true;
++      }
++    }
++    const workers: FakeWorker[] = [];
++    const client = new ClassifierClient(() => {
++      const w = new FakeWorker();
++      workers.push(w);
++      return w as unknown as Worker;
++    });
++    const signal = new AbortController();
++    const first = client
++      .classify({ positions: [], reviews: [], move: '' }, signal.signal)
++      .catch(e => e.message);
++    const stale = workers[0].onmessage;
++    signal.abort();
++    assert.equal(await first, 'Cancelled');
++    assert.equal(workers[0].terminated, true);
++    const second = client.classify({ positions: [], reviews: [], move: '' }, new AbortController().signal);
++    stale({ data: { result: result({ symbol: '??' }) } });
++    workers[1].onmessage({ data: { result: result({ symbol: '!' }) } });
++    assert.equal((await second).symbol, '!');
++    const third = client.classify({ positions: [], reviews: [], move: '' }, new AbortController().signal);
++    workers[1].onmessage({ data: { result: result() } });
++    await third;
++    assert.equal(workers.length, 2);
++    client.release();
 +  });
 +});
 diff --git a/ui/round/src/premoveSequence.ts b/ui/round/src/premoveSequence.ts
