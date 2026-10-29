@@ -262,6 +262,47 @@ index 5334d5e..4ed89ec 100644
  
    def list = Open:
      ctx.me.foldUse(Redirect(routes.Plan.index()).toFuccess): me ?=>
+diff --git a/app/controllers/Tv.scala b/app/controllers/Tv.scala
+index 49e260e..2872316 100644
+--- a/app/controllers/Tv.scala
++++ b/app/controllers/Tv.scala
+@@ -56,7 +56,19 @@ final class Tv(env: Env, apiC: => Api, gameC: => Game) extends LilaController(en
+               _ => env.api.roundApi.watcher(pov, users, none, tv = onTv.some, details = true).dmap { Ok(_) }
+           )
+ 
+-  def games = gamesChannel(Channel.Best.key)
++  def games = Open:
++    if env.noSweat.enabled then
++      env.noSweat.currentGames
++        .zip(env.tv.tv.getChampions)
++        .flatMap: (games, champs) =>
++          Ok.page(
++            views.tv.ui.games(Channel.Best, games.map(Pov.naturalOrientation), champs, currentOnly = true)
++          ).map(_.noCache)
++    else
++      env.tv.tv.getChampions
++        .zip(env.tv.tv.getGames(Channel.Best, 15))
++        .flatMap: (champs, games) =>
++          Ok.page(views.tv.ui.games(Channel.Best, games.map(Pov.naturalOrientation), champs)).map(_.noCache)
+ 
+   def gamesChannel(chanKey: String) = Open:
+     Channel.byKey.get(chanKey).so { channel =>
+@@ -66,9 +78,12 @@ final class Tv(env: Env, apiC: => Api, gameC: => Game) extends LilaController(en
+     }
+ 
+   def gameChannelReplacement(chanKey: String, gameId: GameId, exclude: List[GameId]) = Open:
+-    val gameFu = Channel.byKey.get(chanKey).so { channel =>
+-      env.tv.tv.getReplacementGame(channel, gameId, exclude)
+-    }
++    val gameFu = if env.noSweat.enabled then
++      env.noSweat.currentGames.map(_.find(g => g.id != gameId && !exclude.contains(g.id)))
++    else
++      Channel.byKey.get(chanKey).so { channel =>
++        env.tv.tv.getReplacementGame(channel, gameId, exclude)
++      }
+     Found(gameFu): game =>
+       JsonOk:
+         Json.obj(
 diff --git a/app/controllers/UserAnalysis.scala b/app/controllers/UserAnalysis.scala
 index 8ce37a2..89c9561 100644
 --- a/app/controllers/UserAnalysis.scala
@@ -376,7 +417,7 @@ index b408a91..5bb78aa 100644
            preventIndexing.option(noRobots),
            noTranslate,
 diff --git a/app/views/lobby/home.scala b/app/views/lobby/home.scala
-index 2db52a9..ce36820 100644
+index 2db52a9..82185a3 100644
 --- a/app/views/lobby/home.scala
 +++ b/app/views/lobby/home.scala
 @@ -10,22 +10,6 @@ object home:
@@ -442,7 +483,7 @@ index 2db52a9..ce36820 100644
              else
                div(cls := "about-side")(
                  ctx.blind.option(h2(trans.site.about())),
-@@ -118,21 +114,22 @@ object home:
+@@ -118,31 +114,31 @@ object home:
                button(cls := "button button-metal lobby__start__button lobby__start__button--hook")(
                  trans.site.createLobbyGame()
                ),
@@ -471,8 +512,10 @@ index 2db52a9..ce36820 100644
 -            swagLink,
              puzzle.map(p => views.puzzle.bits.dailyLink(p)())
            ),
-           views.ublog.ui.homeCarousel(ublogPosts),
-@@ -142,7 +139,7 @@ object home:
+-          views.ublog.ui.homeCarousel(ublogPosts),
+           div(cls := "lobby__feed"):
+             views.feed.lobbyUpdates(lastUpdates)
+           ,
            ctx.noBot.option(bits.underboards(tours, simuls)),
            div(cls := "lobby__about")(
              ctx.blind.option(h2(trans.site.about())),
@@ -671,6 +714,42 @@ index 2d2ccc9..245cc56 100644
    ):
      def nonEmptyRealName: Option[RealName] = ne(realName)
  
+diff --git a/modules/forum/src/main/ui/CategUi.scala b/modules/forum/src/main/ui/CategUi.scala
+index bfd027c..1651442 100644
+--- a/modules/forum/src/main/ui/CategUi.scala
++++ b/modules/forum/src/main/ui/CategUi.scala
+@@ -21,7 +21,7 @@ final class CategUi(helpers: Helpers, bits: ForumBits):
+         val (teamCategs, globalCategs) = categs.partition(_.categ.isTeam)
+         main(cls := "forum index box")(
+           boxTop(
+-            h1(dataIcon := Icon.BubbleConvo, cls := "text")("Lichess Forum"),
++            h1(dataIcon := Icon.BubbleConvo, cls := "text")("Mute Chess Forum"),
+             bits.searchForm()
+           ),
+           showCategs(globalCategs),
+diff --git a/modules/forum/src/main/ui/ForumBits.scala b/modules/forum/src/main/ui/ForumBits.scala
+index 6fa1cc3..bdf092f 100644
+--- a/modules/forum/src/main/ui/ForumBits.scala
++++ b/modules/forum/src/main/ui/ForumBits.scala
+@@ -7,17 +7,7 @@ import lila.ui.ScalatagsTemplate.{ *, given }
+ final class ForumBits(helpers: Helpers):
+   import helpers.{ *, given }
+ 
+-  def searchForm(search: String = "")(using Context) =
+-    div(cls := "box__top__actions")(
+-      form(cls := "search", action := routes.ForumPost.search())(
+-        input(
+-          name := "text",
+-          value := search,
+-          placeholder := trans.search.search.txt(),
+-          enterkeyhint := "search"
+-        )
+-      )
+-    )
++  def searchForm(_search: String = "") = emptyFrag
+ 
+   def authorLink(post: ForumPost, cssClass: Option[String] = None, withOnline: Boolean = true)(using
+       Context
 diff --git a/modules/game/src/main/Env.scala b/modules/game/src/main/Env.scala
 index 43d76ae..55503bc 100644
 --- a/modules/game/src/main/Env.scala
@@ -764,6 +843,48 @@ index 0e35266..8dbe5e8 100644
    def freeMonths(user: User, nbMonths: Int): Funit =
      for _ <- mongo.patron.update
          .one(
+diff --git a/modules/practice/src/main/PracticeApi.scala b/modules/practice/src/main/PracticeApi.scala
+index 7688c28..4c03072 100644
+--- a/modules/practice/src/main/PracticeApi.scala
++++ b/modules/practice/src/main/PracticeApi.scala
+@@ -89,6 +89,10 @@ final class PracticeApi(
+       coll.delete.one(bid(user.id)).void
+ 
+     def completionPercent(userIds: List[UserId]): Fu[Map[UserId, Int]] =
++      structure.get.flatMap: struct =>
++        completionPercent(userIds, struct.nbChapters)
++
++    private def completionPercent(userIds: List[UserId], total: Int): Fu[Map[UserId, Int]] =
+       coll
+         .aggregateList(Int.MaxValue, _.sec): framework =>
+           import framework.*
+@@ -107,5 +111,5 @@ final class PracticeApi(
+           _.view
+             .flatMap: obj =>
+               (obj.getAsOpt[UserId]("_id"), obj.int("nb")).mapN: (k, v) =>
+-                k -> (v * 100f / PracticeStructure.totalChapters).toInt
++                k -> (v * 100f / total.max(1)).toInt.min(100)
+             .toMap
+diff --git a/modules/practice/src/main/PracticeStructure.scala b/modules/practice/src/main/PracticeStructure.scala
+index fb428fc..b038243 100644
+--- a/modules/practice/src/main/PracticeStructure.scala
++++ b/modules/practice/src/main/PracticeStructure.scala
+@@ -51,8 +51,11 @@ object PracticeStructure:
+   private[practice] def studyIds: List[StudyId] = PracticeSections.list.flatMap(_.studies.map(_.id))
+ 
+   def withChapters(chapters: Map[StudyId, Vector[Chapter.IdName]]) = PracticeStructure:
+-    PracticeSections.list.map: sec =>
+-      sec.copy(
+-        studies = sec.studies.map: stu =>
+-          stu.copy(chapters = chapters.get(stu.id).so(_.toList))
++    PracticeSections.list.flatMap: sec =>
++      val studies = sec.studies.flatMap: stu =>
++        chapters.get(stu.id).filter(_.nonEmpty).map(cs => stu.copy(chapters = cs.toList))
++      Option.when(studies.nonEmpty)(
++        sec.copy(
++          studies = studies
++        )
+       )
 diff --git a/modules/pref/src/main/Pref.scala b/modules/pref/src/main/Pref.scala
 index 13f0c7f..060fd36 100644
 --- a/modules/pref/src/main/Pref.scala
@@ -809,6 +930,73 @@ index 11cbae2..982e202 100644
            form3.split(
              ctx.kid.no.option(
                form3
+diff --git a/modules/pref/src/main/ui/AccountPref.scala b/modules/pref/src/main/ui/AccountPref.scala
+index 468bba6..5360a09 100644
+--- a/modules/pref/src/main/ui/AccountPref.scala
++++ b/modules/pref/src/main/ui/AccountPref.scala
+@@ -16,7 +16,17 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
+     div(cls := List("none" -> (categ != active)))
+ 
+   private def setting(name: Frag, body: Frag, settingId: String) =
+-    st.section(a(href := "#" + settingId)(h2(id := settingId)(name)), body)
++    if Set(
++        "giveMoreTime",
++        "takebacksWithOpponentApproval",
++        "sayGG",
++        "letOtherPlayersFollowYou",
++        "letOtherPlayersChallengeYou",
++        "letOtherPlayersMessageYou",
++        "shareYourInsightsData"
++      ).contains(settingId)
++    then div(hidden)(body)
++    else st.section(a(href := "#" + settingId)(h2(id := settingId)(name)), body)
+ 
+   def apply(u: User, form: play.api.data.Form[?], categ: lila.pref.PrefCateg)(using Context) =
+     AccountPage(
+@@ -239,7 +249,7 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
+                   tr(
+                     th,
+                     th(trp.notifyBell(), iconTag(Icon.BellOutline)),
+-                    th(trp.notifyPush(), iconTag(Icon.PhoneMobile))
++                    th(hidden)(trp.notifyPush())
+                   )
+                 ),
+                 tbody(
+@@ -253,10 +263,21 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
+                     trp.notifyBroadcasts() -> "broadcastRound",
+                     trp.notifyGameEvent() -> "gameEvent",
+                     trans.team.teamUpdates() -> "teamUpdate"
+-                  ).map(makeRow(form))
++                  ).map: (label, name) =>
++                    if Set("mention", "invitedStudy", "gameEvent").contains(name) then
++                      makeRow(form)(label, name)
++                    else
++                      tr(hidden)(
++                        td(
++                          Seq("bell", "push").map(allow =>
++                            form3.hidden(s"$name.$allow", form.data.getOrElse(s"$name.$allow", "false"))
++                          )
++                        )
++                      )
+                 )
+               ),
+               div(
++                hidden,
+                 id := "correspondence-email-notif"
+               )( // id is set to allow direct unsubcribe link in correspondence emails
+                 bits.setting(
+@@ -279,8 +300,9 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
+         Seq("bell", "push").map: allow =>
+           val name = s"$filterName.$allow"
+           val checked = form.data(name).contains("true")
+-          td(
+-            if !hiddenFields(s"$filterName.$allow") then
++          td((allow == "push").option(hidden))(
++            if allow == "push" then form3.hidden(name, form.data.getOrElse(name, "false"))
++            else if !hiddenFields(s"$filterName.$allow") then
+               div(cls := "toggle", form3.nativeCheckbox(name, name, checked))
+             else if !checked then div(iconTag(Icon.X))
+             else
 diff --git a/modules/pref/src/main/ui/AccountUi.scala b/modules/pref/src/main/ui/AccountUi.scala
 index 6568e7b..88afaf1 100644
 --- a/modules/pref/src/main/ui/AccountUi.scala
@@ -966,6 +1154,135 @@ index 85c24e2..a97ff6d 100644
              ),
              (sessions.sizeIs > 1).option:
                postForm(cls := "revoke-all", action := routes.Account.signout("all")):
+diff --git a/modules/storm/src/main/ui/StormUi.scala b/modules/storm/src/main/ui/StormUi.scala
+index 7d4c281..fc26dc0 100644
+--- a/modules/storm/src/main/ui/StormUi.scala
++++ b/modules/storm/src/main/ui/StormUi.scala
+@@ -4,7 +4,6 @@ package ui
+ import play.api.libs.json.*
+ import scalalib.paginator.Paginator
+ 
+-import lila.core.id.CmsPageKey
+ import lila.ui.*
+ import lila.ui.ScalatagsTemplate.{ *, given }
+ 
+@@ -36,7 +35,9 @@ final class StormUi(helpers: Helpers):
+             )
+           },
+           div(cls := "storm__about__link")(
+-            a(href := routes.Cms.lonePage(CmsPageKey("storm")))(trans.site.aboutX("Puzzle Storm"))
++            a(href := "https://lichess.org/page/storm", targetBlank, noFollow)(
++              trans.site.aboutX("Puzzle Storm")
++            )
+           )
+         )
+ 
+diff --git a/modules/study/src/main/ChapterMaker.scala b/modules/study/src/main/ChapterMaker.scala
+index a6fbfba..f57df3b 100644
+--- a/modules/study/src/main/ChapterMaker.scala
++++ b/modules/study/src/main/ChapterMaker.scala
+@@ -34,6 +34,8 @@ final private class ChapterMaker(
+         case None => fromFenOrPgnOrBlank(study, data, order, userId)
+         case Some(game) => fromGame(study, game, data, order, userId, withRatings)
+       .map: c =>
++        if c.setup.variant != chess.variant.Standard then
++          throw StudyValidationException("Only standard chess is supported")
+         if c.name.value.isEmpty then c.copy(name = Chapter.defaultName(nameOrder | order)) else c
+ 
+   def fromFenOrPgnOrBlank(study: Study, data: Data, order: Int, userId: UserId): Fu[Chapter] =
+@@ -55,7 +57,10 @@ final private class ChapterMaker(
+       .recoverWith { case e: Exception =>
+         fufail(StudyValidationException(e.getMessage))
+       }
+-  yield parsed
++  yield
++    if parsed.variant != chess.variant.Standard then
++      throw StudyValidationException("Only standard chess is supported")
++    parsed
+ 
+   private def fromPgn(study: Study, pgn: PgnStr, data: Data, order: Int, userId: UserId): Fu[Chapter] =
+     for parsed <- toStudyPgn(study, pgn, userId, strict = false)
+@@ -108,6 +113,8 @@ final private class ChapterMaker(
+ 
+   def fromFenOrBlank(study: Study, data: Data, order: Int, userId: UserId): Chapter =
+     val variant = data.variant | Variant.default
++    if variant != chess.variant.Standard then
++      throw StudyValidationException("Only standard chess is supported")
+     val (root, isFromFen) =
+       data.fen.filterNot(_.isInitial).flatMap { Fen.readWithMoveNumber(variant, _) } match
+         case Some(game) =>
+diff --git a/modules/study/src/main/StudyApi.scala b/modules/study/src/main/StudyApi.scala
+index c9d8e1f..843eb43 100644
+--- a/modules/study/src/main/StudyApi.scala
++++ b/modules/study/src/main/StudyApi.scala
+@@ -335,6 +335,8 @@ final class StudyApi(
+   )(who: Who) =
+     sequenceStudyWithChapter(studyId, chapterId):
+       case Study.WithChapter(study, prevChapter) =>
++        if newVariant != chess.variant.Standard then
++          throw StudyValidationException("Only standard chess is supported")
+         val chapter = prevChapter
+           .copy(root = newRoot)
+           .focus(_.setup.variant)
+diff --git a/modules/study/src/main/ui/StudyListUi.scala b/modules/study/src/main/ui/StudyListUi.scala
+index cb642b2..f58cc81 100644
+--- a/modules/study/src/main/ui/StudyListUi.scala
++++ b/modules/study/src/main/ui/StudyListUi.scala
+@@ -212,19 +212,13 @@ final class StudyListUi(helpers: Helpers, bits: StudyBits):
+         val group = StudyGroup.topic(topic.some)
+         a(activeCls(group), href := routes.Study.byTopic(topic.value, newOrder(group)))(topic.value)
+       ,
+-      a(activeCls(StudyGroup.staffPicks), href := routes.Study.staffPicks)("Staff picks"),
+       a(
+         dataIcon := Icon.InfoCircle,
+-        href := "/@/lichess/blog/study-chess-the-lichess-way/V0KrLSkA"
++        href := "https://lichess.org/study"
+       )(trs.whatAreStudies())
+     )
+ 
+-  def searchForm(placeholder: String, value: String, order: StudyOrder) =
+-    form(cls := "search", action := routes.Study.search(), method := "get")(
+-      form3.hidden("order", order.key),
+-      input(name := "q", st.placeholder := placeholder, st.value := value, enterkeyhint := "search"),
+-      submitButton(cls := "button", dataIcon := Icon.Search)
+-    )
++  def searchForm(_placeholder: String, _value: String, _order: StudyOrder) = emptyFrag
+ 
+   private def formatToggle(using format: StudyFormat) =
+     postForm(
+diff --git a/modules/tv/src/main/TvUi.scala b/modules/tv/src/main/TvUi.scala
+index 2303c7d..302c7a4 100644
+--- a/modules/tv/src/main/TvUi.scala
++++ b/modules/tv/src/main/TvUi.scala
+@@ -61,19 +61,24 @@ final class TvUi(helpers: lila.ui.Helpers)(
+           )
+         )
+ 
+-  def games(channel: Tv.Channel, povs: List[Pov], champions: Tv.Champions)(using Context) =
+-    Page(s"${channel.translate} • ${trans.site.currentGames.txt()}")
++  def games(channel: Tv.Channel, povs: List[Pov], champions: Tv.Champions, currentOnly: Boolean = false)(using
++      Context
++  ) =
++    Page(if currentOnly then trans.site.currentGames.txt()
++    else s"${channel.translate} • ${trans.site.currentGames.txt()}")
+       .css("bits.tv.games")
+       .js(Esm("bits.tvGames")):
+         main(
+           cls := "page-menu tv-games",
++          attr("data-current-only") := currentOnly,
+           dataRel := routeUrl(routes.Tv.gameChannelReplacement(channel.key, GameId("gameId"), Nil))
+         )(
+           st.aside(cls := "page-menu__menu"):
+-            side.channels(channel, champions, "/games")
++            if currentOnly then h1(trans.site.currentGames()) else side.channels(channel, champions, "/games")
+           ,
+           div(cls := "page-menu__content now-playing"):
+-            povs.map(gameUi.mini(_))
++            if currentOnly && povs.isEmpty then p("No games are being played right now.")
++            else frag(povs.map(gameUi.mini(_)))
+         )
+ 
+   object side:
 diff --git a/modules/ui/src/main/helper/UserHelper.scala b/modules/ui/src/main/helper/UserHelper.scala
 index 4e9fcb5..a490173 100644
 --- a/modules/ui/src/main/helper/UserHelper.scala
@@ -1121,15 +1438,101 @@ index 28e5bc4..66c01ad 100644
 +        "standardOnly" -> standardOnly
        )
        .add("fen" -> fen)
+diff --git a/modules/web/src/main/ui/TopNav.scala b/modules/web/src/main/ui/TopNav.scala
+index 4d9306b..bc1c414 100644
+--- a/modules/web/src/main/ui/TopNav.scala
++++ b/modules/web/src/main/ui/TopNav.scala
+@@ -12,7 +12,7 @@ final class TopNav(helpers: Helpers):
+   private def linkTitle(url: String, name: Frag)(using ctx: Context) =
+     if ctx.blind then h3(name) else a(href := url)(name)
+ 
+-  def apply(seesClassMenu: Boolean, hasDgt: Boolean)(using ctx: Context) =
++  def apply(@scala.annotation.unused seesClassMenu: Boolean, hasDgt: Boolean)(using ctx: Context) =
+     st.nav(id := "topnav", cls := "hover")(
+       st.section(
+         linkTitle(
+@@ -27,9 +27,6 @@ final class TopNav(helpers: Helpers):
+           else a(href := "/?any#friend")(trans.site.challengeAFriend()),
+           Option.when(ctx.noBot):
+             frag(
+-              a(href := langHref(routes.Tournament.home))(trans.arena.arenaTournaments()),
+-              a(href := langHref(routes.Swiss.home))(trans.swiss.swissTournaments()),
+-              a(href := langHref(routes.Simul.home))(trans.site.simultaneousExhibitions()),
+               hasDgt.option(a(href := routes.DgtCtrl.index)(trans.dgt.dgtBoard())),
+               (ctx.kid.no && !ctx.me.exists(_.isPatron)).option:
+                 a(cls := "community-patron mobile-only", href := routes.Plan.index())(trans.patron.donate())
+@@ -45,8 +42,7 @@ final class TopNav(helpers: Helpers):
+             a(href := langHref(routes.Puzzle.themes))(trans.puzzle.puzzleThemes()),
+             a(href := routes.Puzzle.dashboard(Days(30), "home", none))(trans.puzzle.puzzleDashboard()),
+             a(href := langHref(routes.Puzzle.streak))("Puzzle Streak"),
+-            a(href := langHref(routes.Storm.home))("Puzzle Storm"),
+-            a(href := langHref(routes.Racer.home))("Puzzle Racer")
++            a(href := langHref(routes.Storm.home))("Puzzle Storm")
+           )
+         )
+       ,
+@@ -60,32 +56,19 @@ final class TopNav(helpers: Helpers):
+               a(href := langHref(routes.Coordinate.home))(trans.coordinates.coordinates())
+             )
+           ,
+-          a(href := langHref(routes.Study.allDefault()))(trans.site.studyMenu()),
+-          ctx.kid.no.option(a(href := langHref(routes.Coach.all(1)))(trans.site.coaches())),
+-          seesClassMenu.option(a(href := routes.Clas.index)(trans.clas.lichessClasses()))
++          a(href := langHref(routes.Study.allDefault()))(trans.site.studyMenu())
+         )
+       ),
+-      st.section:
+-        val broadcastUrl = langHref(routes.RelayTour.index())
+-        frag(
+-          linkTitle(broadcastUrl, trans.site.watch()),
+-          div(role := "group")(
+-            a(href := routes.RelayTour.index())(trans.broadcast.broadcasts()),
+-            a(href := langHref(routes.Tv.index))("Lichess TV"),
+-            a(href := routes.Tv.games)(trans.site.currentGames()),
+-            (ctx.kid.no && ctx.noBot).option(a(href := routes.Streamer.index())(trans.site.streamersMenu())),
+-            ctx.noBot.option(a(href := langHref(routes.Video.index))(trans.site.videoLibrary()))
+-          )
++      st.section(
++        linkTitle(routes.Tv.games.url, trans.site.watch()),
++        div(role := "group")(
++          a(href := routes.Tv.games)(trans.site.currentGames())
+         )
+-      ,
++      ),
+       st.section(
+-        linkTitle(routes.User.list.url, trans.site.community()),
++        linkTitle(routes.ForumCateg.index.url, trans.site.community()),
+         div(role := "group")(
+-          a(href := routes.User.list)(trans.site.players()),
+-          ctx.me.map(me => a(href := routes.Relation.following(me.username))(trans.site.friends())),
+-          a(href := routes.Team.home())(trans.team.teams()),
+           ctx.kid.no.option(a(href := routes.ForumCateg.index)(trans.site.forum())),
+-          ctx.kid.no.option(a(href := langHref(routes.Ublog.communityAll()))(trans.site.blog())),
+           (ctx.kid.no && ctx.me.exists(_.isPatron))
+             .option(a(cls := "community-patron", href := routes.Plan.index())(trans.patron.donate()))
+         )
+@@ -94,10 +77,8 @@ final class TopNav(helpers: Helpers):
+         linkTitle(routes.UserAnalysis.index.url, trans.site.tools()),
+         div(role := "group")(
+           a(href := routes.UserAnalysis.index)(trans.site.analysis()),
+-          a(href := routes.Opening.index())(trans.site.openings()),
+           a(href := routes.Editor.index)(trans.site.boardEditor()),
+-          a(href := routes.Importer.importGame)(trans.site.importGame()),
+-          a(href := routes.Search.index())(trans.search.advancedSearch())
++          a(href := routes.Importer.importGame)(trans.site.importGame())
+         )
+       )
+     )
 diff --git a/modules/web/src/main/ui/bits.scala b/modules/web/src/main/ui/bits.scala
-index 0c0ed10..01a040d 100644
+index 0c0ed10..0fd8c57 100644
 --- a/modules/web/src/main/ui/bits.scala
 +++ b/modules/web/src/main/ui/bits.scala
-@@ -46,29 +46,7 @@ z-index: 99;
+@@ -46,29 +46,12 @@ z-index: 99;
      "This is an empty Lichess preview website, go to lichess.org instead"
  
    val connectLinks: Frag = div(cls := "connect-links")(
--    a(
++    a(href := "https://github.com/Dash1971/mute-chess", targetBlank, noFollow)("GitHub"),
+     a(
 -      href := "https://mastodon.online/@lichess",
 -      targetBlank,
 -      noFollow,
@@ -1149,10 +1552,11 @@ index 0c0ed10..01a040d 100644
 -    )("YouTube"),
 -    a(
 -      href := "https://www.twitch.tv/lichessdotorg",
--      targetBlank,
--      noFollow
++      href := "https://app.flotilla.social/spaces/mobilemaia.spaces.flotilla.social/foflaythin5",
+       targetBlank,
+       noFollow
 -    )("Twitch")
-+    a(href := "https://github.com/Dash1971/mute-chess", targetBlank, noFollow)("GitHub")
++    )("Flotilla")
    )
  
    val logo = raw:
@@ -1328,7 +1732,7 @@ index 83be1dd..31e1146 100644
  
  function hiliteVariations(ctrl: AnalyseCtrl, autoShapes: DrawShape[]) {
 diff --git a/ui/analyse/src/ctrl.ts b/ui/analyse/src/ctrl.ts
-index 643bb4a..950538d 100644
+index 643bb4a..b772582 100644
 --- a/ui/analyse/src/ctrl.ts
 +++ b/ui/analyse/src/ctrl.ts
 @@ -55,6 +55,7 @@ import LiveAnnotate from './liveAnnotate';
@@ -1347,15 +1751,24 @@ index 643bb4a..950538d 100644
    chessground: ChessgroundApi;
    ceval: CevalCtrl;
    evalCache: EvalCache;
-@@ -186,6 +188,8 @@ export default class AnalyseCtrl implements CevalHandler {
+@@ -186,7 +188,6 @@ export default class AnalyseCtrl implements CevalHandler {
      this.pendingDeletionPath = propWithEffect(null, this.redraw);
      this.initialPath = this.makeInitialPath();
      this.setPath(this.initialPath);
-+    if (this.isCevalAllowed() && this.data.game.variant.key === 'standard')
-+      this.noSweat = new NoSweatAnalysis(this);
- 
+-
      this.showGround();
      this.resetAutoShapes();
+     this.explorer.setNode();
+@@ -195,6 +196,9 @@ export default class AnalyseCtrl implements CevalHandler {
+         ? new makeStudy(opts.study, this, (opts.tagTypes || '').split(','), opts.practice, opts.relay)
+         : undefined;
+ 
++    if (!opts.practice && this.isCevalAllowed() && this.data.game.variant.key === 'standard')
++      this.noSweat = new NoSweatAnalysis(this);
++
+     if (location.hash === '#practice' || this.study?.data.chapter.practice) this.togglePractice();
+     else if (location.hash === '#menu') requestIdleCallbackSafe(this.actionMenu.toggle, 500);
+     this.setCevalPracticeOpts();
 @@ -320,6 +324,7 @@ export default class AnalyseCtrl implements CevalHandler {
        this.retro = makeRetro(this, this.bottomColor());
      if (this.practice) this.startCevalIfEnabled();
@@ -1389,6 +1802,46 @@ index 643bb4a..950538d 100644
      if (enable && this.ceval.wasUnloadedByAnotherWindow) this.ceval.reset();
      if (enable !== unforcedState) {
        if (enable) this.startCevalIfEnabled();
+diff --git a/ui/analyse/src/explorer/explorerCtrl.ts b/ui/analyse/src/explorer/explorerCtrl.ts
+index 759c2fb..913c4e9 100644
+--- a/ui/analyse/src/explorer/explorerCtrl.ts
++++ b/ui/analyse/src/explorer/explorerCtrl.ts
+@@ -4,7 +4,6 @@ import { type Prop, prop, defined, myUserId } from 'lib';
+ import { debounce, defer, sync, type Sync } from 'lib/async';
+ import { replayable } from 'lib/game';
+ import { pieceCount, fenColor } from 'lib/game/chess';
+-import { storedBooleanProp } from 'lib/storage';
+ 
+ import type AnalyseCtrl from '@/ctrl';
+ 
+@@ -52,8 +51,8 @@ export default class ExplorerCtrl {
+     readonly opts: ExplorerOpts,
+     previous?: ExplorerCtrl,
+   ) {
+-    this.allowed = prop(previous ? previous.allowed() : !root.isEmbed);
+-    this.enabled = storedBooleanProp('analyse.explorer.enabled', false);
++    this.allowed = prop(false);
++    this.enabled = prop(false);
+     this.withGames = root.synthetic || replayable(root.data) || !!root.data.opponent.ai;
+     this.effectiveVariant =
+       root.data.game.variant.key === 'fromPosition' ? 'standard' : root.data.game.variant.key;
+@@ -68,6 +67,7 @@ export default class ExplorerCtrl {
+   };
+ 
+   private readonly checkHash = (e?: HashChangeEvent) => {
++    if (!this.allowed()) return;
+     const parts = location.hash.split('/');
+     if (parts[0] === '#explorer' || parts[0] === '#opening') {
+       this.enabled(true);
+@@ -156,7 +156,7 @@ export default class ExplorerCtrl {
+     pieceCount(fen) - 1 <= tablebasePieces(variant) && this.root.isCevalAllowed();
+ 
+   setNode = () => {
+-    if (!this.enabled()) return;
++    if (!this.allowed() || !this.enabled()) return;
+     this.gameMenu(null);
+     const node = this.root.node;
+     if (
 diff --git a/ui/analyse/src/interfaces.ts b/ui/analyse/src/interfaces.ts
 index 00f9d9a..cab3e5b 100644
 --- a/ui/analyse/src/interfaces.ts
@@ -1583,6 +2036,63 @@ index cfbd78b..4ee7197 100644
    const data = ctrl.data;
    const $panels = $('.analyse__underboard__panels > div');
    const $menu = $('.analyse__underboard__menu');
+diff --git a/ui/analyse/src/study/analyse.study.tour.ts b/ui/analyse/src/study/analyse.study.tour.ts
+index 9f368b9..00623a6 100644
+--- a/ui/analyse/src/study/analyse.study.tour.ts
++++ b/ui/analyse/src/study/analyse.study.tour.ts
+@@ -146,12 +146,6 @@ export function initModule(): StudyTour {
+         attachTo: { element: `${viewSel} .tabs-horiz .pgn`, on: 'top' },
+         when: onTab('pgn'),
+       },
+-      {
+-        title: i18n.study.variantsAreSupportedTitle,
+-        text: i18n.study.variantsAreSupportedText,
+-        attachTo: { element: `${viewSel} label[for=chapter-variant]`, on: 'left' },
+-        when: onTab('init'),
+-      },
+       {
+         title: i18n.study.conclusionTitle,
+         text: i18n.study.chapterConclusionText,
+diff --git a/ui/analyse/src/study/chapterNewForm.ts b/ui/analyse/src/study/chapterNewForm.ts
+index d3503c3..3a9d858 100644
+--- a/ui/analyse/src/study/chapterNewForm.ts
++++ b/ui/analyse/src/study/chapterNewForm.ts
+@@ -374,7 +374,7 @@ export function view(ctrl: StudyChapterNewForm): VNode {
+                 }),
+             ]),
+           div('.form-split', [
+-            div('.form-group.form-half', [
++            div('.form-group.form-half.none', [
+               label('.form-label', { for: 'chapter-variant' }, i18n.site.variant),
+               select(
+                 '#chapter-variant.form-control',
+diff --git a/ui/analyse/src/study/studyCtrl.ts b/ui/analyse/src/study/studyCtrl.ts
+index b4b25ae..034d75e 100644
+--- a/ui/analyse/src/study/studyCtrl.ts
++++ b/ui/analyse/src/study/studyCtrl.ts
+@@ -333,7 +333,7 @@ export default class StudyCtrl {
+     // official broadcasts cannot have local mods
+     pubsub.emit('chat.permissions', { local: canContribute && !this.relay?.isOfficial() });
+     if (!this.data.chapter.features.explorer) this.ctrl.explorer.disable();
+-    this.ctrl.explorer.allowed(this.data.chapter.features.explorer);
++    this.ctrl.explorer.allowed(false);
+   };
+ 
+   isCevalAllowed = () =>
+diff --git a/ui/analyse/src/study/studyXhr.ts b/ui/analyse/src/study/studyXhr.ts
+index fe114f6..134a4be 100644
+--- a/ui/analyse/src/study/studyXhr.ts
++++ b/ui/analyse/src/study/studyXhr.ts
+@@ -14,7 +14,8 @@ export const reload = (
+   return xhrJson(url);
+ };
+ 
+-export const variants = () => xhrJson('/variant', { cache: 'default' });
++export const variants = (): Promise<Variant[]> =>
++  Promise.resolve([{ key: 'standard', name: 'Standard', short: 'Standard' }]);
+ 
+ export const glyphs = () =>
+   xhrJson(`/study/glyphs/${document.documentElement.lang}.json`, { cache: 'default' });
 diff --git a/ui/analyse/src/util.ts b/ui/analyse/src/util.ts
 index f3984e8..2f09f52 100644
 --- a/ui/analyse/src/util.ts
@@ -1692,6 +2202,42 @@ index a53a9f6..4b9c0e3 100644
 +
 +// Preserve native pages that include this module for its initial side effect.
 +void initModule();
+diff --git a/ui/bits/src/bits.tvGames.ts b/ui/bits/src/bits.tvGames.ts
+index 23e4c86..06938d3 100644
+--- a/ui/bits/src/bits.tvGames.ts
++++ b/ui/bits/src/bits.tvGames.ts
+@@ -8,6 +8,7 @@ interface ReplacementResponse {
+ }
+ 
+ const getId = (el: EleLoose) => el.getAttribute('href')?.substring(1, 9);
++const ids = (node: Element) => Array.from(node.querySelectorAll('.mini-game')).map(getId).sort().join(',');
+ 
+ let isRequestPending = false;
+ const finishedIdQueue: string[] = [];
+@@ -48,6 +49,23 @@ api.overrides.tvGamesOnFinish = (id: string) =>
+   }, 7000); // 7000 matches the rematch wait duration in /modules/tv/main/Tv.scala
+ 
+ site.load.then(() => {
++  if (document.querySelector('[data-current-only="true"]')) {
++    setInterval(() => {
++      if (document.visibilityState !== 'visible') return;
++      xhr
++        .text('/games')
++        .then(html => {
++          const listing = new DOMParser().parseFromString(html, 'text/html').querySelector('.now-playing');
++          const current = document.querySelector('main.tv-games .now-playing');
++          if (!listing || !current) return;
++          if (ids(listing) !== ids(current)) {
++            current.replaceChildren(...Array.from(listing.childNodes));
++            pubsub.emit('content-loaded');
++          }
++        })
++        .catch(() => {});
++    }, 15000);
++  }
+   pubsub.on('socket.in.finish', ({ id }) => api.overrides.tvGamesOnFinish(id));
+   $('main.tv-games')
+     .find('.mini-game')
 diff --git a/ui/chart/src/acpl.ts b/ui/chart/src/acpl.ts
 index d06272b..4a8de31 100644
 --- a/ui/chart/src/acpl.ts
@@ -1982,6 +2528,34 @@ index 5b17c23..c672423 100644
            chess960PositionIdSelector,
            div('.actions', [
              fromImageButton(ctrl, licon.Eye),
+diff --git a/ui/learn/src/view.ts b/ui/learn/src/view.ts
+index 3d9580e..9edd93e 100644
+--- a/ui/learn/src/view.ts
++++ b/ui/learn/src/view.ts
+@@ -80,20 +80,13 @@ function whatNext(ctrl: LearnCtrl) {
+             profileUrl(userId),
+             'beams-aura',
+             i18n.learn.register,
+-            i18n.learn.getAFreeLichessAccount,
++            'Save your progress with Nostr',
+             true,
+           )
+-        : makeStage('/signup', 'beams-aura', i18n.learn.register, i18n.learn.getAFreeLichessAccount),
++        : makeStage('/signup', 'beams-aura', i18n.learn.register, 'Save your progress with Nostr'),
+       makeStage('/practice', 'robot-golem', i18n.learn.practice, i18n.learn.learnCommonChessPositions),
+       makeStage('/training', 'bullseye', i18n.learn.puzzles, i18n.learn.exerciseYourTacticalSkills),
+-      makeStage(
+-        '/video?tags=beginner',
+-        'tied-scroll',
+-        i18n.learn.videos,
+-        i18n.learn.watchInstructiveChessVideos,
+-      ),
+-      makeStage('/#hook', 'sword-clash', i18n.learn.playPeople, i18n.learn.opponentsFromAroundTheWorld),
+-      makeStage('/#ai', 'vintage-robot', i18n.learn.playMachine, i18n.learn.testYourSkillsWithTheComputer),
++      makeStage('/', 'vintage-robot', 'Play Maia', 'Put your skills into practice'),
+     ]),
+   ]);
+ }
 diff --git a/ui/lib/css/theme/board/_boards.scss b/ui/lib/css/theme/board/_boards.scss
 index 22f0a12..d64539e 100644
 --- a/ui/lib/css/theme/board/_boards.scss
@@ -3131,10 +3705,10 @@ index f91c71d..665cbe5 100644
        : i18n.site.anonymous;
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..9ffaac1
+index 0000000..730ff8d
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,627 @@
+@@ -0,0 +1,629 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -3528,6 +4102,8 @@ index 0000000..9ffaac1
 +          )
 +        )
 +      ).map(ok => requireThat(ok, 409, "Security settings changed. Reload this page."))
++
++  def currentGames: Fu[List[GameModel]] = current().map(_.map(_._2).take(15))
 +
 +  private def current(): Fu[List[(Bdoc, GameModel)]] =
 +    records
@@ -7403,10 +7979,10 @@ index 0000000..ec4cc78
 +};
 diff --git a/ui/analyse/src/noSweatAnalysis.ts b/ui/analyse/src/noSweatAnalysis.ts
 new file mode 100644
-index 0000000..aaea2d9
+index 0000000..1e060fb
 --- /dev/null
 +++ b/ui/analyse/src/noSweatAnalysis.ts
-@@ -0,0 +1,834 @@
+@@ -0,0 +1,840 @@
 +import type { DrawShape } from '@lichess-org/chessground/draw';
 +import { parseUci } from 'chessops/util';
 +import { attributesModule, classModule, init } from 'snabbdom';
@@ -7570,11 +8146,14 @@ index 0000000..aaea2d9
 +    });
 +    return view;
 +  }
++  private readonly analysisAllowed = (): boolean =>
++    this.ctrl.isCevalAllowed() && !this.ctrl.opts.practice && !this.ctrl.study?.data.chapter.practice;
++
 +  private readonly valid = (generation: number): boolean =>
 +    generation === this.generation &&
 +    !this.abort.signal.aborted &&
 +    this.enabled &&
-+    this.ctrl.isCevalAllowed() &&
++    this.analysisAllowed() &&
 +    !document.hidden;
 +  private readonly historyFens = (): string[] => this.ctrl.nodeList.map(n => n.fen);
 +  private readonly key = (
@@ -7608,7 +8187,10 @@ index 0000000..aaea2d9
 +  };
 +  positionChanged(force = false): void {
 +    const context =
-+      this.key() + JSON.stringify([this.secondMaiaEnabled, this.secondMaiaElo]) + this.ctrl.path;
++      this.key() +
++      JSON.stringify([this.secondMaiaEnabled, this.secondMaiaElo]) +
++      this.ctrl.path +
++      JSON.stringify([this.ctrl.study?.data.chapter.id, !!this.ctrl.study?.data.chapter.practice]);
 +    if (!force && context === this.context) return;
 +    this.context = context;
 +    this.cancel();
@@ -7621,7 +8203,7 @@ index 0000000..aaea2d9
 +    this.ctrl.setAutoShapes();
 +    this.error = '';
 +    this.status = '';
-+    if (!this.enabled || !this.ctrl.isCevalAllowed() || document.hidden) return;
++    if (!this.enabled || !this.analysisAllowed() || document.hidden) return;
 +    if (position(this.ctrl.node.fen).isEnd()) {
 +      this.status = 'Terminal position — no moves to predict';
 +      return;
@@ -7861,7 +8443,7 @@ index 0000000..aaea2d9
 +    })().catch(e => this.failure(e, generation));
 +  };
 +  shapes(): DrawShape[] {
-+    if (!this.enabled || !this.ctrl.isCevalAllowed() || document.hidden || this.ctrl.threatMode()) return [];
++    if (!this.enabled || !this.analysisAllowed() || document.hidden || this.ctrl.threatMode()) return [];
 +    const lines = this.nativeLines();
 +    const stockfish =
 +      this.fishArrows && this.ctrl.showBestMoveArrows()
@@ -7889,7 +8471,7 @@ index 0000000..aaea2d9
 +    );
 +  }
 +  view(): VNode | undefined {
-+    if (!this.ctrl.isCevalAllowed()) return undefined;
++    if (!this.analysisAllowed()) return undefined;
 +    const side = position(this.ctrl.node.fen).turn === 'white' ? 'White' : 'Black';
 +    const row = (rating: number, candidates: Candidate[], secondary: boolean) =>
 +      hl('div.nosweat-maia-line', [

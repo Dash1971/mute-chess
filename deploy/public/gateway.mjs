@@ -12,7 +12,7 @@ const nostrIdentity = Buffer.from(JSON.stringify({
   relays: { [nostrPubkey]: ['wss://relay.damus.io', 'wss://nos.lol', 'wss://relay.primal.net'] },
 }));
 const buckets = new Map();
-const websocketPaths = /^\/(?:socket(?:\/v\d+)?|analysis\/socket(?:\/v\d+)?|lobby\/socket(?:\/v\d+)?|play\/[A-Za-z0-9]{12}\/v\d+|watch\/[A-Za-z0-9]{8}\/(?:white|black)\/v\d+)$/;
+const websocketPaths = /^\/(?:socket(?:\/v\d+)?|analysis\/socket(?:\/v\d+)?|lobby\/socket(?:\/v\d+)?|study\/[A-Za-z0-9]{8}\/socket\/v\d+|play\/[A-Za-z0-9]{12}\/v\d+|watch\/[A-Za-z0-9]{8}\/(?:white|black)\/v\d+)$/;
 function pathOf(req) {
   try { return decodeURIComponent(new URL(req.url, 'http://local').pathname).replace(/\/+/g, '/'); }
   catch { return ''; }
@@ -105,8 +105,21 @@ const server = http.createServer((req, res) => {
     (/^\/account\/signout\/(?:all|[A-Za-z0-9_-]{1,128})$/.test(path) && req.method === 'POST'));
   const puzzleRoute = (['GET', 'HEAD'].includes(req.method) && /^\/training(?:\/[A-Za-z0-9_-]+){0,3}$/.test(path) && !/^\/training\/(?:coordinate|batch|new|of-player|frame)(?:\/|$)/.test(path)) ||
     (req.method === 'POST' && /^\/training\/(?:complete\/[A-Za-z0-9_-]+\/[A-Za-z0-9]{5}|difficulty\/[A-Za-z0-9_-]+|[A-Za-z0-9]{5}\/(?:vote(?:\/[A-Za-z0-9_-]+)?|report))$/.test(path));
+  const read = ['GET', 'HEAD'].includes(req.method), post = req.method === 'POST';
+  const featureRoute =
+    (read && /^\/account\/preferences\/(?:display|chess-clock|game-behavior|privacy|notification)$/.test(path)) ||
+    (post && /^\/account\/preferences(?:\/notification)?$/.test(path)) ||
+    (read && /^(?:\/storm(?:\/dashboard(?:\/[A-Za-z0-9_-]+)?)?|\/streak|\/api\/streak|\/api\/player\/autocomplete|\/learn|\/training\/coordinate|\/games|\/notify|\/run\/captcha\/[A-Za-z0-9]{8})$/.test(path)) ||
+    (read && /^\/games\/best\/replacement\/[A-Za-z0-9]{8}$/.test(path)) ||
+    (post && /^(?:\/storm|\/learn\/(?:score|reset)|\/training\/coordinate\/score|\/notify\/clear)$/.test(path)) ||
+    (read && /^\/practice(?:\/[A-Za-z0-9_-]+){0,4}$/.test(path)) ||
+    (post && /^\/practice\/(?:reset|complete\/[A-Za-z0-9]{8}\/\d{1,5})$/.test(path)) ||
+    (read && /^\/forum(?:\/[A-Za-z0-9_-]+){0,4}$/.test(path) && !/^\/forum\/(?:search|diagnostic|community-blog-discussions)(?:\/|$)/.test(path)) ||
+    (post && /^\/forum\/(?:[A-Za-z0-9_-]+\/(?:new|[A-Za-z0-9_-]+\/(?:close|sticky|new)|react\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/(?:true|false))|(?:delete|relocate|post)\/[A-Za-z0-9_-]+)$/.test(path)) ||
+    (read && /^\/study(?:\/[A-Za-z0-9_.-]+){0,4}$/.test(path) && !/^\/study\/search(?:\/|$)/.test(path)) ||
+    (post && /^\/study(?:\/(?:as|list-format|topic|[A-Za-z0-9]{8}\/(?:delete|cloneApply|clear-chat|import-pgn|admin)))?$/.test(path));
   const patronRoute = path === '/patron' && ['GET', 'HEAD'].includes(req.method);
-  const supported = patronRoute || puzzleRoute || profileRoute || path === '/' || /^\/(?:club(?:\/|$)|analysis(?:\/|$)|editor(?:\/|$)|game(?:\/|$)|@\/|login$|signup$|logout$|player-count$|account\/now-playing$|lobby\/seeks$|timeline$|pref(?:\/|$)|whats-next\/|opening(?:\/|$)|api\/cloud-eval$|paste$|import$)/.test(path) || /^\/[A-Za-z0-9]{8}(?:[A-Za-z0-9]{4})?(?:\/(?:white|black))?$/.test(path);
+  const supported = featureRoute || patronRoute || puzzleRoute || profileRoute || path === '/' || /^\/(?:club(?:\/|$)|analysis(?:\/|$)|editor(?:\/|$)|game(?:\/|$)|@\/|login$|signup$|logout$|player-count$|account\/now-playing$|lobby\/seeks$|timeline$|pref(?:\/|$)|whats-next\/|opening(?:\/|$)|api\/cloud-eval$|paste$|import$)/.test(path) || /^\/[A-Za-z0-9]{8}(?:[A-Za-z0-9]{4})?(?:\/(?:white|black))?$/.test(path);
   if (!supported) return reject(res, 404, 'This page is unavailable. Return to the homepage.');
   if (Number(req.headers['content-length'] ?? 0) > 16 * 1024 * 1024) return reject(res, 413, 'Request too large');
   const upstream = http.request({ hostname: '127.0.0.1', port: 29663, path: req.url,

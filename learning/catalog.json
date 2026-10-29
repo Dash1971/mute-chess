@@ -1,0 +1,12 @@
+{
+  "repository": "https://github.com/lichess-org/lila-db-seed",
+  "commit": "b5d06f115c51d6f12167b9629fb21f087bf2e833",
+  "license": "MIT",
+  "marker": "lichess-practice-b5d06f115c51d6f12167b9629fb21f087bf2e833",
+  "studies": 20,
+  "chapters": 229,
+  "files": {
+    "studies.jsonl": "3643b837b630a27d47bcaf6d8ae04efdd9573658ed9a39e174db3325ec4c7388",
+    "chapters.jsonl": "fbe2fafc802f5249f13989ad9240f630cbd6d1136f7d691f3224c66d098ebd9b"
+  }
+}

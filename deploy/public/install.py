@@ -54,6 +54,10 @@ analysis_spec = importlib.util.spec_from_file_location('analysis_assets', payloa
 analysis_checker = importlib.util.module_from_spec(analysis_spec)
 analysis_spec.loader.exec_module(analysis_checker)
 analysis_checker.verify(payload / 'analysis/browser', dev / 'sources/lila/public/nosweat/analysis')
+lesson_spec = importlib.util.spec_from_file_location('learning_import', payload / 'learning/import.py')
+lesson_checker = importlib.util.module_from_spec(lesson_spec)
+lesson_spec.loader.exec_module(lesson_checker)
+lesson_checker.verify()
 # Reject parse failures before creating a release or changing the active symlink.
 checker = base / 'tools/node'
 if not checker.exists():
@@ -212,6 +216,7 @@ shutil.copytree(release / 'lila-adapter', source_dir / 'lila-adapter', ignore=sh
 shutil.copytree(payload / 'deployment', source_dir / 'deployment')
 shutil.copytree(payload / 'analysis', source_dir / 'analysis')
 shutil.copytree(payload / 'puzzles', source_dir / 'puzzles')
+shutil.copytree(payload / 'learning', source_dir / 'learning')
 with tarfile.open(release / 'source.tar.gz', 'w:gz') as archive:
     archive.add(source_dir, arcname='mutechess-source')
 (release / 'source.tar.gz').chmod(0o644)
@@ -246,4 +251,5 @@ for attempt in range(30):
 else: raise RuntimeError('Puzzle database did not become ready')
 env = {**os.environ, 'PATH': str(base / 'tools') + os.pathsep + os.environ.get('PATH', '')}
 subprocess.run(['python3', str(source_dir / 'puzzles/import.py'), 'mongodb://127.0.0.1:27019/nosweat', '--mongosh', str(dev / 'tools/mongosh/node_modules/mongosh/bin/mongosh.js')], env=env, check=True)
+subprocess.run(['python3', str(source_dir / 'learning/import.py'), 'mongodb://127.0.0.1:27019/nosweat', '--mongosh', str(dev / 'tools/mongosh/node_modules/mongosh/bin/mongosh.js')], env=env, check=True)
 print(json.dumps({'release': str(release), 'source_sha256': hashlib.sha256((release / 'source.tar.gz').read_bytes()).hexdigest(), 'application_exposed': False}))
