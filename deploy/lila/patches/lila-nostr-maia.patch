@@ -1490,6 +1490,58 @@ index bfe17e8..c95e1c7 100644
      active === 'now_playing' || nbPlaying || isBot
        ? tab(ctrl, 'now_playing', active, [
            ...i18n.site.nbGamesInPlay.asArray(nbPlaying, nbPlaying >= 100 ? '99+' : nbPlaying.toString()),
+diff --git a/ui/puzzle/css/_tools.scss b/ui/puzzle/css/_tools.scss
+index ca31d49..75a5bd3 100644
+--- a/ui/puzzle/css/_tools.scss
++++ b/ui/puzzle/css/_tools.scss
+@@ -164,3 +164,47 @@
+     color: $c-font-clearer;
+   }
+ }
++
++.nosweat-puzzle-policy {
++  font-size: 0.85em;
++
++  summary {
++    cursor: pointer;
++    color: $c-font-dim;
++    padding: 0.3em 0;
++  }
++
++  &__scroll {
++    max-height: 8rem;
++    overflow: auto;
++    overscroll-behavior: contain;
++  }
++
++  table {
++    width: 100%;
++    border-collapse: collapse;
++  }
++
++  thead {
++    position: sticky;
++    top: 0;
++    background: $c-bg-box;
++  }
++
++  td,
++  th {
++    padding: 0.3em 0.2em;
++    border-bottom: $border;
++    text-align: right;
++    font-variant-numeric: tabular-nums;
++
++    &:first-child {
++      text-align: left;
++    }
++  }
++
++  button {
++    padding: 0.1em 0.2em;
++    text-transform: none;
++  }
++}
 diff --git a/ui/puzzle/src/autoShape.ts b/ui/puzzle/src/autoShape.ts
 index 8097367..0eb4f00 100644
 --- a/ui/puzzle/src/autoShape.ts
@@ -4801,10 +4853,10 @@ index 0000000..746fe6d
 +}
 diff --git a/ui/analyse/src/noSweatAnalysis.ts b/ui/analyse/src/noSweatAnalysis.ts
 new file mode 100644
-index 0000000..877021d
+index 0000000..09bc345
 --- /dev/null
 +++ b/ui/analyse/src/noSweatAnalysis.ts
-@@ -0,0 +1,1004 @@
+@@ -0,0 +1,1002 @@
 +import type { DrawShape } from '@lichess-org/chessground/draw';
 +import { parseUci } from 'chessops/util';
 +import { attributesModule, classModule, init } from 'snabbdom';
@@ -4827,6 +4879,7 @@ index 0000000..877021d
 +  position,
 +  standardUci,
 +  legalUcis,
++  leadingPolicy,
 +  type Candidate,
 +} from './noSweatCore';
 +import { ReviewFish, type Review } from './noSweatFish';
@@ -5467,10 +5520,7 @@ index 0000000..877021d
 +        hl(
 +          'span',
 +          candidates.length
-+            ? candidates
-+                .slice(0, 3)
-+                .map(c => `${san(this.ctrl.node.fen, c.uci)} ${(100 * c.probability).toFixed(1)}%`)
-+                .join(' · ')
++            ? leadingPolicy(this.ctrl.node.fen, candidates)
 +            : position(this.ctrl.node.fen).isEnd()
 +              ? 'No legal moves'
 +              : !this.enabled
@@ -24721,10 +24771,10 @@ index 0000000..595739d
 +}
 diff --git a/ui/lib/src/nosweat/core.ts b/ui/lib/src/nosweat/core.ts
 new file mode 100644
-index 0000000..4b6b4be
+index 0000000..1a77e83
 --- /dev/null
 +++ b/ui/lib/src/nosweat/core.ts
-@@ -0,0 +1,98 @@
+@@ -0,0 +1,105 @@
 +// Maia3 encoding/vocabulary: CSSLab 1e13597c and Mobile Maia; see provenance.
 +import { Chess } from 'chessops/chess';
 +import { makeFen, parseFen } from 'chessops/fen';
@@ -24784,6 +24834,13 @@ index 0000000..4b6b4be
 +export interface Candidate {
 +  uci: string;
 +  probability: number;
++}
++// Shared summary for native analysis and puzzle review.
++export function leadingPolicy(fen: string, candidates: Candidate[]): string {
++  return candidates
++    .slice(0, 3)
++    .map(c => `${san(fen, c.uci)} ${(100 * c.probability).toFixed(1)}%`)
++    .join(' · ');
 +}
 +export function policy(fen: string, logits: Float32Array): Candidate[] {
 +  if (logits.length !== 4352 || !logits.every(Number.isFinite)) throw new Error('Invalid Maia policy');
@@ -25188,18 +25245,20 @@ index 0000000..f719c6b
 +});
 diff --git a/ui/puzzle/src/noSweatMaia.ts b/ui/puzzle/src/noSweatMaia.ts
 new file mode 100644
-index 0000000..946dbee
+index 0000000..c7836f0
 --- /dev/null
 +++ b/ui/puzzle/src/noSweatMaia.ts
-@@ -0,0 +1,78 @@
+@@ -0,0 +1,130 @@
++import { parseUci } from 'chessops/util';
++
 +import { winningChances } from 'lib/ceval';
 +import { fenColor } from 'lib/game';
-+import { engineArrows, engineShapes } from 'lib/nosweat/arrows';
-+import { san } from 'lib/nosweat/core';
++import { engineArrows, engineShapes, engineColors } from 'lib/nosweat/arrows';
++import { san, leadingPolicy, type Candidate } from 'lib/nosweat/core';
 +import { readEnginePreferences } from 'lib/nosweat/preferences';
 +import { loadBrowserMaia, ReviewMaia, reviewAllowed } from 'lib/nosweat/reviewMaia';
 +import { storage } from 'lib/storage';
-+import { hl } from 'lib/view';
++import { hl, bind } from 'lib/view';
 +
 +import type PuzzleCtrl from './ctrl';
 +
@@ -25254,19 +25313,69 @@ index 0000000..946dbee
 +    if (!this.allowed()) return undefined;
 +    const prefs = this.preferences();
 +    if (!prefs.maiaArrows) return undefined;
-+    const move = (uci?: string) => (uci ? san(this.ctrl.node.fen, uci) : this.engine.status);
-+    return hl('div.pv_box', { attrs: { 'aria-label': 'Maia analysis channels', 'aria-live': 'polite' } }, [
++    const fen = this.ctrl.node.fen;
++    const status = this.ctrl.node.outcome() ? 'No legal moves' : this.engine.status || 'Analyzing…';
++    const row = (rating: number, candidates: Candidate[], color: string) =>
++      hl('div.nosweat-maia-line', [
++        hl('strong', { attrs: { style: 'color:' + color } }, 'M' + rating),
++        hl('span', candidates.length ? leadingPolicy(fen, candidates) : status),
++      ]);
++    const probability = (value?: number) =>
 +      hl(
-+        'div',
-+        { attrs: { style: 'color:#e89b3c' } },
-+        `M${prefs.selfElo} ${move(this.engine.primary[0]?.uci)}`,
-+      ),
-+      prefs.secondMaiaEnabled &&
-+        hl(
-+          'div',
-+          { attrs: { style: 'color:#e85d68' } },
-+          `M${prefs.secondMaiaElo} ${move(this.engine.secondary[0]?.uci)}`,
-+        ),
++        'td',
++        {
++          attrs: value === undefined ? {} : { title: `${(100 * value).toPrecision(6)}%` },
++        },
++        value === undefined ? '—' : value > 0 && value < 0.001 ? '<0.1%' : `${(100 * value).toFixed(1)}%`,
++      );
++    const secondary = new Map(this.engine.secondary.map(c => [c.uci, c.probability]));
++    return hl('section.nosweat-engine-lines', { attrs: { 'aria-label': 'Maia analysis channels' } }, [
++      row(prefs.selfElo, this.engine.primary, engineColors.maia),
++      prefs.secondMaiaEnabled && row(prefs.secondMaiaElo, this.engine.secondary, engineColors.maiaSecond),
++      hl('details.nosweat-puzzle-policy', [
++        hl('summary', 'All legal moves'),
++        hl('div.nosweat-puzzle-policy__scroll', [
++          hl('table', { attrs: { 'aria-label': 'Maia move probabilities' } }, [
++            hl(
++              'thead',
++              hl('tr', [
++                hl('th', { attrs: { scope: 'col' } }, 'Move'),
++                hl(
++                  'th',
++                  { attrs: { scope: 'col', style: 'color:' + engineColors.maia } },
++                  'M' + prefs.selfElo,
++                ),
++                prefs.secondMaiaEnabled &&
++                  hl(
++                    'th',
++                    { attrs: { scope: 'col', style: 'color:' + engineColors.maiaSecond } },
++                    'M' + prefs.secondMaiaElo,
++                  ),
++              ]),
++            ),
++            hl(
++              'tbody',
++              this.engine.primary.map(candidate =>
++                hl('tr', { key: candidate.uci }, [
++                  hl(
++                    'td',
++                    hl(
++                      'button.fbt',
++                      {
++                        attrs: { type: 'button', title: 'Explore ' + san(fen, candidate.uci) },
++                        hook: bind('click', () => this.ctrl.sendMove(parseUci(candidate.uci)!)),
++                      },
++                      san(fen, candidate.uci),
++                    ),
++                  ),
++                  probability(candidate.probability),
++                  prefs.secondMaiaEnabled && probability(secondary.get(candidate.uci)),
++                ]),
++              ),
++            ),
++          ]),
++        ]),
++      ]),
 +    ]);
 +  }
 +}
