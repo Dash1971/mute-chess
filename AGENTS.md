@@ -17,3 +17,13 @@ On 28 October the owner superseded the club landing page and manual bot challeng
 ## Release discipline
 
 The owner requires one permanent branch, `main`. Use short-lived feature branches and pull requests, review changes, pass checks, merge on GitHub, then deploy the merged main revision. Do not deploy unmerged or dirty code. Run `python3 deploy/public/verify-main.py` before preparing a release. Rebuild/verify the native source against that exact main patch. Record the main commit in RELEASE.json and verify the live revision. Delete merged feature branches; do not keep parallel release/development branches. This replaces the earlier deploy-before-push workflow.
+
+
+## Standard chess only (owner decision, 29 October 2026)
+
+No Sweat Chess supports standard chess only. Do not expose or add chess variants, including Chess960, Atomic, Crazyhouse, Antichess, Horde, Racing Kings, King of the Hill or Three-check. Standard-chess FEN positions, PGN imports and the board editor remain supported. Hide variant selectors and reject variant analysis URLs/imports. Keep upstream variant internals only where the native Lichess foundation needs them. Footer social links currently point only to the No Sweat Chess GitHub repository; there is no swag store.
+
+
+## Issue-to-release workflow (owner decision, 29 October 2026)
+
+For every new feature, create a GitHub issue first. Implement on a short-lived codex/ branch, create a PR referencing the issue with Closes/Fixes, review and pass required checks, merge on GitHub, verify the linked issue is closed, then deploy the verified main commit. Preserve one permanent main branch. Apply this to the active requested features as well; related fixes may share a PR with separate linked issues. Do not deploy unmerged code.

@@ -47,11 +47,209 @@ index efdcfe5..1639aed 100644
    def loginLang = LangPage(routes.Auth.login)(serveLogin)
  
    private def serveLogin(using ctx: Context, referrer: Option[ValidReferrer]) = NoBot:
+diff --git a/app/controllers/Dasher.scala b/app/controllers/Dasher.scala
+index 6209054..b14132d 100644
+--- a/app/controllers/Dasher.scala
++++ b/app/controllers/Dasher.scala
+@@ -31,5 +31,6 @@ final class Dasher(env: Env) extends LilaController(env):
+                 "accepted" -> LangPicker.allFromRequestHeaders(ctx.req).map(_.code),
+                 "list" -> LangList.allChoices
+               ),
+-              "streamer" -> isStreamer
++              "streamer" -> isStreamer,
++              "noSweat" -> env.noSweat.enabled
+             ) ++ DasherJson(ctx.pref, gallery)
+diff --git a/app/controllers/Editor.scala b/app/controllers/Editor.scala
+index 05db4e0..481749e 100644
+--- a/app/controllers/Editor.scala
++++ b/app/controllers/Editor.scala
+@@ -29,13 +29,18 @@ final class Editor(env: Env) extends LilaController(env):
+   def index = load("")
+ 
+   def load(urlFen: String) = Open:
+-    val fen: Option[Fen.Full] = lila.common.String
+-      .decodeUriPath(urlFen)
+-      .filter(_.nonEmpty)
+-      .map(Fen.Full.clean)
+-    Ok.page:
+-      views.boardEditor(fen, positionsJson, endgamePositionsJson)
+-    .map(_.enforceCrossSiteIsolation)
++    if env.noSweat.enabled && get("variant").exists(v =>
++        !Set("standard", "fromposition").contains(v.toLowerCase)
++      )
++    then fuccess(BadRequest("Only standard chess is supported."))
++    else
++      val fen: Option[Fen.Full] = lila.common.String
++        .decodeUriPath(urlFen)
++        .filter(_.nonEmpty)
++        .map(Fen.Full.clean)
++      Ok.page:
++        views.boardEditor(fen, positionsJson, endgamePositionsJson)
++      .map(_.enforceCrossSiteIsolation)
+ 
+   def data = Auth: _ ?=>
+     Ok(views.boardEditor.jsData())
+diff --git a/app/controllers/Importer.scala b/app/controllers/Importer.scala
+index ede74af..51e2daa 100644
+--- a/app/controllers/Importer.scala
++++ b/app/controllers/Importer.scala
+@@ -27,48 +27,58 @@ final class Importer(env: Env) extends LilaController(env):
+           jsonFormError(err)
+         ),
+       data =>
+-        limit.gameImport(ctx.ip, () => rateLimited): () =>
+-          env.game.importer
+-            .importAsGame(data.pgn)
+-            .flatMap: game =>
+-              ctx.me.so(env.game.cached.clearNbImportedByCache(_)).inject(Right(game))
+-            .recover { case _: Exception =>
+-              Left("The PGN contains illegal and/or ambiguous moves.")
+-            }
+-            .flatMap {
+-              case Right(game) =>
+-                negotiate(
+-                  html = ctx.me
+-                    .filter(_ => data.analyse.isDefined && lila.game.GameExt.analysable(game))
+-                    .soUse: me ?=>
+-                      env.fishnet
+-                        .analyser(
+-                          game,
+-                          lila.fishnet.Work.Sender(
+-                            userId = me,
+-                            ip = ctx.ip.some,
+-                            mod = isGranted(_.UserEvaluate),
+-                            system = false
++        val nonStandard = chess.format.pgn.Parser
++          .tags(data.pgn)
++          .toOption
++          .flatMap(tags => tags(_.Variant))
++          .exists(v =>
++            !Set("standard", "chess", "normal", "fromposition")
++              .contains(v.toLowerCase.replaceAll("[\\s_-]", ""))
++          )
++        if env.noSweat.enabled && nonStandard then fuccess(BadRequest("Only standard chess is supported."))
++        else
++          limit.gameImport(ctx.ip, () => rateLimited): () =>
++            env.game.importer
++              .importAsGame(data.pgn)
++              .flatMap: game =>
++                ctx.me.so(env.game.cached.clearNbImportedByCache(_)).inject(Right(game))
++              .recover { case _: Exception =>
++                Left("The PGN contains illegal and/or ambiguous moves.")
++              }
++              .flatMap {
++                case Right(game) =>
++                  negotiate(
++                    html = ctx.me
++                      .filter(_ => data.analyse.isDefined && lila.game.GameExt.analysable(game))
++                      .soUse: me ?=>
++                        env.fishnet
++                          .analyser(
++                            game,
++                            lila.fishnet.Work.Sender(
++                              userId = me,
++                              ip = ctx.ip.some,
++                              mod = isGranted(_.UserEvaluate),
++                              system = false
++                            )
+                           )
+-                        )
+-                        .void
+-                    .inject(Redirect(routes.Round.watcher(game.id, Color.white))),
+-                  json =
+-                    if HTTPRequest.isLichobile
+-                    then Redirect(routes.Round.watcher(game.id, Color.white))
+-                    else
+-                      Ok:
+-                        Json.obj(
+-                          "id" -> game.id,
+-                          "url" -> routeUrl(routes.Round.watcher(game.id, Color.white))
+-                        )
+-                )
+-              case Left(error) =>
+-                negotiate(
+-                  Redirect(routes.Importer.importGame).flashFailure(error),
+-                  BadRequest(jsonError(error))
+-                )
+-            }
++                          .void
++                      .inject(Redirect(routes.Round.watcher(game.id, Color.white))),
++                    json =
++                      if HTTPRequest.isLichobile
++                      then Redirect(routes.Round.watcher(game.id, Color.white))
++                      else
++                        Ok:
++                          Json.obj(
++                            "id" -> game.id,
++                            "url" -> routeUrl(routes.Round.watcher(game.id, Color.white))
++                          )
++                  )
++                case Left(error) =>
++                  negotiate(
++                    Redirect(routes.Importer.importGame).flashFailure(error),
++                    BadRequest(jsonError(error))
++                  )
++              }
+     )
+ 
+   def masterGame(id: GameId, orientation: Color) = Open:
+diff --git a/app/controllers/UserAnalysis.scala b/app/controllers/UserAnalysis.scala
+index 8ce37a2..89c9561 100644
+--- a/app/controllers/UserAnalysis.scala
++++ b/app/controllers/UserAnalysis.scala
+@@ -31,25 +31,28 @@ final class UserAnalysis(
+       case _ => load(none, Standard)
+ 
+   private def load(urlFen: Option[String], variant: Variant) = Open:
+-    val inputFen: Option[Fen.Full] = urlFen.orElse(get("fen")).flatMap(readFen)
+-    val chess960PositionNum: Option[Int] = variant.chess960.so:
+-      getInt("position").orElse: // no input fen or num defaults to standard start position
+-        Chess960.positionNumber(inputFen | variant.initialFen)
+-    val decodedFen: Option[Fen.Full] = inputFen.orElse(chess960PositionNum.flatMap(Chess960.positionToFen))
+-    val pov = makePov(decodedFen, variant)
+-    val orientation = getColor() | pov.color
+-    for
+-      data <- env.api.roundApi.userAnalysisJson(
+-        pov,
+-        ctx.pref,
+-        decodedFen,
+-        orientation,
+-        owner = false
+-      )
+-      page <- renderPage(views.analyse.ui.userAnalysis(data, pov, chess960PositionNum))
+-    yield Ok(page)
+-      .withCanonical(routes.UserAnalysis.index)
+-      .enforceCrossSiteIsolation
++    if env.noSweat.enabled && variant != Standard && variant != FromPosition then
++      fuccess(BadRequest("Only standard chess is supported."))
++    else
++      val inputFen: Option[Fen.Full] = urlFen.orElse(get("fen")).flatMap(readFen)
++      val chess960PositionNum: Option[Int] = variant.chess960.so:
++        getInt("position").orElse: // no input fen or num defaults to standard start position
++          Chess960.positionNumber(inputFen | variant.initialFen)
++      val decodedFen: Option[Fen.Full] = inputFen.orElse(chess960PositionNum.flatMap(Chess960.positionToFen))
++      val pov = makePov(decodedFen, variant)
++      val orientation = getColor() | pov.color
++      for
++        data <- env.api.roundApi.userAnalysisJson(
++          pov,
++          ctx.pref,
++          decodedFen,
++          orientation,
++          owner = false
++        )
++        page <- renderPage(views.analyse.ui.userAnalysis(data, pov, chess960PositionNum))
++      yield Ok(page)
++        .withCanonical(routes.UserAnalysis.index)
++        .enforceCrossSiteIsolation
+ 
+   def pgn(pgn: String) = Open:
+     val pov = makePov(none, Standard)
 diff --git a/app/http/HttpRequestHandler.scala b/app/http/HttpRequestHandler.scala
-index a6875eb..2b0259a 100644
+index a6875eb..c844e23 100644
 --- a/app/http/HttpRequestHandler.scala
 +++ b/app/http/HttpRequestHandler.scala
-@@ -10,12 +10,25 @@ final class HttpRequestHandler(
+@@ -10,12 +10,28 @@ final class HttpRequestHandler(
      errorHandler: HttpErrorHandler,
      configuration: HttpConfiguration,
      filters: Seq[EssentialFilter],
@@ -65,6 +263,9 @@ index a6875eb..2b0259a 100644
 -    if request.method == "OPTIONS"
 +    if noSweatEnabled && request.method == "GET" && request.path == "/signup" then
 +      Some(controllerComponents.actionBuilder(_ => Results.Redirect("/login")))
++    else if noSweatEnabled && (request.path == "/swag" || request.path == "/variant" || request.path
++        .startsWith("/variant/"))
++    then Some(controllerComponents.actionBuilder(_ => Results.NotFound))
 +    else if noSweatEnabled && request.method == "POST" &&
 +      (request.path == "/login" || request.path.startsWith("/signup") ||
 +        request.path.startsWith("/setup/") || request.path.startsWith("/api/challenge") ||
@@ -79,11 +280,39 @@ index a6875eb..2b0259a 100644
      then optionsHandler.some
      else router.handlerFor(request)
  
+diff --git a/app/views/analyse.scala b/app/views/analyse.scala
+index 3fb4283..2c758b1 100644
+--- a/app/views/analyse.scala
++++ b/app/views/analyse.scala
+@@ -6,7 +6,7 @@ import play.api.libs.json.{ JsObject, Json }
+ import lila.app.UiEnv.{ *, given }
+ import lila.round.RoundGame.secondsSinceCreation
+ 
+-val ui = lila.analyse.ui.AnalyseUi(helpers)(analyseEndpoints)
++val ui = lila.analyse.ui.AnalyseUi(helpers)(analyseEndpoints, env.noSweat.enabled)
+ 
+ object replay:
+ 
 diff --git a/app/views/lobby/home.scala b/app/views/lobby/home.scala
-index 2db52a9..8587cc3 100644
+index 2db52a9..6f2eb18 100644
 --- a/app/views/lobby/home.scala
 +++ b/app/views/lobby/home.scala
-@@ -35,6 +35,7 @@ object home:
+@@ -18,14 +18,6 @@ object home:
+           span(trans.patron.becomePatron())
+         )
+       )
+-    val swagLink =
+-      a(cls := "lobby__support-link", href := "/swag")(
+-        iconTag(Icon.Tshirt),
+-        span(cls := "lobby__support-link__text")(
+-          strong("Swag Store"),
+-          span(trans.site.playChessInStyle())
+-        )
+-      )
+     Page("")
+       .copy(fullTitle = s"$siteName • ${trans.site.freeOnlineChess.txt()}".some)
+       .i18n(_.variant)
+@@ -35,6 +27,7 @@ object home:
            Json
              .obj(
                "data" -> data,
@@ -91,7 +320,7 @@ index 2db52a9..8587cc3 100644
                "showRatings" -> ctx.pref.showRatings
              )
              .add("hasUnreadLichessMessage", hasUnreadLichessMessage)
-@@ -118,11 +119,15 @@ object home:
+@@ -118,21 +111,24 @@ object home:
                button(cls := "button button-metal lobby__start__button lobby__start__button--hook")(
                  trans.site.createLobbyGame()
                ),
@@ -111,6 +340,30 @@ index 2db52a9..8587cc3 100644
                )
              )
            ),
+-          div(cls := "lobby__support")(donateLink, swagLink),
++          div(cls := "lobby__support")(donateLink),
+           div(cls := "lobby__tv")(
+             donateLink,
+             featured.map(g => views.game.mini(Pov.naturalOrientation(g), tv = true))
+           ),
+           div(cls := "lobby__puzzle")(
+-            swagLink,
+             puzzle.map(p => views.puzzle.bits.dailyLink(p)())
+           ),
+           views.ublog.ui.homeCarousel(ublogPosts),
+diff --git a/app/views/ui.scala b/app/views/ui.scala
+index ab74f28..14968ea 100644
+--- a/app/views/ui.scala
++++ b/app/views/ui.scala
+@@ -7,7 +7,7 @@ val captcha = lila.web.ui.CaptchaUi(helpers)
+ 
+ val chat = lila.chat.ChatUi
+ 
+-val boardEditor = lila.web.ui.BoardEditorUi(helpers)
++val boardEditor = lila.web.ui.BoardEditorUi(helpers, env.noSweat.enabled)
+ 
+ val setup = lila.setup.ui.SetupUi(helpers)
+ 
 diff --git a/conf/routes b/conf/routes
 index f2a7ab2..238ee98 100644
 --- a/conf/routes
@@ -132,6 +385,69 @@ index f2a7ab2..238ee98 100644
  GET   /                                controllers.Lobby.home
  GET   /lobby/seeks                     controllers.Lobby.seeks
  
+diff --git a/modules/analyse/src/main/ui/AnalyseUi.scala b/modules/analyse/src/main/ui/AnalyseUi.scala
+index 2fde85c..53f9fef 100644
+--- a/modules/analyse/src/main/ui/AnalyseUi.scala
++++ b/modules/analyse/src/main/ui/AnalyseUi.scala
+@@ -8,7 +8,7 @@ import play.api.libs.json.*
+ import lila.ui.*
+ import lila.ui.ScalatagsTemplate.{ *, given }
+ 
+-final class AnalyseUi(helpers: Helpers)(endpoints: AnalyseEndpoints):
++final class AnalyseUi(helpers: Helpers)(endpoints: AnalyseEndpoints, standardOnly: Boolean = false):
+   import helpers.{ *, given }
+ 
+   def miniSpan(fen: Fen.Board, color: Color = chess.White, lastMove: Option[Uci] = None) =
+@@ -68,21 +68,23 @@ final class AnalyseUi(helpers: Helpers)(endpoints: AnalyseEndpoints):
+         )(
+           pov.game.synthetic.option(
+             st.aside(cls := "analyse__side")(
+-              lila.ui.bits.mselect(
+-                "analyse-variant",
+-                span(cls := "text", dataIcon := iconByVariant(pov.game.variant))(
+-                  pov.game.variant.variantTrans()
+-                ),
+-                Variant.list.all
+-                  .filter(FromPosition != _)
+-                  .map: v =>
+-                    a(
+-                      dataIcon := iconByVariant(v),
+-                      cls := (pov.game.variant == v).option("current"),
+-                      href := routes.UserAnalysis.parseArg(v.key.value)
+-                    )(v.variantTrans())
++              (!standardOnly).option(
++                lila.ui.bits.mselect(
++                  "analyse-variant",
++                  span(cls := "text", dataIcon := iconByVariant(pov.game.variant))(
++                    pov.game.variant.variantTrans()
++                  ),
++                  Variant.list.all
++                    .filter(FromPosition != _)
++                    .map: v =>
++                      a(
++                        dataIcon := iconByVariant(v),
++                        cls := (pov.game.variant == v).option("current"),
++                        href := routes.UserAnalysis.parseArg(v.key.value)
++                      )(v.variantTrans())
++                )
+               ),
+-              pov.game.variant.chess960.option(chess960selector(chess960PositionNum)),
++              (pov.game.variant.chess960 && !standardOnly).option(chess960selector(chess960PositionNum)),
+               hasWiki.option:
+                 fieldset(cls := "analyse__wiki empty toggle-box toggle-box--toggle", id := "wikibook-field")(
+                   legend(tabindex := 0)("WikiBook"),
+@@ -140,7 +142,10 @@ final class AnalyseUi(helpers: Helpers)(endpoints: AnalyseEndpoints):
+       _.withWebAssembly.withExternalEngine(endpoints.externalEngine)
+ 
+     def analyseModule(mode: "userAnalysis" | "replay", json: JsObject) =
+-      PageModule("analyse.user", Json.obj("mode" -> mode, "cfg" -> json))
++      PageModule(
++        "analyse.user",
++        Json.obj("mode" -> mode, "cfg" -> (json + ("standardOnly" -> JsBoolean(standardOnly))))
++      )
+ 
+     val embedUserAnalysisBody = div(id := "main-wrap", cls := "is2d")(
+       main(cls := "analyse")(
 diff --git a/modules/game/src/main/Env.scala b/modules/game/src/main/Env.scala
 index 43d76ae..55503bc 100644
 --- a/modules/game/src/main/Env.scala
@@ -236,6 +552,63 @@ index 45fd497..7771548 100644
    def existsSec[U: UserIdOf](u: U): Fu[Boolean] = coll.secondary.exists(bid(u.id))
  
    def filterExists(ids: Set[UserId]): Fu[List[UserId]] =
+diff --git a/modules/web/src/main/ui/BoardEditorUi.scala b/modules/web/src/main/ui/BoardEditorUi.scala
+index 28e5bc4..66c01ad 100644
+--- a/modules/web/src/main/ui/BoardEditorUi.scala
++++ b/modules/web/src/main/ui/BoardEditorUi.scala
+@@ -8,7 +8,7 @@ import lila.common.Json.given
+ import lila.ui.*
+ import lila.ui.ScalatagsTemplate.*
+ 
+-final class BoardEditorUi(helpers: Helpers):
++final class BoardEditorUi(helpers: Helpers, standardOnly: Boolean = false):
+   import helpers.{ *, given }
+ 
+   def apply(
+@@ -45,6 +45,7 @@ final class BoardEditorUi(helpers: Helpers):
+       .obj(
+         "baseUrl" -> routeUrl(routes.Editor.index),
+         "animation" -> Json.obj("duration" -> ctx.pref.animationMillis),
+-        "is3d" -> ctx.pref.is3d
++        "is3d" -> ctx.pref.is3d,
++        "standardOnly" -> standardOnly
+       )
+       .add("fen" -> fen)
+diff --git a/modules/web/src/main/ui/bits.scala b/modules/web/src/main/ui/bits.scala
+index 0c0ed10..87680eb 100644
+--- a/modules/web/src/main/ui/bits.scala
++++ b/modules/web/src/main/ui/bits.scala
+@@ -46,29 +46,7 @@ z-index: 99;
+     "This is an empty Lichess preview website, go to lichess.org instead"
+ 
+   val connectLinks: Frag = div(cls := "connect-links")(
+-    a(
+-      href := "https://mastodon.online/@lichess",
+-      targetBlank,
+-      noFollow,
+-      relMe
+-    )("Mastodon"),
+-    a(
+-      href := "https://github.com/lichess-org",
+-      targetBlank,
+-      noFollow
+-    )("GitHub"),
+-    a(href := "https://discord.gg/lichess", targetBlank, noFollow)("Discord"),
+-    a(href := "https://bsky.app/profile/lichess.org", targetBlank, noFollow)("Bluesky"),
+-    a(
+-      href := "https://youtube.com/@LichessDotOrg",
+-      targetBlank,
+-      noFollow
+-    )("YouTube"),
+-    a(
+-      href := "https://www.twitch.tv/lichessdotorg",
+-      targetBlank,
+-      noFollow
+-    )("Twitch")
++    a(href := "https://github.com/Dash1971/no-sweat-chess", targetBlank, noFollow)("GitHub")
+   )
+ 
+   val logo = raw:
 diff --git a/modules/web/src/main/ui/layout.scala b/modules/web/src/main/ui/layout.scala
 index 1c7a30b..f0ea318 100644
 --- a/modules/web/src/main/ui/layout.scala
@@ -346,7 +719,7 @@ index 83be1dd..88f50d2 100644
  
  function hiliteVariations(ctrl: AnalyseCtrl, autoShapes: DrawShape[]) {
 diff --git a/ui/analyse/src/ctrl.ts b/ui/analyse/src/ctrl.ts
-index 643bb4a..d68063e 100644
+index 643bb4a..950538d 100644
 --- a/ui/analyse/src/ctrl.ts
 +++ b/ui/analyse/src/ctrl.ts
 @@ -55,6 +55,7 @@ import LiveAnnotate from './liveAnnotate';
@@ -390,6 +763,15 @@ index 643bb4a..d68063e 100644
      if (this.node.pos().isErr || this.node.outcome()) this.ceval.reset();
      this.withCg(cg => {
        cg.set(this.makeCgOpts());
+@@ -507,7 +513,7 @@ export default class AnalyseCtrl implements CevalHandler {
+     this.pgnError = '';
+     try {
+       const data: AnalyseData = {
+-        ...pgnImport(pgn),
++        ...pgnImport(pgn, this.opts.standardOnly),
+         orientation: this.bottomColor(),
+         pref: this.data.pref,
+         externalEngines: this.data.externalEngines,
 @@ -790,6 +796,7 @@ export default class AnalyseCtrl implements CevalHandler {
        this.showCevalProp(enable);
        this.cevalEnabledProp(enable);
@@ -398,6 +780,37 @@ index 643bb4a..d68063e 100644
      if (enable && this.ceval.wasUnloadedByAnotherWindow) this.ceval.reset();
      if (enable !== unforcedState) {
        if (enable) this.startCevalIfEnabled();
+diff --git a/ui/analyse/src/interfaces.ts b/ui/analyse/src/interfaces.ts
+index 00f9d9a..cab3e5b 100644
+--- a/ui/analyse/src/interfaces.ts
++++ b/ui/analyse/src/interfaces.ts
+@@ -159,6 +159,7 @@ export interface AnalysisMetaSide {
+ }
+ 
+ export interface AnalyseOpts {
++  standardOnly?: boolean;
+   element: HTMLElement;
+   data: AnalyseData;
+   userId?: string;
+diff --git a/ui/analyse/src/pgnImport.ts b/ui/analyse/src/pgnImport.ts
+index 5019c1b..91a4271 100644
+--- a/ui/analyse/src/pgnImport.ts
++++ b/ui/analyse/src/pgnImport.ts
+@@ -28,8 +28,13 @@ const readNode = (
+   });
+ };
+ 
+-export default function (pgn: string): Partial<AnalyseData> {
++export default function (pgn: string, standardOnly = false): Partial<AnalyseData> {
+   const game = parsePgn(pgn)[0];
++  if (standardOnly) {
++    const variant = (game.headers.get('Variant') ?? 'standard').toLowerCase().replace(/[\s_-]/g, '');
++    if (!['standard', 'chess', 'normal', 'fromposition'].includes(variant))
++      throw new Error('Only standard chess is supported.');
++  }
+   const start = startingPosition(game.headers).unwrap();
+   const fen = makeFen(start.toSetup());
+   const variant: VariantKey = rulesToVariantKey[start.rules] || start.rules;
 diff --git a/ui/analyse/src/serverSideUnderboard.ts b/ui/analyse/src/serverSideUnderboard.ts
 index cfbd78b..5aee40b 100644
 --- a/ui/analyse/src/serverSideUnderboard.ts
@@ -526,6 +939,95 @@ index 96ce0df..a93b740 100644
      renderMoveList(ctrl, deps, concealOf),
      deps?.gbEdit.running(ctrl) ? deps?.gbEdit.render(ctrl) : undefined,
      renderBackToLiveButton(ctrl),
+diff --git a/ui/dasher/src/interfaces.ts b/ui/dasher/src/interfaces.ts
+index ba0f963..0e2c0e6 100644
+--- a/ui/dasher/src/interfaces.ts
++++ b/ui/dasher/src/interfaces.ts
+@@ -44,6 +44,7 @@ type BoardAsset = { name: string; file?: string; featured: boolean };
+ type AssetData = Record<Dimension, { current: string; list: BoardAsset[] }>;
+ 
+ export interface DasherData {
++  noSweat?: boolean;
+   user?: LightUser;
+   lang: LangsData;
+   sound: {
+diff --git a/ui/dasher/src/links.ts b/ui/dasher/src/links.ts
+index 6deb2fb..d44a87c 100644
+--- a/ui/dasher/src/links.ts
++++ b/ui/dasher/src/links.ts
+@@ -45,7 +45,7 @@ export class LinksCtrl extends PaneCtrl {
+             userLine(d.user),
+             i18n.site.profile,
+           ]),
+-          hl('a.text', linkCfg('/inbox', licon.Envelope), i18n.site.inbox),
++          !d.noSweat && hl('a.text', linkCfg('/inbox', licon.Envelope), i18n.site.inbox),
+           hl(
+             'a.text',
+             linkCfg(
+@@ -53,8 +53,9 @@ export class LinksCtrl extends PaneCtrl {
+               licon.Gear,
+               this.root.opts.playing ? { target: '_blank' } : undefined,
+             ),
+-            i18n.preferences.preferences,
++            d.noSweat ? 'Edit profile' : i18n.preferences.preferences,
+           ),
++          d.noSweat && hl('a.text', linkCfg('/pref/game-display', licon.Gear), i18n.preferences.preferences),
+           d.coach && hl('a.text', linkCfg('/coach/edit', licon.GraduateCap), i18n.site.coachManager),
+           d.streamer && hl('a.text', linkCfg('/streamer/edit', licon.Mic), i18n.site.streamerManager),
+           hl('form.logout', { attrs: { method: 'post', action: '/logout' } }, [
+diff --git a/ui/editor/src/ctrl.ts b/ui/editor/src/ctrl.ts
+index 66f717e..16cfeec 100644
+--- a/ui/editor/src/ctrl.ts
++++ b/ui/editor/src/ctrl.ts
+@@ -98,7 +98,7 @@ export default class EditorCtrl implements CevalHandler {
+ 
+     this.castlingToggles = { K: false, Q: false, k: false, q: false };
+     const params = new URLSearchParams(location.search);
+-    this.variant = this.cfg.embed ? 'standard' : ((params.get('variant') || 'standard') as VariantKey);
++    this.variant = this.cfg.embed || this.cfg.standardOnly ? 'standard' : ((params.get('variant') || 'standard') as VariantKey);
+     const fenPassedIn: FEN | null = cfg.fen || params.get('fen');
+     this.initialFen = (fenPassedIn || INITIAL_FEN).replace(/_/g, ' ');
+     this.guessCastlingToggles = false;
+@@ -483,6 +483,7 @@ export default class EditorCtrl implements CevalHandler {
+     );
+ 
+   setVariant(variant: VariantKey): void {
++    if (this.cfg.standardOnly && variant !== 'standard') return;
+     this.variant = variant;
+     if (variant === 'crazyhouse') this.pockets ||= Material.empty();
+     else this.pockets = undefined;
+diff --git a/ui/editor/src/interfaces.ts b/ui/editor/src/interfaces.ts
+index 5cf97b4..42325aa 100644
+--- a/ui/editor/src/interfaces.ts
++++ b/ui/editor/src/interfaces.ts
+@@ -21,6 +21,7 @@ export interface LichessEditor {
+ }
+ 
+ export interface Config {
++  standardOnly?: boolean;
+   el: HTMLElement;
+   baseUrl: string;
+   fen?: FEN;
+diff --git a/ui/editor/src/view.ts b/ui/editor/src/view.ts
+index 5b17c23..1da29f2 100644
+--- a/ui/editor/src/view.ts
++++ b/ui/editor/src/view.ts
+@@ -272,6 +272,7 @@ function controls(ctrl: EditorCtrl, state: EditorState): VNode {
+           ]),
+         ]
+       : [
++          ...(ctrl.cfg.standardOnly ? [] : [
+           div([
+             select(
+               {
+@@ -286,6 +287,7 @@ function controls(ctrl: EditorCtrl, state: EditorState): VNode {
+               },
+               variants.map(variant => variantOption(variant, ctrl.variant)),
+             ),
++          ])
+           ]),
+           chess960PositionIdSelector,
+           div('.actions', [
 diff --git a/ui/lib/src/ceval/ctrl.ts b/ui/lib/src/ceval/ctrl.ts
 index b00837d..e173701 100644
 --- a/ui/lib/src/ceval/ctrl.ts
@@ -4966,10 +5468,10 @@ index 0000000..877021d
 +}
 diff --git a/ui/analyse/src/noSweatArrows.ts b/ui/analyse/src/noSweatArrows.ts
 new file mode 100644
-index 0000000..94d0c2d
+index 0000000..595739d
 --- /dev/null
 +++ b/ui/analyse/src/noSweatArrows.ts
-@@ -0,0 +1,80 @@
+@@ -0,0 +1,82 @@
 +// Mobile Maia review.dart / ReviewBoardOverlayPainter, AGPL-3.0.
 +import type { DrawShape } from '@lichess-org/chessground/draw';
 +export const engineColors = {
@@ -5017,6 +5519,8 @@ index 0000000..94d0c2d
 +}
 +// One owned Chessground custom SVG per unique move. Agreement is painted once:
 +// SF shaft + Maia head; two Maias share a split head (and split shaft without SF).
++// Chessground anchors a custom 100x100 SVG at the square corner (its outer
++// viewBox starts at -3.5). Translate to (50,50) before rotating around the center.
 +export function engineShapes(arrows: EngineArrow[], orientation: Color): DrawShape[] {
 +  return arrows.map(arrow => {
 +    const { uci, tail, head, width } = arrow;
@@ -5045,7 +5549,7 @@ index 0000000..94d0c2d
 +      orig: uci.slice(0, 2) as Key,
 +      dest: uci.slice(2, 4) as Key,
 +      customSvg: {
-+        html: `<g class="nosweat-engine-arrow" data-move="${uci}" data-tail="${tail.join(',')}" data-head="${head.join(',')}" transform="rotate(${angle})" fill="none">${shaft}${tip}</g>`,
++        html: `<g class="nosweat-engine-arrow" data-move="${uci}" data-tail="${tail.join(',')}" data-head="${head.join(',')}" transform="translate(50,50) rotate(${angle})" fill="none">${shaft}${tip}</g>`,
 +      },
 +    };
 +  });
@@ -23595,13 +24099,14 @@ index 0000000..10a1c3f
 +});
 diff --git a/ui/analyse/tests/noSweatFullReview.test.ts b/ui/analyse/tests/noSweatFullReview.test.ts
 new file mode 100644
-index 0000000..6f52724
+index 0000000..d3fca99
 --- /dev/null
 +++ b/ui/analyse/tests/noSweatFullReview.test.ts
-@@ -0,0 +1,347 @@
+@@ -0,0 +1,386 @@
 +import assert from 'node:assert/strict';
 +import { describe, test } from 'node:test';
 +
++import pgnImport from '../src/pgnImport';
 +import { gameAccuracy, moveAccuracy, whiteWinPercent } from '../src/noSweatAccuracy';
 +import { engineArrows, engineShapes, engineColors } from '../src/noSweatArrows';
 +import { ClassifierClient } from '../src/noSweatClassifierClient';
@@ -23724,6 +24229,44 @@ index 0000000..6f52724
 +    assert.equal(engineArrows([{ uci: '(none)' }], undefined, 'bad').length, 0);
 +    assert.match(engineShapes(both, 'white')[0].customSvg!.html, /rotate\(-90\)/);
 +    assert.match(engineShapes(both, 'black')[0].customSvg!.html, /rotate\(90\)/);
++  });
++  test('arrow origins and tips align with native square centers at every orientation and scale', () => {
++    // Independent Chessground renderer contract: outer viewBox -3.5 -3.5 8 8;
++    // nested custom SVG is 100x100 inside a single square, anchored at its corner.
++    const moves = ['e2e4', 'd2d4', 'g1f3', 'b1c3', 'a1h8', 'h8a1', 'a1a8', 'h1a1', 'e7e8q'];
++    for (const orientation of ['white', 'black'] as const) {
++      for (const size of [256, 480, 768, 1224]) {
++        for (const uci of moves) {
++          const shape = engineShapes(engineArrows([], uci, uci), orientation)[0];
++          const html = shape.customSvg!.html;
++          const translation = html.match(/translate\(([-.\d]+),([-.\d]+)\)/);
++          const tx = Number(translation?.[1] ?? 0);
++          const ty = Number(translation?.[2] ?? 0);
++          const angle = Number(html.match(/rotate\(([-.\d]+)\)/)![1]) * Math.PI / 180;
++          const distance = Number(html.match(/ L([-.\d]+) 0/)![1]);
++          const square = (key: string) => {
++            const file = key.charCodeAt(0) - 97;
++            const rank = Number(key[1]) - 1;
++            return orientation === 'white' ? [file, 7 - rank] : [7 - file, rank];
++          };
++          const from = square(uci.slice(0, 2));
++          const to = square(uci.slice(2, 4));
++          const pixel = (x: number, y: number) => [(from[0] + x / 100) * size / 8, (from[1] + y / 100) * size / 8];
++          const origin = pixel(tx, ty);
++          const tip = pixel(tx + Math.cos(angle) * distance, ty + Math.sin(angle) * distance);
++          const close = (actual: number[], square: number[]) => actual.forEach((n, axis) => assert.ok(Math.abs(n - (square[axis] + .5) * size / 8) < 1e-8, `${uci} ${orientation} ${size}: ${actual} vs ${square}`));
++          close(origin, from);
++          close(tip, to);
++        }
++      }
++    }
++  });
++  test('standard-only analysis rejects variant PGNs while retaining standard FEN positions', () => {
++    for (const variant of ['Atomic', 'Chess960', 'Crazyhouse', 'Antichess', 'Three-check', 'Horde', 'King of the Hill', 'Racing Kings'])
++      assert.throws(() => pgnImport(`[Variant "${variant}"]\n\n*`, true), /Only standard chess/);
++    assert.equal(pgnImport('1. e4 e5 *', true).game!.variant.key, 'standard');
++    assert.equal(pgnImport('[SetUp "1"]\n[FEN "8/8/8/8/8/2k5/5p2/7K b - - 0 1"]\n\n1... f1=Q# *', true).game!.variant.key, 'standard');
++    assert.equal(pgnImport('[Variant "Atomic"]\n\n*').game!.variant.key, 'atomic');
 +  });
 +  test('engine settings validate persisted input instead of trusting browser JSON', () => {
 +    assert.equal(readEnginePreferences('{').selfElo, 1500);

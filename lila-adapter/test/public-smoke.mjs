@@ -15,7 +15,7 @@ async function call(path, body, authorization, expected = 200) {
   const { status, headers, text } = await new Promise((resolve, reject) => {
     const request = (transport.startsWith('https:') ? https : http).request(transport + path, { method: body !== undefined ? 'POST' : 'GET',
     headers: { Accept: path.startsWith('/game/export/') ? 'application/x-chess-pgn' : 'application/json',
-      'Content-Type': 'application/json', Host: 'nosweatchess.org', Origin: origin,
+      'Content-Type': body instanceof URLSearchParams ? 'application/x-www-form-urlencoded' : 'application/json', Host: 'nosweatchess.org', Origin: origin,
       ...(cookie ? { Cookie: cookie } : {}), ...(authorization ? { Authorization: authorization } : {}) },
     timeout: 15000 }, response => {
       let text = ''; response.setEncoding('utf8');
@@ -25,9 +25,9 @@ async function call(path, body, authorization, expected = 200) {
     });
     request.on('error', reject);
     request.on('timeout', () => request.destroy(Error('Request timeout')));
-    request.end(body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body));
+    request.end(body === undefined ? undefined : body instanceof URLSearchParams ? body.toString() : typeof body === 'string' ? body : JSON.stringify(body));
   });
-  assert.equal(status, expected, `${path}: ${status} ${text.slice(0, 200)}`);
+  assert.ok([expected].flat().includes(status), `${path}: ${status} ${text.slice(0, 200)}`);
   let data; try { data = JSON.parse(text); } catch { data = text; }
   return { response: { headers: { get: name => headers[name.toLowerCase()]?.toString() } }, data };
 }
@@ -83,11 +83,20 @@ try {
   await waitFor(async () => (await round()).game.status.id >= 30, 'native resignation');
   const pgn = (await call('/game/export/' + game.id)).data;
   assert.match(pgn, /1\. e4/);
+  const dasher = (await call('/dasher')).data;
+  assert.equal(dasher.user.name, login.data.username);
+  const profileForm = (await call('/account/profile')).data;
+  assert.match(profileForm, /action="\/account\/profile"/);
+  await call('/account/security', undefined, undefined, 404);
+  const bio = 'Profile check ' + run;
+  await call('/account/profile', new URLSearchParams({ bio }), undefined, [302, 303]);
+  const profile = (await call('/@/' + login.data.username)).data;
+  assert.ok(profile.includes(bio), 'Saved profile biography is visible on the native profile');
   await call('/logout', {});
   assert.equal((await call('/club/me')).data.user, null);
   console.log(JSON.stringify({ ok: true, transport, run, game: game.id, checks: [
     '44 opponents', 'private routes blocked', 'signed Nostr login and replay rejection',
-    'Secure HttpOnly session', 'Maia replies through native WebSocket', 'reconnect', 'resignation', 'PGN', 'logout',
+    'Secure HttpOnly session', 'Maia replies through native WebSocket', 'reconnect', 'resignation', 'PGN', 'account menu', 'native profile edit and persistence', 'account security remains blocked', 'logout',
   ] }, null, 2));
 } finally {
   if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ t: 'resign' }));
