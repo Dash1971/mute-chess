@@ -3314,7 +3314,7 @@ index 83a184c..1ff5e25 100644
    resizeCache.meta ??= document.querySelector<HTMLElement>('.game__meta');
    if (!resizeCache.board || !resizeCache.meta) return;
 diff --git a/ui/analyse/src/view/roundTraining.ts b/ui/analyse/src/view/roundTraining.ts
-index 99a8328..df0faee 100644
+index 99a8328..fc0cdea 100644
 --- a/ui/analyse/src/view/roundTraining.ts
 +++ b/ui/analyse/src/view/roundTraining.ts
 @@ -6,9 +6,10 @@ import { bind, dataIcon, onInsert } from 'lib/view';
@@ -3333,7 +3333,7 @@ index 99a8328..df0faee 100644
      ? userLink({ ...user, name: user.username, ratingDiff, line: false })
      : h(
          'span',
-+        { attrs: { title: name } },
++        { attrs: { title: name || '' } },
          name ||
            (ai && 'Stockfish level ' + ai) ||
            (study && findTag(study.data.chapter.tags, color)) ||
@@ -9974,10 +9974,10 @@ index 0000000..ec4cc78
 +};
 diff --git a/ui/analyse/src/noSweatAnalysis.ts b/ui/analyse/src/noSweatAnalysis.ts
 new file mode 100644
-index 0000000..026271c
+index 0000000..b727521
 --- /dev/null
 +++ b/ui/analyse/src/noSweatAnalysis.ts
-@@ -0,0 +1,740 @@
+@@ -0,0 +1,768 @@
 +import type { DrawShape } from '@lichess-org/chessground/draw';
 +import { parseUci } from 'chessops/util';
 +import { attributesModule, classModule, init } from 'snabbdom';
@@ -9991,7 +9991,7 @@ index 0000000..026271c
 +import type AnalyseCtrl from './ctrl';
 +import { engineArrows, engineShapes, engineColors } from './noSweatArrows';
 +import { candidateQuality, qualityLabels, stockfishWinrate } from './noSweatCandidateQuality';
-+import { encodeHistory, policy, san, position, standardUci, type Candidate } from './noSweatCore';
++import { encodeHistory, policy, san, position, standardUci, legalUcis, type Candidate } from './noSweatCore';
 +import { reviewClick } from './noSweatEvents';
 +import { ReviewFish, type Review } from './noSweatFish';
 +import { gameReviewQualities, gameReviewQuality } from './noSweatFullReview';
@@ -10035,6 +10035,7 @@ index 0000000..026271c
 +  history = true;
 +  maiaArrows = true;
 +  fishArrows = true;
++  allMoves = false;
 +  ratingTable = true;
 +  private ratingContext = '';
 +  private ratingKey(): string {
@@ -10064,6 +10065,7 @@ index 0000000..026271c
 +  private readonly cache = new Map<string, Prediction>();
 +  private readonly fish: ReviewFish;
 +  private readonly reviewCache = new Map<string, Review>();
++  private fishBest?: string;
 +  private compareBusy = false;
 +  private qualityBusy = false;
 +  private qualityRoot?: Review;
@@ -10205,6 +10207,7 @@ index 0000000..026271c
 +    this.secondaryCandidates = [];
 +    this.expectedScore = this.secondaryExpectedScore = undefined;
 +    this.scores.clear();
++    this.fishBest = undefined;
 +    this.qualityRoot = undefined;
 +    this.qualityFailed.clear();
 +    const ratingContext = this.ratingKey();
@@ -10343,11 +10346,35 @@ index 0000000..026271c
 +      : [];
 +  }
 +
++  private currentFishBest(): string | undefined {
++    return this.normalUci(this.nativeLines()[0]?.moves[0]) ?? this.fishBest;
++  }
 +  private normalUci(uci?: string): string | undefined {
 +    if (!uci) return undefined;
 +    const move = parseUci(uci);
 +    return move ? standardUci(position(this.ctrl.node.fen), move) : undefined;
 +  }
++  private readonly played = (): string | undefined => this.normalUci(this.ctrl.node.children[0]?.uci);
++  private readonly rows = (): Candidate[] => {
++    const chosen = new Set([
++      ...(this.allMoves
++        ? [...this.candidates, ...this.secondaryCandidates]
++        : [...this.candidates.slice(0, 3), ...this.secondaryCandidates.slice(0, 3)]
++      ).map(c => c.uci),
++      ...this.nativeLines().flatMap(pv => {
++        const uci = this.normalUci(pv.moves[0]);
++        return uci ? [uci] : [];
++      }),
++    ]);
++    const played = this.played();
++    if (played) chosen.add(played);
++    const best = this.currentFishBest();
++    if (best) chosen.add(best);
++    const legal = new Set(legalUcis(this.ctrl.node.fen));
++    return [...chosen]
++      .filter(uci => legal.has(uci))
++      .map(uci => ({ uci, probability: this.candidates.find(c => c.uci === uci)?.probability ?? 0 }));
++  };
 +  private readonly preview = (uci: string): void => {
 +    this.returnPath ??= this.ctrl.path;
 +    this.ctrl.playUci(uci);
@@ -10384,6 +10411,7 @@ index 0000000..026271c
 +        if (!this.valid(generation)) return;
 +        if (root.current.depth < 8) return;
 +        this.qualityRoot = root;
++        this.fishBest = this.normalUci(root.current.lines[0]?.moves[0]);
 +        for (const line of root.current.lines) {
 +          const move = this.normalUci(line.moves[0]);
 +          if (move) this.scores.set(move, { score: line, depth: root.current.depth });

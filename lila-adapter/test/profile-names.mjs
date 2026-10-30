@@ -62,6 +62,7 @@ try {
     await call(`/game/${game}/note`, new URLSearchParams({ text }), 200, true);
     assert.equal(await call(`/game/${game}/note`), text);
   }
+  assert.equal(await login(key), handle, 'signing in again must reuse the same identity');
   cookie = undefined;
   const explicit = 'NameTest' + randomBytes(4).toString('hex');
   const namedHandle = await login(namedKey, explicit);
