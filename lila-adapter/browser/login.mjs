@@ -7,6 +7,7 @@ import './patron.mjs';
 
 const element = id => document.getElementById('nostr-' + id);
 let generated, pending;
+let pageEpoch = 0;
 const status = (message, error = false) => {
   element('status').textContent = message;
   element('status').dataset.state = error ? 'error' : 'info';
@@ -20,8 +21,10 @@ function resetFactor() {
   element('second-factor').hidden = true;
   element('methods').hidden = false;
 }
-async function complete(result, key, save) {
+async function complete(result, key, save, epoch) {
+  if (epoch !== pageEpoch) return;
   if (key && save) await saveKey(key);
+  if (epoch !== pageEpoch) return;
   element('nsec').value = '';
   element('backup').value = '';
   generated?.fill(0); generated = undefined;
@@ -33,9 +36,11 @@ async function complete(result, key, save) {
 }
 async function signIn(signer, key, save = true) {
   resetFactor();
+  const epoch = pageEpoch;
   const fields = { username: element('username').value.trim() || undefined };
-  try { await complete(await signedCall(signer, 'login', fields), key, save); }
+  try { await complete(await signedCall(signer, 'login', fields), key, save, epoch); }
   catch (error) {
+    if (epoch !== pageEpoch) return;
     if (!(error instanceof AuthResponseError) || error.code !== 'two_factor_required') throw error;
     // Retain a temporary copy only while the verified account completes 2FA.
     // Import/saved-key callers erase their own copy in finally.
@@ -153,13 +158,15 @@ if (element('extension')) {
     const token = element('token').value.trim();
     if (!token) throw Error('Enter your authenticator or recovery code');
     // Each retry obtains and signs a new one-use challenge, including the code.
-    const result = await signedCall(pending.signer, 'login', { ...pending.fields, twoFactorToken: token });
-    await complete(result, pending.key, pending.save);
+    const attempt = pending, epoch = pageEpoch;
+    const result = await signedCall(attempt.signer, 'login', { ...attempt.fields, twoFactorToken: token });
+    await complete(result, attempt.key, attempt.save, epoch);
   });
   action('back', () => { resetFactor(); status(''); });
   element('token').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); element('verify').click(); } });
   element('nsec').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); element('import').click(); } });
   window.addEventListener('pagehide', () => {
+    pageEpoch++;
     resetFactor();
     generated?.fill(0); generated = undefined;
     element('backup').value = '';

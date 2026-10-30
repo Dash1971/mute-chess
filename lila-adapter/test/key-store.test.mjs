@@ -44,3 +44,10 @@ test('persistent storage is optional and does not change the saved key', async (
   assert.deepEqual(await loadKey(), key);
   await forgetKey();
 });
+
+test('saving snapshots key bytes before asynchronous crypto can outlive caller cleanup',async()=>{
+  const secret=new Uint8Array(32).fill(23), expected=secret.slice();
+  const saving=saveKey(secret);secret.fill(0);await saving;
+  assert.deepEqual(await loadKey(),expected);
+  await forgetKey();
+});

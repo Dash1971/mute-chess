@@ -28,7 +28,7 @@ async function page(login,signer,options={}){
       const event=JSON.parse(Buffer.from(options.headers.Authorization.slice(6),'base64').toString());
       assert.ok(verifyEvent(event),'actual signed proof');
       assert.equal(event.tags.find(t=>t[0]==='payload')[1],Buffer.from(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(options.body))).toString('hex'));
-      attempts.push({body,event});const result=login(body,event);return new Response(JSON.stringify(result.body),{status:result.status});
+      attempts.push({body,event});const result=await login(body,event);return new Response(JSON.stringify(result.body),{status:result.status});
     },
   });vm.runInContext(bundle,context);
   return {node:name=>nodes.get(name),attempts,destinations,downloads,blobs,revoked,fire:name=>events.get(name)?.(),get clipboard(){return clipboard;}};
@@ -104,4 +104,16 @@ test('leaving the page clears temporary key fields and cannot export a wiped key
   await ui.node('generate').click();assert.match(ui.node('backup').value,/^nsec1/);
   ui.fire('pagehide');assert.equal(ui.node('backup').value,'');assert.equal(ui.node('created').hidden,true);
   await ui.node('download').click();assert.equal(ui.downloads.length,0);assert.match(ui.node('status').textContent,/Create a key first/);
+});
+
+test('a login response after leaving and returning cannot save a wiped key or redirect',async()=>{
+  let reply,received;
+  const reached=new Promise(resolve=>{received=resolve;});
+  const ui=await page(()=>{received();return new Promise(resolve=>{reply=resolve;});});
+  await ui.node('generate').click();
+  const login=ui.node('create-login').click();await reached;
+  ui.fire('pagehide');ui.fire('pageshow');
+  reply({status:200,body:{url:'/'}});await login;
+  assert.equal(await loadKey(),null);
+  assert.equal(ui.destinations.length,0);
 });
