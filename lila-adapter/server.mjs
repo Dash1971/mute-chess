@@ -5,7 +5,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { NostrAuth, AdapterError } from './nostr-auth.mjs';
 import { Maia } from './maia.mjs';
-import { createZapInvoice, validateZapReceipt } from './lightning.mjs';
+import { createZapInvoice, validateZapReceipt, InvoiceError } from './lightning.mjs';
 import { freeze, effectivePolicy, targetTimeForPolicy, addedWait } from './policy.mjs';
 import { validatePersonality } from './personality.mjs';
 
@@ -127,7 +127,12 @@ const server = http.createServer(async (request, response) => {
       return send(200, freeze(bot));
     }
     throw new AdapterError(404, 'Unknown endpoint');
-  } catch (error) { send(error.status ?? 503, { error: error instanceof AdapterError ? error.message : 'Adapter unavailable' }); }
+  } catch (error) {
+    if (error instanceof InvoiceError) {
+      console.warn(JSON.stringify({ event: 'lightning_invoice_failed', code: error.code }));
+      send(error.status, { error: error.publicMessage, code: error.code });
+    } else send(error.status ?? 503, { error: error instanceof AdapterError ? error.message : 'Adapter unavailable' });
+  }
 });
 server.requestTimeout = 10000;
 server.headersTimeout = 10000;

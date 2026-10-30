@@ -16,6 +16,8 @@ export const lnurl = bech32.encode('lnurl', bech32.toWords(utf8ToBytes(support.e
 // Old server-issued invoices can still settle; new invoice requests use only lnurl.
 const receiptLnurls = [lnurl, bech32.encode('lnurl', bech32.toWords(utf8ToBytes('https://walletofsatoshi.com/.well-known/lnurlp/eerieatlas700')), 2048)];
 const hash = text => bytesToHex(sha256(utf8ToBytes(text)));
+// BOLT-11 authenticates either the exact inline description or its hash.
+const bindsDescription = (details, description) => details.descriptionHash === hash(description) || details.description === description;
 const requireThat = (ok, message) => { if (!ok) throw Error(message); };
 const oneTag = (event, name, required = true) => {
   const tags = event.tags.filter(t => t[0] === name);
@@ -71,6 +73,7 @@ export function invoiceDetails(invoice) {
   return {
     amountMsat: Number(amount), paymentHash: bytesToHex(bech32.fromWords(fields.get(1))),
     descriptionHash: fields.has(23) ? bytesToHex(bech32.fromWords(fields.get(23))) : undefined,
+    description: fields.has(13) ? new TextDecoder('utf-8', { fatal: true }).decode(bech32.fromWords(fields.get(13))) : undefined,
     createdAt: number(data.slice(0, 7)), expiresIn: fields.has(6) ? number(fields.get(6)) : 3600,
   };
 }
@@ -97,7 +100,7 @@ export function validateZapReceipt(receipt, now = Math.floor(Date.now() / 1000),
   // Validate the exact original signed request at its own creation time. The native
   // ledger must additionally match this invoice to one fetched from our wallet.
   const amount = validateZapRequest(request, request.created_at, receiptLnurls);
-  requireThat(details.descriptionHash === hash(description) && details.amountMsat === amount, 'Receipt invoice does not match its zap request');
+  requireThat(bindsDescription(details, description) && details.amountMsat === amount, 'Receipt invoice does not match its zap request');
   requireThat(receipt.created_at >= request.created_at - 300 && details.createdAt >= request.created_at - 300 && details.createdAt <= request.created_at + 300, 'Invalid payment timestamps');
   const sender = oneTag(receipt, 'P', false);
   requireThat(!sender || sender === request.pubkey, 'Wrong payment sender');
@@ -110,33 +113,70 @@ export function validateZapReceipt(receipt, now = Math.floor(Date.now() / 1000),
   return { ...details, invoice, donor: request.pubkey, requestId: request.id, receiptId: receipt.id, paidAt: receipt.created_at };
 }
 
-async function readJson(url, fetcher) {
-  const response = await fetcher(url, { redirect: 'error', signal: AbortSignal.timeout(6000), headers: { Accept: 'application/json' } });
-  requireThat(response.ok, 'Lightning provider unavailable');
-  let text = '';
-  for await (const chunk of response.body) {
-    text += new TextDecoder().decode(chunk);
-    requireThat(text.length <= 16000, 'Lightning response too large');
+// Keep client messages actionable without exposing provider payloads or request data.
+export class InvoiceError extends Error {
+  constructor(status, code, publicMessage, cause) {
+    super(cause?.message ?? publicMessage, { cause });
+    this.name = 'InvoiceError';
+    this.status = status;
+    this.code = code;
+    this.publicMessage = publicMessage;
   }
-  const data = JSON.parse(text);
-  requireThat(data.status !== 'ERROR', 'Lightning provider could not create an invoice');
+}
+
+async function readJson(url, fetcher, stage) {
+  let response;
+  try {
+    response = await fetcher(url, { redirect: 'error', signal: AbortSignal.timeout(6000), headers: { Accept: 'application/json' } });
+  } catch (cause) {
+    throw new InvoiceError(503, `lightning_${stage}_unavailable`, 'The Lightning provider could not be reached. Please try again.', cause);
+  }
+  if (!response.ok) throw new InvoiceError(503, `lightning_${stage}_unavailable`, 'The Lightning provider is temporarily unavailable. Please try again.');
+  let data;
+  try {
+    let text = '';
+    const decoder = new TextDecoder();
+    for await (const chunk of response.body) {
+      text += decoder.decode(chunk, { stream: true });
+      requireThat(text.length <= 16000, 'Lightning response too large');
+    }
+    text += decoder.decode();
+    data = JSON.parse(text);
+  } catch (cause) {
+    const network = cause?.name === 'TimeoutError' || cause?.name === 'AbortError' || cause?.cause?.code;
+    throw new InvoiceError(network ? 503 : 502, `lightning_${stage}_${network ? 'unavailable' : 'invalid'}`,
+      network ? 'The Lightning provider did not finish responding. Please try again.' : 'The Lightning provider returned an unreadable response. Please try again later.', cause);
+  }
+  if (data?.status === 'ERROR') throw new InvoiceError(503, `lightning_${stage}_rejected`, 'The Lightning provider could not create an invoice. Please try again later.');
   return data;
 }
 
 export async function createZapInvoice(request, fetcher = fetch, now = Math.floor(Date.now() / 1000)) {
-  const amount = validateZapRequest(request, now), description = JSON.stringify(request);
-  const meta = await readJson(support.endpoint, fetcher);
-  requireThat(meta.tag === 'payRequest' && meta.allowsNostr === true && meta.nostrPubkey === support.issuer, 'Lightning provider identity changed');
-  requireThat(amount >= meta.minSendable && amount <= meta.maxSendable, 'Amount outside wallet limits');
-  const callback = new URL(meta.callback);
-  requireThat(callback.protocol === 'https:' && ['livingroomofsatoshi.com', 'walletofsatoshi.com'].includes(callback.hostname) && !callback.port && !callback.username && !callback.password, 'Unexpected Lightning callback');
-  callback.searchParams.set('amount', String(amount));
-  callback.searchParams.set('nostr', description);
-  callback.searchParams.set('lnurl', lnurl);
-  const data = await readJson(callback, fetcher);
-  requireThat(typeof data.pr === 'string', 'Missing Lightning invoice');
-  const details = invoiceDetails(data.pr), invoice = data.pr.toLowerCase();
-  requireThat(details.amountMsat === amount && details.descriptionHash === hash(description), 'Lightning invoice does not match the requested donation');
-  requireThat(details.createdAt >= now - 60 && details.createdAt <= now + 300 && details.expiresIn > 0 && details.expiresIn <= 30 * 86400, 'Invalid invoice expiry');
-  return { ...details, invoice, donor: request.pubkey, requestId: request.id };
+  let amount;
+  try { amount = validateZapRequest(request, now); }
+  catch (cause) {
+    const expired = cause.message === 'Zap request expired';
+    throw new InvoiceError(400, expired ? 'lightning_request_expired' : 'lightning_request_invalid',
+      expired ? 'Your signed donation request has expired. Check your device clock, then try again.' : 'The signed donation request could not be verified. Refresh this page and try again.', cause);
+  }
+  const description = JSON.stringify(request);
+  try {
+    const meta = await readJson(support.endpoint, fetcher, 'metadata');
+    requireThat(meta.tag === 'payRequest' && meta.allowsNostr === true && meta.nostrPubkey === support.issuer, 'Lightning provider identity changed');
+    requireThat(amount >= meta.minSendable && amount <= meta.maxSendable, 'Amount outside wallet limits');
+    const callback = new URL(meta.callback);
+    requireThat(callback.protocol === 'https:' && ['livingroomofsatoshi.com', 'walletofsatoshi.com'].includes(callback.hostname) && !callback.port && !callback.username && !callback.password, 'Unexpected Lightning callback');
+    callback.searchParams.set('amount', String(amount));
+    callback.searchParams.set('nostr', description);
+    callback.searchParams.set('lnurl', lnurl);
+    const data = await readJson(callback, fetcher, 'invoice');
+    requireThat(typeof data.pr === 'string', 'Missing Lightning invoice');
+    const details = invoiceDetails(data.pr), invoice = data.pr.toLowerCase();
+    requireThat(details.amountMsat === amount && bindsDescription(details, description), 'Lightning invoice does not match the requested donation');
+    requireThat(details.createdAt >= now - 60 && details.createdAt <= now + 300 && details.expiresIn > 0 && details.expiresIn <= 30 * 86400, 'Invalid invoice expiry');
+    return { ...details, invoice, donor: request.pubkey, requestId: request.id };
+  } catch (cause) {
+    if (cause instanceof InvoiceError) throw cause;
+    throw new InvoiceError(502, 'lightning_invoice_unverified', 'The Lightning provider returned an invoice that could not be verified. Please try again later.', cause);
+  }
 }
