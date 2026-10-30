@@ -25,7 +25,7 @@ The median absolute rating change was 57.2 points, with a maximum 299.4. These a
 
 One pinned Maia worker used a two-core inference quota. The run stepped through 1, 2, 5 and 10 active games. At the ten-game stage, observed throughput was 6.82 plies/second and turn-to-commit latency was 1.61 seconds at p95. Throughput was already about 6.8 plies/second at two and five games, indicating the shared inference process was the main throughput limit.
 
-Sampled combined study-worker/native-service CPU had a median 2.09 core equivalents and p95 2.14, on an eight-vCPU host. Peak sampled combined memory was 2.24 GiB. The cheap public health endpoint had p95 5.7 ms and no failed samples. These totals exclude the supervisor/OS and are not a browser-analysis or ten-live-browser-client qualification. Bot-versus-bot requires inference on both seats; usual human-versus-bot load differs.
+Sampled combined study-worker/native-service CPU had a median 2.09 core equivalents and p95 2.14, on the i7-3720QM host (four physical cores/eight hardware threads). Peak sampled combined memory was 2.24 GiB. The cheap public health endpoint had p95 5.7 ms and no failed samples. These totals exclude the supervisor/OS and are not a browser-analysis or ten-live-browser-client qualification. Bot-versus-bot requires inference on both seats; usual human-versus-bot load differs.
 
 The one-shot supervisor stopped successfully at 100 admissions, restored the normal configuration/capacity, and preserved game history/perfs. The owner approved a separate two-worker, four-core trial up to 22 games in #91; it must continue from these earned ratings.
 

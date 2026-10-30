@@ -1,0 +1,10 @@
+{
+  "model": "Intel Core i7-3720QM @ 2.60 GHz",
+  "physicalCores": 4,
+  "hardwareThreads": 8,
+  "threadsPerCore": 2,
+  "memoryGiB": 15.02,
+  "evidence": "lscpu and /proc/meminfo inspected during the run",
+  "note": "Earlier eight-vCPU wording referred to logical CPUs; this is an older 4-core/8-thread host, not eight physical cores.",
+  "reference": "https://www.intel.com/content/www/us/en/products/sku/64891/intel-core-i73720qm-processor-6m-cache-up-to-3-60-ghz/specifications.html"
+}
