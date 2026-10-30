@@ -5,11 +5,16 @@ import { NostrAuth, digest } from '../nostr-auth.mjs';
 
 const now = 1793185200000;
 const origin = 'http://127.0.0.1:19663';
-function fixture() {
+function fixture(fixedChallenge) {
   const key = generateSecretKey();
   const auth = new NostrAuth(origin, () => now);
   const pubkey = getPublicKey(key);
-  const { challenge } = auth.challenge(pubkey);
+  const issued = auth.challenge(pubkey);
+  const challenge = fixedChallenge ?? issued.challenge;
+  if (fixedChallenge) {
+    auth.challenges.set(challenge, auth.challenges.get(issued.challenge));
+    auth.challenges.delete(issued.challenge);
+  }
   const body = JSON.stringify({ challenge, username: 'TestHuman' });
   const unsigned = { kind: 27235, created_at: now / 1000, content: '',
     tags: [['u', origin + '/club/login'], ['method', 'POST'], ['challenge', challenge], ['payload', digest(body)]] };
@@ -69,12 +74,15 @@ test('security challenges bind the exact action, URL, setup secret and second fa
 });
 
 test('a login challenge cannot authorize enrollment and its token is signature-bound', () => {
-  const f = fixture();
+  // The token's substring also occurs in the challenge: mutate the field, not
+  // the first matching text in the serialized body.
+  const f = fixture('abcd' + '0'.repeat(60));
   const raw = JSON.stringify({ challenge: JSON.parse(f.body).challenge, action: 'enable-two-factor', secret: 'A'.repeat(32), twoFactorToken: '123456' });
   const signed = { ...f.unsigned, tags: f.unsigned.tags.map(t => t[0] === 'payload' ? ['payload', digest(raw)] : t) };
   assert.throws(() => f.auth.verify(f.header(signed), raw), /action mismatch/);
   const login = JSON.stringify({ challenge: JSON.parse(f.body).challenge, twoFactorToken: 'abcd1234-'.repeat(3) + 'abcd1234' });
   const loginSigned = { ...f.unsigned, tags: f.unsigned.tags.map(t => t[0] === 'payload' ? ['payload', digest(login)] : t) };
-  assert.throws(() => f.auth.verify(f.header(loginSigned), login.replace('abcd', 'efab')), /Invalid/);
+  const changedToken = JSON.stringify({ ...JSON.parse(login), twoFactorToken: 'efab1234-'.repeat(3) + 'efab1234' });
+  assert.throws(() => f.auth.verify(f.header(loginSigned), changedToken), /Invalid/);
   assert.deepEqual(f.auth.verify(f.header(loginSigned), login), { pubkey: f.pubkey });
 });
