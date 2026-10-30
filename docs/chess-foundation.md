@@ -168,3 +168,31 @@ color moves using the pinned Maia platform empirical CP-to-winrate lookup and
 This is separate from Maia probability and the full-game EC classification.
 Expected-score circles identify the score's White/Black side. Replay has compact
 native private Notes, with spectator discussion and watcher furniture removed.
+
+
+## Compact puzzle Maia presentation (#105, October 30, 2026)
+
+Puzzle review keeps a simpler surface than the full game-analysis cards. Each
+Maia row has an explicit 8-pixel model-label gap, three move/probability groups
+without dot separators, and an underlined **Other %** control. It opens that
+model's complete legal-move list; each model expands independently. The raw
+legal policy is preserved, including the probability mass outside the top three,
+without applying bot sampling settings or renormalizing the visible moves.
+Very small positive values display as `<0.1%`, with precision available on hover.
+The native move action still explores a selected legal move.
+
+This follows Mobile Maia Preview's `_maiaProbabilityRow` /
+`_showMaiaProbabilities` in `lib/src/review.dart`, inspected at revision
+`8563954` of Dash1971/maia-chess-android-preview. The browser uses an inline,
+keyboard-accessible expansion rather than the app's bottom sheet. Wrapped
+move groups retain a clear label gutter on narrow screens. Native puzzle
+solving, hints, review mode, Stockfish controls, arrows and inference cancellation
+remain unchanged; Maia assistance is still withheld while solving, hidden,
+in threat mode or with the engine disabled. Full game-analysis cards retain
+their richer layout.
+
+Rebase checks: puzzle channel DOM interactions, empty/pending states, native
+review gating tests, narrow and desktop browser layout, native UI formatting,
+lint, type checking and build. The presentation hook remains in the existing
+namespaced puzzle adapter and puzzle stylesheet; no native controller behavior
+or server changes are needed.

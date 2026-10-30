@@ -4614,21 +4614,77 @@ index bfe17e8..c95e1c7 100644
        ? tab(ctrl, 'now_playing', active, [
            ...i18n.site.nbGamesInPlay.asArray(nbPlaying, nbPlaying >= 100 ? '99+' : nbPlaying.toString()),
 diff --git a/ui/puzzle/css/_tools.scss b/ui/puzzle/css/_tools.scss
-index ca31d49..75a5bd3 100644
+index ca31d49..29c641d 100644
 --- a/ui/puzzle/css/_tools.scss
 +++ b/ui/puzzle/css/_tools.scss
-@@ -164,3 +164,47 @@
+@@ -164,3 +164,103 @@
      color: $c-font-clearer;
    }
  }
 +
++.nosweat-engine-lines {
++  display: grid;
++  gap: 0.25rem;
++  padding: 0.5rem 0.75rem;
++  line-height: 1.5;
++}
++
++.nosweat-maia-line {
++  display: grid;
++  grid-template-columns: minmax(6ch, max-content) minmax(0, 1fr);
++  align-items: baseline;
++  column-gap: 8px;
++}
++
++.nosweat-maia-label {
++  white-space: nowrap;
++  font-variant-numeric: tabular-nums;
++}
++
++.nosweat-maia-moves {
++  display: flex;
++  flex-wrap: wrap;
++  align-items: baseline;
++  gap: 2px 0.85em;
++}
++
++.nosweat-maia-move {
++  display: inline-flex;
++  gap: 0.25em;
++  white-space: nowrap;
++  font-variant-numeric: tabular-nums;
++}
++
++.nosweat-maia-probability,
++.nosweat-maia-status {
++  color: $c-font-dim;
++}
++
++button.nosweat-maia-other {
++  min-height: 24px;
++  min-width: 48px;
++  padding: 0 2px;
++  color: $c-font-dim;
++  font: inherit;
++  text-transform: none;
++  text-decoration: underline;
++  text-underline-offset: 0.2em;
++  white-space: nowrap;
++  border-radius: 3px;
++
++  &:hover,
++  &:focus-visible {
++    color: $c-font;
++    background: $c-bg-low;
++  }
++}
++
 +.nosweat-puzzle-policy {
 +  font-size: 0.85em;
++  margin: 0.25rem 0 0.5rem;
 +
-+  summary {
-+    cursor: pointer;
-+    color: $c-font-dim;
-+    padding: 0.3em 0;
++  &[hidden] {
++    display: none;
 +  }
 +
 +  &__scroll {
@@ -31856,10 +31912,10 @@ index 0000000..595739d
 +}
 diff --git a/ui/lib/src/nosweat/core.ts b/ui/lib/src/nosweat/core.ts
 new file mode 100644
-index 0000000..1a77e83
+index 0000000..4b6b4be
 --- /dev/null
 +++ b/ui/lib/src/nosweat/core.ts
-@@ -0,0 +1,105 @@
+@@ -0,0 +1,98 @@
 +// Maia3 encoding/vocabulary: CSSLab 1e13597c and Mobile Maia; see provenance.
 +import { Chess } from 'chessops/chess';
 +import { makeFen, parseFen } from 'chessops/fen';
@@ -31919,13 +31975,6 @@ index 0000000..1a77e83
 +export interface Candidate {
 +  uci: string;
 +  probability: number;
-+}
-+// Shared summary for native analysis and puzzle review.
-+export function leadingPolicy(fen: string, candidates: Candidate[]): string {
-+  return candidates
-+    .slice(0, 3)
-+    .map(c => `${san(fen, c.uci)} ${(100 * c.probability).toFixed(1)}%`)
-+    .join(' · ');
 +}
 +export function policy(fen: string, logits: Float32Array): Candidate[] {
 +  if (logits.length !== 4352 || !logits.every(Number.isFinite)) throw new Error('Invalid Maia policy');
@@ -32429,16 +32478,16 @@ index 0000000..0acc841
 +});
 diff --git a/ui/puzzle/src/noSweatMaia.ts b/ui/puzzle/src/noSweatMaia.ts
 new file mode 100644
-index 0000000..c7836f0
+index 0000000..c1e15cb
 --- /dev/null
 +++ b/ui/puzzle/src/noSweatMaia.ts
-@@ -0,0 +1,130 @@
+@@ -0,0 +1,187 @@
 +import { parseUci } from 'chessops/util';
 +
 +import { winningChances } from 'lib/ceval';
 +import { fenColor } from 'lib/game';
 +import { engineArrows, engineShapes, engineColors } from 'lib/nosweat/arrows';
-+import { san, leadingPolicy, type Candidate } from 'lib/nosweat/core';
++import { san, type Candidate } from 'lib/nosweat/core';
 +import { readEnginePreferences } from 'lib/nosweat/preferences';
 +import { loadBrowserMaia, ReviewMaia, reviewAllowed } from 'lib/nosweat/reviewMaia';
 +import { storage } from 'lib/storage';
@@ -32446,8 +32495,103 @@ index 0000000..c7836f0
 +
 +import type PuzzleCtrl from './ctrl';
 +
++interface PolicyChannel {
++  id: string;
++  fen: string;
++  rating: number;
++  candidates: Candidate[];
++  color: string;
++  status: string;
++  expanded: boolean;
++  toggle: () => void;
++  play: (uci: string) => void;
++}
++
++const probability = (value: number) =>
++  value > 0 && value < 0.001 ? '<0.1%' : `${(100 * value).toFixed(1)}%`;
++
++export function puzzleMaiaChannel(channel: PolicyChannel) {
++  const { id, fen, rating, candidates, color, status, expanded, toggle, play } = channel;
++  const others = candidates.slice(3).reduce((sum, candidate) => sum + candidate.probability, 0);
++  const panel = id + '-moves';
++  return hl('div.nosweat-maia-channel', { key: id + fen + rating }, [
++    hl('div.nosweat-maia-line', [
++      hl('strong.nosweat-maia-label', { attrs: { style: 'color:' + color } }, 'M' + rating),
++      candidates.length
++        ? hl('div.nosweat-maia-moves', [
++            candidates
++              .slice(0, 3)
++              .map(candidate =>
++                hl('span.nosweat-maia-move', { key: candidate.uci }, [
++                  hl('span.nosweat-maia-san', san(fen, candidate.uci)),
++                  ' ',
++                  hl(
++                    'span.nosweat-maia-probability',
++                    { attrs: { title: `${(100 * candidate.probability).toPrecision(6)}%` } },
++                    probability(candidate.probability),
++                  ),
++                ]),
++              ),
++            hl(
++              'button.fbt.nosweat-maia-other',
++              {
++                attrs: {
++                  type: 'button',
++                  'aria-expanded': String(expanded),
++                  'aria-controls': panel,
++                  'aria-label': `${expanded ? 'Hide' : 'Show'} all legal moves for Maia ${rating}, other ${probability(others)}`,
++                  title: expanded ? 'Hide all legal moves' : 'Show all legal moves',
++                },
++                hook: bind('click', toggle),
++              },
++              'Other ' + probability(others),
++            ),
++          ])
++        : hl('span.nosweat-maia-status', status),
++    ]),
++    hl('div.nosweat-puzzle-policy', { attrs: { id: panel, hidden: !expanded || !candidates.length } }, [
++      hl('div.nosweat-puzzle-policy__scroll', [
++        hl('table', { attrs: { 'aria-label': `All legal moves for Maia ${rating}` } }, [
++          hl(
++            'thead',
++            hl('tr', [
++              hl('th', { attrs: { scope: 'col' } }, 'Move'),
++              hl('th', { attrs: { scope: 'col', style: 'color:' + color } }, 'M' + rating),
++            ]),
++          ),
++          hl(
++            'tbody',
++            candidates.map(candidate =>
++              hl('tr', { key: candidate.uci }, [
++                hl(
++                  'td',
++                  hl(
++                    'button.fbt',
++                    {
++                      attrs: { type: 'button', title: 'Explore ' + san(fen, candidate.uci) },
++                      hook: bind('click', () => play(candidate.uci)),
++                    },
++                    san(fen, candidate.uci),
++                  ),
++                ),
++                hl(
++                  'td',
++                  { attrs: { title: `${(100 * candidate.probability).toPrecision(6)}%` } },
++                  probability(candidate.probability),
++                ),
++              ]),
++            ),
++          ),
++        ]),
++      ]),
++    ]),
++  ]);
++}
++
 +export class PuzzleMaia {
 +  private readonly engine: ReviewMaia;
++  private expanded: [boolean, boolean] = [false, false];
++  private displayKey = '';
 +  private readonly preferences = () =>
 +    readEnginePreferences(storage.make('nosweat.enginePreferences.v2').get());
 +  constructor(private readonly ctrl: PuzzleCtrl) {
@@ -32499,67 +32643,29 @@ index 0000000..c7836f0
 +    if (!prefs.maiaArrows) return undefined;
 +    const fen = this.ctrl.node.fen;
 +    const status = this.ctrl.node.outcome() ? 'No legal moves' : this.engine.status || 'Analyzing…';
-+    const row = (rating: number, candidates: Candidate[], color: string) =>
-+      hl('div.nosweat-maia-line', [
-+        hl('strong', { attrs: { style: 'color:' + color } }, 'M' + rating),
-+        hl('span', candidates.length ? leadingPolicy(fen, candidates) : status),
-+      ]);
-+    const probability = (value?: number) =>
-+      hl(
-+        'td',
-+        {
-+          attrs: value === undefined ? {} : { title: `${(100 * value).toPrecision(6)}%` },
++    const key = `${this.ctrl.data.puzzle.id}:${fen}:${prefs.selfElo}:${prefs.secondMaiaElo}:${prefs.secondMaiaEnabled}`;
++    if (key !== this.displayKey) {
++      this.displayKey = key;
++      this.expanded = [false, false];
++    }
++    const row = (rating: number, candidates: Candidate[], color: string, index: 0 | 1) =>
++      puzzleMaiaChannel({
++        id: `puzzle-maia-${index}`,
++        fen,
++        rating,
++        candidates,
++        color,
++        status,
++        expanded: this.expanded[index],
++        toggle: () => {
++          this.expanded[index] = !this.expanded[index];
++          this.ctrl.redraw();
 +        },
-+        value === undefined ? '—' : value > 0 && value < 0.001 ? '<0.1%' : `${(100 * value).toFixed(1)}%`,
-+      );
-+    const secondary = new Map(this.engine.secondary.map(c => [c.uci, c.probability]));
++        play: uci => this.ctrl.sendMove(parseUci(uci)!),
++      });
 +    return hl('section.nosweat-engine-lines', { attrs: { 'aria-label': 'Maia analysis channels' } }, [
-+      row(prefs.selfElo, this.engine.primary, engineColors.maia),
-+      prefs.secondMaiaEnabled && row(prefs.secondMaiaElo, this.engine.secondary, engineColors.maiaSecond),
-+      hl('details.nosweat-puzzle-policy', [
-+        hl('summary', 'All legal moves'),
-+        hl('div.nosweat-puzzle-policy__scroll', [
-+          hl('table', { attrs: { 'aria-label': 'Maia move probabilities' } }, [
-+            hl(
-+              'thead',
-+              hl('tr', [
-+                hl('th', { attrs: { scope: 'col' } }, 'Move'),
-+                hl(
-+                  'th',
-+                  { attrs: { scope: 'col', style: 'color:' + engineColors.maia } },
-+                  'M' + prefs.selfElo,
-+                ),
-+                prefs.secondMaiaEnabled &&
-+                  hl(
-+                    'th',
-+                    { attrs: { scope: 'col', style: 'color:' + engineColors.maiaSecond } },
-+                    'M' + prefs.secondMaiaElo,
-+                  ),
-+              ]),
-+            ),
-+            hl(
-+              'tbody',
-+              this.engine.primary.map(candidate =>
-+                hl('tr', { key: candidate.uci }, [
-+                  hl(
-+                    'td',
-+                    hl(
-+                      'button.fbt',
-+                      {
-+                        attrs: { type: 'button', title: 'Explore ' + san(fen, candidate.uci) },
-+                        hook: bind('click', () => this.ctrl.sendMove(parseUci(candidate.uci)!)),
-+                      },
-+                      san(fen, candidate.uci),
-+                    ),
-+                  ),
-+                  probability(candidate.probability),
-+                  prefs.secondMaiaEnabled && probability(secondary.get(candidate.uci)),
-+                ]),
-+              ),
-+            ),
-+          ]),
-+        ]),
-+      ]),
++      row(prefs.selfElo, this.engine.primary, engineColors.maia, 0),
++      prefs.secondMaiaEnabled && row(prefs.secondMaiaElo, this.engine.secondary, engineColors.maiaSecond, 1),
 +    ]);
 +  }
 +}
@@ -32582,6 +32688,122 @@ index 0000000..83f2957
 +  assert.equal(root.children[0].ply, 34);
 +  assert.equal(root.children[0].san, 'Kd7');
 +  assert.equal(root.children[0].fen.split(' ')[1], 'w');
++});
+diff --git a/ui/puzzle/tests/noSweatMaia.test.ts b/ui/puzzle/tests/noSweatMaia.test.ts
+new file mode 100644
+index 0000000..1337eea
+--- /dev/null
++++ b/ui/puzzle/tests/noSweatMaia.test.ts
+@@ -0,0 +1,110 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++import { attributesModule, init, type VNode } from 'snabbdom';
++
++import { hl } from 'lib/view';
++
++import { puzzleMaiaChannel } from '../src/noSweatMaia';
++
++const fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
++const primary = [
++  { uci: 'e2e4', probability: 0.492 },
++  { uci: 'd2d4', probability: 0.172 },
++  { uci: 'g1f3', probability: 0.048 },
++  { uci: 'c2c4', probability: 0.2876 },
++  { uci: 'b1c3', probability: 0.0004 },
++];
++
++test('compact channels preserve raw probabilities and independently expand all legal moves', () => {
++  const patch = init([attributesModule]);
++  const host = document.createElement('div');
++  document.body.append(host);
++  let vnode: VNode | Element = host;
++  const expanded = [false, false];
++  const played: string[] = [];
++  const render = () => {
++    vnode = patch(
++      vnode,
++      hl(
++        'section',
++        [primary, [...primary].reverse()].map((candidates, i) =>
++          puzzleMaiaChannel({
++            id: `maia-${i}`,
++            fen,
++            rating: i ? 2600 : 1600,
++            candidates,
++            color: 'orange',
++            status: '',
++            expanded: expanded[i],
++            toggle: () => {
++              expanded[i] = !expanded[i];
++              render();
++            },
++            play: uci => played.push(uci),
++          }),
++        ),
++      ),
++    );
++  };
++  render();
++  const root = () => vnode.elm as HTMLElement;
++  const other = (index: number) => root().querySelectorAll<HTMLButtonElement>('.nosweat-maia-other')[index];
++  const panels = () => [...root().querySelectorAll<HTMLElement>('.nosweat-puzzle-policy')];
++  assert.equal(other(0).textContent, 'Other 28.8%');
++  assert.equal(other(1).textContent, 'Other 66.4%');
++  assert.equal(root().querySelector('.nosweat-maia-probability')!.textContent, '49.2%');
++  assert.equal(root().querySelectorAll('.nosweat-maia-move').length, 6);
++  assert.ok(!root().textContent.includes('·'));
++  assert.ok(panels().every(panel => panel.hidden));
++  other(0).click();
++  assert.equal(other(0).getAttribute('aria-expanded'), 'true');
++  assert.equal(other(0).getAttribute('aria-controls'), panels()[0].id);
++  assert.deepEqual(
++    panels().map(panel => panel.hidden),
++    [false, true],
++  );
++  assert.equal(panels()[0].querySelectorAll('tbody tr').length, primary.length);
++  assert.equal(panels()[0].querySelector('tbody tr:last-child td:last-child')!.textContent, '<0.1%');
++  panels()[0].querySelector<HTMLButtonElement>('tbody tr:last-child button')!.click();
++  assert.deepEqual(played, ['b1c3']);
++  other(0).click();
++  other(0).click();
++  other(1).click();
++  assert.deepEqual(
++    panels().map(panel => panel.hidden),
++    [false, false],
++  );
++  other(0).click();
++  assert.deepEqual(
++    panels().map(panel => panel.hidden),
++    [true, false],
++  );
++  root().remove();
++});
++
++test('pending and terminal channels have no misleading Other control', () => {
++  const patch = init([attributesModule]);
++  for (const status of ['Analyzing…', 'No legal moves']) {
++    const host = document.createElement('div');
++    document.body.append(host);
++    const vnode = patch(
++      host,
++      puzzleMaiaChannel({
++        id: 'empty',
++        fen,
++        rating: 1600,
++        candidates: [],
++        color: 'orange',
++        status,
++        expanded: true,
++        toggle: () => assert.fail('empty channel cannot expand'),
++        play: () => {},
++      }),
++    );
++    const root = vnode.elm as HTMLElement;
++    assert.equal(root.querySelector('.nosweat-maia-status')!.textContent, status);
++    assert.equal(root.querySelector('.nosweat-maia-other'), null);
++    assert.ok(root.querySelector<HTMLElement>('.nosweat-puzzle-policy')!.hidden);
++    root.remove();
++  }
 +});
 diff --git a/ui/round/src/premoveSequence.ts b/ui/round/src/premoveSequence.ts
 new file mode 100644
