@@ -1,5 +1,22 @@
 # Mute Chess implementation direction
 
+## Upstream alignment (owner decision, October 30, 2026)
+
+Read `docs/upstream-alignment.md` before changing native behavior. Stay as close
+as possible to Lichess/Lila: our defined departures are Maia integration,
+stacked premoves, bot-only quick pairing, limited feature exposure, branding
+and Nostr identity. Other specifically requested adapters must remain bounded
+and justified. Preserve native rules, clocks, ratings/provisional semantics,
+anti-abuse controls, completion, direct invitations and normal settings behavior.
+Prefer native services and small additive adapters over replacement subsystems.
+
+Maintain the exact-path register in `deploy/lila/upstream-departures.json` and
+feature documentation whenever a native departure changes. Explain the native
+contract retained, why the hook is necessary, and its verification/rebase impact.
+CI checks coverage and pin consistency; it cannot substitute for semantic review.
+Remove obsolete patches when upstream provides an equivalent. Keep upstream
+rebases separate from unrelated feature changes. See #75.
+
 The owner's confirmed direction is recorded in `docs/chess-foundation.md` (28 October 2026): desktop/browser only; Lichess/Lila is the base for all exposed chess play and analysis; Mobile Maia / En Croissant / maiachess.com add the specified analysis capabilities. Cyberpunk/cypherpunk is the wrapper and branding.
 
 Read that decision before changing architecture. The current Node/Fastify round implementation is an infrastructure prototype, not a decision to reimplement the Lichess chess experience. Do not expand a parallel custom rules/clock/premove/analysis-tree stack. Retain the native Lichess base and its tested behavior, adding clear adapters for Maia, Nostr and our supported human-versus-bot scope.

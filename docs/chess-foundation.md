@@ -147,6 +147,16 @@ the final projected plan. Invalid/cancelled queues and endings reveal the actual
 position. Clock updates precede premove execution; native move transport,
 promotion, sounds, legality and single premoves remain authoritative.
 
+## Upstream maintenance direction (October 30, #75)
+
+Stay as close as possible to native Lichess/Lila outside the defined product
+departures. Maintain the rationale, exact native file inventory, verification
+and rebase instructions in [upstream-alignment.md](upstream-alignment.md) and
+`deploy/lila/upstream-departures.json`. Prefer native configuration and small
+adapter hooks; preserve rules, clocks, ratings, completion, ownership and abuse
+controls. Register coverage is a maintenance check, not evidence that a behavior
+change is justified. Review that explicitly in every affected PR.
+
 ## October 30 analysis presentation follow-up (#65)
 
 Bound summary player columns and use a compact npub for generated unnamed Nostr

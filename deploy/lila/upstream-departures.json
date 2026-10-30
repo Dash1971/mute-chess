@@ -1,0 +1,342 @@
+{
+  "schemaVersion": 1,
+  "repositories": [
+    {
+      "id": "lila",
+      "repository": "https://github.com/lichess-org/lila",
+      "revision": "b551752d2a0e7a63459d9812825d95a633a98737",
+      "patch": "deploy/lila/patches/lila-nostr-maia.patch",
+      "areas": [
+        {
+          "id": "application-wiring",
+          "rationale": "Connect the bounded Maia, Nostr, patron and focused-page adapters to native routing and dependency wiring; do not replace native domain services.",
+          "verification": [
+            "Native stage/format checks",
+            "Private login, pool, account and source/provenance checks"
+          ],
+          "files": [
+            "app/Env.scala",
+            "app/Lila.scala",
+            "app/NoSweatService.scala",
+            "app/controllers/NoSweat.scala",
+            "app/http/HttpRequestHandler.scala",
+            "conf/routes"
+          ]
+        },
+        {
+          "id": "nostr-and-public-profiles",
+          "rationale": "Support signature-based Nostr login, optional native TOTP, editable public names and stable native account IDs; preserve native sessions, ownership and game history.",
+          "verification": [
+            "Adapter authentication/security/login tests",
+            "Native NostrName/PublicName tests",
+            "Private account and friend-invitation checks"
+          ],
+          "files": [
+            "app/controllers/Account.scala",
+            "app/controllers/Auth.scala",
+            "app/controllers/Dasher.scala",
+            "app/views/noSweatLogin.scala",
+            "app/views/noSweatSecurity.scala",
+            "app/views/user/show/header.scala",
+            "app/views/user/show/page.scala",
+            "modules/common/src/main/Json.scala",
+            "modules/core/src/main/LightUser.scala",
+            "modules/core/src/main/NostrName.scala",
+            "modules/core/src/main/user.scala",
+            "modules/core/src/test/NostrNameTest.scala",
+            "modules/security/src/main/ui/AccountSecurity.scala",
+            "modules/ui/src/main/helper/UserHelper.scala",
+            "modules/user/src/main/BSONHandlers.scala",
+            "modules/user/src/main/JsonView.scala",
+            "modules/user/src/main/LightUserApi.scala",
+            "modules/user/src/main/UserForm.scala",
+            "modules/user/src/main/UserRepo.scala",
+            "modules/user/src/main/ui/UserActionMenu.scala",
+            "modules/user/src/main/ui/UserShow.scala",
+            "modules/user/src/test/PublicNameTest.scala",
+            "public/nosweat/nostr.css",
+            "ui/@types/lichess/index.d.ts",
+            "ui/dasher/src/interfaces.ts",
+            "ui/dasher/src/links.ts",
+            "ui/lib/src/game/interfaces.ts",
+            "ui/lib/src/view/userLink.ts",
+            "ui/round/src/view/user.ts"
+          ]
+        },
+        {
+          "id": "maia-bot-pool",
+          "rationale": "Restrict quick pairing to managed Maia bots and validate admissions, while retaining native games, clocks, Glicko and completion. Add a derived rating index and a roster-level presence bridge without changing ordinary user/API-bot presence.",
+          "verification": [
+            "Native PoolCatalogTest/ManagedPresenceTest",
+            "Adapter policy/personality tests",
+            "Private pool, timing and presence integration"
+          ],
+          "files": [
+            "app/controllers/Setup.scala",
+            "app/views/noSweatBot.scala",
+            "modules/bot/src/main/ManagedPresence.scala",
+            "modules/bot/src/main/OnlineApiUsers.scala",
+            "modules/bot/src/main/PoolCatalog.scala",
+            "modules/bot/src/test/ManagedPresenceTest.scala",
+            "modules/bot/src/test/PoolCatalogTest.scala",
+            "modules/core/src/main/socket.scala",
+            "modules/game/src/main/Env.scala",
+            "modules/game/src/main/GameRepo.scala",
+            "modules/lobby/src/main/Env.scala",
+            "modules/lobby/src/main/LobbySocket.scala",
+            "modules/socket/src/main/RemoteSocket.scala",
+            "public/nosweat-roster.json"
+          ]
+        },
+        {
+          "id": "maia-analysis-and-review",
+          "rationale": "Add Maia probabilities/expected scores, validated annotations and stacked analysis cards around the native analysis tree, Stockfish, graph, accuracy and learning flow. Keep engine settings bounded and optional and reject unsupported variants.",
+          "verification": [
+            "Native analyse/chart/lib tests and full UI build",
+            "analysis/test-client.mjs",
+            "Private analysis and puzzle-review browser qualification"
+          ],
+          "files": [
+            "app/controllers/UserAnalysis.scala",
+            "app/views/analyse.scala",
+            "modules/analyse/src/main/ui/AnalyseUi.scala",
+            "ui/analyse/css/_layout.scss",
+            "ui/analyse/src/analyse.nosweatWorker.ts",
+            "ui/analyse/src/autoShape.ts",
+            "ui/analyse/src/ctrl.ts",
+            "ui/analyse/src/explorer/explorerCtrl.ts",
+            "ui/analyse/src/interfaces.ts",
+            "ui/analyse/src/local/analyse.local.ts",
+            "ui/analyse/src/local/localAnalysisDialog.tsx",
+            "ui/analyse/src/local/localAnalysisEngine.ts",
+            "ui/analyse/src/noSweatAnalysis.ts",
+            "ui/analyse/src/noSweatArrows.ts",
+            "ui/analyse/src/noSweatBrilliants.ts",
+            "ui/analyse/src/noSweatCandidateQuality.ts",
+            "ui/analyse/src/noSweatClassifierClient.ts",
+            "ui/analyse/src/noSweatClassify.ts",
+            "ui/analyse/src/noSweatCore.ts",
+            "ui/analyse/src/noSweatEvents.ts",
+            "ui/analyse/src/noSweatFish.ts",
+            "ui/analyse/src/noSweatFullReview.ts",
+            "ui/analyse/src/noSweatPreferences.ts",
+            "ui/analyse/src/noSweatRatingChart.ts",
+            "ui/analyse/src/noSweatSnapshots.ts",
+            "ui/analyse/src/pgnImport.ts",
+            "ui/analyse/src/serverSideUnderboard.ts",
+            "ui/analyse/src/study/analyse.study.tour.ts",
+            "ui/analyse/src/study/chapterNewForm.ts",
+            "ui/analyse/src/study/studyCtrl.ts",
+            "ui/analyse/src/study/studyXhr.ts",
+            "ui/analyse/src/util.ts",
+            "ui/analyse/src/view/actionMenu.ts",
+            "ui/analyse/src/view/components.ts",
+            "ui/analyse/src/view/main.ts",
+            "ui/analyse/src/view/roundTraining.ts",
+            "ui/analyse/src/view/settingsView.ts",
+            "ui/analyse/tests/candidateColorLifecycle.test.ts",
+            "ui/analyse/tests/candidateQuality.test.ts",
+            "ui/analyse/tests/fixtures/noSweat/annotation-boundaries.json",
+            "ui/analyse/tests/fixtures/noSweat/maia-5m.json",
+            "ui/analyse/tests/fixtures/noSweat/stockfish18-fast.json",
+            "ui/analyse/tests/localReviewStart.test.ts",
+            "ui/analyse/tests/noSweat.test.ts",
+            "ui/analyse/tests/noSweatBrilliants.test.ts",
+            "ui/analyse/tests/noSweatFullGame.test.ts",
+            "ui/analyse/tests/noSweatFullReview.test.ts",
+            "ui/analyse/tests/noSweatRatingChart.test.ts",
+            "ui/analyse/tests/summaryLayout.test.ts",
+            "ui/chart/src/acpl.ts",
+            "ui/chart/src/moveClassifications.ts",
+            "ui/chart/tests/moveClassifications.test.ts",
+            "ui/lib/src/ceval/ctrl.ts",
+            "ui/lib/src/ceval/engines/stockfishWebEngine.ts",
+            "ui/lib/src/ceval/protocol.ts",
+            "ui/lib/src/ceval/types.ts",
+            "ui/lib/src/nosweat/arrows.ts",
+            "ui/lib/src/nosweat/core.ts",
+            "ui/lib/src/nosweat/expectedScore.ts",
+            "ui/lib/src/nosweat/preferences.ts",
+            "ui/lib/src/nosweat/reviewMaia.ts",
+            "ui/lib/src/tree/types.ts",
+            "ui/lib/tests/cevalProtocol.test.ts",
+            "ui/lib/tests/maiaExpectedScore.test.ts",
+            "ui/lib/tests/noSweatReviewMaia.test.ts",
+            "ui/puzzle/css/_tools.scss",
+            "ui/puzzle/src/autoShape.ts",
+            "ui/puzzle/src/ctrl.ts",
+            "ui/puzzle/src/interfaces.ts",
+            "ui/puzzle/src/moveTree.ts",
+            "ui/puzzle/src/noSweatMaia.ts",
+            "ui/puzzle/src/view/main.ts",
+            "ui/puzzle/src/view/side.ts"
+          ]
+        },
+        {
+          "id": "stacked-premoves",
+          "rationale": "Extend native premoves with an optional projected queue and atomic board updates. Native legality, move transport, promotion, clocks, cancellation and committed history stay authoritative.",
+          "verification": [
+            "Native premoveSequence/premoveContinuity tests",
+            "Native round/lib UI build",
+            "Private real-round and reconnect checks"
+          ],
+          "files": [
+            "ui/lib/src/game/promotion.ts",
+            "ui/lib/src/pubsub.ts",
+            "ui/lib/src/socket.ts",
+            "ui/round/src/ctrl.ts",
+            "ui/round/src/ground.ts",
+            "ui/round/src/keyboard.ts",
+            "ui/round/src/premoveSequence.ts",
+            "ui/round/src/title.ts",
+            "ui/round/src/view/boardMenu.ts",
+            "ui/round/tests/premoveContinuity.test.ts",
+            "ui/round/tests/premoveSequence.test.ts"
+          ]
+        },
+        {
+          "id": "focused-native-features",
+          "rationale": "Constrain visible navigation and unsupported routes, standard-only tools and bot-game metadata; preserve native puzzles, community and direct friend invitations. Watch/Learn/explorer remain hidden or deferred, and imported practice data uses the licensed subset rather than upstream production data.",
+          "verification": [
+            "Native site/editor/puzzle tests and UI build",
+            "puzzles/ and learning/ validation",
+            "Private community/preferences/friend checks"
+          ],
+          "files": [
+            "app/controllers/Cms.scala",
+            "app/controllers/Editor.scala",
+            "app/controllers/Importer.scala",
+            "app/controllers/Main.scala",
+            "app/controllers/Tv.scala",
+            "app/views/lobby/home.scala",
+            "app/views/noSweatInfo.scala",
+            "app/views/ui.scala",
+            "modules/forum/src/main/ui/CategUi.scala",
+            "modules/forum/src/main/ui/ForumBits.scala",
+            "modules/practice/src/main/PracticeApi.scala",
+            "modules/practice/src/main/PracticeStructure.scala",
+            "modules/pref/src/main/Pref.scala",
+            "modules/pref/src/main/ui/AccountPages.scala",
+            "modules/pref/src/main/ui/AccountPref.scala",
+            "modules/pref/src/main/ui/AccountUi.scala",
+            "modules/puzzle/src/main/Env.scala",
+            "modules/puzzle/src/main/GameJson.scala",
+            "modules/puzzle/src/main/JsonView.scala",
+            "modules/relation/src/main/ui/RelationUi.scala",
+            "modules/storm/src/main/ui/StormUi.scala",
+            "modules/study/src/main/ChapterMaker.scala",
+            "modules/study/src/main/StudyApi.scala",
+            "modules/study/src/main/ui/StudyListUi.scala",
+            "modules/tv/src/main/TvUi.scala",
+            "modules/web/src/main/ui/BoardEditorUi.scala",
+            "modules/web/src/main/ui/TopNav.scala",
+            "modules/web/src/main/ui/bits.scala",
+            "modules/web/src/main/ui/layout.scala",
+            "ui/bits/src/bits.tvGames.ts",
+            "ui/editor/src/ctrl.ts",
+            "ui/editor/src/interfaces.ts",
+            "ui/editor/src/view.ts",
+            "ui/learn/src/view.ts",
+            "ui/lobby/src/ctrl.ts",
+            "ui/lobby/src/interfaces.ts",
+            "ui/lobby/src/lobby.ts",
+            "ui/lobby/src/setupCtrl.ts",
+            "ui/lobby/src/view/setup/modal.ts",
+            "ui/lobby/src/view/table.ts",
+            "ui/lobby/src/view/tabs.ts",
+            "ui/puzzle/tests/noSweatCatalog.test.ts",
+            "ui/site/src/topBar.ts",
+            "ui/site/tests/topBar.test.ts",
+            "ui/site/tests/tsconfig.json"
+          ]
+        },
+        {
+          "id": "branding-and-layout",
+          "rationale": "Apply the owner-approved Mute Chess identity and enhancement layout, keeping native components and upstream attribution/license notices.",
+          "verification": [
+            "Full native UI build",
+            "Automated browser layout checks",
+            "design/quiet-signal/README.md"
+          ],
+          "files": [
+            "app/views/base/page.scala",
+            "modules/pref/src/main/Theme.scala",
+            "public/images/board/svg/quiet-signal.svg",
+            "public/nosweat/app-icon-192.png",
+            "public/nosweat/app-icon-512.png",
+            "public/nosweat/brand.css",
+            "public/nosweat/favicon-32.png",
+            "public/nosweat/favicon-alert.svg",
+            "public/nosweat/favicon.svg",
+            "public/nosweat/icon-light.svg",
+            "public/nosweat/icon.svg",
+            "public/nosweat/manifest.json",
+            "public/nosweat/quiet-signal.css",
+            "public/nosweat/social.png",
+            "public/nosweat/social.svg",
+            "public/nosweat/textmark-light.svg",
+            "public/nosweat/textmark.svg",
+            "public/nosweat/watermark-dark.svg",
+            "public/nosweat/watermark-light.svg",
+            "public/nosweat/wordmark-light.svg",
+            "public/nosweat/wordmark.svg",
+            "ui/lib/css/theme/board/_boards.scss",
+            "ui/lib/src/notification.ts"
+          ]
+        },
+        {
+          "id": "lightning-patronage",
+          "rationale": "Adapt the explicitly requested Lightning/Nostr donation flow to native patron marks and remove unrelated payment entry points. Preserve verification and account binding rather than changing native chess behavior.",
+          "verification": [
+            "Adapter lightning tests",
+            "Native QR tests/build",
+            "Private invoice and receipt checks without payment"
+          ],
+          "files": [
+            "app/controllers/Plan.scala",
+            "app/views/noSweatPatron.scala",
+            "modules/plan/src/main/PlanApi.scala",
+            "ui/bits/css/build/bits.patron.scss",
+            "ui/bits/src/bits.qrcode.ts",
+            "ui/bits/tests/qrcode.test.ts"
+          ]
+        },
+        {
+          "id": "analysis-private-notes",
+          "rationale": "Remove replay/analysis spectator furniture while retaining native private notes and leaving player/friend chat unchanged.",
+          "verification": [
+            "Native notesOnly tests",
+            "Private analysis profile/replay browser checks"
+          ],
+          "files": [
+            "ui/lib/src/chat/chatCtrl.ts",
+            "ui/lib/src/chat/interfaces.ts",
+            "ui/lib/src/chat/renderChat.ts",
+            "ui/lib/tests/notesOnly.test.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lila-ws",
+      "repository": "https://github.com/lichess-org/lila-ws",
+      "revision": "5089b84b5fe2da3f3e9e69d29363115cfddfc758",
+      "patch": "deploy/lila/patches/lila-ws-bind-address.patch",
+      "areas": [
+        {
+          "id": "loopback-binding",
+          "rationale": "Make the existing WebSocket listener bind address configurable so the deployment can use loopback behind the gateway; retain upstream protocol and default behavior.",
+          "verification": [
+            "Apply patch to exact upstream pin",
+            "Native WebSocket stage and private reconnect checks",
+            "Deployment isolation tests"
+          ],
+          "files": [
+            "src/main/resources/application.conf",
+            "src/main/scala/netty/NettyServer.scala"
+          ]
+        }
+      ]
+    }
+  ]
+}
