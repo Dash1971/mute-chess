@@ -38,7 +38,13 @@
     "reference_account": "maia3-79m_600",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "PixelMoth"
+    "username": "PixelMoth",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": true,
+      "humanTiming": false,
+      "timingStyle": "slow"
+    }
   },
   {
     "id": "glitch-cat",
@@ -79,7 +85,13 @@
     "reference_account": "maia3-79m_600",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "GlitchCat"
+    "username": "GlitchCat",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": false,
+      "timingStyle": "very-slow"
+    }
   },
   {
     "id": "pocket-static",
@@ -120,7 +132,13 @@
     "reference_account": "maia3-79m_600",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "PocketStatic"
+    "username": "PocketStatic",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": false,
+      "timingStyle": "very-slow"
+    }
   },
   {
     "id": "cassette-kid",
@@ -161,7 +179,13 @@
     "reference_account": "maia3-79m_600",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "CassetteKid"
+    "username": "CassetteKid",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": true,
+      "humanTiming": true,
+      "timingStyle": "very-slow"
+    }
   },
   {
     "id": "copper-byte",
@@ -202,7 +226,13 @@
     "reference_account": "maia3-79m_800",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "CopperByte"
+    "username": "CopperByte",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": true,
+      "timingStyle": "slow"
+    }
   },
   {
     "id": "neon-finch",
@@ -243,7 +273,13 @@
     "reference_account": "maia3-79m_800",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "NeonFinch"
+    "username": "NeonFinch",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": false,
+      "timingStyle": "fast"
+    }
   },
   {
     "id": "patchwork",
@@ -284,7 +320,13 @@
     "reference_account": "maia3-79m_800",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "Patchwork"
+    "username": "Patchwork",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": true,
+      "timingStyle": "fast"
+    }
   },
   {
     "id": "velvet-circuit",
@@ -325,7 +367,13 @@
     "reference_account": "maia3-79m_800",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "VelvetCircuit"
+    "username": "VelvetCircuit",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": true,
+      "timingStyle": "very-slow"
+    }
   },
   {
     "id": "cobalt-mist",
@@ -366,7 +414,13 @@
     "reference_account": "maia3-79m_1000",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "CobaltMist"
+    "username": "CobaltMist",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": true,
+      "humanTiming": true,
+      "timingStyle": "fast"
+    }
   },
   {
     "id": "sideband",
@@ -407,7 +461,13 @@
     "reference_account": "maia3-79m_1000",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "Sideband"
+    "username": "Sideband",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": true,
+      "timingStyle": "normal"
+    }
   },
   {
     "id": "chrome-sparrow",
@@ -448,7 +508,13 @@
     "reference_account": "maia3-79m_1000",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "ChromeSparrow"
+    "username": "ChromeSparrow",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": true,
+      "timingStyle": "slow"
+    }
   },
   {
     "id": "chrome-alley",
@@ -489,7 +555,13 @@
     "reference_account": "maia3-79m_1000",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "ChromeAlley"
+    "username": "ChromeAlley",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": true,
+      "humanTiming": true,
+      "timingStyle": "slow"
+    }
   },
   {
     "id": "violet-metro",
@@ -530,7 +602,13 @@
     "reference_account": "maia3-79m_1200",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "VioletMetro"
+    "username": "VioletMetro",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": true,
+      "timingStyle": "very-slow"
+    }
   },
   {
     "id": "static-rain",
@@ -571,7 +649,13 @@
     "reference_account": "maia3-79m_1200",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "StaticRain"
+    "username": "StaticRain",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": true,
+      "humanTiming": false,
+      "timingStyle": "normal"
+    }
   },
   {
     "id": "rooftop-echo",
@@ -612,7 +696,13 @@
     "reference_account": "maia3-79m_1200",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "RooftopEcho"
+    "username": "RooftopEcho",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": false,
+      "timingStyle": "very-fast"
+    }
   },
   {
     "id": "carbon-kite",
@@ -653,7 +743,13 @@
     "reference_account": "maia3-79m_1200",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "CarbonKite"
+    "username": "CarbonKite",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": true,
+      "humanTiming": true,
+      "timingStyle": "fast"
+    }
   },
   {
     "id": "neon-rook",
@@ -694,7 +790,13 @@
     "reference_account": "maia3-79m_1400",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "NeonRook"
+    "username": "NeonRook",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": true,
+      "humanTiming": false,
+      "timingStyle": "very-slow"
+    }
   },
   {
     "id": "quiet-proxy",
@@ -735,7 +837,13 @@
     "reference_account": "maia3-79m_1400",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "QuietProxy"
+    "username": "QuietProxy",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": false,
+      "timingStyle": "normal"
+    }
   },
   {
     "id": "night-courier",
@@ -776,7 +884,13 @@
     "reference_account": "maia3-79m_1400",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "NightCourier"
+    "username": "NightCourier",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": true,
+      "humanTiming": false,
+      "timingStyle": "very-fast"
+    }
   },
   {
     "id": "rust-halo",
@@ -817,7 +931,13 @@
     "reference_account": "maia3-79m_1400",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "RustHalo"
+    "username": "RustHalo",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": true,
+      "timingStyle": "very-fast"
+    }
   },
   {
     "id": "cipher-fox",
@@ -858,7 +978,13 @@
     "reference_account": "maia3-79m_1600",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "CipherFox"
+    "username": "CipherFox",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": true,
+      "timingStyle": "normal"
+    }
   },
   {
     "id": "analog-ghost",
@@ -899,7 +1025,13 @@
     "reference_account": "maia3-79m_1600",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "AnalogGhost"
+    "username": "AnalogGhost",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": true,
+      "humanTiming": true,
+      "timingStyle": "fast"
+    }
   },
   {
     "id": "switchback",
@@ -940,7 +1072,13 @@
     "reference_account": "maia3-79m_1600",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "Switchback"
+    "username": "Switchback",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": true,
+      "humanTiming": true,
+      "timingStyle": "very-slow"
+    }
   },
   {
     "id": "static-bishop",
@@ -981,7 +1119,13 @@
     "reference_account": "maia3-79m_1600",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "StaticBishop"
+    "username": "StaticBishop",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": true,
+      "humanTiming": false,
+      "timingStyle": "very-slow"
+    }
   },
   {
     "id": "ghost-relay",
@@ -1022,7 +1166,13 @@
     "reference_account": "maia3-79m_1800",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "GhostRelay"
+    "username": "GhostRelay",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": true,
+      "timingStyle": "very-slow"
+    }
   },
   {
     "id": "night-current",
@@ -1063,7 +1213,13 @@
     "reference_account": "maia3-79m_1800",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "NightCurrent"
+    "username": "NightCurrent",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": true,
+      "humanTiming": false,
+      "timingStyle": "fast"
+    }
   },
   {
     "id": "neon-knight",
@@ -1104,7 +1260,13 @@
     "reference_account": "maia3-79m_1800",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "NeonKnight"
+    "username": "NeonKnight",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": true,
+      "humanTiming": true,
+      "timingStyle": "normal"
+    }
   },
   {
     "id": "ghost-gambit",
@@ -1145,7 +1307,13 @@
     "reference_account": "maia3-79m_1800",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "GhostGambit"
+    "username": "GhostGambit",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": true,
+      "timingStyle": "fast"
+    }
   },
   {
     "id": "chrome-castle",
@@ -1186,7 +1354,13 @@
     "reference_account": "maia3-79m_2000",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "ChromeCastle"
+    "username": "ChromeCastle",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": true,
+      "humanTiming": true,
+      "timingStyle": "slow"
+    }
   },
   {
     "id": "midnight-signal",
@@ -1227,7 +1401,13 @@
     "reference_account": "maia3-79m_2000",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "MidnightSignal"
+    "username": "MidnightSignal",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": true,
+      "humanTiming": true,
+      "timingStyle": "very-fast"
+    }
   },
   {
     "id": "circuit-saint",
@@ -1268,7 +1448,13 @@
     "reference_account": "maia3-79m_2000",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "CircuitSaint"
+    "username": "CircuitSaint",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": true,
+      "timingStyle": "very-fast"
+    }
   },
   {
     "id": "null-echo",
@@ -1309,7 +1495,13 @@
     "reference_account": "maia3-79m_2000",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "NullEcho"
+    "username": "NullEcho",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": true,
+      "humanTiming": false,
+      "timingStyle": "normal"
+    }
   },
   {
     "id": "neon-drift",
@@ -1350,7 +1542,13 @@
     "reference_account": "maia3-79m_2200",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "NeonDrift"
+    "username": "NeonDrift",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": false,
+      "timingStyle": "very-slow"
+    }
   },
   {
     "id": "signal-weaver",
@@ -1391,7 +1589,13 @@
     "reference_account": "maia3-79m_2200",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "SignalWeaver"
+    "username": "SignalWeaver",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": true,
+      "humanTiming": true,
+      "timingStyle": "slow"
+    }
   },
   {
     "id": "quantum-shade",
@@ -1432,7 +1636,13 @@
     "reference_account": "maia3-79m_2200",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "QuantumShade"
+    "username": "QuantumShade",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": true,
+      "timingStyle": "normal"
+    }
   },
   {
     "id": "blackout",
@@ -1473,7 +1683,13 @@
     "reference_account": "maia3-79m_2200",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "Blackout"
+    "username": "Blackout",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": true,
+      "timingStyle": "very-fast"
+    }
   },
   {
     "id": "indigo-pulse",
@@ -1514,7 +1730,13 @@
     "reference_account": "maia3-79m_2400",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "IndigoPulse"
+    "username": "IndigoPulse",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": true,
+      "timingStyle": "fast"
+    }
   },
   {
     "id": "holo-raven",
@@ -1555,7 +1777,13 @@
     "reference_account": "maia3-79m_2400",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "HoloRaven"
+    "username": "HoloRaven",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": true,
+      "humanTiming": false,
+      "timingStyle": "normal"
+    }
   },
   {
     "id": "chrome-oracle",
@@ -1596,7 +1824,13 @@
     "reference_account": "maia3-79m_2400",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "ChromeOracle"
+    "username": "ChromeOracle",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": true,
+      "humanTiming": false,
+      "timingStyle": "very-slow"
+    }
   },
   {
     "id": "zero-day",
@@ -1637,7 +1871,13 @@
     "reference_account": "maia3-79m_2400",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "ZeroDay"
+    "username": "ZeroDay",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": true,
+      "timingStyle": "very-fast"
+    }
   },
   {
     "id": "ultraviolet",
@@ -1678,7 +1918,13 @@
     "reference_account": "maia3-79m_2600",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "Ultraviolet"
+    "username": "Ultraviolet",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": true,
+      "timingStyle": "normal"
+    }
   },
   {
     "id": "prism-wraith",
@@ -1719,7 +1965,13 @@
     "reference_account": "maia3-79m_2600",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "PrismWraith"
+    "username": "PrismWraith",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": true,
+      "humanTiming": false,
+      "timingStyle": "very-slow"
+    }
   },
   {
     "id": "event-horizon",
@@ -1760,7 +2012,13 @@
     "reference_account": "maia3-79m_2600",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "EventHorizon"
+    "username": "EventHorizon",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": false,
+      "timingStyle": "normal"
+    }
   },
   {
     "id": "kernel-ghost",
@@ -1801,6 +2059,12 @@
     "reference_account": "maia3-79m_2600",
     "baseline_assumption": "reference is comparable to full sampling; unverified",
     "configuration_status": "private-unrated-alpha-v1",
-    "username": "KernelGhost"
+    "username": "KernelGhost",
+    "personality": {
+      "assignment": "sha256-independent-fields-v1",
+      "history": false,
+      "humanTiming": true,
+      "timingStyle": "very-fast"
+    }
   }
 ]

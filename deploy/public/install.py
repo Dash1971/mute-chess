@@ -62,7 +62,7 @@ lesson_checker.verify()
 checker = base / 'tools/node'
 if not checker.exists():
     checker = Path('/opt/club-maia/node-v24.22.1-linux-x64/bin/node')
-for script in ('gateway.mjs', 'lila-adapter/server.mjs', 'lila-adapter/policy.mjs', 'nosweat/nostr.js'):
+for script in ('gateway.mjs', 'lila-adapter/server.mjs', 'lila-adapter/policy.mjs', 'lila-adapter/personality.mjs', 'nosweat/nostr.js'):
     subprocess.run([str(checker), '--check', str(payload / script)], check=True)
 isolation_spec = importlib.util.spec_from_file_location('service_isolation', payload / 'deployment/public/service-isolation.py')
 isolation = importlib.util.module_from_spec(isolation_spec)
@@ -217,6 +217,7 @@ shutil.copytree(payload / 'deployment', source_dir / 'deployment')
 shutil.copytree(payload / 'analysis', source_dir / 'analysis')
 shutil.copytree(payload / 'puzzles', source_dir / 'puzzles')
 shutil.copytree(payload / 'learning', source_dir / 'learning')
+shutil.copytree(payload / 'docs', source_dir / 'docs')
 with tarfile.open(release / 'source.tar.gz', 'w:gz') as archive:
     archive.add(source_dir, arcname='mutechess-source')
 (release / 'source.tar.gz').chmod(0o644)

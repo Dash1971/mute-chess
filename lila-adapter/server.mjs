@@ -6,13 +6,20 @@ import { fileURLToPath } from 'node:url';
 import { NostrAuth, AdapterError } from './nostr-auth.mjs';
 import { Maia } from './maia.mjs';
 import { createZapInvoice, validateZapReceipt } from './lightning.mjs';
-import { freeze, effectivePolicy, targetTime, addedWait } from './policy.mjs';
+import { freeze, effectivePolicy, targetTimeForPolicy, addedWait } from './policy.mjs';
+import { validatePersonality } from './personality.mjs';
 
 const token = process.env.ADAPTER_TOKEN;
 const origin = process.env.LILA_ORIGIN ?? 'http://127.0.0.1:19663';
 const publicOrigin = process.env.PUBLIC_ORIGIN ?? origin;
 if (!token || token.length < 40 || new URL(origin).hostname !== '127.0.0.1') throw Error('Private adapter configuration required');
 const roster = JSON.parse(await readFile(new URL('./roster.json', import.meta.url), 'utf8'));
+const botsById = new Map(roster.map(bot => {
+  validatePersonality(bot.personality);
+  return [bot.id, bot];
+}));
+if (botsById.size !== roster.length || new Set(roster.map(bot => bot.username.toLowerCase())).size !== roster.length)
+  throw Error('Duplicate bot identity');
 const auth = new NostrAuth(publicOrigin);
 const maia = new Maia(process.env.MAIA_PYTHON, fileURLToPath(new URL('./maia_worker.py', import.meta.url)), process.env.MAIA_MODEL);
 await maia.ready;
@@ -49,12 +56,13 @@ async function play(game) {
   try {
     const started = performance.now();
     const moves = game.state.moves ? game.state.moves.split(' ') : [];
-    const policy = effectivePolicy(game.policy, game.ply, roster);
-    const targetMs = targetTime({ baseSeconds: game.clock?.initial ?? null, incrementSeconds: game.clock?.increment ?? 0 });
+    const policy = effectivePolicy(game.policy, game.ply, botsById);
+    const targetMs = targetTimeForPolicy(game.policy, { baseSeconds: game.clock?.initial ?? null, incrementSeconds: game.clock?.increment ?? 0 });
     const result = await maia.predict(moves, policy);
     const elapsed = performance.now() - started;
     const remaining = (game.botColor === 'white' ? game.state.wtime : game.state.btime) ?? 60000;
-    await delay(addedWait(targetMs, elapsed, remaining - elapsed));
+    const waitMs = addedWait(targetMs, elapsed, remaining - elapsed);
+    if (waitMs > 0) await delay(waitMs);
     if (!maia.healthy || stopping) throw Error('Maia worker unavailable');
     await native(`/club/internal/${game.id}/move`, { ply: game.ply, move: result.move,
       timing: { targetMs, actualMs: Math.round(performance.now() - started), inferenceMs: result.inferenceMs } });
@@ -114,7 +122,7 @@ const server = http.createServer(async (request, response) => {
     }
     if (request.url === '/freeze') {
       if (!maia.healthy) throw new AdapterError(503, 'Maia unavailable');
-      const bot = roster.find(bot => bot.id === body.bot);
+      const bot = botsById.get(body.bot);
       if (!bot) throw new AdapterError(400, 'Unknown opponent');
       return send(200, freeze(bot));
     }

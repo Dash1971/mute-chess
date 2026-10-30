@@ -1,0 +1,19 @@
+{
+  "version": "maia79-lila-v2-c1b61c830c2e728a",
+  "bot": "static-bishop",
+  "name": "Static Bishop",
+  "modelSha256": "3454b03ae78baa64a87b345fdb1a457265d912caec531039b074f07eda0d8010",
+  "encoderRevision": "CSSLab-1e13597c-numpy-history-v1",
+  "selfElo": 1600,
+  "opponentElo": 1600,
+  "history": true,
+  "historyMixture": "50/50 frozen per game",
+  "profile": "argmax",
+  "openingFullMoves": 5,
+  "temperature": 0,
+  "topP": 1,
+  "timingVersion": "lognormal-mobile-controls-clock-cap-v2",
+  "samplingSeed": "00112233445566778899aabbccddeeff",
+  "rated": false,
+  "calibration": "unvalidated-provisional"
+}

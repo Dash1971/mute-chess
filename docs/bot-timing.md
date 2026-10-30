@@ -1,5 +1,10 @@
 # Control-dependent Maia timing
 
+Version 3 adds fixed per-bot timing on/off and five timing styles on top of these
+control tiers. See [bot-population.md](bot-population.md) for the current settings
+and migration behavior. The version-2 algorithm below remains supported for
+previously frozen games.
+
 Owner request #60, October 30, 2026. Port the complete Mobile Maia
 `sampleHumanMoveTime` at `8563954429c2fb53ce0fe0e16c73c5d8a73ccfe0`, including its
 #86 control tiers. The earlier adapter copied the lognormal base/rare-pause formula
