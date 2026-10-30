@@ -32,3 +32,12 @@ export async function loadKey() {
   return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: entry.iv }, entry.key, entry.encrypted));
 }
 export const forgetKey = () => transaction('readwrite', store => store.delete('current'));
+
+// Explicit user action only: browser permission UI must never delay sign-in.
+export async function requestKeyPersistence(storage = globalThis.navigator?.storage) {
+  if (!storage?.persist) return 'unavailable';
+  try {
+    if (await storage.persisted?.()) return 'granted';
+    return await storage.persist() ? 'granted' : 'denied';
+  } catch { return 'unavailable'; }
+}

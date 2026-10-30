@@ -1,13 +1,16 @@
 import { generateSecretKey, getPublicKey, finalizeEvent } from 'nostr-tools/pure';
 import { decode, nsecEncode } from 'nostr-tools/nip19';
-import { saveKey, loadKey, forgetKey } from './key-store.mjs';
+import { saveKey, loadKey, forgetKey, requestKeyPersistence } from './key-store.mjs';
 import { signedCall, AuthResponseError } from './auth-client.mjs';
 import './security.mjs';
 import './patron.mjs';
 
 const element = id => document.getElementById('nostr-' + id);
 let generated, pending;
-const status = message => { element('status').textContent = message; };
+const status = (message, error = false) => {
+  element('status').textContent = message;
+  element('status').dataset.state = error ? 'error' : 'info';
+};
 function localSigner(key) {
   return { getPublicKey: () => getPublicKey(key), signEvent: event => finalizeEvent(event, key) };
 }
@@ -43,6 +46,32 @@ async function signIn(signer, key, save = true) {
     element('token').focus();
   }
 }
+async function exportKey(key, download = false) {
+  const nsec = nsecEncode(key);
+  if (download) {
+    const url = URL.createObjectURL(new Blob([nsec + '\n'], { type: 'text/plain;charset=utf-8' }));
+    const link = document.createElement('a');
+    try {
+      link.href = url;
+      link.download = 'mute-chess-nostr-key.txt';
+      document.body.append(link);
+      link.click();
+    } finally {
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    status('Backup download requested. Keep the file somewhere private.');
+  } else {
+    try { await navigator.clipboard.writeText(nsec); }
+    catch { throw Error('Copy is unavailable here. Use Download .txt instead.'); }
+    status('Key copied. Paste it into your password manager.');
+  }
+}
+async function exportSavedKey(download) {
+  const key = await loadKey();
+  if (!key) throw Error('No key is saved in this browser');
+  try { await exportKey(key, download); } finally { key.fill(0); }
+}
 let busy = false;
 function action(name, callback) {
   element(name).addEventListener('click', async () => {
@@ -51,7 +80,7 @@ function action(name, callback) {
     const buttons = [...document.querySelectorAll('.auth-login button')];
     buttons.forEach(button => { button.disabled = true; });
     try { await callback(); }
-    catch (error) { status(error instanceof Error ? error.message : 'Sign-in failed'); }
+    catch (error) { status(error instanceof Error ? error.message : 'Sign-in failed', true); }
     finally { busy = false; buttons.forEach(button => { button.disabled = false; }); }
   });
 }
@@ -71,12 +100,31 @@ if (element('extension')) {
   action('reveal', () => {
     const hidden = element('backup').type === 'password';
     element('backup').type = hidden ? 'text' : 'password';
-    element('reveal').textContent = hidden ? 'Show key' : 'Hide key';
+    element('reveal').textContent = hidden ? 'Hide key' : 'Show key';
   });
   action('copy', async () => {
     if (!generated) throw Error('Create a key first');
-    await navigator.clipboard.writeText(element('backup').value);
-    status('Key copied. Save it in your password manager.');
+    await exportKey(generated);
+  });
+  action('download', async () => {
+    if (!generated) throw Error('Create a key first');
+    await exportKey(generated, true);
+  });
+  action('copy-saved', () => exportSavedKey(false));
+  action('download-saved', () => exportSavedKey(true));
+  let persistencePending = false;
+  element('persist').addEventListener('click', async () => {
+    if (persistencePending) return;
+    persistencePending = true;
+    element('persist').disabled = true;
+    const result = await requestKeyPersistence();
+    persistencePending = false;
+    element('persist').disabled = false;
+    status(result === 'granted'
+      ? 'Your browser agreed to keep site data. Keep a backup for clearing data or changing devices.'
+      : result === 'denied'
+        ? 'Your browser will manage storage automatically. A backup lets you restore the same identity.'
+        : 'This browser cannot request longer storage. You can still copy or download a backup.');
   });
   action('create-login', async () => {
     if (!generated) throw Error('Create a key first');

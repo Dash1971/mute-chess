@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { saveKey, loadKey, forgetKey } from '../browser/key-store.mjs';
+import { saveKey, loadKey, forgetKey, requestKeyPersistence } from '../browser/key-store.mjs';
 
 test('browser identity survives reload without storing a plaintext private key', async () => {
   const secret = new Uint8Array(32).fill(13); // disposable test scalar
@@ -29,4 +29,18 @@ test('replacing and forgetting a browser identity do not resurrect old keys', as
   assert.deepEqual(await loadKey(), new Uint8Array(32).fill(17));
   await forgetKey();
   assert.equal(await loadKey(), null);
+});
+
+test('persistent storage is optional and does not change the saved key', async () => {
+  const key = new Uint8Array(32).fill(19);
+  await saveKey(key);
+  let asked = 0;
+  assert.equal(await requestKeyPersistence({ persisted: async () => true, persist: async () => { asked++; } }), 'granted');
+  assert.equal(asked, 0);
+  assert.equal(await requestKeyPersistence({ persist: async () => true }), 'granted');
+  assert.equal(await requestKeyPersistence({ persist: async () => false }), 'denied');
+  assert.equal(await requestKeyPersistence({ persist: async () => { throw Error('Blocked'); } }), 'unavailable');
+  assert.equal(await requestKeyPersistence({}), 'unavailable');
+  assert.deepEqual(await loadKey(), key);
+  await forgetKey();
 });

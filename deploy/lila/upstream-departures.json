@@ -25,11 +25,13 @@
         },
         {
           "id": "nostr-and-public-profiles",
-          "rationale": "Support signature-based Nostr login, optional native TOTP, editable public names and stable native account IDs; preserve native sessions, ownership and game history.",
+          "rationale": "Support signature-based Nostr login, optional native TOTP, editable public names and stable native account IDs; preserve native sessions, ownership and game history. Issue #94 adds optional signer discovery, key-backup guidance and browser persistence controls in the existing login view, preserving its native page, authentication and identity contracts.",
           "verification": [
             "Adapter authentication/security/login tests",
             "Native NostrName/PublicName tests",
-            "Private account and friend-invitation checks"
+            "Private account and friend-invitation checks",
+            "Browser login/key-store regressions: explicit copy/download, saved identity, optional persistence and fresh signed 2FA",
+            "Native login view format/compilation and browser layout check"
           ],
           "files": [
             "app/controllers/Account.scala",
