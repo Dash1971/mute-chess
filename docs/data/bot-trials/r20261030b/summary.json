@@ -1,0 +1,392 @@
+{
+  "run": "r20261030b",
+  "main": "bdfce8dece4f2fd36aee5dae58333e0978ceaaed",
+  "public_ratings": true,
+  "profile": "ramp-22-v1",
+  "worker_count": 2,
+  "played_graph_component_sizes": {
+    "blitz": [
+      22,
+      10,
+      6,
+      2,
+      2,
+      1,
+      1
+    ],
+    "rapid": [
+      40,
+      2,
+      2
+    ]
+  },
+  "supervisor": {
+    "run": "r20261030b",
+    "commit": "bdfce8dece4f2fd36aee5dae58333e0978ceaaed",
+    "profile": "ramp-22-v1",
+    "inferenceBudget": {
+      "workers": 2,
+      "cpu": "400%",
+      "memory": "2000M"
+    },
+    "reason": "completed",
+    "started": 1793348156113,
+    "ended": 1793349161538,
+    "configurationRestored": true
+  },
+  "worker_elapsed_seconds": 963.6200001239777,
+  "admitted": 100,
+  "completed": 100,
+  "native_rated_updates": 100,
+  "aborted_records": 0,
+  "completed_by_speed": {
+    "blitz": 50,
+    "rapid": 50
+  },
+  "finish_statuses": {
+    "draw": 11,
+    "mate": 85,
+    "stalemate": 4
+  },
+  "bots_played": 44,
+  "bot_speed_pairs_played": 86,
+  "native_player_results_added": 200,
+  "player_results_agree_with_rated_game_count": true,
+  "bot_speed_pairs_established_before": 0,
+  "bot_speed_pairs_established_after": 0,
+  "games_added_per_bot_speed": {
+    "count": 88,
+    "min": 0,
+    "median": 2.0,
+    "p95": 4,
+    "p99": 5,
+    "max": 5
+  },
+  "initial_rd": {
+    "count": 88,
+    "min": 137.44342846878848,
+    "median": 166.22855305901786,
+    "p95": 244.74064743386188,
+    "p99": 277.45522900849335,
+    "max": 277.45522900849335
+  },
+  "final_rd": {
+    "count": 88,
+    "min": 117.09459728992908,
+    "median": 142.95419337101754,
+    "p95": 217.67195379420318,
+    "p99": 255.06408472552667,
+    "max": 255.06408472552667
+  },
+  "absolute_rating_change": {
+    "count": 88,
+    "min": 0.0,
+    "median": 52.0153294976019,
+    "p95": 126.84708734559126,
+    "p99": 188.30162563299564,
+    "max": 188.30162563299564
+  },
+  "biggest_rating_changes": [
+    {
+      "bot": "signal-weaver",
+      "speed": "blitz",
+      "initial_rating": 2262.3345720606394,
+      "final_rating": 2074.0329464276438,
+      "rating_change": -188.30162563299564,
+      "initial_rd": 210.23078581443764,
+      "final_rd": 169.8943890443591,
+      "initial_games": 2,
+      "final_games": 4,
+      "games_added": 2,
+      "initial_provisional": true,
+      "final_provisional": true
+    },
+    {
+      "bot": "holo-raven",
+      "speed": "rapid",
+      "initial_rating": 2286.3478562072983,
+      "final_rating": 2438.0700446746587,
+      "rating_change": 151.7221884673604,
+      "initial_rd": 244.74064743386188,
+      "final_rd": 190.29147976402777,
+      "initial_games": 2,
+      "final_games": 4,
+      "games_added": 2,
+      "initial_provisional": true,
+      "final_provisional": true
+    },
+    {
+      "bot": "neon-knight",
+      "speed": "rapid",
+      "initial_rating": 1931.7637874920374,
+      "final_rating": 2074.7697795387567,
+      "rating_change": 143.00599204671926,
+      "initial_rd": 156.40305192570975,
+      "final_rd": 128.97064891419535,
+      "initial_games": 3,
+      "final_games": 6,
+      "games_added": 3,
+      "initial_provisional": true,
+      "final_provisional": true
+    },
+    {
+      "bot": "prism-wraith",
+      "speed": "blitz",
+      "initial_rating": 2614.9281520357417,
+      "final_rating": 2483.8967781202377,
+      "rating_change": -131.031373915504,
+      "initial_rd": 216.2804694610819,
+      "final_rd": 194.6317072376178,
+      "initial_games": 2,
+      "final_games": 3,
+      "games_added": 1,
+      "initial_provisional": true,
+      "final_provisional": true
+    },
+    {
+      "bot": "ultraviolet",
+      "speed": "rapid",
+      "initial_rating": 2254.864857298972,
+      "final_rating": 2128.0177699533806,
+      "rating_change": -126.84708734559126,
+      "initial_rd": 214.246118341039,
+      "final_rd": 172.79305158004138,
+      "initial_games": 2,
+      "final_games": 4,
+      "games_added": 2,
+      "initial_provisional": true,
+      "final_provisional": true
+    },
+    {
+      "bot": "copper-byte",
+      "speed": "blitz",
+      "initial_rating": 1276.0247005075769,
+      "final_rating": 1154.1495348144956,
+      "rating_change": -121.87516569308127,
+      "initial_rd": 166.87467878904627,
+      "final_rd": 134.84710489076446,
+      "initial_games": 2,
+      "final_games": 5,
+      "games_added": 3,
+      "initial_provisional": true,
+      "final_provisional": true
+    },
+    {
+      "bot": "midnight-signal",
+      "speed": "rapid",
+      "initial_rating": 2077.384329550695,
+      "final_rating": 1955.7497393173821,
+      "rating_change": -121.63459023331279,
+      "initial_rd": 165.83008136656971,
+      "final_rd": 141.82766378229115,
+      "initial_games": 2,
+      "final_games": 4,
+      "games_added": 2,
+      "initial_provisional": true,
+      "final_provisional": true
+    },
+    {
+      "bot": "neon-rook",
+      "speed": "rapid",
+      "initial_rating": 1654.6218483343207,
+      "final_rating": 1535.9153581180026,
+      "rating_change": -118.70649021631812,
+      "initial_rd": 165.18073549141064,
+      "final_rd": 135.5083263028077,
+      "initial_games": 2,
+      "final_games": 5,
+      "games_added": 3,
+      "initial_provisional": true,
+      "final_provisional": true
+    },
+    {
+      "bot": "indigo-pulse",
+      "speed": "rapid",
+      "initial_rating": 2288.7538016034955,
+      "final_rating": 2174.3108678528843,
+      "rating_change": -114.44293375061125,
+      "initial_rd": 236.2658770878653,
+      "final_rd": 167.8007633190741,
+      "initial_games": 3,
+      "final_games": 6,
+      "games_added": 3,
+      "initial_provisional": true,
+      "final_provisional": true
+    },
+    {
+      "bot": "null-echo",
+      "speed": "blitz",
+      "initial_rating": 2457.4157673387995,
+      "final_rating": 2570.8802594758786,
+      "rating_change": 113.4644921370791,
+      "initial_rd": 145.45857882395816,
+      "final_rd": 125.35607552943073,
+      "initial_games": 5,
+      "final_games": 8,
+      "games_added": 3,
+      "initial_provisional": true,
+      "final_provisional": true
+    }
+  ],
+  "moves": 7796,
+  "stages": {
+    "10": {
+      "moves": 1150,
+      "observed_seconds": 182.86699986457825,
+      "plies_per_second": 6.288723503156009,
+      "inference_ms": {
+        "count": 1150,
+        "min": 157.9979879898019,
+        "median": 311.5677415044047,
+        "p95": 392.9957859800197,
+        "p99": 456.53862599283457,
+        "max": 535.7296040165238
+      },
+      "request_commit_ms": {
+        "count": 1150,
+        "min": 290.07363799999985,
+        "median": 566.4107820000027,
+        "p95": 713.3929859999989,
+        "p99": 804.3043840000028,
+        "max": 999.9656460000042
+      },
+      "turn_commit_ms": {
+        "count": 1150,
+        "min": 460,
+        "median": 1570.0,
+        "p95": 1901,
+        "p99": 2037,
+        "max": 3370
+      },
+      "max_observed_active_games": 10
+    },
+    "15": {
+      "moves": 1293,
+      "observed_seconds": 192.5059998035431,
+      "plies_per_second": 6.716673772867011,
+      "inference_ms": {
+        "count": 1293,
+        "min": 156.07734199147671,
+        "median": 298.71050399378873,
+        "p95": 365.87903200415894,
+        "p99": 419.8920399940107,
+        "max": 485.0883359904401
+      },
+      "request_commit_ms": {
+        "count": 1293,
+        "min": 285.0783710000105,
+        "median": 536.8184619999956,
+        "p95": 659.9938200000324,
+        "p99": 740.3427859999938,
+        "max": 816.0281709999545
+      },
+      "turn_commit_ms": {
+        "count": 1293,
+        "min": 480,
+        "median": 2259,
+        "p95": 2608,
+        "p99": 2770,
+        "max": 2937
+      },
+      "max_observed_active_games": 15
+    },
+    "20": {
+      "moves": 1123,
+      "observed_seconds": 126.82599997520447,
+      "plies_per_second": 8.854651256205791,
+      "inference_ms": {
+        "count": 1123,
+        "min": 145.1440899982117,
+        "median": 216.70108500984497,
+        "p95": 309.4750610180199,
+        "p99": 357.5999999884516,
+        "max": 398.9099270256702
+      },
+      "request_commit_ms": {
+        "count": 1123,
+        "min": 173.00429099996109,
+        "median": 379.19486400001915,
+        "p95": 570.4597240000148,
+        "p99": 647.3439639999997,
+        "max": 724.9416130000027
+      },
+      "turn_commit_ms": {
+        "count": 1123,
+        "min": 319,
+        "median": 2206,
+        "p95": 2897,
+        "p99": 3172,
+        "max": 3286
+      },
+      "max_observed_active_games": 20
+    },
+    "22": {
+      "moves": 4230,
+      "observed_seconds": 455.3309998512268,
+      "plies_per_second": 9.289945119884424,
+      "inference_ms": {
+        "count": 4230,
+        "min": 145.02470300067216,
+        "median": 195.89358450321015,
+        "p95": 320.8666130085476,
+        "p99": 376.92721499479376,
+        "max": 500.9278520010412
+      },
+      "request_commit_ms": {
+        "count": 4230,
+        "min": 156.90635199996177,
+        "median": 334.8368110000156,
+        "p95": 578.5705580000067,
+        "p99": 670.642271000077,
+        "max": 834.2760159999598
+      },
+      "turn_commit_ms": {
+        "count": 4230,
+        "min": 175,
+        "median": 2078.0,
+        "p95": 3310,
+        "p99": 3601,
+        "max": 3817
+      },
+      "max_observed_active_games": 21
+    }
+  },
+  "max_observed_active_games": 21,
+  "all_added_waits_zero": true,
+  "health_ms": {
+    "count": 78,
+    "min": 3.0284080130513757,
+    "median": 5.217804486164823,
+    "p95": 11.888303997693583,
+    "p99": 19.615767989307642,
+    "max": 19.615767989307642
+  },
+  "health_failures": 0,
+  "sampled_combined_worker_native_memory_bytes": {
+    "count": 78,
+    "min": 1484181504,
+    "median": 2822912000.0,
+    "p95": 2970865664,
+    "p99": 2972041216,
+    "max": 2972041216
+  },
+  "sampled_combined_worker_native_cpu_cores": {
+    "count": 77,
+    "min": 0.24722563141278614,
+    "median": 4.0525934748621735,
+    "p95": 4.258081744940066,
+    "p99": 4.302645173972873,
+    "max": 4.302645173972873
+  },
+  "observed_mongo_storage_growth_bytes": 196608,
+  "observed_mongo_operation_deltas": {
+    "insert": 0,
+    "query": 0,
+    "update": 0,
+    "delete": 0,
+    "getmore": 0,
+    "command": 0
+  },
+  "errors": [],
+  "pgn_files": 100
+}

@@ -112,3 +112,5 @@ policies and timings. Compare measured latency, CPU/RAM and native completion
 across both runs; do not infer throughput scaling merely from spare host RAM.
 
 First-batch evidence: [100 public games, ratings/RD and capacity measurements](data/bot-trials/r20261030a/README.md).
+
+Second-batch evidence: [200 total public rated games, two-worker results and remaining uncertainty](data/bot-trials/r20261030b/README.md). [Budget VPS sizing](vps-sizing.md) distinguishes measured service load from modeled human capacity.
