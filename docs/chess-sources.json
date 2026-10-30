@@ -97,7 +97,10 @@
       "src/contexts/MaiaEngineContext.tsx",
       "src/contexts/StockfishEngineContext.tsx",
       "src/lib/engine/maia.ts",
-      "src/lib/engine/stockfish.ts"
+      "src/lib/engine/stockfish.ts",
+      "src/hooks/useAnalysisController/utils.ts",
+      "src/constants/analysis.ts",
+      "src/lib/analysis.ts"
     ]
   }
 }
