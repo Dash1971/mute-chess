@@ -146,3 +146,15 @@ acknowledgements update the committed native state while the board publishes onl
 the final projected plan. Invalid/cancelled queues and endings reveal the actual
 position. Clock updates precede premove execution; native move transport,
 promotion, sounds, legality and single premoves remain authoritative.
+
+## October 30 analysis presentation follow-up (#65)
+
+Bound summary player columns and use a compact npub for generated unnamed Nostr
+handles. Newly chosen/edited public names are limited to 20 characters; unrelated
+profile edits preserve an existing longer name. Full npubs remain available on
+profiles, and canonical identities/links/history are unchanged. Both Maia cards
+color moves using the pinned Maia platform empirical CP-to-winrate lookup and
+5/10 percentage-point Stockfish-loss boundaries; missing evidence is neutral.
+This is separate from Maia probability and the full-game EC classification.
+Expected-score circles identify the score's White/Black side. Replay has compact
+native private Notes, with spectator discussion and watcher furniture removed.

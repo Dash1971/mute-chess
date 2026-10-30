@@ -120,3 +120,14 @@ For smoother premoves, follow Mobile Maia PR #111: never publish an intermediate
 real board between projected updates. Preserve legal server destinations, native
 clocks, sounds, committed history, cancellation, endings and single premoves. See
 #61. Do not add counts, strips or extra clear controls.
+
+## Analysis presentation polish (owner approval, October 30, 2026)
+
+Issue #65: keep summary columns bounded for long names; newly chosen/edited public
+names have a 20-character limit while existing longer names may remain unchanged.
+Unnamed Nostr accounts display a compact npub; canonical handles, keys and game
+history do not change. Candidate move colors use Maia platform's Stockfish
+win-rate-loss mapping (green <=5 percentage points, amber <=10, red above), with
+neutral missing evidence and independent raw Maia probabilities. Score circles
+identify White/Black perspective, not advantage. Remove spectator discussion and
+watcher furniture from replay/analysis, retaining compact native private Notes.

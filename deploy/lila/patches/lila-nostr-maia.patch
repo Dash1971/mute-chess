@@ -527,7 +527,7 @@ index a6875eb..cb26269 100644
      else router.handlerFor(request)
  
 diff --git a/app/views/analyse.scala b/app/views/analyse.scala
-index 3fb4283..2c758b1 100644
+index 3fb4283..5baa6d4 100644
 --- a/app/views/analyse.scala
 +++ b/app/views/analyse.scala
 @@ -6,7 +6,7 @@ import play.api.libs.json.{ JsObject, Json }
@@ -538,6 +538,44 @@ index 3fb4283..2c758b1 100644
 +val ui = lila.analyse.ui.AnalyseUi(helpers)(analyseEndpoints, env.noSweat.enabled)
  
  object replay:
+ 
+@@ -43,16 +43,27 @@ object replay:
+       bookmarked: Boolean
+   )(using ctx: Context) =
+ 
+-    val chatOpt = chatOption.map: c =>
+-      views.chat.json(
+-        c.chat,
+-        c.lines,
+-        name = trans.site.spectatorRoom.txt(),
+-        timeout = c.timeout,
+-        withNoteAge = ctx.isAuth.option(pov.game.secondsSinceCreation),
+-        public = true,
+-        resource = lila.core.chat.PublicSource.Watcher(pov.gameId)
+-      ) -> views.chat.frag
++    val chatOpt = chatOption
++      .filter(_ => !env.noSweat.enabled || (ctx.isAuth && ctx.noBlind))
++      .map: c =>
++        val json = views.chat.json(
++          c.chat,
++          c.lines,
++          name = if env.noSweat.enabled then "Notes" else trans.site.spectatorRoom.txt(),
++          timeout = c.timeout,
++          withNoteAge = ctx.isAuth.option(pov.game.secondsSinceCreation),
++          public = true,
++          resource = lila.core.chat.PublicSource.Watcher(pov.gameId)
++        )
++        (if env.noSweat.enabled then
++           json.deepMerge(
++             Json.obj(
++               "notesOnly" -> true,
++               "writeable" -> false,
++               "data" -> Json.obj("lines" -> Json.arr())
++             )
++           )
++         else json) -> views.chat.frag
+ 
+     val side = views.game.side(pov, initialFen, none, simul = simul, userTv = userTv, bookmarked = bookmarked)
  
 diff --git a/app/views/base/page.scala b/app/views/base/page.scala
 index b408a91..91c6e41 100644
@@ -804,7 +842,7 @@ index ab74f28..37b206a 100644
  val auth = lila.web.ui.AuthUi(helpers)
  
 diff --git a/app/views/user/show/header.scala b/app/views/user/show/header.scala
-index 26a6045..1600a9b 100644
+index 26a6045..ec284bc 100644
 --- a/app/views/user/show/header.scala
 +++ b/app/views/user/show/header.scala
 @@ -10,7 +10,7 @@ import lila.web.ui.bits.splitNumber
@@ -825,7 +863,7 @@ index 26a6045..1600a9b 100644
        if ctx.blind
        then s" : ${if isOnline.exec(u.id) then trans.site.online.txt() else trans.site.offline.txt()}"
        else
-@@ -62,6 +62,10 @@ object header:
+@@ -62,6 +62,17 @@ object header:
                userDom(u)
              )
            case None => h1(userDom(u)),
@@ -833,6 +871,13 @@ index 26a6045..1600a9b 100644
 +          .flatMap(_.displayName)
 +          .filter(_ != u.username.value)
 +          .map(_ => span(cls := "user-show__handle")(s"@${u.username.value}")),
++        u.nostrKey
++          .flatMap(lila.core.NostrName.npub)
++          .map: npub =>
++            div(cls := "nosweat-profile-key")(
++              span("Nostr public key"),
++              copyMeInput(npub)
++            ),
          div(cls := "trophies")(
            views.user.bits.perfTrophies(u, info.ranks),
            otherTrophies(info),
@@ -1003,22 +1048,35 @@ index ed7f5cb..3a48f8c 100644
    def isPatron = patronMonths.isOngoing
    def isPatronLifetime = patronMonths.isLifetime
 diff --git a/modules/core/src/main/user.scala b/modules/core/src/main/user.scala
-index 2d2ccc9..245cc56 100644
+index 2d2ccc9..82ca5f9 100644
 --- a/modules/core/src/main/user.scala
 +++ b/modules/core/src/main/user.scala
-@@ -59,7 +59,10 @@ object user:
+@@ -38,7 +38,8 @@ object user:
+       plan: Plan,
+       flair: Option[Flair] = None,
+       totpSecret: Option[TotpSecret] = None,
+-      marks: UserMarks = UserMarks(Nil)
++      marks: UserMarks = UserMarks(Nil),
++      nostrKey: Option[String] = None
+   ):
+     import lila.core.user.UserMarks.*
+     import lila.core.user.UserEnabled.*
+@@ -59,7 +60,13 @@ object user:
  
      def hasTitle: Boolean = title.exists(PlayerTitle.BOT != _)
  
 -    def light = LightUser(id, username, title, flair, patronMonths, plan.color)
-+    def publicName: String = profile.flatMap(_.displayName).filter(_.nonEmpty).getOrElse(username.value)
++    def publicDisplayName: Option[String] =
++      NostrName.display(username.value, profile.flatMap(_.displayName), nostrKey)
++
++    def publicName: String = publicDisplayName.getOrElse(username.value)
 +
 +    def light =
-+      LightUser(id, username, title, flair, patronMonths, plan.color, profile.flatMap(_.displayName))
++      LightUser(id, username, title, flair, patronMonths, plan.color, publicDisplayName)
  
      def profileOrDefault = profile | Profile.default
  
-@@ -143,7 +146,8 @@ object user:
+@@ -143,7 +150,8 @@ object user:
        rcfRating: Option[Int] = None,
        cfcRating: Option[Int] = None,
        dsbRating: Option[Int] = None,
@@ -1298,7 +1356,7 @@ index 4788182..377bf24 100644
      Theme("wood", "wood.jpg"), // 14/20
      Theme("wood2", "wood2.jpg"), // 7/26
 diff --git a/modules/pref/src/main/ui/AccountPages.scala b/modules/pref/src/main/ui/AccountPages.scala
-index 11cbae2..982e202 100644
+index 11cbae2..e7be391 100644
 --- a/modules/pref/src/main/ui/AccountPages.scala
 +++ b/modules/pref/src/main/ui/AccountPages.scala
 @@ -137,6 +137,13 @@ final class AccountPages(helpers: Helpers, ui: AccountUi, flagApi: lila.core.use
@@ -1309,9 +1367,9 @@ index 11cbae2..982e202 100644
 +            form("displayName"),
 +            "Public name",
 +            help = Some(
-+              "Shown on your profile and in games. You can set or change it at any time; your account and game history stay the same."
++              "Up to 20 characters. Leave empty to use your username or a shortened Nostr public key. Your account and game history stay the same."
 +            )
-+          )(form3.input(_)(maxlength := 30)),
++          )(form3.input(_)(maxlength := math.max(20, u.profile.flatMap(_.displayName).fold(0)(_.length)))),
            form3.split(
              ctx.kid.no.option(
                form3
@@ -1752,44 +1810,73 @@ index 4e9fcb5..a490173 100644
      )
  
    def userUrl(username: UserName, params: String = ""): Option[String] =
+diff --git a/modules/user/src/main/BSONHandlers.scala b/modules/user/src/main/BSONHandlers.scala
+index 31ddaf8..7c18df6 100644
+--- a/modules/user/src/main/BSONHandlers.scala
++++ b/modules/user/src/main/BSONHandlers.scala
+@@ -109,7 +109,8 @@ object BSONHandlers:
+           case Some(f) if FlairApi.exists(f) => Option(f)
+           case Some(f) => FlairApi.badFlairs.add(userId, f); None
+           case None => None,
+-        marks = r.getD[UserMarks](marks)
++        marks = r.getD[UserMarks](marks),
++        nostrKey = r.getO[String]("nostr")
+       )
+ 
+     def writes(w: BSON.Writer, o: User) =
+@@ -130,7 +131,8 @@ object BSONHandlers:
+         plan -> o.plan.nonEmpty,
+         totpSecret -> o.totpSecret,
+         flair -> o.flair,
+-        marks -> w.zero(o.marks)
++        marks -> w.zero(o.marks),
++        "nostr" -> o.nostrKey
+       )
+ 
+   given BSONHandler[PatronColor] = lila.db.dsl.tryHandler[PatronColor](
 diff --git a/modules/user/src/main/JsonView.scala b/modules/user/src/main/JsonView.scala
-index 43e6996..0964c57 100644
+index 43e6996..60720db 100644
 --- a/modules/user/src/main/JsonView.scala
 +++ b/modules/user/src/main/JsonView.scala
 @@ -49,6 +49,7 @@ final class JsonView(isOnline: lila.core.socket.IsOnline) extends lila.core.user
        .obj(
          "id" -> u.id,
          "username" -> u.username,
-+        "displayName" -> u.profile.flatMap(_.displayName),
++        "displayName" -> u.publicDisplayName,
          "perfs" -> perfs.fold(Json.obj()):
            case p: UserPerfs => perfsJson(p, rankMap)
            case p: KeyedPerf => keyedPerfJson(p)
 diff --git a/modules/user/src/main/LightUserApi.scala b/modules/user/src/main/LightUserApi.scala
-index 6f5e768..39e6d33 100644
+index 6f5e768..83f5df7 100644
 --- a/modules/user/src/main/LightUserApi.scala
 +++ b/modules/user/src/main/LightUserApi.scala
-@@ -78,7 +78,8 @@ final class LightUserApi(repo: UserRepo, cacheApi: CacheApi)(using Executor)
+@@ -78,7 +78,12 @@ final class LightUserApi(repo: UserRepo, cacheApi: CacheApi)(using Executor)
              title = doc.getAsOpt[chess.PlayerTitle](F.title),
              flair = doc.getAsOpt[Flair](F.flair).filter(FlairApi.exists),
              patronMonths = patronMonths | PatronMonths.zero,
 -            patronColor = patronColor
 +            patronColor = patronColor,
-+            displayName = doc.child(F.profile).flatMap(_.getAsOpt[String]("displayName"))
++            displayName = lila.core.NostrName.display(
++              name.value,
++              doc.child(F.profile).flatMap(_.getAsOpt[String]("displayName")),
++              doc.getAsOpt[String]("nostr")
++            )
            )
  
    val projection =
-@@ -87,7 +88,8 @@ final class LightUserApi(repo: UserRepo, cacheApi: CacheApi)(using Executor)
+@@ -87,7 +92,9 @@ final class LightUserApi(repo: UserRepo, cacheApi: CacheApi)(using Executor)
        F.username -> true,
        F.title -> true,
        F.plan -> true,
 -      F.flair -> true
 +      F.flair -> true,
-+      s"${F.profile}.displayName" -> true
++      s"${F.profile}.displayName" -> true,
++      "nostr" -> true
      )
  
    export realNameCache.{ sync as realName, preloadMany as preloadRealNames }
 diff --git a/modules/user/src/main/UserForm.scala b/modules/user/src/main/UserForm.scala
-index 947bee6..e15cd5b 100644
+index 947bee6..d3f3a3f 100644
 --- a/modules/user/src/main/UserForm.scala
 +++ b/modules/user/src/main/UserForm.scala
 @@ -46,7 +46,8 @@ final class UserForm:
@@ -1798,10 +1885,24 @@ index 947bee6..e15cd5b 100644
        "dsbRating" -> optional(number(min = 0, max = 3000)),
 -      "links" -> optional(cleanFewSymbolsAndNonEmptyText(maxLength = 3000))
 +      "links" -> optional(cleanFewSymbolsAndNonEmptyText(maxLength = 3000)),
-+      "displayName" -> optional(cleanFewSymbolsAndNonEmptyText(minLength = 3, maxLength = 30))
++      "displayName" -> UserForm.publicName(user.profile.flatMap(_.displayName))
      )(Profile.apply)(unapply)
    .fill(user.profileOrDefault)
  
+@@ -55,6 +56,13 @@ final class UserForm:
+ 
+ object UserForm:
+ 
++  private[user] def publicName(existing: Option[String]): Mapping[Option[String]] = optional(
++    cleanFewSymbolsAndNonEmptyText(minLength = 3, maxLength = 30).verifying(
++      "Use at most 20 characters for your public name",
++      name => name.length <= 20 || existing.contains(name)
++    )
++  )
++
+   val note = Form:
+     mapping(
+       "text" -> cleanTextWithSymbols(minLength = 3, maxLength = 2000),
 diff --git a/modules/user/src/main/UserRepo.scala b/modules/user/src/main/UserRepo.scala
 index 45fd497..7771548 100644
 --- a/modules/user/src/main/UserRepo.scala
@@ -2309,7 +2410,7 @@ index 0c0ed10..0fd8c57 100644
  
    val logo = raw:
 diff --git a/modules/web/src/main/ui/layout.scala b/modules/web/src/main/ui/layout.scala
-index 1c7a30b..a5207bf 100644
+index 1c7a30b..4c4b044 100644
 --- a/modules/web/src/main/ui/layout.scala
 +++ b/modules/web/src/main/ui/layout.scala
 @@ -17,8 +17,17 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
@@ -2373,7 +2474,7 @@ index 1c7a30b..a5207bf 100644
 -    s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
 -      s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
 +    if isMuteChess then
-+      """<link rel="alternate icon" type="image/png" href="/assets/nosweat/favicon-32.png?v=quiet-signal1"><link id="favicon" rel="icon" type="image/svg+xml" href="/assets/nosweat/favicon.svg?v=quiet-signal1"><link rel="stylesheet" href="/assets/nosweat/brand.css?v=analysis2"><link rel="stylesheet" href="/assets/nosweat/quiet-signal.css?v=quiet-signal1">"""
++      """<link rel="alternate icon" type="image/png" href="/assets/nosweat/favicon-32.png?v=quiet-signal1"><link id="favicon" rel="icon" type="image/svg+xml" href="/assets/nosweat/favicon.svg?v=quiet-signal1"><link rel="stylesheet" href="/assets/nosweat/brand.css?v=analysis3"><link rel="stylesheet" href="/assets/nosweat/quiet-signal.css?v=quiet-signal1">"""
 +    else
 +      s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
 +        s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
@@ -3182,7 +3283,7 @@ index 1690fe3..593342c 100644
            vnode.data!.gaugeOn = gaugeOn;
          },
 diff --git a/ui/analyse/src/view/main.ts b/ui/analyse/src/view/main.ts
-index 83a184c..e7693b7 100644
+index 83a184c..1ff5e25 100644
 --- a/ui/analyse/src/view/main.ts
 +++ b/ui/analyse/src/view/main.ts
 @@ -62,6 +62,8 @@ function analyseView(ctrl: AnalyseCtrl, deps?: typeof studyDeps): VNode {
@@ -3194,8 +3295,26 @@ index 83a184c..e7693b7 100644
          }),
        },
        [
+@@ -84,7 +86,7 @@ function analyseView(ctrl: AnalyseCtrl, deps?: typeof studyDeps): VNode {
+       ],
+     ),
+     ctrl.chatCtrl && renderChat(ctrl.chatCtrl, { insert: v => v.elm && fixChatHeight(v.elm) }),
+-    hl('div.chat__members.none', { hook: onInsert(watchers) }),
++    !ctrl.noSweat && hl('div.chat__members.none', { hook: onInsert(watchers) }),
+   );
+ }
+ 
+@@ -102,7 +104,7 @@ function resizeHandler(ctrl: AnalyseCtrl) {
+ }
+ 
+ function fixChatHeight(el: Node) {
+-  if (!(el instanceof HTMLElement)) return;
++  if (!(el instanceof HTMLElement) || el.classList.contains('mchat-notes-only')) return;
+   resizeCache.board ??= document.querySelector<HTMLElement>('.analyse__board .cg-wrap');
+   resizeCache.meta ??= document.querySelector<HTMLElement>('.game__meta');
+   if (!resizeCache.board || !resizeCache.meta) return;
 diff --git a/ui/analyse/src/view/roundTraining.ts b/ui/analyse/src/view/roundTraining.ts
-index 99a8328..0ef8435 100644
+index 99a8328..a544a56 100644
 --- a/ui/analyse/src/view/roundTraining.ts
 +++ b/ui/analyse/src/view/roundTraining.ts
 @@ -9,6 +9,7 @@ import type AnalyseCtrl from '@/ctrl';
@@ -3206,7 +3325,7 @@ index 99a8328..0ef8435 100644
  
  type AdviceKind = 'inaccuracy' | 'mistake' | 'blunder';
  
-@@ -79,6 +80,62 @@ const error = (nb: number, color: Color, advice: Advice) =>
+@@ -79,6 +80,67 @@ const error = (nb: number, color: Color, advice: Advice) =>
    );
  
  const doRender = (ctrl: AnalyseCtrl): VNode => {
@@ -3219,7 +3338,12 @@ index 99a8328..0ef8435 100644
 +      h('table', [
 +        h(
 +          'thead',
-+          h('tr', [h('th'), ...(['white', 'black'] as Color[]).map(c => h('th', renderPlayer(ctrl, c)))]),
++          h('tr', [
++            h('th'),
++            ...(['white', 'black'] as Color[]).map(c =>
++              h('th', h('div.nosweat-summary-player', renderPlayer(ctrl, c))),
++            ),
++          ]),
 +        ),
 +        h('tbody', [
 +          ...moveClasses.map((category, i) =>
@@ -3269,7 +3393,7 @@ index 99a8328..0ef8435 100644
    return h(
      'div.advice-summary',
      {
-@@ -139,6 +196,7 @@ export function render(ctrl: AnalyseCtrl): VNode | undefined {
+@@ -139,6 +201,7 @@ export function render(ctrl: AnalyseCtrl): VNode | undefined {
    // don't cache until the analysis is complete!
    const buster = ctrl.mainlineAnalysis.partial ? Math.random() : '';
    let cacheKey = String(buster) + !!ctrl.retro + Boolean(ctrl.idbTree.hasLocalAnalysis);
@@ -3833,6 +3957,53 @@ index a571135..695c8a3 100644
  export type Search = { by: SearchBy; multiPv: number; indeterminate?: boolean };
  export type NodeEfficiencyVsFishnet = Partial<Record<'chess' | 'variant', number>>;
  
+diff --git a/ui/lib/src/chat/chatCtrl.ts b/ui/lib/src/chat/chatCtrl.ts
+index 43a67e3..7e11bcb 100644
+--- a/ui/lib/src/chat/chatCtrl.ts
++++ b/ui/lib/src/chat/chatCtrl.ts
+@@ -42,7 +42,7 @@ export class ChatCtrl {
+     this.data = opts.data;
+     this.chatEnabled = storedBooleanProp(`chat.${this.data.resourceType}.enabled.${myUserId()}`, true);
+     this.storedTabKey = storedStringProp(`chat.${opts.plugin ? opts.plugin.key + '.' : ''}tab`, 'discussion');
+-    if (!opts.kidMode) this.allTabs.push({ key: 'discussion' });
++    if (!opts.kidMode && !opts.notesOnly) this.allTabs.push({ key: 'discussion' });
+     if (opts.noteId) this.allTabs.push({ key: 'note' });
+     if (opts.plugin && (opts.plugin.kidSafe || !opts.kidMode)) {
+       opts.plugin.redraw = redraw;
+@@ -70,7 +70,7 @@ export class ChatCtrl {
+       redraw: this.redraw,
+     });
+ 
+-    if (opts.kidMode) return;
++    if (opts.kidMode || opts.notesOnly) return;
+ 
+     this.instanciateModeration();
+ 
+diff --git a/ui/lib/src/chat/interfaces.ts b/ui/lib/src/chat/interfaces.ts
+index 85bf8fb..b1ea008 100644
+--- a/ui/lib/src/chat/interfaces.ts
++++ b/ui/lib/src/chat/interfaces.ts
+@@ -14,6 +14,7 @@ export interface ChatOpts {
+   permissions: Permissions;
+   timeoutReasons?: ModerationReason[];
+   preset?: string;
++  notesOnly?: boolean;
+   noteId?: string;
+   noteText?: string;
+   plugin?: ChatPlugin;
+diff --git a/ui/lib/src/chat/renderChat.ts b/ui/lib/src/chat/renderChat.ts
+index 922919f..ced4020 100644
+--- a/ui/lib/src/chat/renderChat.ts
++++ b/ui/lib/src/chat/renderChat.ts
+@@ -10,7 +10,7 @@ import { noteView } from './note';
+ export function renderChat(ctrl: ChatCtrl, hook: Hooks = {}): VNode {
+   return hl(
+     'section.mchat' + (ctrl.isOptional ? '.mchat-optional' : ''),
+-    { class: { 'mchat-mod': !!ctrl.moderation }, hook },
++    { class: { 'mchat-mod': !!ctrl.moderation, 'mchat-notes-only': !!ctrl.opts.notesOnly }, hook },
+     moderationView(ctrl.moderation) || normalView(ctrl),
+   );
+ }
 diff --git a/ui/lib/src/game/interfaces.ts b/ui/lib/src/game/interfaces.ts
 index 1892379..c353f9e 100644
 --- a/ui/lib/src/game/interfaces.ts
@@ -3950,7 +4121,7 @@ index da99e9e..2ef2fa0 100644
    comp?: boolean;
    name: string;
 diff --git a/ui/lib/src/view/userLink.ts b/ui/lib/src/view/userLink.ts
-index 334435d..fa87ed3 100644
+index 334435d..05a29ed 100644
 --- a/ui/lib/src/view/userLink.ts
 +++ b/ui/lib/src/view/userLink.ts
 @@ -4,6 +4,7 @@ import { type MaybeVNodes } from './snabbdom';
@@ -3961,6 +4132,15 @@ index 334435d..fa87ed3 100644
    online?: boolean; // light up .line
    attrs?: Attrs;
    title?: string;
+@@ -25,7 +26,7 @@ export const profileUrl = (name: string): string => `/@/${name}`;
+ export const userLinkData = (u: AnyUser): VNodeData => ({
+   // can't be inlined because of thunks
+   class: { 'user-link': true, ulpt: u.name !== 'ghost', online: !!u.online },
+-  attrs: { href: profileUrl(u.name), ...u.attrs },
++  attrs: { href: profileUrl(u.name), title: u.displayName || u.name, ...u.attrs },
+ });
+ 
+ export const userFlair = (u: Pick<AnyUser, 'flair'>): VNode | undefined =>
 @@ -48,7 +49,7 @@ export const userTitle = ({ title }: Pick<AnyUser, 'title'>): VNode | undefined
      ? h('span.utitle', title === 'BOT' ? { attrs: { 'data-bot': true } } : {}, [title, '\xa0'])
      : undefined;
@@ -6460,6 +6640,105 @@ index 0000000..14659d9
 +          ),
 +          a(id := "nostr-security-done", href := "/club/security", cls := "button", hidden)("Done")
 +        )
+diff --git a/modules/core/src/main/NostrName.scala b/modules/core/src/main/NostrName.scala
+new file mode 100644
+index 0000000..6d6be63
+--- /dev/null
++++ b/modules/core/src/main/NostrName.scala
+@@ -0,0 +1,41 @@
++package lila.core
++
++/** Public-key display only. Canonical usernames and Nostr identity remain unchanged. */
++object NostrName:
++  private val alphabet = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
++  private val generators = Array(0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3)
++
++  def npub(key: String): Option[String] = Option.when(key.matches("[0-9a-f]{64}")):
++    val words = scala.collection.mutable.ArrayBuffer.empty[Int]
++    var acc = 0
++    var bits = 0
++    key
++      .grouped(2)
++      .foreach: hex =>
++        acc = ((acc << 8) | Integer.parseInt(hex, 16)) & 0xffff
++        bits += 8
++        while bits >= 5 do
++          bits -= 5
++          words += ((acc >> bits) & 31)
++    if bits > 0 then words += ((acc << (5 - bits)) & 31)
++    val hrp = "npub"
++    val expanded = hrp.map(_.toInt >> 5) ++ Seq(0) ++ hrp.map(_.toInt & 31)
++    var checksum = 1
++    (expanded ++ words ++ Seq.fill(6)(0)).foreach: value =>
++      val top = checksum >>> 25
++      checksum = ((checksum & 0x1ffffff) << 5) ^ value
++      generators.indices.foreach: i =>
++        if ((top >>> i) & 1) != 0 then checksum ^= generators(i)
++    checksum ^= 1
++    hrp + "1" + words.map(alphabet(_)).mkString +
++      (0 until 6).map(i => alphabet((checksum >>> (5 * (5 - i))) & 31)).mkString
++
++  def display(username: String, chosen: Option[String], key: Option[String]): Option[String] =
++    chosen
++      .filter(_.nonEmpty)
++      .orElse:
++        key
++          .filter(k => username.equalsIgnoreCase("n" + k.take(19)))
++          .flatMap(npub)
++          .map: full =>
++            full.take(9) + "…" + full.takeRight(4)
+diff --git a/modules/core/src/test/NostrNameTest.scala b/modules/core/src/test/NostrNameTest.scala
+new file mode 100644
+index 0000000..33a557d
+--- /dev/null
++++ b/modules/core/src/test/NostrNameTest.scala
+@@ -0,0 +1,24 @@
++package lila.core
++
++class NostrNameTest extends munit.FunSuite:
++  test("NIP-19 encoding agrees with independent nostr-tools vectors"):
++    assertEquals(
++      NostrName.npub("00" * 32),
++      Some("npub1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzqujme")
++    )
++    assertEquals(
++      NostrName.npub("11" * 32),
++      Some("npub1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygse4sl3h")
++    )
++    assertEquals(
++      NostrName.npub("ff" * 32),
++      Some("npub1lllllllllllllllllllllllllllllllllllllllllllllllllllsq7lrjw")
++    )
++
++  test("only generated Nostr handles receive the compact fallback"):
++    val key = "11" * 32
++    assertEquals(NostrName.display("n" + key.take(19), None, Some(key)), Some("npub1zyg3…sl3h"))
++    assertEquals(NostrName.display("Dash", None, Some(key)), None)
++    assertEquals(NostrName.display("n" + key.take(19), Some("My name"), Some(key)), Some("My name"))
++    assertEquals(NostrName.display("n" + key.take(19), None, None), None)
++    assertEquals(NostrName.npub("not-a-key"), None)
+diff --git a/modules/user/src/test/PublicNameTest.scala b/modules/user/src/test/PublicNameTest.scala
+new file mode 100644
+index 0000000..9869ce0
+--- /dev/null
++++ b/modules/user/src/test/PublicNameTest.scala
+@@ -0,0 +1,16 @@
++package lila.user
++
++class PublicNameTest extends munit.FunSuite:
++  def bind(name: String, previous: Option[String] = None) =
++    UserForm.publicName(previous).withPrefix("name").bind(Map("name" -> name))
++
++  test("new public names are optional and limited to twenty characters"):
++    assertEquals(bind(""), Right(None))
++    assertEquals(bind("a" * 20), Right(Some("a" * 20)))
++    assert(bind("a" * 21).isLeft)
++
++  test("existing longer names survive unrelated profile edits without allowing new long names"):
++    val old = "PreviouslyChosenLongPublicName"
++    assertEquals(bind(old, Some(old)), Right(Some(old)))
++    assert(bind("a" * 21, Some(old)).isLeft)
++    assertEquals(bind("Short name", Some(old)), Right(Some("Short name")))
 diff --git a/public/images/board/svg/quiet-signal.svg b/public/images/board/svg/quiet-signal.svg
 new file mode 100644
 index 0000000..9d040d7
@@ -8559,10 +8838,10 @@ HcmV?d00001
 
 diff --git a/public/nosweat/brand.css b/public/nosweat/brand.css
 new file mode 100644
-index 0000000..ce0fa6c
+index 0000000..93234a4
 --- /dev/null
 +++ b/public/nosweat/brand.css
-@@ -0,0 +1,101 @@
+@@ -0,0 +1,119 @@
 +.site-title .nosweat-header-icon{width:38px;height:38px;margin-right:7px}.site-title .nosweat-wordmark{width:174px;height:50px;object-fit:contain}.nosweat-light{display:none}.light .nosweat-dark{display:none}.light .nosweat-light{display:block}.nosweat-login-wordmark{width:272px;max-width:100%;height:62px}.auth__brand{justify-content:center}@media(max-width:799px){.site-title .nosweat-wordmark{display:none!important}.site-title .nosweat-header-icon{width:36px;height:36px;margin:0}}
 +
 +main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-dark.svg")}.light main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-light.svg")}
@@ -8633,14 +8912,16 @@ index 0000000..ce0fa6c
 +.nosweat-maia-label { font-weight:bold; padding:.15em 0; border-radius:3px; text-align:left; font-size:.95em; }
 +.nosweat-maia-label:hover { text-decoration:underline; text-underline-offset:.25em; }
 +.nosweat-score { display:inline-flex; align-items:center; gap:.3em; font-size:.85em; white-space:nowrap; font-variant-numeric:tabular-nums; }
-+.nosweat-score i { width:.55em; height:.55em; border-radius:50%; }
++.nosweat-score i { width:.65em; height:.65em; flex:0 0 .65em; border-radius:50%; border:1px solid #999; }
++.nosweat-score-side.white { background:#fff; }
++.nosweat-score-side.black { background:#111; }
 +.nosweat-policy-scroll { max-height:24em; overflow:auto; }
 +.nosweat-policy { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
 +.nosweat-policy th { font-size:.75rem; font-weight:normal; color:var(--c-font-dim); padding:.3em .8em; }
 +.nosweat-policy th:first-child,.nosweat-policy td:first-child { text-align:left; }
 +.nosweat-policy th:last-child,.nosweat-policy td:last-child { text-align:right; }
 +.nosweat-policy td { padding:.25em .6em; font-size:.9em; }
-+.nosweat-policy button { color:var(--c-good); text-transform:none; padding:.25em 0; }
++.nosweat-policy button { color:var(--c-font); text-transform:none; padding:.25em 0; }
 +.nosweat-others { display:flex; justify-content:space-between; gap:.3em; padding:.65em .75em; font-size:.8em; width:100%; border-top:1px solid var(--c-border); color:var(--c-font-dim); }
 +.nosweat-others:hover { background:var(--c-bg-low); }
 +.nosweat-maia-empty { padding:1em .6em; color:var(--c-font-dim); font-size:.85em; }
@@ -8654,16 +8935,32 @@ index 0000000..ce0fa6c
 +.nosweat-rating-grid button { padding:.65em .3em; border-radius:4px; background:var(--c-bg-low); }
 +.nosweat-rating-grid button[aria-pressed=true] { background:var(--c-primary); color:var(--c-primary-over); }
 +.nosweat-candidate-panel [role=status],.nosweat-candidate-panel .error { font-size:.8em; margin:.7em .2em; }
-+.nosweat-summary table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
-+.nosweat-summary th { color:var(--c-font-dim); font-weight:normal; padding:.4em; max-width:8em; overflow-wrap:anywhere; }
++.nosweat-summary table { table-layout:fixed; width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
++.nosweat-summary th { width:27%; color:var(--c-font-dim); font-weight:normal; padding:.4em; text-align:right; vertical-align:bottom; }
++.nosweat-summary th:first-child { width:46%; }
++.nosweat-summary-player { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
++.nosweat-summary-player a { display:block; min-width:0; overflow:hidden; text-overflow:ellipsis; }
 +.nosweat-summary td { padding:.2em .4em; text-align:right; }
-+.nosweat-summary td:first-child { text-align:left; }
++.nosweat-summary td:first-child { text-align:left; overflow-wrap:break-word; }
 +.nosweat-summary td button { min-width:2em; padding:.15em; }
 +.nosweat-summary .accuracy td { border-top:1px solid var(--c-border); padding-top:.7em; font-weight:bold; }
 +.nosweat-summary > .button { margin-top:1em; }
 +.nosweat-review-settings { margin-top:1.5em; }
 +.nosweat-review-quality { display:flex; gap:1em; flex-wrap:wrap; margin:1em 0; }
 +.nosweat-review-quality label { display:flex; align-items:center; gap:.4em; }
++
++/* Candidate quality is Stockfish evidence, independent of model probability. */
++.nosweat-policy button[data-quality=good] { color:#74c476; }
++.nosweat-policy button[data-quality=ok] { color:#fed976; }
++.nosweat-policy button[data-quality=blunder] { color:#fc9272; }
++.light .nosweat-policy button[data-quality=good] { color:#238b45; }
++.light .nosweat-policy button[data-quality=ok] { color:#975000; }
++.light .nosweat-policy button[data-quality=blunder] { color:#b02020; }
++.analyse .mchat.mchat-notes-only { min-height:0; height:auto; align-self:start; }
++.analyse .mchat-notes-only .mchat__content { height:8em; min-height:0; }
++.nosweat-profile-key { min-width:0; max-width:100%; flex-basis:100%; font-size:.8em; }
++.nosweat-profile-key > span { display:block; margin:.3em 0; color:var(--c-font-dim); }
++.nosweat-profile-key input { max-width:100%; }
 diff --git a/public/nosweat/favicon-32.png b/public/nosweat/favicon-32.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..4261e6d916997479521a76cde8d32c2f0eee3236
@@ -9646,10 +9943,10 @@ index 0000000..ec4cc78
 +};
 diff --git a/ui/analyse/src/noSweatAnalysis.ts b/ui/analyse/src/noSweatAnalysis.ts
 new file mode 100644
-index 0000000..df1eaf1
+index 0000000..2db4bcd
 --- /dev/null
 +++ b/ui/analyse/src/noSweatAnalysis.ts
-@@ -0,0 +1,726 @@
+@@ -0,0 +1,765 @@
 +import type { DrawShape } from '@lichess-org/chessground/draw';
 +import { parseUci } from 'chessops/util';
 +import { attributesModule, classModule, init } from 'snabbdom';
@@ -9662,6 +9959,7 @@ index 0000000..df1eaf1
 +
 +import type AnalyseCtrl from './ctrl';
 +import { engineArrows, engineShapes, engineColors } from './noSweatArrows';
++import { candidateQuality, qualityLabels } from './noSweatCandidateQuality';
 +import { encodeHistory, policy, san, position, standardUci, legalUcis, type Candidate } from './noSweatCore';
 +import { reviewClick } from './noSweatEvents';
 +import { ReviewFish, type Review } from './noSweatFish';
@@ -9738,6 +10036,9 @@ index 0000000..df1eaf1
 +  private readonly reviewCache = new Map<string, Review>();
 +  private fishBest?: string;
 +  private compareBusy = false;
++  private qualityBusy = false;
++  private qualityRoot?: Review;
++  private readonly qualityFailed = new Set<string>();
 +
 +  constructor(readonly ctrl: AnalyseCtrl) {
 +    Object.assign(this, readEnginePreferences(storage.make('nosweat.enginePreferences.v2').get()));
@@ -9854,6 +10155,7 @@ index 0000000..df1eaf1
 +    clearInterval(this.progress);
 +    this.progress = undefined;
 +    this.compareBusy = false;
++    this.qualityBusy = false;
 +  }
 +  release = (): void => {
 +    this.cancel();
@@ -9874,6 +10176,8 @@ index 0000000..df1eaf1
 +    this.secondaryCandidates = [];
 +    this.expectedScore = this.secondaryExpectedScore = undefined;
 +    this.scores.clear();
++    this.qualityRoot = undefined;
++    this.qualityFailed.clear();
 +    const ratingContext = this.ratingKey();
 +    if (ratingContext !== this.ratingContext) this.byRating.clear();
 +    this.ratingContext = ratingContext;
@@ -9983,6 +10287,7 @@ index 0000000..df1eaf1
 +    this.status = '';
 +    this.ctrl.setAutoShapes();
 +    this.ctrl.redraw();
++    this.colorCandidates();
 +    if (this.ratingTable && this.candidates.length && this.sideRedraw) this.sampleRatings();
 +  }
 +  setEnabled(enabled: boolean): void {
@@ -10045,58 +10350,79 @@ index 0000000..df1eaf1
 +    this.ctrl.redraw();
 +  };
 +  private async review(fen: string, generation: number, moves: string[] = [], time = 1200): Promise<Review> {
-+    const key = JSON.stringify(['sf19-small-depth14-v1', fen, moves]);
++    const key = JSON.stringify(['sf19-candidate-depth12-v1', fen, moves, time]);
 +    const cached = this.reviewCache.get(key);
 +    if (cached) return cached;
-+    const result = await this.fish.search(fen, moves, this.abort.signal, 14, time);
++    const result = await this.fish.search(fen, moves, this.abort.signal, 12, time);
 +    if (!this.valid(generation)) throw new Error('Cancelled');
 +    this.reviewCache.set(key, result);
 +    if (this.reviewCache.size > 400) this.reviewCache.delete(this.reviewCache.keys().next().value!);
 +    return result;
 +  }
-+  compare = (): void => {
++  private visibleCandidates(): string[] {
++    return [
++      ...new Set(
++        [
++          ...this.candidates.slice(0, this.expanded[0] ? undefined : 4),
++          ...this.secondaryCandidates.slice(0, this.expanded[1] ? undefined : 4),
++        ].map(c => c.uci),
++      ),
++    ];
++  }
++  private colorCandidates(): void {
 +    const generation = this.generation;
-+    if (this.compareBusy || (!this.candidates.length && !this.secondaryCandidates.length)) return;
-+    this.compareBusy = true;
-+    this.error = '';
++    if (!this.valid(generation) || this.qualityBusy || !this.visibleCandidates().length) return;
++    this.qualityBusy = true;
 +    (async () => {
 +      const fen = this.ctrl.node.fen;
-+      this.status = 'Comparing candidates with Stockfish…';
-+      this.ctrl.redraw();
-+      const root = await this.review(fen, generation);
-+      if (!this.valid(generation)) return;
-+      this.fishBest = root.current.lines[0].moves[0];
-+      for (const line of root.current.lines)
-+        this.scores.set(line.moves[0], { score: line, depth: root.current.depth });
-+      // Bound this comparison to the compact set, even when all legal moves are displayed.
-+      const chosen = new Set(
-+        [...this.candidates.slice(0, 3), ...this.secondaryCandidates.slice(0, 3)].map(c => c.uci),
-+      );
-+      root.current.lines.forEach(line => chosen.add(line.moves[0]));
-+      const played = this.played();
-+      if (played) chosen.add(played);
-+      if (this.fishBest) chosen.add(this.fishBest);
-+      for (const move of chosen) {
-+        if (this.scores.has(move)) continue;
-+        this.scores.set(move, undefined);
-+        this.ctrl.redraw();
-+        try {
-+          const result = await this.review(fen, generation, [move], 700);
-+          if (!this.valid(generation)) return;
-+          this.scores.set(move, { score: result.current.lines[0], depth: result.current.depth });
-+        } catch (error) {
-+          if (!this.valid(generation)) return;
-+          this.error = 'Some Stockfish candidates are unavailable: ' + String(error);
++      if (!this.qualityRoot) {
++        const root = await this.review(fen, generation, [], 500);
++        if (!this.valid(generation)) return;
++        if (root.current.depth < 8) return;
++        this.qualityRoot = root;
++        for (const line of root.current.lines) {
++          const move = this.normalUci(line.moves[0]);
++          if (move) this.scores.set(move, { score: line, depth: root.current.depth });
 +        }
-+      }
-+      if (this.valid(generation)) {
-+        this.status = '';
-+        this.compareBusy = false;
-+        this.ctrl.setAutoShapes();
 +        this.ctrl.redraw();
 +      }
-+    })().catch(e => this.failure(e, generation));
-+  };
++      // Re-read the visible set so opening Others during a search joins this queue.
++      for (;;) {
++        const move = this.visibleCandidates().find(m => !this.scores.has(m) && !this.qualityFailed.has(m));
++        if (!move || !this.valid(generation)) break;
++        try {
++          const result = await this.review(fen, generation, [move], 300);
++          if (!this.valid(generation)) return;
++          if (result.current.depth >= 8)
++            this.scores.set(move, { score: result.current.lines[0], depth: result.current.depth });
++          else this.qualityFailed.add(move);
++        } catch {
++          if (!this.valid(generation)) return;
++          this.qualityFailed.add(move);
++        }
++        this.ctrl.redraw();
++      }
++    })()
++      .catch(() => {
++        // Color evidence is optional; Maia probabilities remain usable on failure.
++      })
++      .finally(() => {
++        if (this.valid(generation)) this.qualityBusy = false;
++      });
++  }
++  private moveQuality(uci: string) {
++    if (!this.enabled || !this.analysisAllowed() || this.ctrl.threatMode()) return undefined;
++    const white = position(this.ctrl.node.fen).turn === 'white';
++    const scores = [...this.scores.values()].flatMap(s => (s ? [s.score] : []));
++    const value = (s: EvalScore) =>
++      (s.mate === undefined ? (s.cp ?? 0) : s.mate > 0 ? 100000 - s.mate : -100000 - s.mate) *
++      (white ? 1 : -1);
++    const best = scores.reduce<EvalScore | undefined>(
++      (a, b) => (!a || value(b) > value(a) ? b : a),
++      undefined,
++    );
++    return candidateQuality(best, this.scores.get(uci)?.score, white);
++  }
 +  sampleRatings = (): void => {
 +    if (this.compareBusy || !this.enabled || !this.analysisAllowed()) return;
 +    const context = this.ratingKey();
@@ -10213,11 +10539,7 @@ index 0000000..df1eaf1
 +            },
 +          },
 +          [
-+            hl('i', {
-+              attrs: {
-+                style: `background:${score === undefined ? 'var(--c-font-dim)' : score >= 0.55 ? '#12b886' : score <= 0.45 ? '#fa5252' : '#fab005'}`,
-+              },
-+            }),
++            hl('i.nosweat-score-side.' + side.toLowerCase(), { attrs: { 'aria-hidden': 'true' } }),
 +            score === undefined ? '—' : (score * 100).toFixed(1) + '%',
 +          ],
 +        ),
@@ -10228,21 +10550,34 @@ index 0000000..df1eaf1
 +              hl('thead', hl('tr', [hl('th', 'Move'), hl('th', 'Probability')])),
 +              hl(
 +                'tbody',
-+                candidates
-+                  .slice(0, expanded ? undefined : 4)
-+                  .map(c =>
-+                    hl('tr', { key: this.ctrl.node.fen + c.uci }, [
++                candidates.slice(0, expanded ? undefined : 4).map(c =>
++                  hl('tr', { key: this.ctrl.node.fen + c.uci }, [
++                    hl(
++                      'td',
 +                      hl(
-+                        'td',
-+                        hl(
-+                          'button.fbt',
-+                          { attrs: { type: 'button' }, hook: reviewClick(() => this.preview(c.uci)) },
-+                          san(this.ctrl.node.fen, c.uci),
-+                        ),
++                        'button.fbt',
++                        {
++                          attrs: {
++                            type: 'button',
++                            'data-quality': this.moveQuality(c.uci) ?? 'pending',
++                            title: this.moveQuality(c.uci)
++                              ? qualityLabels[this.moveQuality(c.uci)!] + ' · Stockfish estimate'
++                              : 'Move quality not yet available',
++                            'aria-label':
++                              san(this.ctrl.node.fen, c.uci) +
++                              ': ' +
++                              (this.moveQuality(c.uci)
++                                ? qualityLabels[this.moveQuality(c.uci)!]
++                                : 'quality not yet available'),
++                          },
++                          hook: reviewClick(() => this.preview(c.uci)),
++                        },
++                        san(this.ctrl.node.fen, c.uci),
 +                      ),
-+                      hl('td', (c.probability * 100).toFixed(1) + '%'),
-+                    ]),
-+                  ),
++                    ),
++                    hl('td', (c.probability * 100).toFixed(1) + '%'),
++                  ]),
++                ),
 +              ),
 +            ]),
 +          ])
@@ -10263,6 +10598,7 @@ index 0000000..df1eaf1
 +            attrs: { type: 'button', 'aria-expanded': expanded },
 +            hook: reviewClick(() => {
 +              this.expanded[Number(secondary)] = !expanded;
++              this.colorCandidates();
 +              this.ctrl.redraw();
 +            }),
 +          },
@@ -10482,6 +10818,244 @@ index 0000000..d1a01b5
 +    return verified;
 +  }
 +}
+diff --git a/ui/analyse/src/noSweatCandidateQuality.ts b/ui/analyse/src/noSweatCandidateQuality.ts
+new file mode 100644
+index 0000000..f8d2661
+--- /dev/null
++++ b/ui/analyse/src/noSweatCandidateQuality.ts
+@@ -0,0 +1,232 @@
++// Maia platform (GPL-3.0), revision a6e52f5c811ee18863cb2f0e81f2433a5b9905de.
++// Source: src/lib/analysis.ts, src/hooks/useAnalysisController/utils.ts and constants/analysis.ts.
++// Empirical CP lookup and 5/10 percentage-point boundaries; never use Maia likelihood.
++const cpLookup: Record<string, number> = {
++  '-10.0': 0.16874792794783955,
++  '-9.9': 0.16985049833887045,
++  '-9.8': 0.17055738720598324,
++  '-9.7': 0.17047675058336964,
++  '-9.6': 0.17062880930380164,
++  '-9.5': 0.17173295708238823,
++  '-9.4': 0.1741832515174232,
++  '-9.3': 0.17496583875894223,
++  '-9.2': 0.17823840614328434,
++  '-9.1': 0.17891311823785128,
++  '-9.0': 0.18001756037367211,
++  '-8.9': 0.18238828856575562,
++  '-8.8': 0.18541818422621015,
++  '-8.7': 0.18732127851231173,
++  '-8.6': 0.188595528612019,
++  '-8.5': 0.19166809721845357,
++  '-8.4': 0.18989033973470404,
++  '-8.3': 0.19357848980722225,
++  '-8.2': 0.195212660943061,
++  '-8.1': 0.1985674406526584,
++  '-8.0': 0.20401430566976098,
++  '-7.9': 0.2053494594581885,
++  '-7.8': 0.2095001157139551,
++  '-7.7': 0.2127603864858716,
++  '-7.6': 0.21607609694057794,
++  '-7.5': 0.21973060624595708,
++  '-7.4': 0.2228248514176221,
++  '-7.3': 0.22299885811455433,
++  '-7.2': 0.22159517034121434,
++  '-7.1': 0.2253474128373214,
++  '-7.0': 0.22700275966883976,
++  '-6.9': 0.2277978270416834,
++  '-6.8': 0.23198254537369023,
++  '-6.7': 0.23592594616253237,
++  '-6.6': 0.24197398088661215,
++  '-6.5': 0.24743721350483228,
++  '-6.4': 0.2504634951693775,
++  '-6.3': 0.25389828445048646,
++  '-6.2': 0.2553693799097443,
++  '-6.1': 0.2574747677153313,
++  '-6.0': 0.26099610941165985,
++  '-5.9': 0.26359484469524885,
++  '-5.8': 0.26692516804140987,
++  '-5.7': 0.269205898445802,
++  '-5.6': 0.2716602975482676,
++  '-5.5': 0.2762577909143481,
++  '-5.4': 0.27686670371314326,
++  '-5.3': 0.2811527494908349,
++  '-5.2': 0.2842962444080047,
++  '-5.1': 0.28868260131133583,
++  '-5.0': 0.2914459750278813,
++  '-4.9': 0.29552500948265914,
++  '-4.8': 0.29889111624248266,
++  '-4.7': 0.30275330907688625,
++  '-4.6': 0.30483684697544633,
++  '-4.5': 0.3087308954422261,
++  '-4.4': 0.3119607377503364,
++  '-4.3': 0.3149431542506458,
++  '-4.2': 0.31853131804955126,
++  '-4.1': 0.320778152372042,
++  '-4.0': 0.32500585429582063,
++  '-3.9': 0.3287550205647155,
++  '-3.8': 0.3302152905962328,
++  '-3.7': 0.3337414440782651,
++  '-3.6': 0.3371096329087784,
++  '-3.5': 0.3408372806176929,
++  '-3.4': 0.3430467389812629,
++  '-3.3': 0.345358794898586,
++  '-3.2': 0.3488968896485116,
++  '-3.1': 0.35237319918137733,
++  '-3.0': 0.354602162593592,
++  '-2.9': 0.35921288506416393,
++  '-2.8': 0.3620978187487768,
++  '-2.7': 0.36570889434391574,
++  '-2.6': 0.36896483582772577,
++  '-2.5': 0.3738375709360098,
++  '-2.4': 0.37755946149735364,
++  '-2.3': 0.38083501393471353,
++  '-2.2': 0.3841356210618174,
++  '-2.1': 0.38833097169521236,
++  '-2.0': 0.3913569664390527,
++  '-1.9': 0.39637664590926824,
++  '-1.8': 0.4006706381318188,
++  '-1.7': 0.40568723118901173,
++  '-1.6': 0.4112309032143989,
++  '-1.5': 0.4171285506703859,
++  '-1.4': 0.422533096069275,
++  '-1.3': 0.4301262113278628,
++  '-1.2': 0.4371930420830884,
++  '-1.1': 0.44297556987180564,
++  '-1.0': 0.4456913220302985,
++  '-0.9': 0.4524847690277852,
++  '-0.8': 0.4589667426852546,
++  '-0.7': 0.46660356893847554,
++  '-0.6': 0.47734553584312966,
++  '-0.5': 0.4838742651753062,
++  '-0.4': 0.4949662422107537,
++  '-0.3': 0.5052075551297714,
++  '-0.2': 0.5134173311516534,
++  '-0.1': 0.5243603487770374,
++  '0.0': 0.526949638981131,
++  '0.1': 0.5295389291852245,
++  '0.2': 0.5664296189371014,
++  '0.3': 0.5748717155242605,
++  '0.4': 0.5869360163496304,
++  '0.5': 0.5921709270831235,
++  '0.6': 0.6012651707026009,
++  '0.7': 0.6088638279243903,
++  '0.8': 0.6153816495064385,
++  '0.9': 0.6213113677421394,
++  '1.0': 0.6271095095579187,
++  '1.1': 0.632804166473034,
++  '1.2': 0.6381911052846212,
++  '1.3': 0.6442037744916549,
++  '1.4': 0.649365491330027,
++  '1.5': 0.6541269394628821,
++  '1.6': 0.6593775707102116,
++  '1.7': 0.6642844357446305,
++  '1.8': 0.6680323879474359,
++  '1.9': 0.6719097160994534,
++  '2.0': 0.6748374005101319,
++  '2.1': 0.6783363422342483,
++  '2.2': 0.6801467867275195,
++  '2.3': 0.684829276628467,
++  '2.4': 0.6867513620895516,
++  '2.5': 0.6905527274606579,
++  '2.6': 0.6926332976777145,
++  '2.7': 0.6952680187678887,
++  '2.8': 0.7001656575385784,
++  '2.9': 0.7010142788018504,
++  '3.0': 0.7047537668053925,
++  '3.1': 0.7073295468984271,
++  '3.2': 0.7106392738949507,
++  '3.3': 0.7116862871579852,
++  '3.4': 0.7149981105354425,
++  '3.5': 0.7168150290640533,
++  '3.6': 0.7181645290803663,
++  '3.7': 0.7215706104143079,
++  '3.8': 0.7257548871790502,
++  '3.9': 0.7266799478667236,
++  '4.0': 0.7312566255649167,
++  '4.1': 0.7338343990993276,
++  '4.2': 0.7363492332937249,
++  '4.3': 0.7374945601492073,
++  '4.4': 0.7413387385114591,
++  '4.5': 0.7466896678519318,
++  '4.6': 0.7461156227069248,
++  '4.7': 0.7500348334958896,
++  '4.8': 0.7525591569082364,
++  '4.9': 0.7567349424376287,
++  '5.0': 0.7596581998583797,
++  '5.1': 0.7621623413577621,
++  '5.2': 0.7644432506942895,
++  '5.3': 0.7668438338565464,
++  '5.4': 0.7697341715213551,
++  '5.5': 0.7718264040129471,
++  '5.6': 0.774903252738822,
++  '5.7': 0.777338112750803,
++  '5.8': 0.7782543748612702,
++  '5.9': 0.7815446531238023,
++  '6.0': 0.7817240741095305,
++  '6.1': 0.7843444714897749,
++  '6.2': 0.7879064312243436,
++  '6.3': 0.7894336918448414,
++  '6.4': 0.7906807160826923,
++  '6.5': 0.7958175057898639,
++  '6.6': 0.799001778895725,
++  '6.7': 0.8059773285734155,
++  '6.8': 0.8073085278260186,
++  '6.9': 0.8079169497726442,
++  '7.0': 0.8094553564231399,
++  '7.1': 0.812049156586624,
++  '7.2': 0.8080964608399982,
++  '7.3': 0.8089371589128438,
++  '7.4': 0.811884066397279,
++  '7.5': 0.8139355726992591,
++  '7.6': 0.8176447870147248,
++  '7.7': 0.8205118056812014,
++  '7.8': 0.8239310183322626,
++  '7.9': 0.8246215704824976,
++  '8.0': 0.8282444028473858,
++  '8.1': 0.8307566922119521,
++  '8.2': 0.8299970989266028,
++  '8.3': 0.8329910434137715,
++  '8.4': 0.8348790035853562,
++  '8.5': 0.8354299179013772,
++  '8.6': 0.838042734118834,
++  '8.7': 0.8386288753155167,
++  '8.8': 0.8403357337021318,
++  '8.9': 0.8438203836486884,
++  '9.0': 0.8438217313242881,
++  '9.1': 0.8451134380453753,
++  '9.2': 0.8456384082100551,
++  '9.3': 0.844182520663178,
++  '9.4': 0.8463847100484717,
++  '9.5': 0.8479706716538067,
++  '9.6': 0.8511321531494442,
++  '9.7': 0.8506127153603494,
++  '9.8': 0.8490128260556276,
++  '9.9': 0.8522167487684729,
++  '10.0': 0.8518353443061348,
++};
++
++export type CandidateQuality = 'good' | 'ok' | 'blunder';
++export const qualityFromLoss = (loss: number): CandidateQuality =>
++  loss <= 0.05 + 1e-10 ? 'good' : loss <= 0.1 + 1e-10 ? 'ok' : 'blunder';
++
++const winrate = (score: EvalScore, white: boolean): number | undefined => {
++  if (score.mate !== undefined) return score.mate > 0 === white ? 1 : 0;
++  if (score.cp === undefined || !Number.isFinite(score.cp)) return undefined;
++  const cp = Math.max(-10, Math.min(10, (white ? score.cp : -score.cp) / 100));
++  return cpLookup[(Math.round(cp * 10) / 10).toFixed(1)];
++};
++
++export function candidateQuality(
++  best: EvalScore | undefined,
++  move: EvalScore | undefined,
++  white: boolean,
++): CandidateQuality | undefined {
++  if (!best || !move) return undefined;
++  const before = winrate(best, white);
++  const after = winrate(move, white);
++  return before === undefined || after === undefined
++    ? undefined
++    : qualityFromLoss(Math.max(0, before - after));
++}
++
++export const qualityLabels = { good: 'Good move', ok: 'Acceptable move', blunder: 'Blunder' };
 diff --git a/ui/analyse/src/noSweatClassifierClient.ts b/ui/analyse/src/noSweatClassifierClient.ts
 new file mode 100644
 index 0000000..d9843d5
@@ -11345,6 +11919,86 @@ index 0000000..759163b
 +    this.pending.clear();
 +  }
 +}
+diff --git a/ui/analyse/tests/candidateColorLifecycle.test.ts b/ui/analyse/tests/candidateColorLifecycle.test.ts
+new file mode 100644
+index 0000000..39e18d3
+--- /dev/null
++++ b/ui/analyse/tests/candidateColorLifecycle.test.ts
+@@ -0,0 +1,44 @@
++import assert from 'node:assert/strict';
++import { mock, test } from 'node:test';
++
++import type AnalyseCtrl from '../src/ctrl';
++import type { Review } from '../src/noSweatFish';
++
++const jobs: { signal: AbortSignal; resolve: (r: Review) => void }[] = [];
++class FakeFish {
++  search(_fen: string, _moves: string[], signal: AbortSignal) {
++    return new Promise<Review>(resolve => jobs.push({ signal, resolve }));
++  }
++  destroy() {}
++}
++mock.module('../src/noSweatFish.ts', { namedExports: { ReviewFish: FakeFish } });
++const { NoSweatAnalysis } = await import('../src/noSweatAnalysis');
++const fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
++
++test('turning analysis off invalidates an in-flight candidate color result', async () => {
++  const ctrl = {
++    cevalEnabled: () => false,
++    ceval: { storedPv: () => {} },
++    opts: {},
++    node: { fen, children: [] },
++    nodeList: [{ fen }],
++    path: '',
++    isCevalAllowed: () => true,
++    setAutoShapes: () => {},
++    redraw: () => {},
++    threatMode: () => false,
++  } as unknown as AnalyseCtrl;
++  const model = new NoSweatAnalysis(ctrl);
++  await Promise.resolve();
++  model.enabled = true;
++  model.candidates = [{ uci: 'e2e4', probability: 1 }];
++  (model as any).colorCandidates();
++  assert.equal(jobs.length, 1);
++  model.setEnabled(false);
++  assert.equal(jobs[0].signal.aborted, true);
++  jobs[0].resolve({ current: { depth: 12, lines: [{ cp: 0, moves: ['e2e4'] }] } });
++  await new Promise(resolve => setTimeout(resolve, 0));
++  assert.equal(model.scores.size, 0);
++  assert.equal((model as any).moveQuality('e2e4'), undefined);
++  model.release();
++});
+diff --git a/ui/analyse/tests/candidateQuality.test.ts b/ui/analyse/tests/candidateQuality.test.ts
+new file mode 100644
+index 0000000..29b7dee
+--- /dev/null
++++ b/ui/analyse/tests/candidateQuality.test.ts
+@@ -0,0 +1,24 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++
++import { candidateQuality, qualityFromLoss } from '../src/noSweatCandidateQuality';
++
++test('Maia-platform boundaries use five and ten percentage points of SF winrate loss', () => {
++  assert.equal(qualityFromLoss(0.05), 'good');
++  assert.equal(qualityFromLoss(0.05001), 'ok');
++  assert.equal(qualityFromLoss(0.1), 'ok');
++  assert.equal(qualityFromLoss(0.10001), 'blunder');
++  assert.equal(candidateQuality({ cp: 0 }, { cp: 0 }, true), 'good');
++  assert.equal(candidateQuality({ cp: 0 }, { cp: -100 }, true), 'ok');
++  assert.equal(candidateQuality({ cp: 0 }, { cp: -500 }, true), 'blunder');
++});
++test('quality has the same mover perspective for Black and White, with honest missing evidence', () => {
++  assert.equal(candidateQuality({ cp: 0 }, { cp: 500 }, false), 'blunder');
++  assert.equal(candidateQuality({ cp: 0 }, { cp: -500 }, false), 'good');
++  assert.equal(candidateQuality(undefined, { cp: 0 }, true), undefined);
++  assert.equal(candidateQuality({ cp: 0 }, undefined, true), undefined);
++  assert.equal(candidateQuality({ cp: 0 }, { cp: NaN }, true), undefined);
++  assert.equal(candidateQuality({ mate: 2 }, { mate: -2 }, true), 'blunder');
++  assert.equal(candidateQuality({ mate: -2 }, { mate: 2 }, false), 'blunder');
++  assert.equal(candidateQuality({ mate: 2 }, { mate: 4 }, true), 'good');
++});
 diff --git a/ui/analyse/tests/fixtures/noSweat/annotation-boundaries.json b/ui/analyse/tests/fixtures/noSweat/annotation-boundaries.json
 new file mode 100644
 index 0000000..e30a560
@@ -30337,6 +30991,39 @@ index 0000000..f719c6b
 +            reviewAllowed(mode, enabled, hidden, threat),
 +            mode === 'view' && enabled && !hidden && !threat,
 +          );
++});
+diff --git a/ui/lib/tests/notesOnly.test.ts b/ui/lib/tests/notesOnly.test.ts
+new file mode 100644
+index 0000000..0acc841
+--- /dev/null
++++ b/ui/lib/tests/notesOnly.test.ts
+@@ -0,0 +1,27 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++
++import type { ChatOpts } from '../src/chat/interfaces';
++
++document.documentElement.lang = 'en-US';
++const { ChatCtrl } = await import('../src/chat/chatCtrl');
++
++test('notes-only replay retains native notes without a discussion tab or public moderation', () => {
++  const opts = {
++    data: { id: 'abcd1234', resourceType: 'watcher', resourceId: 'watcher:abcd1234', lines: [] },
++    notesOnly: true,
++    noteId: 'abcd1234',
++    noteText: 'Private note',
++    writeable: false,
++    kidMode: false,
++  } as unknown as ChatOpts;
++  const ctrl = new ChatCtrl(opts, () => {});
++  assert.deepEqual(
++    ctrl.visibleTabs.map(t => t.key),
++    ['note'],
++  );
++  assert.equal(ctrl.getTab().key, 'note');
++  assert.equal(ctrl.note?.text(), 'Private note');
++  assert.equal(ctrl.moderation, undefined);
++  assert.equal(ctrl.canPostArbitraryText(), false);
 +});
 diff --git a/ui/puzzle/src/noSweatMaia.ts b/ui/puzzle/src/noSweatMaia.ts
 new file mode 100644

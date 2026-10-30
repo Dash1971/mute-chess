@@ -49,3 +49,25 @@ requests at least two additional depths with a larger time budget; incomplete,
 stale or vetoed standout results are withheld. No extra full-strength baseline
 search runs for every move. Scores and classifications are persisted in the native
 browser review; quality is separate from native accuracy.
+
+## Maia candidate-quality colors (#65)
+
+Reference: CSSLab/maia-platform-frontend at
+`a6e52f5c811ee18863cb2f0e81f2433a5b9905de`, GPL-3.0. Its
+`src/hooks/useAnalysisController/utils.ts` and `src/constants/analysis.ts` classify
+Stockfish win-rate loss as good through 0.05, acceptable through 0.10, and blunder
+above 0.10. `src/lib/analysis.ts` supplies the empirical CP-to-winrate lookup,
+rounded to 0.1 pawn and clamped at +/-10 pawns. The lookup is retained in the
+native `noSweatCandidateQuality.ts`, with the reference source/license in
+`third-party/maia-platform-quality/`. We use category colors with contrast
+adaptations rather than ranking shades within a category. Forced mate scores
+use exact winning/losing outcomes. These estimates do not alter probabilities,
+full-game annotations, accuracy, or Stockfish board arrows.
+
+A separate native local Stockfish queue searches the root and visible candidates
+under bounded depth/time (depth 12; root 500ms, missing candidate 300ms). Only
+complete results of at least depth 8 receive a color. Both cards share quality
+evidence for the same move; Others adds its visible moves to the queue. Position,
+rating, visibility, and analysis-toggle generation guards discard stale work.
+Unsearched/failed moves stay neutral. This is a quick estimate, not guaranteed
+perfect objective truth or an assertion of identical search budgets to Maia's site.

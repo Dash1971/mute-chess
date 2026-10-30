@@ -42,3 +42,8 @@ Mobile Maia's full control-dependent human timing and independent Dart vectors
 are pinned, with GPL-3.0, in [third-party/mobile-maia-timing](third-party/mobile-maia-timing/README.md).
 The adapter port preserves configured-control tiers and counts inference inside
 the total target; its existing low-clock cap on additional waiting remains.
+
+Maia candidate quality uses the empirical Stockfish CP/winrate lookup and category
+boundaries from CSSLab/maia-platform-frontend at
+`a6e52f5c811ee18863cb2f0e81f2433a5b9905de`, GPL-3.0. The source references, original
+license and provenance are retained in `third-party/maia-platform-quality/`.
