@@ -25,19 +25,23 @@
         },
         {
           "id": "nostr-and-public-profiles",
-          "rationale": "Support signature-based Nostr login, optional native TOTP, editable public names and stable native account IDs; preserve native sessions, ownership and game history. Issue #94 adds optional signer discovery, key-backup guidance and browser persistence controls in the existing login view, preserving its native page, authentication and identity contracts.",
+          "rationale": "Support signature-based Nostr login, optional native TOTP, editable public names and stable native account IDs; preserve native sessions, ownership and game history. Issue #94 adds optional signer discovery, key-backup guidance and browser persistence controls in the existing login view, preserving its native page, authentication and identity contracts. Issues #124/#125 restore public-name friend discovery and an owner-only Nostr account page using the existing encrypted browser store, with explicit transient private-key reveal/copy and optional public Primal links; no server-side secret-key storage or identity migration.",
           "verification": [
             "Adapter authentication/security/login tests",
             "Native NostrName/PublicName tests",
             "Private account and friend-invitation checks",
             "Browser login/key-store regressions: explicit copy/download, saved identity, optional persistence and fresh signed 2FA",
-            "Native login view format/compilation and browser layout check"
+            "Native login view format/compilation and browser layout check",
+            "Header search finds enabled accounts by literal public-name/handle prefixes; displayed names are escaped and profile links retain canonical IDs (#124)",
+            "Owner-only Nostr page; private key stays browser-local, matching-account checks, explicit reveal/copy, timeout/visibility cleanup and Primal community links (#125)"
           ],
           "files": [
             "app/controllers/Account.scala",
             "app/controllers/Auth.scala",
             "app/controllers/Dasher.scala",
+            "app/controllers/User.scala",
             "app/views/noSweatLogin.scala",
+            "app/views/noSweatNostr.scala",
             "app/views/noSweatSecurity.scala",
             "app/views/user/show/header.scala",
             "app/views/user/show/page.scala",
@@ -51,18 +55,23 @@
             "modules/user/src/main/BSONHandlers.scala",
             "modules/user/src/main/JsonView.scala",
             "modules/user/src/main/LightUserApi.scala",
+            "modules/user/src/main/NoSweatUserSearch.scala",
             "modules/user/src/main/UserForm.scala",
             "modules/user/src/main/UserRepo.scala",
             "modules/user/src/main/ui/UserActionMenu.scala",
             "modules/user/src/main/ui/UserShow.scala",
+            "modules/user/src/test/NoSweatUserSearchTest.scala",
             "modules/user/src/test/PublicNameTest.scala",
             "public/nosweat/nostr.css",
             "ui/@types/lichess/index.d.ts",
             "ui/dasher/src/interfaces.ts",
             "ui/dasher/src/links.ts",
             "ui/lib/src/game/interfaces.ts",
+            "ui/lib/src/view/userComplete.ts",
             "ui/lib/src/view/userLink.ts",
-            "ui/round/src/view/user.ts"
+            "ui/lib/tests/publicNameSearch.test.ts",
+            "ui/round/src/view/user.ts",
+            "ui/site/src/clinput.ts"
           ]
         },
         {
@@ -101,7 +110,8 @@
             "Opening EPD/ECO and path lookup; Mobile Maia phase detector; red grade ordering; fixed frames and long-name browser checks",
             "Opening-label font completion, truncation, escaped full-name dialog and cleanup regression (#113)",
             "Opening label sits immediately beneath the board in two- and three-column layouts, preserving its reserved row and native controls (#115) Two-column empty-track collapse is gated off when native keyboard input is present (#117).",
-            "Long opening names reserve symmetric space for the native lower material/clock strip, remaining centered in the same 28px row as the strip changes (#119)"
+            "Long opening names reserve symmetric space for the native lower material/clock strip, remaining centered in the same 28px row as the strip changes (#119)",
+            "Standalone standard analysis uses native local review, chart, summary and learning; in-memory results belong to the exact mainline and preserve FEN/PGN inputs (#121)"
           ],
           "files": [
             "app/controllers/UserAnalysis.scala",
@@ -109,17 +119,20 @@
             "modules/analyse/src/main/ui/AnalyseUi.scala",
             "public/nosweat/OPENINGS_CC0.txt",
             "public/nosweat/openings.json",
+            "ui/analyse/css/_analyse.free.scss",
             "ui/analyse/css/_layout.scss",
             "ui/analyse/src/analyse.nosweatWorker.ts",
             "ui/analyse/src/autoShape.ts",
             "ui/analyse/src/ctrl.ts",
             "ui/analyse/src/explorer/explorerCtrl.ts",
+            "ui/analyse/src/idbTree.ts",
             "ui/analyse/src/interfaces.ts",
             "ui/analyse/src/local/analyse.local.ts",
             "ui/analyse/src/local/localAnalysisDialog.tsx",
             "ui/analyse/src/local/localAnalysisEngine.ts",
             "ui/analyse/src/noSweatAnalysis.ts",
             "ui/analyse/src/noSweatArrows.ts",
+            "ui/analyse/src/noSweatBoardReview.ts",
             "ui/analyse/src/noSweatBrilliants.ts",
             "ui/analyse/src/noSweatCandidateQuality.ts",
             "ui/analyse/src/noSweatClassifierClient.ts",
@@ -144,6 +157,7 @@
             "ui/analyse/src/view/main.ts",
             "ui/analyse/src/view/roundTraining.ts",
             "ui/analyse/src/view/settingsView.ts",
+            "ui/analyse/tests/boardReview.test.ts",
             "ui/analyse/tests/candidateColorLifecycle.test.ts",
             "ui/analyse/tests/candidateQuality.test.ts",
             "ui/analyse/tests/fixtures/noSweat/annotation-boundaries.json",
@@ -213,13 +227,14 @@
         },
         {
           "id": "focused-native-features",
-          "rationale": "Constrain visible navigation and unsupported routes, standard-only tools and bot-game metadata; preserve native puzzles, community and direct friend invitations. Watch/Learn/explorer remain hidden or deferred, and imported practice data uses the licensed subset rather than upstream production data. Owner-requested immediate forum posting (#81) bypasses only the age/game qualification for signed-in humans when nosweat.enabled; native bot denial, category ACLs, captcha, rate limits and moderation remain authoritative. The forum module adds the existing native test dependency for its access regressions.",
+          "rationale": "Constrain visible navigation and unsupported routes, standard-only tools and bot-game metadata; preserve native puzzles, community and direct friend invitations. Watch/Learn/explorer remain hidden or deferred, and imported practice data uses the licensed subset rather than upstream production data. Owner-requested immediate forum posting (#81) bypasses only the age/game qualification for signed-in humans when nosweat.enabled; native bot denial, category ACLs, captcha, rate limits and moderation remain authoritative. The forum module adds the existing native test dependency for its access regressions. The October 31 owner correction restores header player search and the original native scroll-hide listener (#122/#124).",
           "verification": [
             "Native site/editor/puzzle tests and UI build",
             "puzzles/ and learning/ validation",
             "Private community/preferences/friend checks",
             "Native ForumAccessTest (fresh/anonymous/bot/upstream eligibility and team ACLs)",
-            "Private community integration: immediate topic and reply, invalid captcha rejection"
+            "Private community integration: immediate topic and reply, invalid captcha rejection",
+            "Native header hides on downward scroll and reappears upward even without search; restored header search stays native (#122/#124)"
           ],
           "files": [
             "app/controllers/Cms.scala",

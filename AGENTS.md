@@ -259,3 +259,15 @@ long-name details), directly under the board. Add Mobile Maia's game-phase
 labels and boundaries to the native graph; keep native evaluation, accuracy,
 ACPL and learning semantics and continue to omit phase accuracy. Use American
 English in communication and product text. See docs/analysis-presentation.md.
+
+## October 31 account and analysis follow-up (#121/#122/#124/#125)
+
+Enable the existing post-game native computer-review flow on the standalone
+analysis board. Preserve its layout and editable moves; bind temporary review
+results to their exact mainline without creating public games. Restore native
+scroll-hiding header behavior and header player search, including public names.
+This supersedes the earlier hidden-search direction. Move profile npub furniture
+into an authenticated Nostr account section linked from the owner's profile and
+settings. Local nsec reveal/copy is explicitly requested, with matching-account
+checks, warnings and transient display; never transmit or publish private keys.
+Include optional Primal onboarding and the owner's existing official profile.
