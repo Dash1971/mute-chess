@@ -27,3 +27,14 @@ published by the website deployment.
 Receipt verification retains the retired LNURL solely for previously issued
 invoices. New requests reject it; wings still require the exact invoice, donor
 and request ID already recorded in the native ledger.
+
+## Donation priority and credits (owner decision, October 30, 2026)
+
+The top of Donate asks visitors to support Lichess first, with a direct link to
+https://lichess.org/patron. If someone has not yet supported Lichess, or can afford
+to donate to only one project, we prioritize Lichess. Mute Chess donations are
+framed as support for its specific Maia integration with the Lichess experience.
+About → Credits links and describes the contributions of Lichess/Lila, Maia3 and
+the Maia platform, En Croissant, Mobile Maia and Stockfish, with links to the
+third-party notices and complete corresponding-source archive. Payment and
+patron-wing behavior is unchanged.

@@ -131,3 +131,12 @@ win-rate-loss mapping (green <=5 percentage points, amber <=10, red above), with
 neutral missing evidence and independent raw Maia probabilities. Score circles
 identify White/Black perspective, not advantage. Remove spectator discussion and
 watcher furniture from replay/analysis, retaining compact native private Notes.
+
+## Upstream credit and donation priority (owner decision, October 30, 2026)
+
+Donate should encourage supporting Lichess first, especially for visitors who have
+not donated to Lichess or can afford to support only one project. Link directly
+to Lichess's patron page. Frame Mute Chess donations around its specific Maia
+integration with the Lichess experience. Keep clear, linked credits on About for
+Lichess/Lila, Maia, En Croissant, Mobile Maia and Stockfish, and link source and
+license notices. See #67.
