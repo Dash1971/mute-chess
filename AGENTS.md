@@ -176,3 +176,17 @@ pilot and compute/runtime budget before any calibration or load test. No run on
 the owner's Mac, unattended overnight job or capacity increase is authorized by
 the infrastructure work. Timezone availability, breaks and country-inspired
 personas are deferred in #71. See #69 and `docs/bot-population.md`.
+
+## Rating goal and initial trial timing (owner decision, October 30, 2026)
+
+An established human Mute Chess rating should roughly translate to established
+Lichess strength in the corresponding speed pool; this is an empirical project
+goal, not a claimed guarantee. Keep native Glicko-2 and validate the alignment.
+For the initial 44-bot Blitz/Rapid experiment in #73, disable added human-timing
+waits using a separately versioned study policy, retaining native clocks and
+fixed sampling/history settings. Do not change production personalities. The
+owner accepts setting clock-pressure concerns aside for this initial scope;
+1+0 Bullet timing is later validation. Record the run's agreed limits and
+execution status in #73; this documentation update does not start a job.
+Use matched Maia3 cross-speed evidence as provisional Bullet/Classical priors
+later, not as a universal offset or a reason to reset earned ratings. See #78.

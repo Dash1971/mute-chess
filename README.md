@@ -8,6 +8,15 @@ Mute Chess is a free, open-source chess project built on Lichess. It combines
 human-like Maia opponents, multiple stacked premoves, and Maia alongside Stockfish
 analysis, with a familiar interface for desktop and mobile browsers.
 
+## Rating goal
+
+We aim for a player's established Mute Chess rating, earned against Maia bots,
+to roughly match their established Lichess strength in the same time-control
+category. We will measure and improve that alignment through bot calibration
+and human/reference validation while retaining Lichess's native Glicko-2 system.
+Our initial bot ratings are estimates, and this alignment remains under
+validation. See the [bot rating methodology](docs/bot-population.md).
+
 ## The chess
 
 - **Lichess with our name and logo.** Familiar boards, clocks, game history,
@@ -24,8 +33,7 @@ analysis, with a familiar interface for desktop and mobile browsers.
 - **Nostr accounts.** Use a Nostr identity for your account and saved games, or
   play casual games anonymously.
 
-The new home is [mutechess.org](https://mutechess.org/club). The domain cutover
-is prepared in source and requires a separate deployment.
+Play at [mutechess.org](https://mutechess.org/).
 We're building in public, and feedback from players helps shape the project.
 The Quiet Signal visual identity is documented in [the brand guide](design/quiet-signal/README.md).
 
@@ -52,6 +60,7 @@ or make the documentation clearer.
 - [Discuss bot identities](https://github.com/Dash1971/mute-chess/issues/1)
   and [help with strength calibration](https://github.com/Dash1971/mute-chess/issues/2).
 - Open a pull request, or fork the project and share what you build.
+- Follow the [upstream maintenance policy](docs/upstream-alignment.md).
 
 For substantial changes, open an issue first so we can discuss the approach.
 For bug reports, include what happened, what you expected, and your browser and

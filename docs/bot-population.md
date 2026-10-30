@@ -2,6 +2,10 @@
 
 This is the infrastructure stage of [#69](https://github.com/Dash1971/mute-chess/issues/69), implemented in #72. It preserves the 44 existing identities and their earned native ratings. The planned population is 10,000; expansion follows the separately scoped rating/capacity work. No bot-versus-bot run has started. Country personas and scheduled breaks are deferred in #71.
 
+## Human rating goal
+
+A human player's established Mute Chess rating should roughly translate to their established Lichess strength in the same speed pool. We will engineer toward that goal using reference-derived priors, native Glicko-2 calibration and human/reference validation, reporting differences and uncertainty. Bot self-play supplies relative-strength evidence; human-facing alignment is a separate empirical validation target.
+
 ## Fixed settings
 
 The authoritative configuration is [`lila-adapter/roster.json`](../lila-adapter/roster.json). Each bot keeps its conditioning inputs, temperature, top-p, opening policy, move-history switch, human-timing switch and timing style across games and deployments. Native bot profiles expose the current settings. BOT identification remains visible.
@@ -30,6 +34,8 @@ Total targets are capped at 3 seconds for 1+0, 4.5 seconds for 2+1 / 3+0 / 3+2, 
 
 Move sampling gets its own fresh per-game seed. Timing randomness and assignment hashes never consume the move sampler's random stream. Each game freezes the model hash, policy version and personality settings. Previously frozen version-2 games still use their original per-game history choice and version-2 timing; adding personality fields does not invalidate them.
 
+For the initial Blitz/Rapid experiment in #73, the owner has chosen **no added human-timing waits**. Retain native clocks, actual inference/queue time, sampling settings and history. Record this as a separately versioned study policy/override, rather than presenting the games as unchanged production timing policies. The production roster's stored timing switches/styles stay intact. This speeds the baseline and gives a useful engine-capacity workload; a later production-like timing check and 1+0 Bullet validation can follow. No study override has been implemented or enabled yet.
+
 ## Presence and matching
 
 All bots are available while the managed Maia service is healthy, with normal busy-account and global capacity checks. One health lease represents the entire managed roster. Healthy polls renew that lease without refreshing thousands of account timers or republishing every identity. Expiry publishes an offline transition; recovery publishes an online transition. Native WebSocket restarts reannounce managed presence. Ordinary third-party API bots retain their original individual presence mechanism.
@@ -42,6 +48,34 @@ The index is not another rating system or persistent rating authority. Restart r
 
 Lichess publishes separate [Bullet](https://lichess.org/stat/rating/distribution/bullet), [Blitz](https://lichess.org/stat/rating/distribution/blitz) and [Rapid](https://lichess.org/stat/rating/distribution/rapid) weekly distributions. The eventual roster generator should target these separately, document finite-roster rounding and unsupported strength ranges, and publish dated source frequencies. A model conditioning number must not be substituted for measured strength to force a desired histogram.
 
-[#73](https://github.com/Dash1971/mute-chess/issues/73) will plan a bounded, server-hosted bot-versus-bot run that actually sets/updates native speed ratings while measuring complete-stack capacity. The owner must agree the pilot scope before it runs. Ten appearances per bot in each of Blitz and Rapid across 10,000 identities would mean 100,000 games total; this is workload arithmetic, not an approved job or proof of rating stability. Self-play needs external anchors to support alignment with the Lichess scale. Provisional status and uncertainty remain honest; no synthetic public game counts or artificially lowered deviation are introduced here.
+[#73](https://github.com/Dash1971/mute-chess/issues/73) scopes a bounded, server-hosted bot-versus-bot trial of the existing **44 bots** that actually sets/updates native speed ratings while measuring complete-stack capacity. The original provisional Blitz/Rapid priors initialize a separate native test pool, preserving earned live ratings. Ten appearances per bot in each of Blitz and Rapid would mean **440 games total**. The proposed wall-clock/resource budget remains for agreement before execution; no job has started. Self-play needs external anchors to support alignment with the Lichess scale. Provisional status and uncertainty remain honest; no synthetic public game counts or artificially lowered deviation are introduced here.
+
+## Speed-specific priors
+
+The roster already has distinct initial Blitz and Rapid ratings, based on the October 28, 2026 Lichess Maia3 reference snapshot rounded to 50-point seeds, followed by the existing sampling-profile adjustments. Forty of the 44 identities have different initial Blitz and Rapid values. Examples from the Full sampling profile:
+
+| Bot | Initial Blitz | Initial Rapid |
+| --- | ---: | ---: |
+| Pixel Moth | 900 | 950 |
+| Cobalt Mist | 1300 | 1250 |
+| Neon Rook | 1500 | 1650 |
+| Ghost Relay | 1800 | 1700 |
+
+These are original configuration seeds; earned live ratings can differ. Core initial RD is 200, while the experimental upper settings use 300 or the larger source RD. Native initialization never resets existing earned ratings.
+
+Bullet currently inherits the initial Blitz prior, and Classical inherits the initial Rapid prior. These are temporary starting estimates, **not yet observed cross-speed transfers**. UltraBullet also inherits Blitz and Correspondence inherits Rapid; neither should be silently equated to the later Bullet/Classical calibration.
+
+The planned next step is to use the same Maia3 reference accounts' observed speed differences to seed Bullet/Classical after the Blitz/Rapid trial:
+
+```text
+Bullet prior    ≈ calibrated Blitz + reference(Bullet − Blitz)
+Classical prior ≈ calibrated Rapid + reference(Classical − Rapid)
+```
+
+Use differences from the matching model/conditioning family and nearby supported strength bands, with uncertainty for sampling/history/timing differences. A single universal offset is not assumed. The [dated reference data](data/lichess-maia-speed-reference-2026-10-28.json) preserves ratings, RD, game counts and provisional status for all eleven Maia3-79M accounts. For the 600–2000 reference accounts, observed Bullet-minus-Blitz differences range from +247 to +514, and Classical-minus-Rapid from +23 to +304. Sparse/provisional upper accounts cannot support equally confident transfers. These are historical observations, not current account ratings or measurements of our exact deployment policies.
+
+Cross-speed transfers remain provisional priors with separate uncertainty; do not copy an established Blitz/Rapid RD into an unvalidated speed or alter native provisional rules. Refresh the source data when implementing the mapping, then validate Bullet (including 1+0 timing) and Classical through actual games and human/reference evidence. No speed-mapping or live-rating changes are made by this documentation update.
+
+Maia's current move selector has no clock input or time-dependent search. With added waits disabled, Blitz and Rapid self-play can therefore have very similar relative-strength evidence when clocks do not decide games. The external speed-specific priors remain important because human opposition differs across the Lichess pools. Do not expect a closed bot pool alone to reproduce all of those human-facing differences.
 
 Public profiles link here for methodology. Historical game policy details retain their own version; a current profile describes the current policy.
