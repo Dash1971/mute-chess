@@ -1,6 +1,6 @@
 # Bot population and persistent personalities
 
-This is the infrastructure stage of [#69](https://github.com/Dash1971/mute-chess/issues/69), implemented in #72. It preserves the 44 existing identities and their earned native ratings. The planned population is 10,000; expansion follows the separately scoped rating/capacity work. No bot-versus-bot run has started. Country personas and scheduled breaks are deferred in #71.
+This is the infrastructure stage of [#69](https://github.com/Dash1971/mute-chess/issues/69), implemented in #72. It preserves the 44 existing identities and their earned native ratings. The planned population is 10,000; expansion follows the separately scoped rating/capacity work. The bounded public rating trial is documented in [native-bot-trial.md](native-bot-trial.md), with execution/results tracked in #73. Country personas and scheduled breaks are deferred in #71.
 
 ## Human rating goal
 
@@ -34,7 +34,7 @@ Total targets are capped at 3 seconds for 1+0, 4.5 seconds for 2+1 / 3+0 / 3+2, 
 
 Move sampling gets its own fresh per-game seed. Timing randomness and assignment hashes never consume the move sampler's random stream. Each game freezes the model hash, policy version and personality settings. Previously frozen version-2 games still use their original per-game history choice and version-2 timing; adding personality fields does not invalidate them.
 
-For the initial Blitz/Rapid experiment in #73, the owner has chosen **no added human-timing waits**. Retain native clocks, actual inference/queue time, sampling settings and history. Record this as a separately versioned study policy/override, rather than presenting the games as unchanged production timing policies. The production roster's stored timing switches/styles stay intact. This speeds the baseline and gives a useful engine-capacity workload; a later production-like timing check and 1+0 Bullet validation can follow. No study override has been implemented or enabled yet.
+For the initial Blitz/Rapid experiment in #73, the owner has chosen **no added human-timing waits**. Retain native clocks, actual inference/queue time, sampling settings and history. Record this as a separately versioned study policy/override, rather than presenting the games as unchanged production timing policies. The production roster's stored timing switches/styles stay intact. This speeds the baseline and gives a useful engine-capacity workload; a later production-like timing check and 1+0 Bullet validation can follow. The separately gated study override is implemented in #80 and defaults off; see [the trial methodology](native-bot-trial.md).
 
 ## Presence and matching
 
@@ -48,7 +48,7 @@ The index is not another rating system or persistent rating authority. Restart r
 
 Lichess publishes separate [Bullet](https://lichess.org/stat/rating/distribution/bullet), [Blitz](https://lichess.org/stat/rating/distribution/blitz) and [Rapid](https://lichess.org/stat/rating/distribution/rapid) weekly distributions. The eventual roster generator should target these separately, document finite-roster rounding and unsupported strength ranges, and publish dated source frequencies. A model conditioning number must not be substituted for measured strength to force a desired histogram.
 
-[#73](https://github.com/Dash1971/mute-chess/issues/73) scopes a bounded, server-hosted bot-versus-bot trial of the existing **44 bots** that actually sets/updates native speed ratings while measuring complete-stack capacity. The original provisional Blitz/Rapid priors initialize a separate native test pool, preserving earned live ratings. Ten appearances per bot in each of Blitz and Rapid would mean **440 games total**. The proposed wall-clock/resource budget remains for agreement before execution; no job has started. Self-play needs external anchors to support alignment with the Lichess scale. Provisional status and uncertainty remain honest; no synthetic public game counts or artificially lowered deviation are introduced here.
+[#73](https://github.com/Dash1971/mute-chess/issues/73) tracks the owner-authorized bounded trial of the existing **44 public bots**. Its real native games update public perfs and remain in game histories. Preserve earned ratings; original priors initialize only absent accounts and disposable qualification data. Ten appearances per bot in each of Blitz and Rapid would mean **440 games total**; the first batch is limited to 100 admitted games / 90 minutes, ramping to ten concurrent games as approved. See [the exact budget, safeguards and interpretation](native-bot-trial.md). Self-play needs external anchors for Lichess-scale alignment; native provisional status and uncertainty remain honest.
 
 ## Speed-specific priors
 

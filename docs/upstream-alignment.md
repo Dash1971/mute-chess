@@ -50,3 +50,21 @@ The register uses complete source paths within the [native patch](../deploy/lila
 4. Review in GitHub, merge to the one permanent `main` branch, then build and deploy that exact verified revision with the existing backup and live-game protections. Record both upstream revisions and the native patch hash in the release metadata.
 
 An upstream update is its own reviewed change. Do not mix a broad upstream rebase into an unrelated feature PR.
+
+## Bounded native bot trial (#80)
+
+The owner explicitly approved public bot-versus-bot rating games, retained in
+public histories, and a bounded ramp to ten concurrent games. The added
+`app/NoSweatStudy.scala` service uses native construction, BOT moves, completion
+and Glicko persistence. The small Game Env reservation exception requires two
+enabled BOT users and an explicit deployment/run scope; non-study games retain
+the normal admission contract. Study and human pool admissions share the
+existing serial queue, capacity and busy-seat checks. Friend invitations, round
+rules, clocks, rating mathematics and anti-abuse checks are unchanged.
+
+The study flag defaults off; native deadlines, heartbeat failure handling and
+the one-shot server supervisor bound execution. Qualification uses a disposable
+database, whereas the authorized run updates existing public perfs without
+reset/import. Rebase verification must exercise both BOT seats, native rating
+writes after FinishGame, disabled/public/qualification scope checks, and normal
+human-pool admission while the flag is on. See [methodology](native-bot-trial.md).

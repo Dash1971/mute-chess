@@ -27,6 +27,8 @@ jobs:
           node --check deploy/public/gateway.mjs
           node deploy/public/test-nostr.mjs
           node --check lila-adapter/server.mjs
+          node --check lila-adapter/study.mjs
+          node --check lila-adapter/test/study-integration.mjs
           node lila-adapter/build-browser.mjs /tmp/nosweat-nostr.js
           node --check /tmp/nosweat-nostr.js
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
