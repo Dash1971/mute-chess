@@ -100,7 +100,7 @@
             "Puzzle Maia channel DOM interactions, solving/visibility gates and narrow-width browser layout",
             "Opening EPD/ECO and path lookup; Mobile Maia phase detector; red grade ordering; fixed frames and long-name browser checks",
             "Opening-label font completion, truncation, escaped full-name dialog and cleanup regression (#113)",
-            "Opening label sits immediately beneath the board in two- and three-column layouts, preserving its reserved row and native controls (#115)"
+            "Opening label sits immediately beneath the board in two- and three-column layouts, preserving its reserved row and native controls (#115) Two-column empty-track collapse is gated off when native keyboard input is present (#117)."
           ],
           "files": [
             "app/controllers/UserAnalysis.scala",
