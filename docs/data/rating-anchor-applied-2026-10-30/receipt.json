@@ -1,0 +1,39 @@
+{
+  "id": "maia-p95-anchor-cross-speed-v1",
+  "status": "applied-and-verified",
+  "sourceCommit": "b8f9573344f45931b9e6f09de0e93eb5aaf7f8a5",
+  "completedAtUtc": "2026-10-30T12:40:40.639033+00:00",
+  "planSha256": "bf8bddd0333d7ec965d993eff7e49da6235c62d55022bcfa04e5c82b5aff9327",
+  "referenceRetrievedAtUtc": "2026-10-30T12:28:43.478309+00:00",
+  "referenceSourceResponseSha256": "ba2a8d09c76dd45fe6084949578c3a21dc0bc0c9b529ccca9770b3eacf340a31",
+  "identities": 44,
+  "poolRatings": 176,
+  "earnedRatingTranslations": 91,
+  "unplayedSpeedPriors": 85,
+  "derivedStandardSnapshots": 30,
+  "fallbackPriors": 24,
+  "encryptedBackupAndOffHostCopyVerified": true,
+  "unrelatedUsersPerfsGamesHistoryUnchanged": true,
+  "cacheAcceptance": {
+    "nativeReadyAndRatingCatalogInitialized": true,
+    "fullCohortAfterImagesVerifiedAfterRestart": true,
+    "samples": [
+      {
+        "id": "pixelmoth",
+        "conditioning": 600,
+        "nativeApiAndFourPerfPagesVerified": true
+      },
+      {
+        "id": "cipherfox",
+        "conditioning": 1600,
+        "nativeApiAndFourPerfPagesVerified": true
+      },
+      {
+        "id": "ultraviolet",
+        "conditioning": 2600,
+        "nativeApiAndFourPerfPagesVerified": true
+      }
+    ]
+  },
+  "newCalibrationGamesStarted": 0
+}
