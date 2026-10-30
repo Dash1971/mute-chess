@@ -190,3 +190,17 @@ owner accepts setting clock-pressure concerns aside for this initial scope;
 execution status in #73; this documentation update does not start a job.
 Use matched Maia3 cross-speed evidence as provisional Bullet/Classical priors
 later, not as a universal offset or a reason to reset earned ratings. See #78.
+
+## Authorized public rating trial (owner correction, October 30, 2026)
+
+The owner authorized #73/#80 and corrected the separate-database assumption:
+the actual bot-versus-bot games must update the PUBLIC bots' native ratings and
+remain in their public histories. Preserve earned ratings, human results and
+native Glicko/provisional/safeguard behavior; qualification alone is isolated.
+The owner raised the target to ten concurrent games. Ramp 1 → 2 → 5 → 10, count
+human pool games in that ceiling, retain one game per bot, and keep the hard
+90-minute / 100-admitted-game budget with admissions ending at 75 minutes.
+No automatic extension or forced establishment. See `docs/native-bot-trial.md`.
+This explicitly supersedes the planning-only and no-capacity-increase limits
+above for this bounded, reviewed trial; other population/chat/timezone work
+remains separate.
