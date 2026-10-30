@@ -204,3 +204,12 @@ No automatic extension or forced establishment. See `docs/native-bot-trial.md`.
 This explicitly supersedes the planning-only and no-capacity-increase limits
 above for this bounded, reviewed trial; other population/chat/timezone work
 remains separate.
+
+## Second capacity step (owner choice, October 30, 2026)
+
+After the unchanged first public batch, the owner selected a second bounded trial
+up to 22 concurrent games using the current 44 bots (#91). Use two pinned model
+workers under a four-core inference budget; ramp 10 → 15 → 20 → 22. Retain the
+90-minute / 100-admitted-game limit per run, one game per identity, ±200 matching
+and earned public ratings. Do not force 22 when eligible pairs are unavailable.
+No 50-game run or roster expansion is authorized by this choice.

@@ -4,8 +4,11 @@ import { createHash } from 'node:crypto';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { Maia, MODEL_SHA256 } from './maia.mjs';
 import { freezeStudy, studyPolicy } from './study-policy.mjs';
+import { StudyWorkers } from './study-workers.mjs';
 import { pairing } from './study-schedule.mjs';
 
+const workerCount = Number(process.env.STUDY_WORKERS ?? 1);
+if (![1, 2].includes(workerCount)) throw Error('Invalid study worker count');
 const run = process.env.STUDY_RUN_ID, live = process.env.STUDY_PUBLIC_RATINGS === 'true';
 const origin = process.env.LILA_ORIGIN, host = live ? 'mutechess.org' : '127.0.0.1:19763';
 if (!/^[a-z][a-z0-9_]{2,31}$/.test(run ?? '') || origin !== (live ? 'http://127.0.0.1:29663' : 'http://127.0.0.1:19763'))
@@ -67,7 +70,7 @@ async function play(game) {
   try { await native(`/club/internal/study/${game.id}/move`, { ply: game.ply, move: result.move }); }
   catch (e) { if (e.status === 409) return; throw e; }
   const timing = { type: 'move', id: game.id, ply: game.ply, move: result.move,
-    bot: frozen.production.bot, inferenceMs: result.inferenceMs, totalMs: performance.now() - started,
+    bot: frozen.production.bot, worker: result.studyWorker, inferenceMs: result.inferenceMs, totalMs: performance.now() - started,
     beforeCommitMs: returned - started, turnToCommitMs: Date.now() - game.lastMoveAt, addedWaitMs: 0, concurrency: last.games.length };
   timings.push(timing); await log(timing);
 }
@@ -78,18 +81,18 @@ async function requestStop() {
 for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => { stopping = true; });
 try {
   last = await native('/club/internal/study/ratings');
-  if (last.runId !== run || last.publicRatings !== live || last.admitted !== 0 || last.closed ||
+  if (last.runId !== run || last.publicRatings !== live || last.admitted !== 0 || last.closed || last.workers !== workerCount ||
       last.deadline - Date.now() > 90 * 60000 || Date.now() >= last.admissionEnd)
     throw Error('Study scope/budget mismatch or existing run; use a reviewed checkpoint-resume procedure');
   initial = { started: Date.now(), deadline: last.deadline, admissionEnd: last.admissionEnd,
     ratings: last.ratings, modelSha256: MODEL_SHA256,
     rosterSha256: createHash('sha256').update(JSON.stringify(roster)).digest('hex'),
-    policyVersion: 'native-no-wait-study-v1', maximumAdmitted: 100, maximumConcurrency: 10,
-    stages: [{ completed: 0, concurrency: 1 }, { completed: 5, concurrency: 2 },
-      { completed: 10, concurrency: 5 }, { completed: 20, concurrency: 10 }], clocks: { blitz: '5+3', rapid: '10+5' } };
+    policyVersion: 'native-no-wait-study-v1', maximumAdmitted: 100, maximumConcurrency: last.maximumConcurrency,
+    profile: last.profile, workerCount, stages: last.stages, clocks: { blitz: '5+3', rapid: '10+5' } };
   await log({ type: 'start', ...initial, publicRatings: live });
   await save(last);
-  maia = new Maia(process.env.MAIA_PYTHON, new URL('./maia_worker.py', import.meta.url).pathname, process.env.MAIA_MODEL);
+  maia = new StudyWorkers(workerCount, () => new Maia(process.env.MAIA_PYTHON,
+    new URL('./maia_worker.py', import.meta.url).pathname, process.env.MAIA_MODEL));
   await maia.ready;
   let previousFinished = 0;
   while (!stopping && Date.now() < initial.deadline) {
@@ -106,7 +109,7 @@ try {
       await log({ type: 'ratings', completed: finished.length, ratings: last.ratings });
       previousFinished = finished.length; await save(last);
     }
-    for (const g of last.games.toSorted((a, b) => (lastServed.get(a.id) ?? 0) - (lastServed.get(b.id) ?? 0))) if (g.playable && !pending.has(g.id) && pending.size < 2) {
+    for (const g of last.games.toSorted((a, b) => (lastServed.get(a.id) ?? 0) - (lastServed.get(b.id) ?? 0))) if (g.playable && !pending.has(g.id) && pending.size < maia.maxPending) {
       lastServed.set(g.id, Date.now());
       const task = play(g).catch(e => { failure = e.message; stopping = true; }).finally(() => pending.delete(g.id));
       pending.set(g.id, task);

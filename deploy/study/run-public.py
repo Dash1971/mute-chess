@@ -43,7 +43,11 @@ def main():
     parser.add_argument('--public-ratings', action='store_true', required=True)
     parser.add_argument('--run', required=True)
     parser.add_argument('--commit', required=True)
+    parser.add_argument('--profile', choices=('pilot-10-v1', 'ramp-22-v1'), default='pilot-10-v1')
     args = parser.parse_args()
+    plans = {'pilot-10-v1': {'workers': 1, 'cpu': '200%', 'memory': '1400M'},
+             'ramp-22-v1': {'workers': 2, 'cpu': '400%', 'memory': '2000M'}}
+    plan = plans[args.profile]
     if os.geteuid() != 0 or not re.fullmatch(r'[a-z][a-z0-9_]{2,31}', args.run):
         raise SystemExit('Root and a safe run ID are required')
     if not re.fullmatch(r'[0-9a-f]{40}', args.commit):
@@ -117,7 +121,7 @@ def main():
             raise RuntimeError('Admission race: preserve the newly active game')
         command('systemctl', 'stop', 'nosweatchess-app')
         study_conf.write_text('nosweat.study {\n enabled = true\n publicRatings = true\n runId = ' + json.dumps(args.run) +
-                              '\n startedEpochMillis = ' + str(started) + '\n}\n')
+                              '\n profile = ' + json.dumps(args.profile) + '\n startedEpochMillis = ' + str(started) + '\n}\n')
         study_conf.chmod(0o644)  # No secrets; app must read explicit scope/budget.
         configuration.write_text(original + marker)
         modified = True
@@ -133,12 +137,12 @@ def main():
             raise RuntimeError('Native app did not become ready')
         command('systemd-run', '--unit', worker, '--uid=nosweat-adapter', '--gid=nosweat-adapter',
                 '--property=Restart=no', '--property=RuntimeMaxSec=5400', '--property=TimeoutStopSec=20',
-                '--property=MemoryMax=1400M', '--property=CPUQuota=200%', '--property=NoNewPrivileges=yes',
+                '--property=MemoryMax=' + plan['memory'], '--property=CPUQuota=' + plan['cpu'], '--property=NoNewPrivileges=yes',
                 '--property=ProtectSystem=strict', '--property=ProtectHome=yes',
                 '--property=ReadWritePaths=' + str(output), '--property=UMask=0077',
                 '--property=EnvironmentFile=/etc/nosweatchess/adapter.env',
                 '--setenv=PYTHONDONTWRITEBYTECODE=1', '--setenv=STUDY_RUN_ID=' + args.run,
-                '--setenv=STUDY_PUBLIC_RATINGS=true', '--setenv=STUDY_MAIN_COMMIT=' + args.commit,
+                '--setenv=STUDY_PUBLIC_RATINGS=true', '--setenv=STUDY_WORKERS=' + str(plan['workers']), '--setenv=STUDY_MAIN_COMMIT=' + args.commit,
                 '--setenv=STUDY_OUTPUT=' + str(output), '--working-directory=' + str(release / 'lila-adapter'),
                 node, str(release / 'lila-adapter/study.mjs'))
         launched = True
@@ -188,7 +192,7 @@ def main():
             if not active_count():
                 command('systemctl', 'restart', 'nosweatchess-app')
         command('systemctl', 'start', 'nosweatchess-app', 'nosweatchess-gateway')
-        (output / 'supervisor.json').write_text(json.dumps({'run': args.run, 'commit': args.commit,
+        (output / 'supervisor.json').write_text(json.dumps({'run': args.run, 'commit': args.commit, 'profile': args.profile, 'inferenceBudget': plan,
             'reason': reason, 'started': started, 'ended': int(time.time() * 1000),
             'configurationRestored': modified}, indent=2))
         print(json.dumps({'phase': 'stopped', 'reason': reason, 'run': args.run}), flush=True)

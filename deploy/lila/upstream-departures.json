@@ -317,16 +317,18 @@
         },
         {
           "id": "bounded-native-bot-trial",
-          "rationale": "Explicitly gated bot-versus-bot reservations for a bounded public rating/capacity study; retain native rules, clocks, completion, Glicko and safeguards. Share the existing admission queue and account busy checks; qualification uses an isolated namespace.",
+          "rationale": "Explicitly gated bot-versus-bot reservations for a bounded public rating/capacity study; retain native rules, clocks, completion, Glicko and safeguards. Share the existing admission queue and account busy checks; qualification uses an isolated namespace. Versioned 10/22-game plans expose fixed worker/concurrency metadata; no arbitrary public capacity setting or rating implementation is added.",
           "verification": [
-            "Native NoSweatStudyScopeTest and stage/format checks",
+            "Native NoSweatStudyScopeTest/NoSweatStudyPlanTest and stage/format checks",
             "Study policy/scheduler regression tests",
             "Disposable native BOT-vs-BOT game and perf persistence qualification; public run checkpoints"
           ],
           "files": [
             "app/NoSweatStudy.scala",
             "modules/game/src/main/NoSweatStudyScope.scala",
-            "modules/game/src/test/NoSweatStudyScopeTest.scala"
+            "modules/game/src/test/NoSweatStudyScopeTest.scala",
+            "app/NoSweatStudyPlan.scala",
+            "src/test/scala/NoSweatStudyPlanTest.scala"
           ]
         }
       ]
