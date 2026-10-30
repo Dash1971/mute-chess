@@ -1,9 +1,11 @@
-# Draft: one-time p95 anchor correction and cross-speed priors
+# One-time p95 anchor correction and cross-speed priors
 
-**Draft only, #103, stacked after #83 → #95.** No public ratings have been changed,
-and merging or deploying the source does not run this migration. Execution
-requires a separately approved maintenance window, a fresh reviewed plan and an
-explicit root command from installed verified-main source.
+**Applied on October 30, 2026 with owner approval.** See the
+[completion receipt and exact before/after table](data/rating-anchor-applied-2026-10-30/README.md).
+The operation used installed verified-main source `b8f9573344f45931b9e6f09de0e93eb5aaf7f8a5`
+and reviewed plan SHA-256 `bf8bddd0333d7ec965d993eff7e49da6235c62d55022bcfa04e5c82b5aff9327`. All 44 bots and native field types
+were verified before play reopened. The original draft preview remains historical
+evidence; deploying source alone still never runs the adjustment.
 
 The [400-game trial report](https://github.com/Dash1971/mute-chess/tree/main/docs/data/bot-trials/r20261030c)
 retains earned native ratings and documents the confirmed temperature 1 / top-p
@@ -11,7 +13,7 @@ retains earned native ratings and documents the confirmed temperature 1 / top-p
 Bullet/Classical reference mapping in the same draft. This is an external anchor
 operation, not a change to Glicko or a promise of exact human Lichess strength.
 
-## Proposed field changes
+## Reviewed field changes
 
 Only the 44 existing enabled `noSweatBot` accounts, with native BOT title and
 canonical roster identities, are eligible. There are 176 candidate pool-rating rows, plus 30 existing derived standard snapshots.
@@ -98,7 +100,7 @@ subsequent normal app startup. BOT users are excluded from native leaderboards
 (`enabled && noBot && !rankban`), so no leaderboard re-ranking or global Redis
 flush is appropriate. Preserve sessions, settings and native history/statistics.
 
-## Procedure for a later approved execution
+## Recorded execution procedure and recovery reference
 
 1. Merge the parents and this PR through normal checks, then deploy the verified
    main source with this tooling. Retarget/rebase the stack as parents merge.
@@ -178,6 +180,6 @@ managed bots, a human, an unmanaged bot and historical fixtures. It exercises
 stale plans, prepare-without-rating-writes, interruption after seven updates,
 resume, duplicate application, changed-result rejection, interrupted restore,
 exact recovery, native BSON types and unchanged humans/users/games/history. It
-runs no inference and creates no native games. Production root orchestration,
-backup copying, restart/cache verification and execution remain later operator
-acceptance steps; no live application is claimed by this draft.
+runs no inference and creates no native games. Production acceptance is recorded in the completion receipt linked above,
+including the encrypted off-host backup, exact after-images, unchanged unrelated
+state, native cache/index refresh and reopening of admission.

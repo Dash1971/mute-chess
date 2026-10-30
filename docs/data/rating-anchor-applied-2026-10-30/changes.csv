@@ -1,0 +1,207 @@
+id,name,speed,mode,games,before,after,rd_before,rd_after,reference,fallback,speed_delta
+analogghost,Analog Ghost,blitz,earned-rating-translation,10,1797.3694468030783,1722.3694468030783,106.39442074432547,106.39442074432547,,,
+analogghost,Analog Ghost,rapid,earned-rating-translation,10,1736.680530397945,1661.680530397945,106.22921294220279,106.22921294220279,,,
+analogghost,Analog Ghost,bullet,unplayed-cross-speed-prior,0,1725.0,2091.369446803078,200.0,200.0,maia3-79m_1600,False,369
+analogghost,Analog Ghost,classical,unplayed-cross-speed-prior,0,1775.0,1763.680530397945,200.0,200.0,maia3-79m_1600,False,102
+analogghost,Analog Ghost,standard,derived-standard-translation,20,1767.0249886005117,1692.0249886005117,106.31262989847343,106.31262989847343,,,
+blackout,Blackout,blitz,earned-rating-translation,5,2532.7193303601052,2457.7193303601052,160.72944985048827,160.72944985048827,,,
+blackout,Blackout,rapid,earned-rating-translation,9,2289.486516928366,2214.486516928366,123.04633019665138,123.04633019665138,,,
+blackout,Blackout,bullet,unplayed-cross-speed-prior,0,2550.0,2697.7193303601052,300.0,300.0,maia3-79m_2000,True,240
+blackout,Blackout,classical,unplayed-cross-speed-prior,0,2400.0,2331.486516928366,300.0,300.0,maia3-79m_2000,True,117
+carbonkite,Carbon Kite,blitz,earned-rating-translation,12,1722.9515591165252,1647.9515591165252,103.08060601204616,103.08060601204616,,,
+carbonkite,Carbon Kite,rapid,earned-rating-translation,9,1756.9643106455114,1681.9643106455114,110.65071291601278,110.65071291601278,,,
+carbonkite,Carbon Kite,bullet,unplayed-cross-speed-prior,0,1700.0,2007.9515591165252,200.0,200.0,maia3-79m_1200,False,360
+carbonkite,Carbon Kite,classical,unplayed-cross-speed-prior,0,1750.0,1783.9643106455114,200.0,200.0,maia3-79m_1200,False,102
+carbonkite,Carbon Kite,standard,derived-standard-translation,12,1722.9515591165252,1647.9515591165252,103.08060601204616,103.08060601204616,,,
+cassettekid,Cassette Kid,blitz,earned-rating-translation,7,1180.4539704990739,1105.4539704990739,119.47098065461158,119.47098065461158,,,
+cassettekid,Cassette Kid,rapid,earned-rating-translation,7,1259.9260831186473,1184.9260831186473,122.12547810470898,122.12547810470898,,,
+cassettekid,Cassette Kid,bullet,unplayed-cross-speed-prior,0,1200.0,1607.4539704990739,200.0,200.0,maia3-79m_600,False,502
+cassettekid,Cassette Kid,classical,unplayed-cross-speed-prior,0,1250.0,1326.9260831186473,200.0,200.0,maia3-79m_600,False,142
+chromealley,Chrome Alley,blitz,earned-rating-translation,9,1715.2338317321846,1640.2338317321846,112.01047194068015,112.01047194068015,,,
+chromealley,Chrome Alley,rapid,earned-rating-translation,13,1565.0164622102384,1490.0164622102384,97.15630656445944,97.15630656445944,,,
+chromealley,Chrome Alley,bullet,unplayed-cross-speed-prior,0,1600.0,1983.2338317321846,200.0,200.0,maia3-79m_1000,False,343
+chromealley,Chrome Alley,classical,unplayed-cross-speed-prior,0,1550.0,1746.0164622102384,200.0,200.0,maia3-79m_1000,False,256
+chromealley,Chrome Alley,standard,derived-standard-translation,13,1565.0164622102384,1490.0164622102384,97.15630656445944,97.15630656445944,,,
+chromecastle,Chrome Castle,blitz,earned-rating-translation,10,1957.6413437954072,1882.6413437954072,107.6319568243319,107.6319568243319,,,
+chromecastle,Chrome Castle,rapid,earned-rating-translation,9,1882.2917466383442,1807.2917466383442,111.68376184337069,111.68376184337069,,,
+chromecastle,Chrome Castle,bullet,unplayed-cross-speed-prior,0,2000.0,2122.641343795407,200.0,200.0,maia3-79m_2000,False,240
+chromecastle,Chrome Castle,classical,unplayed-cross-speed-prior,0,2050.0,1924.2917466383442,200.0,200.0,maia3-79m_2000,False,117
+chromecastle,Chrome Castle,standard,derived-standard-translation,10,1957.6413437954072,1882.6413437954072,107.6319568243319,107.6319568243319,,,
+chromeoracle,Chrome Oracle,blitz,earned-rating-translation,7,2495.2654328829362,2420.2654328829362,141.57508017721364,141.57508017721364,,,
+chromeoracle,Chrome Oracle,rapid,earned-rating-translation,8,2431.740773457055,2356.740773457055,145.0304302343122,145.0304302343122,,,
+chromeoracle,Chrome Oracle,bullet,unplayed-cross-speed-prior,0,2400.0,2660.2654328829362,300.0,300.0,maia3-79m_2000,True,240
+chromeoracle,Chrome Oracle,classical,unplayed-cross-speed-prior,0,2600.0,2473.740773457055,458.0,458.0,maia3-79m_2000,True,117
+chromesparrow,Chrome Sparrow,blitz,earned-rating-translation,12,1571.929934507644,1496.929934507644,101.02483242025546,101.02483242025546,,,
+chromesparrow,Chrome Sparrow,rapid,earned-rating-translation,9,1684.9522566803594,1609.9522566803594,111.87157028831524,111.87157028831524,,,
+chromesparrow,Chrome Sparrow,bullet,earned-rating-translation,1,1619.2721841781756,1544.2721841781756,188.97654159555194,188.97654159555194,,,
+chromesparrow,Chrome Sparrow,classical,unplayed-cross-speed-prior,0,1500.0,1865.9522566803594,200.0,200.0,maia3-79m_1000,False,256
+chromesparrow,Chrome Sparrow,standard,derived-standard-translation,12,1571.929934507644,1496.929934507644,101.02483242025546,101.02483242025546,,,
+cipherfox,Cipher Fox,blitz,earned-rating-translation,11,1561.798871301718,1486.798871301718,106.56181570699155,106.56181570699155,,,
+cipherfox,Cipher Fox,rapid,earned-rating-translation,10,1651.7615812588774,1576.7615812588774,107.66642984153968,107.66642984153968,,,
+cipherfox,Cipher Fox,bullet,unplayed-cross-speed-prior,0,1650.0,1855.798871301718,200.0,200.0,maia3-79m_1600,False,369
+cipherfox,Cipher Fox,classical,unplayed-cross-speed-prior,0,1700.0,1678.7615812588774,200.0,200.0,maia3-79m_1600,False,102
+cipherfox,Cipher Fox,standard,derived-standard-translation,21,1604.6382569956036,1529.6382569956036,107.08885562655104,107.08885562655104,,,
+circuitsaint,Circuit Saint,blitz,earned-rating-translation,8,2189.066495708097,2114.066495708097,118.70834756806985,118.70834756806985,,,
+circuitsaint,Circuit Saint,rapid,earned-rating-translation,8,2508.613177611962,2433.613177611962,124.00109867710626,124.00109867710626,,,
+circuitsaint,Circuit Saint,bullet,unplayed-cross-speed-prior,0,2250.0,2354.066495708097,200.0,200.0,maia3-79m_2000,False,240
+circuitsaint,Circuit Saint,classical,unplayed-cross-speed-prior,0,2300.0,2550.613177611962,200.0,200.0,maia3-79m_2000,False,117
+cobaltmist,Cobalt Mist,blitz,earned-rating-translation,14,1284.9957822814108,1209.9957822814108,92.46106946529854,92.46106946529854,,,
+cobaltmist,Cobalt Mist,rapid,earned-rating-translation,5,1159.6356553128578,1084.6356553128578,136.1092167763978,136.1092167763978,,,
+cobaltmist,Cobalt Mist,bullet,unplayed-cross-speed-prior,0,1300.0,1552.9957822814108,200.0,200.0,maia3-79m_1000,False,343
+cobaltmist,Cobalt Mist,classical,unplayed-cross-speed-prior,0,1250.0,1340.6356553128578,200.0,200.0,maia3-79m_1000,False,256
+cobaltmist,Cobalt Mist,standard,derived-standard-translation,14,1284.9957822814108,1209.9957822814108,92.46106946529854,92.46106946529854,,,
+copperbyte,Copper Byte,blitz,earned-rating-translation,9,1203.3539291871716,1128.3539291871716,110.19525732267957,110.19525732267957,,,
+copperbyte,Copper Byte,rapid,earned-rating-translation,6,1091.7380794093144,1016.7380794093144,127.20647012806346,127.20647012806346,,,
+copperbyte,Copper Byte,bullet,unplayed-cross-speed-prior,0,1150.0,1563.3539291871716,200.0,200.0,maia3-79m_800,False,435
+copperbyte,Copper Byte,classical,unplayed-cross-speed-prior,0,1150.0,1071.7380794093144,200.0,200.0,maia3-79m_800,False,55
+eventhorizon,Event Horizon,blitz,earned-rating-translation,12,2583.5559203882726,2508.5559203882726,112.21559548082531,112.21559548082531,,,
+eventhorizon,Event Horizon,rapid,earned-rating-translation,4,2726.9857865385993,2651.9857865385993,192.53200567842882,192.53200567842882,,,
+eventhorizon,Event Horizon,bullet,unplayed-cross-speed-prior,0,2750.0,2748.5559203882726,300.0,300.0,maia3-79m_2000,True,240
+eventhorizon,Event Horizon,classical,unplayed-cross-speed-prior,0,2500.0,2768.9857865385993,300.0,300.0,maia3-79m_2000,True,117
+ghostgambit,Ghost Gambit,blitz,earned-rating-translation,10,2184.3309713456542,2109.3309713456542,106.73756310399281,106.73756310399281,,,
+ghostgambit,Ghost Gambit,rapid,earned-rating-translation,6,2245.8159990491913,2170.8159990491913,129.93366576396534,129.93366576396534,,,
+ghostgambit,Ghost Gambit,bullet,unplayed-cross-speed-prior,0,2100.0,2374.3309713456542,200.0,200.0,maia3-79m_1800,False,265
+ghostgambit,Ghost Gambit,classical,unplayed-cross-speed-prior,0,2000.0,2273.8159990491913,200.0,200.0,maia3-79m_1800,False,103
+ghostgambit,Ghost Gambit,standard,derived-standard-translation,10,2184.3309713456542,2109.3309713456542,106.73756310399281,106.73756310399281,,,
+ghostrelay,Ghost Relay,blitz,earned-rating-translation,11,1700.4717436115288,1625.4717436115288,101.24832669070929,101.24832669070929,,,
+ghostrelay,Ghost Relay,rapid,earned-rating-translation,11,1678.7664931790164,1603.7664931790164,105.62137076463615,105.62137076463615,,,
+ghostrelay,Ghost Relay,bullet,unplayed-cross-speed-prior,0,1800.0,1890.4717436115288,200.0,200.0,maia3-79m_1800,False,265
+ghostrelay,Ghost Relay,classical,unplayed-cross-speed-prior,0,1700.0,1706.7664931790164,200.0,200.0,maia3-79m_1800,False,103
+ghostrelay,Ghost Relay,standard,derived-standard-translation,22,1689.6191183952726,1614.6191183952726,103.43579128869946,103.43579128869946,,,
+glitchcat,Glitch Cat,blitz,earned-rating-translation,6,1006.2840725084743,931.2840725084743,130.37848194492796,130.37848194492796,,,
+glitchcat,Glitch Cat,rapid,earned-rating-translation,12,951.3125668203899,876.3125668203899,98.36381948278827,98.36381948278827,,,
+glitchcat,Glitch Cat,bullet,unplayed-cross-speed-prior,0,975.0,1433.2840725084743,200.0,200.0,maia3-79m_600,False,502
+glitchcat,Glitch Cat,classical,unplayed-cross-speed-prior,0,1025.0,1018.3125668203899,200.0,200.0,maia3-79m_600,False,142
+glitchcat,Glitch Cat,standard,derived-standard-translation,12,951.3125668203899,876.3125668203899,98.36381948278827,98.36381948278827,,,
+holoraven,Holo Raven,blitz,earned-rating-translation,11,2236.3595473486785,2161.3595473486785,111.83178495289594,111.83178495289594,,,
+holoraven,Holo Raven,rapid,earned-rating-translation,4,2438.0700446746587,2363.0700446746587,190.29071383810194,190.29071383810194,,,
+holoraven,Holo Raven,bullet,unplayed-cross-speed-prior,0,2225.0,2401.3595473486785,300.0,300.0,maia3-79m_2000,True,240
+holoraven,Holo Raven,classical,unplayed-cross-speed-prior,0,2425.0,2480.0700446746587,458.0,458.0,maia3-79m_2000,True,117
+indigopulse,Indigo Pulse,blitz,earned-rating-translation,6,2093.4333536071344,2018.4333536071344,143.9692544948214,143.9692544948214,,,
+indigopulse,Indigo Pulse,rapid,earned-rating-translation,11,2164.06120236341,2089.06120236341,120.39724265722252,120.39724265722252,,,
+indigopulse,Indigo Pulse,bullet,unplayed-cross-speed-prior,0,2150.0,2258.4333536071344,300.0,300.0,maia3-79m_2000,True,240
+indigopulse,Indigo Pulse,classical,unplayed-cross-speed-prior,0,2350.0,2206.06120236341,458.0,458.0,maia3-79m_2000,True,117
+kernelghost,Kernel Ghost,blitz,earned-rating-translation,1,2918.8064614775985,2843.8064614775985,255.05933093446578,255.05933093446578,,,
+kernelghost,Kernel Ghost,rapid,earned-rating-translation,10,2434.775552703125,2359.775552703125,123.237379404234,123.237379404234,,,
+kernelghost,Kernel Ghost,bullet,unplayed-cross-speed-prior,0,2800.0,3083.8064614775985,300.0,300.0,maia3-79m_2000,True,240
+kernelghost,Kernel Ghost,classical,unplayed-cross-speed-prior,0,2550.0,2476.775552703125,300.0,300.0,maia3-79m_2000,True,117
+midnightsignal,Midnight Signal,blitz,earned-rating-translation,8,1969.950772317639,1894.950772317639,116.62470281149737,116.62470281149737,,,
+midnightsignal,Midnight Signal,rapid,earned-rating-translation,10,2075.383855191641,2000.383855191641,105.8831655853643,105.8831655853643,,,
+midnightsignal,Midnight Signal,bullet,unplayed-cross-speed-prior,0,2075.0,2134.950772317639,200.0,200.0,maia3-79m_2000,False,240
+midnightsignal,Midnight Signal,classical,unplayed-cross-speed-prior,0,2125.0,2117.383855191641,200.0,200.0,maia3-79m_2000,False,117
+midnightsignal,Midnight Signal,standard,derived-standard-translation,10,2075.383855191641,2000.383855191641,105.8831655853643,105.8831655853643,,,
+neondrift,Neon Drift,blitz,earned-rating-translation,9,2125.882385996038,2050.882385996038,120.80799729080319,120.80799729080319,,,
+neondrift,Neon Drift,rapid,earned-rating-translation,6,2043.1366285389056,1968.1366285389056,147.91756746971183,147.91756746971183,,,
+neondrift,Neon Drift,bullet,unplayed-cross-speed-prior,0,2250.0,2290.882385996038,300.0,300.0,maia3-79m_2000,True,240
+neondrift,Neon Drift,classical,unplayed-cross-speed-prior,0,2100.0,2085.136628538906,300.0,300.0,maia3-79m_2000,True,117
+neonfinch,Neon Finch,blitz,earned-rating-translation,10,1225.087117845723,1150.087117845723,106.31696038267278,106.31696038267278,,,
+neonfinch,Neon Finch,rapid,earned-rating-translation,11,1238.927837557098,1163.927837557098,100.80324307236567,100.80324307236567,,,
+neonfinch,Neon Finch,bullet,unplayed-cross-speed-prior,0,1225.0,1585.087117845723,200.0,200.0,maia3-79m_800,False,435
+neonfinch,Neon Finch,classical,unplayed-cross-speed-prior,0,1225.0,1218.927837557098,200.0,200.0,maia3-79m_800,False,55
+neonfinch,Neon Finch,standard,derived-standard-translation,21,1232.3370186469194,1157.3370186469194,103.42924013684377,103.42924013684377,,,
+neonknight,Neon Knight,blitz,earned-rating-translation,11,2150.6201799116125,2075.6201799116125,103.789421085354,103.789421085354,,,
+neonknight,Neon Knight,rapid,earned-rating-translation,7,2046.9164018396564,1971.9164018396564,123.01758930387443,123.01758930387443,,,
+neonknight,Neon Knight,bullet,unplayed-cross-speed-prior,0,2050.0,2340.6201799116125,200.0,200.0,maia3-79m_1800,False,265
+neonknight,Neon Knight,classical,unplayed-cross-speed-prior,0,1950.0,2074.9164018396564,200.0,200.0,maia3-79m_1800,False,103
+neonknight,Neon Knight,standard,derived-standard-translation,11,2150.6201799116125,2075.6201799116125,103.789421085354,103.789421085354,,,
+neonrook,Neon Rook,blitz,earned-rating-translation,17,1691.4453674772406,1616.4453674772406,91.01324014448521,91.01324014448521,,,
+neonrook,Neon Rook,rapid,earned-rating-translation,8,1462.5213656333383,1387.5213656333383,117.26344062930934,117.26344062930934,,,
+neonrook,Neon Rook,bullet,unplayed-cross-speed-prior,0,1500.0,2040.4453674772406,200.0,200.0,maia3-79m_1400,False,424
+neonrook,Neon Rook,classical,unplayed-cross-speed-prior,0,1650.0,1477.5213656333383,200.0,200.0,maia3-79m_1400,False,90
+neonrook,Neon Rook,standard,derived-standard-translation,17,1691.4453674772406,1616.4453674772406,91.01324014448521,91.01324014448521,,,
+nightcourier,Night Courier,blitz,earned-rating-translation,8,1734.5105116005907,1659.5105116005907,116.23045308647669,116.23045308647669,,,
+nightcourier,Night Courier,rapid,earned-rating-translation,13,1883.0572787347862,1808.0572787347862,96.40273168933396,96.40273168933396,,,
+nightcourier,Night Courier,bullet,unplayed-cross-speed-prior,0,1750.0,2083.5105116005907,200.0,200.0,maia3-79m_1400,False,424
+nightcourier,Night Courier,classical,unplayed-cross-speed-prior,0,1900.0,1898.0572787347862,200.0,200.0,maia3-79m_1400,False,90
+nightcourier,Night Courier,standard,derived-standard-translation,13,1883.0572787347862,1808.0572787347862,96.40273168933396,96.40273168933396,,,
+nightcurrent,Night Current,blitz,earned-rating-translation,8,1937.5119042588005,1862.5119042588005,117.18797198341764,117.18797198341764,,,
+nightcurrent,Night Current,rapid,earned-rating-translation,11,1896.3300184204004,1821.3300184204004,101.15452152631512,101.15452152631512,,,
+nightcurrent,Night Current,bullet,unplayed-cross-speed-prior,0,1875.0,2127.5119042588003,200.0,200.0,maia3-79m_1800,False,265
+nightcurrent,Night Current,classical,unplayed-cross-speed-prior,0,1775.0,1924.3300184204004,200.0,200.0,maia3-79m_1800,False,103
+nightcurrent,Night Current,standard,derived-standard-translation,11,1896.3300184204004,1821.3300184204004,101.15452152631512,101.15452152631512,,,
+nullecho,Null Echo,blitz,earned-rating-translation,12,2570.995105294144,2495.995105294144,109.21192026936956,109.21192026936956,,,
+nullecho,Null Echo,rapid,earned-rating-translation,6,2439.5886664844925,2364.5886664844925,131.38963288067941,131.38963288067941,,,
+nullecho,Null Echo,bullet,unplayed-cross-speed-prior,0,2300.0,2735.995105294144,200.0,200.0,maia3-79m_2000,False,240
+nullecho,Null Echo,classical,unplayed-cross-speed-prior,0,2350.0,2481.5886664844925,200.0,200.0,maia3-79m_2000,False,117
+nullecho,Null Echo,standard,derived-standard-translation,12,2570.995105294144,2495.995105294144,109.21192026936956,109.21192026936956,,,
+patchwork,Patchwork,blitz,earned-rating-translation,8,1227.358070676524,1152.358070676524,115.34648873548264,115.34648873548264,,,
+patchwork,Patchwork,rapid,earned-rating-translation,13,1431.0471138754779,1356.0471138754779,97.45026938198627,97.45026938198627,,,
+patchwork,Patchwork,bullet,earned-rating-translation,1,1353.2958834247931,1278.2958834247931,191.47784111214216,191.47784111214216,,,
+patchwork,Patchwork,classical,unplayed-cross-speed-prior,0,1400.0,1411.0471138754779,200.0,200.0,maia3-79m_800,False,55
+patchwork,Patchwork,standard,derived-standard-translation,13,1431.0471138754779,1356.0471138754779,97.45026938198627,97.45026938198627,,,
+pixelmoth,Pixel Moth,blitz,earned-rating-translation,4,776.9618789087704,701.9618789087704,143.10954274798482,143.10954274798482,,,
+pixelmoth,Pixel Moth,rapid,earned-rating-translation,11,924.9583525395971,849.9583525395971,102.15255952353958,102.15255952353958,,,
+pixelmoth,Pixel Moth,bullet,unplayed-cross-speed-prior,0,900.0,1203.9618789087704,200.0,200.0,maia3-79m_600,False,502
+pixelmoth,Pixel Moth,classical,unplayed-cross-speed-prior,0,950.0,991.9583525395971,200.0,200.0,maia3-79m_600,False,142
+pixelmoth,Pixel Moth,standard,derived-standard-translation,11,924.9583525395971,849.9583525395971,102.15255952353958,102.15255952353958,,,
+pocketstatic,Pocket Static,blitz,earned-rating-translation,11,1088.1344968192932,1013.1344968192932,102.26129958427327,102.26129958427327,,,
+pocketstatic,Pocket Static,rapid,earned-rating-translation,11,1153.2374754948723,1078.2374754948723,101.27059067540274,101.27059067540274,,,
+pocketstatic,Pocket Static,bullet,unplayed-cross-speed-prior,0,1150.0,1515.1344968192932,200.0,200.0,maia3-79m_600,False,502
+pocketstatic,Pocket Static,classical,unplayed-cross-speed-prior,0,1200.0,1220.2374754948723,200.0,200.0,maia3-79m_600,False,142
+pocketstatic,Pocket Static,standard,derived-standard-translation,22,1120.6859861570829,1045.6859861570829,101.76640083575478,101.76640083575478,,,
+prismwraith,Prism Wraith,blitz,earned-rating-translation,7,2494.3161124924127,2419.3161124924127,139.73840776481703,139.73840776481703,,,
+prismwraith,Prism Wraith,rapid,earned-rating-translation,9,2401.3004671465105,2326.3004671465105,127.26555545871389,127.26555545871389,,,
+prismwraith,Prism Wraith,bullet,unplayed-cross-speed-prior,0,2575.0,2659.3161124924127,300.0,300.0,maia3-79m_2000,True,240
+prismwraith,Prism Wraith,classical,unplayed-cross-speed-prior,0,2325.0,2443.3004671465105,300.0,300.0,maia3-79m_2000,True,117
+quantumshade,Quantum Shade,blitz,earned-rating-translation,5,2819.050242781269,2744.050242781269,161.1499453064478,161.1499453064478,,,
+quantumshade,Quantum Shade,rapid,earned-rating-translation,12,2202.7720731647714,2127.7720731647714,111.60489432270872,111.60489432270872,,,
+quantumshade,Quantum Shade,bullet,unplayed-cross-speed-prior,0,2500.0,2984.050242781269,300.0,300.0,maia3-79m_2000,True,240
+quantumshade,Quantum Shade,classical,unplayed-cross-speed-prior,0,2350.0,2244.7720731647714,300.0,300.0,maia3-79m_2000,True,117
+quietproxy,Quiet Proxy,blitz,earned-rating-translation,10,1566.9406680387615,1491.9406680387615,114.09069230147098,114.09069230147098,,,
+quietproxy,Quiet Proxy,rapid,earned-rating-translation,13,1581.7513563310456,1506.7513563310456,98.64172204203874,98.64172204203874,,,
+quietproxy,Quiet Proxy,bullet,unplayed-cross-speed-prior,0,1575.0,1915.9406680387615,200.0,200.0,maia3-79m_1400,False,424
+quietproxy,Quiet Proxy,classical,unplayed-cross-speed-prior,0,1725.0,1596.7513563310456,200.0,200.0,maia3-79m_1400,False,90
+quietproxy,Quiet Proxy,standard,derived-standard-translation,13,1581.7513563310456,1506.7513563310456,98.64172204203874,98.64172204203874,,,
+rooftopecho,Rooftop Echo,blitz,earned-rating-translation,10,1824.6406854939892,1749.6406854939892,108.24658383023454,108.24658383023454,,,
+rooftopecho,Rooftop Echo,rapid,earned-rating-translation,11,1720.5043122783252,1645.5043122783252,104.2870435829083,104.2870435829083,,,
+rooftopecho,Rooftop Echo,bullet,unplayed-cross-speed-prior,0,1650.0,2109.640685493989,200.0,200.0,maia3-79m_1200,False,360
+rooftopecho,Rooftop Echo,classical,unplayed-cross-speed-prior,0,1700.0,1747.5043122783252,200.0,200.0,maia3-79m_1200,False,102
+rooftopecho,Rooftop Echo,standard,derived-standard-translation,21,1770.0930614286412,1695.0930614286412,106.17275561681997,106.17275561681997,,,
+rusthalo,Rust Halo,blitz,earned-rating-translation,7,1933.7770713210627,1858.7770713210627,120.5905259808352,120.5905259808352,,,
+rusthalo,Rust Halo,rapid,earned-rating-translation,12,1823.1503235297948,1748.1503235297948,101.41368428045797,101.41368428045797,,,
+rusthalo,Rust Halo,bullet,unplayed-cross-speed-prior,0,1800.0,2282.777071321063,200.0,200.0,maia3-79m_1400,False,424
+rusthalo,Rust Halo,classical,unplayed-cross-speed-prior,0,1950.0,1838.1503235297948,200.0,200.0,maia3-79m_1400,False,90
+rusthalo,Rust Halo,standard,derived-standard-translation,12,1823.1503235297948,1748.1503235297948,101.41368428045797,101.41368428045797,,,
+sideband,Sideband,blitz,earned-rating-translation,12,1458.771343627928,1383.771343627928,101.80369248531706,101.80369248531706,,,
+sideband,Sideband,rapid,earned-rating-translation,12,1334.0957585007661,1259.0957585007661,100.54888864737582,100.54888864737582,,,
+sideband,Sideband,bullet,earned-rating-translation,1,1457.6035736341162,1382.6035736341162,187.3903310341322,187.3903310341322,,,
+sideband,Sideband,classical,unplayed-cross-speed-prior,0,1325.0,1515.0957585007661,200.0,200.0,maia3-79m_1000,False,256
+sideband,Sideband,standard,derived-standard-translation,24,1396.433551064347,1321.433551064347,101.17646152127841,101.17646152127841,,,
+signalweaver,Signal Weaver,blitz,earned-rating-translation,10,2018.7426056255117,1943.7426056255117,114.86333722987148,114.86333722987148,,,
+signalweaver,Signal Weaver,rapid,earned-rating-translation,7,2280.230726806768,2205.230726806768,141.26103889906574,141.26103889906574,,,
+signalweaver,Signal Weaver,bullet,unplayed-cross-speed-prior,0,2325.0,2183.7426056255117,300.0,300.0,maia3-79m_2000,True,240
+signalweaver,Signal Weaver,classical,unplayed-cross-speed-prior,0,2175.0,2322.230726806768,300.0,300.0,maia3-79m_2000,True,117
+staticbishop,Static Bishop,blitz,earned-rating-translation,8,1975.966286875219,1900.966286875219,115.55384957812277,115.55384957812277,,,
+staticbishop,Static Bishop,rapid,earned-rating-translation,10,1908.8966585571693,1833.8966585571693,107.51271090086985,107.51271090086985,,,
+staticbishop,Static Bishop,bullet,unplayed-cross-speed-prior,0,1950.0,2269.9662868752193,200.0,200.0,maia3-79m_1600,False,369
+staticbishop,Static Bishop,classical,unplayed-cross-speed-prior,0,2000.0,1935.8966585571693,200.0,200.0,maia3-79m_1600,False,102
+staticbishop,Static Bishop,standard,derived-standard-translation,10,1908.8966585571693,1833.8966585571693,107.51271090086985,107.51271090086985,,,
+staticrain,Static Rain,blitz,earned-rating-translation,11,1506.7586371679897,1431.7586371679897,106.07047673758753,106.07047673758753,,,
+staticrain,Static Rain,rapid,earned-rating-translation,8,1449.8721275577263,1374.8721275577263,113.77877378256382,113.77877378256382,,,
+staticrain,Static Rain,bullet,unplayed-cross-speed-prior,0,1475.0,1791.7586371679897,200.0,200.0,maia3-79m_1200,False,360
+staticrain,Static Rain,classical,unplayed-cross-speed-prior,0,1525.0,1476.8721275577263,200.0,200.0,maia3-79m_1200,False,102
+staticrain,Static Rain,standard,derived-standard-translation,11,1506.7586371679897,1431.7586371679897,106.07047673758753,106.07047673758753,,,
+switchback,Switchback,blitz,earned-rating-translation,11,1997.634398563397,1922.634398563397,105.3552617317441,105.3552617317441,,,
+switchback,Switchback,rapid,earned-rating-translation,10,2051.1655130597746,1976.1655130597746,111.35314966511271,111.35314966511271,,,
+switchback,Switchback,bullet,unplayed-cross-speed-prior,0,1900.0,2291.634398563397,200.0,200.0,maia3-79m_1600,False,369
+switchback,Switchback,classical,unplayed-cross-speed-prior,0,1950.0,2078.1655130597746,200.0,200.0,maia3-79m_1600,False,102
+switchback,Switchback,standard,derived-standard-translation,11,1997.634398563397,1922.634398563397,105.3552617317441,105.3552617317441,,,
+ultraviolet,Ultraviolet,blitz,earned-rating-translation,13,2419.131768864039,2344.131768864039,108.92080635403204,108.92080635403204,,,
+ultraviolet,Ultraviolet,rapid,earned-rating-translation,4,2128.0177699533806,2053.0177699533806,172.79296581844244,172.79296581844244,,,
+ultraviolet,Ultraviolet,bullet,unplayed-cross-speed-prior,0,2500.0,2584.131768864039,300.0,300.0,maia3-79m_2000,True,240
+ultraviolet,Ultraviolet,classical,unplayed-cross-speed-prior,0,2250.0,2170.0177699533806,300.0,300.0,maia3-79m_2000,True,117
+ultraviolet,Ultraviolet,standard,derived-standard-translation,13,2419.131768864039,2344.131768864039,108.92080635403204,108.92080635403204,,,
+velvetcircuit,Velvet Circuit,blitz,earned-rating-translation,12,1580.7797324587864,1505.7797324587864,99.05394581176985,99.05394581176985,,,
+velvetcircuit,Velvet Circuit,rapid,earned-rating-translation,9,1460.4173021705883,1385.4173021705883,109.28690514556544,109.28690514556544,,,
+velvetcircuit,Velvet Circuit,bullet,unplayed-cross-speed-prior,0,1450.0,1940.7797324587864,200.0,200.0,maia3-79m_800,False,435
+velvetcircuit,Velvet Circuit,classical,unplayed-cross-speed-prior,0,1450.0,1440.4173021705883,200.0,200.0,maia3-79m_800,False,55
+velvetcircuit,Velvet Circuit,standard,derived-standard-translation,21,1529.1958337638443,1454.1958337638443,103.43963477421144,103.43963477421144,,,
+violetmetro,Violet Metro,blitz,earned-rating-translation,13,1381.6724678187545,1306.6724678187545,98.30868951950318,98.30868951950318,,,
+violetmetro,Violet Metro,rapid,earned-rating-translation,8,1398.3161679952345,1323.3161679952345,117.11492334293352,117.11492334293352,,,
+violetmetro,Violet Metro,bullet,unplayed-cross-speed-prior,0,1400.0,1666.6724678187545,200.0,200.0,maia3-79m_1200,False,360
+violetmetro,Violet Metro,classical,unplayed-cross-speed-prior,0,1450.0,1425.3161679952345,200.0,200.0,maia3-79m_1200,False,102
+violetmetro,Violet Metro,standard,derived-standard-translation,13,1381.6724678187545,1306.6724678187545,98.30868951642499,98.30868951642499,,,
+zeroday,Zero Day,blitz,earned-rating-translation,7,2416.625120483795,2341.625120483795,137.52735355982827,137.52735355982827,,,
+zeroday,Zero Day,rapid,earned-rating-translation,10,2771.857045566595,2696.857045566595,130.50171165175493,130.50171165175493,,,
+zeroday,Zero Day,bullet,unplayed-cross-speed-prior,0,2450.0,2581.625120483795,300.0,300.0,maia3-79m_2000,True,240
+zeroday,Zero Day,classical,unplayed-cross-speed-prior,0,2650.0,2813.857045566595,458.0,458.0,maia3-79m_2000,True,117

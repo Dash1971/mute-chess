@@ -91,3 +91,13 @@ are public for review. Nothing is applied by merging/deploying the source;
 original seeds, histories and native Glicko remain intact. Publish a non-secret
 completion receipt and actual before/after table here after any separately
 approved execution rather than presenting this draft as completed calibration.
+
+
+## Applied anchor correction — October 30, 2026
+
+The owner-approved one-time −75 correction and unplayed Bullet/Classical priors
+were applied to the existing 44 bots. Native Glicko continues unchanged from the
+corrected stored ratings; original seeds and past game/history ratings remain
+historical values. [Exact before/after table, reference data and verification
+receipt](data/rating-anchor-applied-2026-10-30/README.md). This operation started
+no new calibration games.
