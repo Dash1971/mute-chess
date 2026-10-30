@@ -59,8 +59,9 @@ Stockfish win-rate loss as good through 0.05, acceptable through 0.10, and blund
 above 0.10. `src/lib/analysis.ts` supplies the empirical CP-to-winrate lookup,
 rounded to 0.1 pawn and clamped at +/-10 pawns. The lookup is retained in the
 native `noSweatCandidateQuality.ts`, with the reference source/license in
-`third-party/maia-platform-quality/`. We use category colors with contrast
-adaptations rather than ranking shades within a category. Forced mate scores
+`third-party/maia-platform-quality/`. Issue #111 restores ranking shades inside the evaluated blunder group, ordered
+by Stockfish mover win rate (then CP/move ID), with the accepted five-red palette
+and separate light-theme contrast adaptations. Forced mate scores
 use exact winning/losing outcomes. These estimates do not alter probabilities,
 full-game annotations, accuracy, or Stockfish board arrows.
 
@@ -71,3 +72,15 @@ evidence for the same move; Others adds its visible moves to the queue. Position
 rating, visibility, and analysis-toggle generation guards discard stale work.
 Unsearched/failed moves stay neutral. This is a quick estimate, not guaranteed
 perfect objective truth or an assertion of identical search budgets to Maia's site.
+
+
+## Accepted presentation, opening names and phases (#111)
+
+Mobile Maia at `8563954429c2fb53ce0fe0e16c73c5d8a73ccfe0` supplies the
+`OpeningNames`, `ReviewOpeningName`, `GamePhaseDetector` and graph phase-label
+reference. The native namespaced ports preserve its position-path lookup, ECO
+format and phase rules. The 3,810 opening rows come from the same Mobile Maia
+CC0 TSV, generated from lichess-org/chess-openings
+`4b8622759e7ae6f93f011cc6c83a3823401ab45e`. The native patch retains the
+compact data and CC0 license; `analysis/prepare-openings.py` reproduces them.
+See `docs/analysis-presentation.md` for the approved boundaries and verification.
