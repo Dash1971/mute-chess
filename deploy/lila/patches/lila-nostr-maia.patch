@@ -2590,7 +2590,7 @@ index 0c0ed10..0fd8c57 100644
  
    val logo = raw:
 diff --git a/modules/web/src/main/ui/layout.scala b/modules/web/src/main/ui/layout.scala
-index 1c7a30b..335073e 100644
+index 1c7a30b..87fdf46 100644
 --- a/modules/web/src/main/ui/layout.scala
 +++ b/modules/web/src/main/ui/layout.scala
 @@ -17,8 +17,17 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
@@ -2654,7 +2654,7 @@ index 1c7a30b..335073e 100644
 -    s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
 -      s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
 +    if isMuteChess then
-+      """<link rel="alternate icon" type="image/png" href="/assets/nosweat/favicon-32.png?v=quiet-signal1"><link id="favicon" rel="icon" type="image/svg+xml" href="/assets/nosweat/favicon.svg?v=quiet-signal1"><link rel="stylesheet" href="/assets/nosweat/brand.css?v=analysis5"><link rel="stylesheet" href="/assets/nosweat/quiet-signal.css?v=quiet-signal2">"""
++      """<link rel="alternate icon" type="image/png" href="/assets/nosweat/favicon-32.png?v=quiet-signal1"><link id="favicon" rel="icon" type="image/svg+xml" href="/assets/nosweat/favicon.svg?v=quiet-signal1"><link rel="stylesheet" href="/assets/nosweat/brand.css?v=analysis6"><link rel="stylesheet" href="/assets/nosweat/quiet-signal.css?v=quiet-signal2">"""
 +    else
 +      s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
 +        s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
@@ -2750,10 +2750,33 @@ index 818aaae..901eb6e 100644
    flair?: Flair;
    patron?: boolean; // BC
 diff --git a/ui/analyse/css/_layout.scss b/ui/analyse/css/_layout.scss
-index 4f219ad..42128fd 100644
+index 4f219ad..61f2eac 100644
 --- a/ui/analyse/css/_layout.scss
 +++ b/ui/analyse/css/_layout.scss
-@@ -174,6 +174,31 @@ $analyse-gauge-gap: 4px;
+@@ -127,6 +127,10 @@ $analyse-gauge-gap: 4px;
+ 
+     &__underboard {
+       margin-top: $analyse-block-gap;
++
++      &:has(> .nosweat-opening) {
++        margin-top: 0;
++      }
+     }
+ 
+     .eval-gauge {
+@@ -165,6 +169,11 @@ $analyse-gauge-gap: 4px;
+       'uchat   . under   .     controls'
+       'uchat   . under   .     round-training';
+ 
++    // Offset the empty keyboard track between the board and opening row.
++    &__underboard:has(> .nosweat-opening) {
++      margin-top: min(0px, calc(2.5em - $col3-uniboard-controls));
++    }
++
+     &__side {
+       margin-top: 0;
+     }
+@@ -174,6 +183,31 @@ $analyse-gauge-gap: 4px;
        min-height: 10em;
      }
  
@@ -10305,7 +10328,7 @@ HcmV?d00001
 
 diff --git a/public/nosweat/brand.css b/public/nosweat/brand.css
 new file mode 100644
-index 0000000..00eaf45
+index 0000000..5f3d8ee
 --- /dev/null
 +++ b/public/nosweat/brand.css
 @@ -0,0 +1,150 @@
@@ -10424,7 +10447,7 @@ index 0000000..00eaf45
 +.nosweat-summary .accuracy td { border-top:1px solid var(--c-border); padding-top:.5em; font-weight:bold; }
 +.nosweat-summary > .button { margin-top:.7em; font-size:.85em; }
 +.nosweat-opening { height:28px; min-height:28px; min-width:0; display:flex; align-items:center; margin:0 0 3px; }
-+.nosweat-opening-name { width:100%; min-width:0; padding:4px 12px; font-size:13px; line-height:20px; background:none; color:var(--c-font-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:center; text-transform:none; cursor:default; }
++.nosweat-opening-name { width:100%; min-width:0; padding:0 12px 8px; font-size:13px; line-height:20px; background:none; color:var(--c-font-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:center; text-transform:none; cursor:default; }
 +.nosweat-opening-name.truncated { cursor:pointer; }
 +.nosweat-opening-name:disabled { opacity:1; cursor:default; }
 +.nosweat-opening-name.truncated:hover { color:var(--c-font); }
