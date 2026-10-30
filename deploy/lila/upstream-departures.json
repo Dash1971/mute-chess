@@ -98,7 +98,8 @@
             "analysis/test-client.mjs",
             "Private analysis and puzzle-review browser qualification",
             "Puzzle Maia channel DOM interactions, solving/visibility gates and narrow-width browser layout",
-            "Opening EPD/ECO and path lookup; Mobile Maia phase detector; red grade ordering; fixed frames and long-name browser checks"
+            "Opening EPD/ECO and path lookup; Mobile Maia phase detector; red grade ordering; fixed frames and long-name browser checks",
+            "Opening-label font completion, truncation, escaped full-name dialog and cleanup regression (#113)"
           ],
           "files": [
             "app/controllers/UserAnalysis.scala",
@@ -152,6 +153,7 @@
             "ui/analyse/tests/noSweatFullGame.test.ts",
             "ui/analyse/tests/noSweatFullReview.test.ts",
             "ui/analyse/tests/noSweatRatingChart.test.ts",
+            "ui/analyse/tests/openingLabel.test.ts",
             "ui/analyse/tests/openingNames.test.ts",
             "ui/analyse/tests/summaryLayout.test.ts",
             "ui/chart/src/acpl.ts",
