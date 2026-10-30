@@ -233,3 +233,13 @@ human Mute Chess accounts. Preserve native bot denial, category permissions,
 moderation, captcha, spam protections and rate limits. This supersedes the earlier
 requirement to retain upstream age/game qualification; default upstream mode is
 unchanged. See `docs/native-learning-community.md`.
+
+
+## Friendly Nostr access and backup (owner request, October 30, 2026)
+
+Issue #94 is authorized for implementation and a PR stacked on #83 by the owner's
+subsequent chat request. Keep signer sign-in direct, guidance optional and backup
+exports explicit. Preserve the existing browser key-store name/schema, identities,
+NIP-07 and signed 2FA flow. No custom passphrase, local unlock or encrypted backup
+format. Browser persistence is optional and must not block sign-in. See
+`docs/nostr-sign-in-backup.md` for the UX, platform research and verification.
