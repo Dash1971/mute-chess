@@ -4,6 +4,7 @@ import { saveKey, loadKey, forgetKey, requestKeyPersistence } from './key-store.
 import { signedCall, AuthResponseError } from './auth-client.mjs';
 import './security.mjs';
 import './patron.mjs';
+import './keys.mjs';
 
 const element = id => document.getElementById('nostr-' + id);
 let generated, pending;

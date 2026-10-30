@@ -6,7 +6,7 @@ Keep the native quick-pair grid and Custom dialog. Pair directly through the
 existing bot pool; no lobby listing, opponent picker, invented availability or
 fake activity. Anonymous games remain casual. Keep Puzzles, Community, Tools (analysis, editor, PGN
 import), Donate, profile and settings in the header. Hide Play, Learn and Watch menus,
-search/notification icons, updates, daily puzzles, events and
+notification icons, updates, daily puzzles, events and
 tournament promotions. Previously enabled native features remain accessible by
 their URLs; this decision supersedes their prominent navigation treatment.
 
@@ -50,3 +50,17 @@ retry signs a fresh challenge bound to the code, and local keys are saved only
 after successful authentication. Clear pending key copies/codes on account switch
 and page exit. Existing identities remain stable and do not become new accounts
 when their nsec or signer is used again. See #59.
+
+## October 31 header corrections (#122/#124)
+
+Restore native header search for finding friends. Keep the native autocomplete,
+profile navigation and invitation behavior; quick pairing stays Maia-only. The
+Mute Chess header opts into an enabled-account public-name/handle prefix query,
+limited to ten results. Terms are 2–30 characters, with controls rejected and
+regex punctuation escaped; Unicode and spaces in public names are supported.
+The native NoTor boundary remains. Labels use escaped display names while links
+keep canonical handles. Native autocomplete elsewhere is unchanged.
+
+Search being absent must skip only CLI setup, not the later native scroll
+listener. Restore native hide-on-down/reveal-on-up behavior rather than styling
+a permanently pinned header.

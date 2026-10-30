@@ -84,3 +84,20 @@ phase labels, chart actions above the plot, rating selection, Others, and narrow
 puzzle rows. Rebase the small view/underboard/chart hooks against upstream;
 namespaced opening and phase modules own the added behavior. No rules, clocks,
 ratings, bot policy, identity or saved-note migration is part of this change.
+
+## Standalone analysis board (#121)
+
+The free standard analysis board exposes the same Analyze game action, native
+local-review engine, evaluation chart, overall accuracy/ACPL, classifications and
+Learn from your mistakes used after games. Computer analysis and Share & export
+tabs retain the editable FEN/PGN inputs. Opening labels stay under the board.
+A line needs at least one move. A FEN-only position retains selected-position
+Stockfish/Maia analysis and asks the user to add moves for a sequence review.
+
+These lines do not have a public game export. Their review omits optional native
+division input; overall native accuracy/judgments are unchanged and the existing
+chart plugin provides visual phase boundaries. Results stay in memory and are
+keyed to the exact root/plies/FENs/moves. Edited/replaced mainlines cannot display
+an old summary or receive a completed stale review. Clearing review preserves
+entered moves and user/imported glyphs. No public game, identity or rating is
+created or changed. Reloading an unsaved board does not persist its review.

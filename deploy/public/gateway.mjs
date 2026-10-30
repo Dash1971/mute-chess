@@ -110,6 +110,7 @@ const server = http.createServer((req, res) => {
     (read && /^\/account\/preferences\/(?:display|chess-clock|game-behavior|privacy|notification)$/.test(path)) ||
     (post && /^\/account\/preferences(?:\/notification)?$/.test(path)) ||
     (read && /^(?:\/storm(?:\/dashboard(?:\/[A-Za-z0-9_-]+)?)?|\/streak|\/api\/streak|\/api\/player\/autocomplete|\/learn|\/training\/coordinate|\/games|\/notify|\/run\/captcha\/[A-Za-z0-9]{8})$/.test(path)) ||
+    (read && /^\/player\/search\/[A-Za-z0-9_-]{2,30}$/.test(path)) ||
     (read && /^\/games\/best\/replacement\/[A-Za-z0-9]{8}$/.test(path)) ||
     (post && /^(?:\/storm|\/learn\/(?:score|reset)|\/training\/coordinate\/score|\/notify\/clear)$/.test(path)) ||
     (read && /^\/practice(?:\/[A-Za-z0-9_-]+){0,4}$/.test(path)) ||

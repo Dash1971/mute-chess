@@ -90,3 +90,25 @@ checks and native view formatting/compilation. Browser regressions cover exact
 exports, no automatic export, clipboard failure, persistence refusal/unavailability,
 independence from sign-in, saved-key reuse and unchanged signed 2FA retries. Check
 closed/open disclosures and the key actions at desktop and narrow browser widths.
+
+## Private account Nostr section (#125)
+
+`/club/nostr` requires the authenticated owner and sends Cache-Control: no-store.
+Account settings and the owner's profile action menu link to it. Remove the
+inline npub field from public profiles. The page receives only the public key.
+Public npub copy never decrypts a private key. Reveal requires acknowledging the
+private-key warning and an explicit click; the browser reads the existing store,
+checks its derived public key against the current account, and wipes the byte
+buffer. Nsec is never sent to the server or a relay. A mismatched or absent key
+is not revealed; an external signer keeps custody of its own private key.
+
+Shown nsec text clears after one minute, on tab hiding/page navigation, or on
+manual hide/acknowledgment changes. Copy is explicit and explains clipboard
+exposure. No new key storage, encryption, password or identity migration occurs.
+
+A separate Chess on Nostr introduction links to Primal and the existing official
+Mute Chess npub from docs/nostr.md. Following/signing is the user's action in the
+client. Explain signer sign-in and #chess discovery; pass no private key or
+current-user identifier in outbound links. Primal is a recommended web option,
+not a measured popularity ranking. References checked October 31, 2026:
+https://github.com/PrimalHQ/primal-web-app and https://nostr.how/en/clients.

@@ -438,6 +438,31 @@ index 49e260e..2872316 100644
      Found(gameFu): game =>
        JsonOk:
          Json.obj(
+diff --git a/app/controllers/User.scala b/app/controllers/User.scala
+index eaaba62..dfa6af6 100644
+--- a/app/controllers/User.scala
++++ b/app/controllers/User.scala
+@@ -567,6 +567,20 @@ final class User(
+         env.security.forms.signup.firstUsernameError(name) match
+           case Some(error) => BadRequest(jsonError(error))
+           case None => UserStr.read(name).so(env.user.repo.existsSec).map(JsonOk)
++      else if env.noSweat.enabled && getBool("publicName") then
++        get("term")
++          .flatMap(lila.user.NoSweatUserSearch.read)
++          .fold(BadRequest("Invalid search term").toFuccess): term =>
++            for
++              ids <- env.user.repo.noSweatUserIdsLike(term)
++              users <- lightUserApi.asyncMany(ids)
++            yield JsonOk(
++              Json.obj(
++                "result" -> users.flatten.map(u =>
++                  lila.common.Json.lightUser.write(u).add("online" -> env.socket.isOnline.exec(u.id))
++                )
++              )
++            )
+       else
+         get("term")
+           .flatMap(UserSearch.read)
 diff --git a/app/controllers/UserAnalysis.scala b/app/controllers/UserAnalysis.scala
 index 8ce37a2..89c9561 100644
 --- a/app/controllers/UserAnalysis.scala
@@ -834,7 +859,7 @@ index ab74f28..37b206a 100644
  val auth = lila.web.ui.AuthUi(helpers)
  
 diff --git a/app/views/user/show/header.scala b/app/views/user/show/header.scala
-index 26a6045..1594f12 100644
+index 26a6045..a02716c 100644
 --- a/app/views/user/show/header.scala
 +++ b/app/views/user/show/header.scala
 @@ -10,7 +10,7 @@ import lila.web.ui.bits.splitNumber
@@ -855,7 +880,7 @@ index 26a6045..1594f12 100644
        if ctx.blind
        then s" : ${if isOnline.exec(u.id) then trans.site.online.txt() else trans.site.offline.txt()}"
        else
-@@ -62,6 +62,17 @@ object header:
+@@ -62,6 +62,10 @@ object header:
                userDom(u)
              )
            case None => h1(userDom(u)),
@@ -863,17 +888,10 @@ index 26a6045..1594f12 100644
 +          .flatMap(_.displayName)
 +          .filter(_ != u.username.value)
 +          .map(_ => span(cls := "user-show__handle")(s"@${u.username.value}")),
-+        u.nostrKey
-+          .flatMap(lila.core.NostrName.npub)
-+          .map: npub =>
-+            div(cls := "nosweat-profile-key")(
-+              span("Nostr public key"),
-+              copyMeInput(npub)
-+            ),
          div(cls := "trophies")(
            views.user.bits.perfTrophies(u, info.ranks),
            otherTrophies(info),
-@@ -162,6 +173,7 @@ object header:
+@@ -162,6 +166,7 @@ object header:
                    .so(profile.nonEmptyBio)
                    .map: bio =>
                      p(cls := List("bio" -> true, "muted" -> muted))(richText(bio, nl2br = true)),
@@ -908,10 +926,10 @@ index 885adb4..06960ae 100644
  
  lazy val forumSearch = module("forumSearch",
 diff --git a/conf/routes b/conf/routes
-index f2a7ab2..2fc4376 100644
+index f2a7ab2..a2d2e3b 100644
 --- a/conf/routes
 +++ b/conf/routes
-@@ -1,6 +1,26 @@
+@@ -1,6 +1,27 @@
  # Run `./lila.sh playRoutes` after modifying this file
  
 +# Mute Chess information
@@ -924,6 +942,7 @@ index f2a7ab2..2fc4376 100644
 +POST  /club/challenge                  controllers.NoSweat.challenge
 +POST  /club/login                      controllers.NoSweat.login
 +GET   /club/security                   controllers.NoSweat.securityPage
++GET   /club/nostr                      controllers.NoSweat.nostrKeys
 +POST  /club/security                   controllers.NoSweat.securityApply
 +POST  /club/play                       controllers.NoSweat.play
 +GET   /club/internal/study             controllers.NoSweat.experimentStatus
@@ -938,7 +957,7 @@ index f2a7ab2..2fc4376 100644
  GET   /                                controllers.Lobby.home
  GET   /lobby/seeks                     controllers.Lobby.seeks
  
-@@ -333,6 +353,10 @@ GET   /$lang<\w\w\w?>/learn            controllers.Learn.indexLang(lang: Languag
+@@ -333,6 +354,10 @@ GET   /$lang<\w\w\w?>/learn            controllers.Learn.indexLang(lang: Languag
  
  # Patron
  GET   /patron                          controllers.Plan.index(page: Int ?= 1)
@@ -1583,10 +1602,10 @@ index 468bba6..5360a09 100644
              else if !checked then div(iconTag(Icon.X))
              else
 diff --git a/modules/pref/src/main/ui/AccountUi.scala b/modules/pref/src/main/ui/AccountUi.scala
-index 6568e7b..88afaf1 100644
+index 6568e7b..da71aa9 100644
 --- a/modules/pref/src/main/ui/AccountUi.scala
 +++ b/modules/pref/src/main/ui/AccountUi.scala
-@@ -87,47 +87,12 @@ final class AccountUi(helpers: Helpers):
+@@ -87,47 +87,15 @@ final class AccountUi(helpers: Helpers):
            a(activeCls("notification"), href := routes.Pref.form("notification"))(
              trans.site.notifications()
            ),
@@ -1606,7 +1625,9 @@ index 6568e7b..88afaf1 100644
 -            ),
 -          a(activeCls("password"), href := routes.Account.passwd)(
 -            trans.site.changePassword()
--          ),
++          ctx.me.exists(_.nostrKey.isDefined).option(
++            a(activeCls("nostr"), href := "/club/nostr")("Nostr")
+           ),
 -          a(activeCls("email"), href := routes.Account.email)(
 -            trans.site.changeEmail()
 -          ),
@@ -2084,7 +2105,7 @@ index 947bee6..d3f3a3f 100644
      mapping(
        "text" -> cleanTextWithSymbols(minLength = 3, maxLength = 2000),
 diff --git a/modules/user/src/main/UserRepo.scala b/modules/user/src/main/UserRepo.scala
-index 45fd497..7771548 100644
+index 45fd497..6bb76fc 100644
 --- a/modules/user/src/main/UserRepo.scala
 +++ b/modules/user/src/main/UserRepo.scala
 @@ -236,6 +236,34 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
@@ -2122,11 +2143,32 @@ index 45fd497..7771548 100644
    def existsSec[U: UserIdOf](u: U): Fu[Boolean] = coll.secondary.exists(bid(u.id))
  
    def filterExists(ids: Set[UserId]): Fu[List[UserId]] =
+@@ -247,6 +275,20 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+   def userIdsLikeClosed(text: UserSearch, max: Int = 10): Fu[List[UserId]] =
+     userIdsLikeFilter(text, bdoc(F.enabled -> false), max)
+ 
++  def noSweatUserIdsLike(term: String): Fu[List[UserId]] =
++    coll
++      .find(
++        or(
++          bdoc(F.id.regex(NoSweatUserSearch.literalPrefix(term.toLowerCase), "i")),
++          bdoc(s"${F.profile}.displayName".regex(NoSweatUserSearch.literalPrefix(term), "i"))
++        ) ++ enabledSelect,
++        bdoc(F.id -> true).some
++      )
++      .sort(bdoc("len" -> 1))
++      .cursor[Bdoc](ReadPref.sec)
++      .list(10)
++      .map(_.flatMap(_.getAsOpt[UserId](F.id)))
++
+   private[user] def userIdsLikeFilter(text: UserSearch, filter: Bdoc, max: Int): Fu[List[UserId]] =
+     coll
+       .find(
 diff --git a/modules/user/src/main/ui/UserActionMenu.scala b/modules/user/src/main/ui/UserActionMenu.scala
-index 55cb8a7..2c1db74 100644
+index 55cb8a7..062a1a3 100644
 --- a/modules/user/src/main/ui/UserActionMenu.scala
 +++ b/modules/user/src/main/ui/UserActionMenu.scala
-@@ -4,78 +4,97 @@ package ui
+@@ -4,78 +4,98 @@ package ui
  import lila.ui.*
  import lila.ui.ScalatagsTemplate.{ *, given }
  
@@ -2188,6 +2230,7 @@ index 55cb8a7..2c1db74 100644
 -            )
 -          ),
 +          ctx.is(u).option(MenuItem(trans.site.editProfile.txt(), Icon.Gear, routes.Account.profile.url)),
++          (ctx.is(u) && u.nostrKey.isDefined).option(MenuItem("Nostr", Icon.User, "/club/nostr")),
 +          Some(MenuItem(trans.site.exportGames.txt(), Icon.Download, routes.User.download(u.username).url)),
            ctx
              .is(u)
@@ -2590,7 +2633,7 @@ index 0c0ed10..0fd8c57 100644
  
    val logo = raw:
 diff --git a/modules/web/src/main/ui/layout.scala b/modules/web/src/main/ui/layout.scala
-index 1c7a30b..ddc707d 100644
+index 1c7a30b..178d9c1 100644
 --- a/modules/web/src/main/ui/layout.scala
 +++ b/modules/web/src/main/ui/layout.scala
 @@ -17,8 +17,17 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
@@ -2654,7 +2697,7 @@ index 1c7a30b..ddc707d 100644
 -    s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
 -      s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
 +    if isMuteChess then
-+      """<link rel="alternate icon" type="image/png" href="/assets/nosweat/favicon-32.png?v=quiet-signal1"><link id="favicon" rel="icon" type="image/svg+xml" href="/assets/nosweat/favicon.svg?v=quiet-signal1"><link rel="stylesheet" href="/assets/nosweat/brand.css?v=analysis8"><link rel="stylesheet" href="/assets/nosweat/quiet-signal.css?v=quiet-signal2">"""
++      """<link rel="alternate icon" type="image/png" href="/assets/nosweat/favicon-32.png?v=quiet-signal1"><link id="favicon" rel="icon" type="image/svg+xml" href="/assets/nosweat/favicon.svg?v=quiet-signal1"><link rel="stylesheet" href="/assets/nosweat/brand.css?v=analysis9"><link rel="stylesheet" href="/assets/nosweat/quiet-signal.css?v=quiet-signal2">"""
 +    else
 +      s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
 +        s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
@@ -2718,15 +2761,6 @@ index 1c7a30b..ddc707d 100644
                  a(cls := "site-title-nav__donate")(href := routes.Plan.index())(trans.patron.donate())
                )
              )
-@@ -324,7 +386,7 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
-         ),
-         div(cls := "site-buttons")(
-           warnNoAutoplay,
--          (!isAppealUser).option(clinput),
-+          (!isAppealUser && !isMuteChess).option(clinput),
-           privileges,
-           teamRequests(ctx.teamNbRequests),
-           if isAppealUser then
 @@ -335,7 +397,8 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
                .map: me =>
                  frag(
@@ -2749,6 +2783,18 @@ index 818aaae..901eb6e 100644
    title?: string;
    flair?: Flair;
    patron?: boolean; // BC
+diff --git a/ui/analyse/css/_analyse.free.scss b/ui/analyse/css/_analyse.free.scss
+index a5094c6..6a49474 100644
+--- a/ui/analyse/css/_analyse.free.scss
++++ b/ui/analyse/css/_analyse.free.scss
+@@ -2,6 +2,7 @@
+ @import 'analyse.base';
+ @import 'retro'; // now available via local analysis
+ @import 'round-training';
++@import 'round-underboard';
+ 
+ $label-width: 5ch;
+ 
 diff --git a/ui/analyse/css/_layout.scss b/ui/analyse/css/_layout.scss
 index 4f219ad..5ae45e9 100644
 --- a/ui/analyse/css/_layout.scss
@@ -2844,7 +2890,7 @@ index 83be1dd..31e1146 100644
  
  function hiliteVariations(ctrl: AnalyseCtrl, autoShapes: DrawShape[]) {
 diff --git a/ui/analyse/src/ctrl.ts b/ui/analyse/src/ctrl.ts
-index 643bb4a..b772582 100644
+index 643bb4a..b4fad1f 100644
 --- a/ui/analyse/src/ctrl.ts
 +++ b/ui/analyse/src/ctrl.ts
 @@ -55,6 +55,7 @@ import LiveAnnotate from './liveAnnotate';
@@ -2881,7 +2927,15 @@ index 643bb4a..b772582 100644
      if (location.hash === '#practice' || this.study?.data.chapter.practice) this.togglePractice();
      else if (location.hash === '#menu') requestIdleCallbackSafe(this.actionMenu.toggle, 500);
      this.setCevalPracticeOpts();
-@@ -320,6 +324,7 @@ export default class AnalyseCtrl implements CevalHandler {
+@@ -273,6 +277,7 @@ export default class AnalyseCtrl implements CevalHandler {
+   }
+ 
+   get mainlineAnalysis() {
++    if (this.synthetic && this.noSweat && !this.opts.study) return this.idbTree.localAnalysis;
+     return this.idbTree.localAnalysis ?? this.data.analysis;
+   }
+ 
+@@ -320,6 +325,7 @@ export default class AnalyseCtrl implements CevalHandler {
        this.retro = makeRetro(this, this.bottomColor());
      if (this.practice) this.startCevalIfEnabled();
      this.explorer.onFlip();
@@ -2889,7 +2943,7 @@ index 643bb4a..b772582 100644
      this.onChange();
      this.redraw();
    };
-@@ -353,6 +358,7 @@ export default class AnalyseCtrl implements CevalHandler {
+@@ -353,6 +359,7 @@ export default class AnalyseCtrl implements CevalHandler {
    }
  
    private showGround(): void {
@@ -2897,7 +2951,7 @@ index 643bb4a..b772582 100644
      if (this.node.pos().isErr || this.node.outcome()) this.ceval.reset();
      this.withCg(cg => {
        cg.set(this.makeCgOpts());
-@@ -507,7 +513,7 @@ export default class AnalyseCtrl implements CevalHandler {
+@@ -507,7 +514,7 @@ export default class AnalyseCtrl implements CevalHandler {
      this.pgnError = '';
      try {
        const data: AnalyseData = {
@@ -2906,7 +2960,7 @@ index 643bb4a..b772582 100644
          orientation: this.bottomColor(),
          pref: this.data.pref,
          externalEngines: this.data.externalEngines,
-@@ -790,6 +796,7 @@ export default class AnalyseCtrl implements CevalHandler {
+@@ -790,6 +797,7 @@ export default class AnalyseCtrl implements CevalHandler {
        this.showCevalProp(enable);
        this.cevalEnabledProp(enable);
      }
@@ -2914,6 +2968,15 @@ index 643bb4a..b772582 100644
      if (enable && this.ceval.wasUnloadedByAnotherWindow) this.ceval.reset();
      if (enable !== unforcedState) {
        if (enable) this.startCevalIfEnabled();
+@@ -1094,6 +1102,8 @@ export default class AnalyseCtrl implements CevalHandler {
+       : `/game/${this.data.game.id}/edit?fen=${this.node.fen}`;
+ 
+   canAnalyseMainline(): boolean {
++    if (this.synthetic && this.noSweat && !this.isEmbed && !this.study && !this.opts.study)
++      return this.isCevalAllowed() && this.mainline.length > 1;
+     return !this.ongoing && this.mainline.length > 4 && (this.study?.isCevalAllowed() ?? !this.synthetic);
+   }
+ 
 diff --git a/ui/analyse/src/explorer/explorerCtrl.ts b/ui/analyse/src/explorer/explorerCtrl.ts
 index 759c2fb..913c4e9 100644
 --- a/ui/analyse/src/explorer/explorerCtrl.ts
@@ -2954,6 +3017,83 @@ index 759c2fb..913c4e9 100644
      this.gameMenu(null);
      const node = this.root.node;
      if (
+diff --git a/ui/analyse/src/idbTree.ts b/ui/analyse/src/idbTree.ts
+index 10247d7..a17474f 100644
+--- a/ui/analyse/src/idbTree.ts
++++ b/ui/analyse/src/idbTree.ts
+@@ -7,6 +7,7 @@ import type { ClientEval, LocalEval, TreeNodeLite, TreePath } from 'lib/tree/typ
+ import type AnalyseCtrl from './ctrl';
+ import type { AnalysisMeta } from './interfaces';
+ import type { LocalAnalysisResult, ServerAnalysisDocument } from './local/localAnalysisEngine';
++import { mainlineKey } from './noSweatBrilliants';
+ import { pruneMainlineAnalysis } from './util';
+ 
+ export type DiscloseState = undefined | 'expanded' | 'collapsed';
+@@ -93,6 +94,21 @@ export class IdbTree {
+   }
+ 
+   clear = async (what?: 'analysis' | 'ceval' | 'collapse' | 'moves'): Promise<void> => {
++    if (this.noop && this.ctrl.noSweat) {
++      if (what && what !== 'analysis') return;
++      this.cache.localAnalysis = undefined;
++      this.cache.analysisKey = undefined;
++      this.ctrl.data.analysis = undefined;
++      this.ctrl.retro = undefined;
++      treeOps.updateAll(this.ctrl.tree.root, node => {
++        node.eval = undefined;
++        node.glyphs = node.glyphs?.filter(g => !g.comp);
++        node.comments = node.comments?.filter(c => !c.comp);
++      });
++      pruneMainlineAnalysis(this.ctrl.tree.root);
++      this.ctrl.redraw();
++      return;
++    }
+     if (this.noop) return;
+     await Promise.all([
+       (!what || what === 'ceval') && this.cevalDb().then(db => db.remove(this.cevalRange())),
+@@ -116,6 +132,11 @@ export class IdbTree {
+   }
+ 
+   async saveAnalysis(analysis: LocalAnalysisResult) {
++    if (this.noop && this.ctrl.noSweat) {
++      this.cache.analysisKey = mainlineKey(treeOps.mainlineNodeList(analysis.localUpdate.tree));
++      this.cache.localAnalysis = analysis.localUpdate.analysis;
++      return undefined;
++    }
+     if (this.noop) return undefined;
+     this.cache.localAnalysis = analysis.localUpdate.analysis;
+     return this.analysisDb().then(db => db.putVerified(this.id, analysis));
+@@ -175,15 +196,17 @@ export class IdbTree {
+   }
+ 
+   get hasLocalAnalysis(): boolean {
+-    return Boolean(this.cache.localAnalysis);
++    return Boolean(this.localAnalysis);
+   }
+ 
+   get localAnalysis(): AnalysisMeta | undefined {
++    if (this.noop && this.cache.localAnalysis && this.cache.analysisKey !== mainlineKey(this.ctrl.mainline))
++      return undefined;
+     return this.cache.localAnalysis;
+   }
+ 
+   get localAnalysisNpm(): number | undefined {
+-    return this.cache.localAnalysis?.engine?.nodesPerMove;
++    return this.localAnalysis?.engine?.nodesPerMove;
+   }
+ 
+   get movesDirty(): boolean {
+@@ -261,4 +284,9 @@ export class IdbTree {
+   }
+ }
+ 
+-type State = { movesDirty: boolean; cevals: Map<TreePath, LocalEval>; localAnalysis?: AnalysisMeta };
++type State = {
++  movesDirty: boolean;
++  cevals: Map<TreePath, LocalEval>;
++  localAnalysis?: AnalysisMeta;
++  analysisKey?: string;
++};
 diff --git a/ui/analyse/src/interfaces.ts b/ui/analyse/src/interfaces.ts
 index 00f9d9a..cab3e5b 100644
 --- a/ui/analyse/src/interfaces.ts
@@ -2982,7 +3122,7 @@ index 2759a13..49e32aa 100644
 +  return localAnalysisDialog(options.ctrl, options.start);
  }
 diff --git a/ui/analyse/src/local/localAnalysisDialog.tsx b/ui/analyse/src/local/localAnalysisDialog.tsx
-index 3a429c5..582cd6e 100644
+index 3a429c5..63895c4 100644
 --- a/ui/analyse/src/local/localAnalysisDialog.tsx
 +++ b/ui/analyse/src/local/localAnalysisDialog.tsx
 @@ -9,7 +9,8 @@ import { numberFormat } from 'lib/i18n';
@@ -3087,11 +3227,15 @@ index 3a429c5..582cd6e 100644
        this.chartData = {
          ...this.ctrl.data,
          game: { ...this.ctrl.data.game, division },
-@@ -158,12 +180,48 @@ class LocalAnalysisDialog {
+@@ -157,13 +179,52 @@ class LocalAnalysisDialog {
+           redraw();
          },
        );
++      if (this.closed) return;
++      if (!engine.isCurrent) return dlg.close('cancel');
        await this.ctrl.idbTree.saveAnalysis(result);
 +      if (this.closed) return;
++      if (!engine.isCurrent) return dlg.close('cancel');
 +      const mergeResult = () =>
 +        this.ctrl.mergeMainlineAnalysisData({
 +          ...result.localUpdate,
@@ -3137,7 +3281,7 @@ index 3a429c5..582cd6e 100644
        this.engine = undefined;
        redraw();
      } catch (e) {
-@@ -172,6 +230,9 @@ class LocalAnalysisDialog {
+@@ -172,6 +233,9 @@ class LocalAnalysisDialog {
          await alert(String(e));
        }
        dlg.close('cancel');
@@ -3147,7 +3291,16 @@ index 3a429c5..582cd6e 100644
      }
    }
  
-@@ -266,7 +327,7 @@ class LocalAnalysisDialog {
+@@ -214,7 +278,7 @@ class LocalAnalysisDialog {
+   private readonly clickClearLocal = async () => {
+     if (await confirm(i18n.study.clearLocal)) {
+       await this.ctrl.idbTree.clear('analysis');
+-      site.reload();
++      if (!this.ctrl.synthetic || this.ctrl.study) site.reload();
+     }
+   };
+ 
+@@ -266,7 +330,7 @@ class LocalAnalysisDialog {
        this.ctrl.idbTree.hasLocalAnalysis && this.ctrl.publishedEvalEngine,
      ].filter(Boolean);
  
@@ -3156,7 +3309,7 @@ index 3a429c5..582cd6e 100644
        preludes.push(<p>{i18n.localAnalysis.chooseYourEngineSettings}</p>);
        if (
          !ceval.engines
-@@ -327,7 +388,14 @@ class LocalAnalysisDialog {
+@@ -327,7 +391,14 @@ class LocalAnalysisDialog {
              'local-analysis-engine',
            )}
          </div>
@@ -3172,7 +3325,7 @@ index 3a429c5..582cd6e 100644
          <div class="setting">
            <label for="local-analysis-threads">{i18n.site.threads}</label>
            <input
-@@ -430,11 +498,11 @@ class LocalAnalysisDialog {
+@@ -430,11 +501,11 @@ class LocalAnalysisDialog {
    }
  
    private get isIdle() {
@@ -3186,7 +3339,7 @@ index 3a429c5..582cd6e 100644
    }
  
    private get canPublish() {
-@@ -479,11 +547,15 @@ class LocalAnalysisDialog {
+@@ -479,11 +550,15 @@ class LocalAnalysisDialog {
      return {
        engine: { id: engine.id, threads: this.threads(), hashSize: this.hashSize() },
        search: () => ({
@@ -3205,7 +3358,7 @@ index 3a429c5..582cd6e 100644
        }),
        canBackground: true,
      };
-@@ -491,8 +563,10 @@ class LocalAnalysisDialog {
+@@ -491,8 +566,10 @@ class LocalAnalysisDialog {
  
    private get bestEngineDefaults(): { id: string; threads: number; hashSize: number } {
      const engine = this.bestBrowserEngine; // TODO - allow external engines once supported
@@ -3218,7 +3371,7 @@ index 3a429c5..582cd6e 100644
      return { id: engine.id, threads, hashSize };
    }
  
-@@ -502,6 +576,9 @@ class LocalAnalysisDialog {
+@@ -502,6 +579,9 @@ class LocalAnalysisDialog {
    }
  
    private get bestBrowserEngine(): BaseEngineInfo {
@@ -3230,7 +3383,7 @@ index 3a429c5..582cd6e 100644
    }
  }
 diff --git a/ui/analyse/src/local/localAnalysisEngine.ts b/ui/analyse/src/local/localAnalysisEngine.ts
-index 228b88d..3840b2e 100644
+index 228b88d..5a78160 100644
 --- a/ui/analyse/src/local/localAnalysisEngine.ts
 +++ b/ui/analyse/src/local/localAnalysisEngine.ts
 @@ -5,11 +5,16 @@ import { setupPosition } from 'chessops/variant';
@@ -3241,7 +3394,8 @@ index 228b88d..3840b2e 100644
  import { mainlineNodeList, structuredCloneLite } from 'lib/tree/ops';
  import type { ClientEval, Glyph, TreeNodeLite, TreePath } from 'lib/tree/types';
  
- import AnalyseCtrl from '../ctrl';
+-import AnalyseCtrl from '../ctrl';
++import type AnalyseCtrl from '../ctrl';
  import type { AnalysisUpdate, AnalysisEngineInfo, AnalysisMeta, Division } from '../interfaces';
 +import { mainlineKey } from '../noSweatBrilliants';
 +import { ClassifierClient } from '../noSweatClassifierClient';
@@ -3271,10 +3425,34 @@ index 228b88d..3840b2e 100644
        node.eval = node.ceval = undefined;
        node.comments = undefined;
        node.glyphs = undefined;
-@@ -81,7 +93,60 @@ export class LocalAnalysisEngine {
+@@ -51,6 +63,9 @@ export class LocalAnalysisEngine {
+   }
+ 
+   async getDivision(): Promise<Division> {
++    // A board line has no saved game to export. Overall native accuracy does not
++    // require phase boundaries; the existing chart plugin labels its phases.
++    if (this.ctrl.synthetic && this.ctrl.noSweat && !this.ctrl.study) return {};
+     const url = this.ctrl.study?.chapterConfigUrl() ?? `/game/export/${this.ctrl.data.game.id}`;
+     const rsp = await fetch(`${url}?divisionOnly=1`);
+     if (!rsp.ok) throw new Error(`${rsp.status} ${rsp.statusText} ${(await rsp.text()).slice(0, 255)}`);
+@@ -72,6 +87,7 @@ export class LocalAnalysisEngine {
+       };
+       for (update(); this.isRunning(); update()) {
+         await this.evaluateNode();
++        if (!this.isCurrent) throw 'cancelled';
+       }
+       return this.review(division);
+     } finally {
+@@ -81,7 +97,66 @@ export class LocalAnalysisEngine {
      }
    }
  
++  get isCurrent(): boolean {
++    return (
++      !this.ctrl.synthetic || !!this.ctrl.study || mainlineKey(this.nodes) === mainlineKey(this.ctrl.mainline)
++    );
++  }
++
 +  async verifyBrilliants(
 +    result: LocalAnalysisResult,
 +    progress: (done: number, total: number) => void,
@@ -3332,7 +3510,7 @@ index 228b88d..3840b2e 100644
      this.ctrl.ceval.reset();
      this.finishNode(this.isRunning() ? 'cancelled' : undefined);
    };
-@@ -189,6 +254,12 @@ export class LocalAnalysisEngine {
+@@ -189,6 +264,12 @@ export class LocalAnalysisEngine {
        );
      });
  
@@ -3506,7 +3684,7 @@ index 92bfd1d..837cddb 100644
        (ctrl.idbTree.movesDirty || ctrl.idbTree.hasLocalAnalysis || ctrl.idbTree.hasLocalCeval) &&
          hl(
 diff --git a/ui/analyse/src/view/components.ts b/ui/analyse/src/view/components.ts
-index 1690fe3..593342c 100644
+index 1690fe3..9757e1a 100644
 --- a/ui/analyse/src/view/components.ts
 +++ b/ui/analyse/src/view/components.ts
 @@ -104,6 +104,7 @@ export function renderMain(
@@ -3517,6 +3695,33 @@ index 1690fe3..593342c 100644
            if (old.data!.gaugeOn !== gaugeOn) dispatchChessgroundResize();
            vnode.data!.gaugeOn = gaugeOn;
          },
+@@ -155,14 +156,18 @@ export const renderBoard = ({ ctrl, study, playerBars, playerStrips }: ViewConte
+   );
+ 
+ export const renderUnderboard = ({ ctrl, deps, study }: ViewContext): VNode =>
+-  hl(
+-    'div.analyse__underboard',
+-    {
+-      hook:
+-        ctrl.synthetic || playable(ctrl.data) ? undefined : onInsert(elm => serverSideUnderboard(elm, ctrl)),
+-    },
+-    study ? deps?.studyView.underboard(ctrl) : [renderInputs(ctrl)],
+-  );
++  ctrl.synthetic && ctrl.noSweat && !study && !ctrl.isEmbed
++    ? ctrl.noSweat.boardReview.view(renderInputs(ctrl))
++    : hl(
++        'div.analyse__underboard',
++        {
++          hook:
++            ctrl.synthetic || playable(ctrl.data)
++              ? undefined
++              : onInsert(elm => serverSideUnderboard(elm, ctrl)),
++        },
++        study ? deps?.studyView.underboard(ctrl) : [renderInputs(ctrl)],
++      );
+ 
+ export function renderInputs(ctrl: AnalyseCtrl): VNode | undefined {
+   if (ctrl.ongoing || !ctrl.data.userAnalysis) return undefined;
 diff --git a/ui/analyse/src/view/main.ts b/ui/analyse/src/view/main.ts
 index 83a184c..1bec2ab 100644
 --- a/ui/analyse/src/view/main.ts
@@ -3540,7 +3745,7 @@ index 83a184c..1bec2ab 100644
  }
  
 diff --git a/ui/analyse/src/view/roundTraining.ts b/ui/analyse/src/view/roundTraining.ts
-index 99a8328..2fc1b96 100644
+index 99a8328..6b8dcb9 100644
 --- a/ui/analyse/src/view/roundTraining.ts
 +++ b/ui/analyse/src/view/roundTraining.ts
 @@ -6,9 +6,10 @@ import { bind, dataIcon, onInsert } from 'lib/view';
@@ -3563,11 +3768,12 @@ index 99a8328..2fc1b96 100644
          name ||
            (ai && 'Stockfish level ' + ai) ||
            (study && findTag(study.data.chapter.tags, color)) ||
-@@ -79,6 +81,69 @@ const error = (nb: number, color: Color, advice: Advice) =>
+@@ -79,6 +81,70 @@ const error = (nb: number, color: Color, advice: Advice) =>
    );
  
  const doRender = (ctrl: AnalyseCtrl): VNode => {
 +  if (ctrl.noSweat) {
++    const metric = (value: number, suffix = '') => (Number.isFinite(value) ? `${value}${suffix}` : '—');
 +    const counts = {
 +      white: classificationCounts(ctrl.mainline, 'white'),
 +      black: classificationCounts(ctrl.mainline, 'black'),
@@ -3607,14 +3813,14 @@ index 99a8328..2fc1b96 100644
 +            ]);
 +          }),
 +          h('tr.accuracy', [
-+            h('td', `${ctrl.mainlineAnalysis!.white.accuracy}%`),
++            h('td', metric(ctrl.mainlineAnalysis!.white.accuracy, '%')),
 +            h('td', i18n.site.accuracy),
-+            h('td', `${ctrl.mainlineAnalysis!.black.accuracy}%`),
++            h('td', metric(ctrl.mainlineAnalysis!.black.accuracy, '%')),
 +          ]),
 +          h('tr', [
-+            h('td', String(ctrl.mainlineAnalysis!.white.acpl)),
++            h('td', metric(ctrl.mainlineAnalysis!.white.acpl)),
 +            h('td', 'Avg. centipawn loss'),
-+            h('td', String(ctrl.mainlineAnalysis!.black.acpl)),
++            h('td', metric(ctrl.mainlineAnalysis!.black.acpl)),
 +          ]),
 +        ]),
 +      ]),
@@ -3633,11 +3839,11 @@ index 99a8328..2fc1b96 100644
    return h(
      'div.advice-summary',
      {
-@@ -139,10 +204,17 @@ export function render(ctrl: AnalyseCtrl): VNode | undefined {
+@@ -139,10 +205,17 @@ export function render(ctrl: AnalyseCtrl): VNode | undefined {
    // don't cache until the analysis is complete!
    const buster = ctrl.mainlineAnalysis.partial ? Math.random() : '';
    let cacheKey = String(buster) + !!ctrl.retro + Boolean(ctrl.idbTree.hasLocalAnalysis);
-+  if (ctrl.noSweat) cacheKey += JSON.stringify(ctrl.mainline.map(n => n.glyphs));
++  if (ctrl.noSweat) cacheKey += JSON.stringify([ctrl.mainlineAnalysis, ctrl.mainline.map(n => n.glyphs)]);
    if (ctrl.study) cacheKey += ctrl.study.data.chapter.id;
  
    return h('div.analyse__round-training', [
@@ -4332,6 +4538,50 @@ index da99e9e..2ef2fa0 100644
    id: GlyphId;
    comp?: boolean;
    name: string;
+diff --git a/ui/lib/src/view/userComplete.ts b/ui/lib/src/view/userComplete.ts
+index 6d60d02..8028706 100644
+--- a/ui/lib/src/view/userComplete.ts
++++ b/ui/lib/src/view/userComplete.ts
+@@ -1,5 +1,7 @@
+ import debounce from 'debounce-promise';
+ 
++import { escapeHtml } from 'lib';
++
+ import * as xhr from '@/xhr';
+ 
+ import { complete } from './complete';
+@@ -20,6 +22,7 @@ export interface UserCompleteOpts {
+   tour?: string;
+   swiss?: string;
+   team?: string;
++  publicNames?: boolean;
+ }
+ 
+ export function userComplete(opts: UserCompleteOpts): void {
+@@ -40,7 +43,7 @@ type ResultOfTerm = { term: string } & UserCompleteResult;
+ 
+ export const fetchUsers = async (
+   term: string,
+-  { friend, tour, swiss, team }: Partial<UserCompleteOpts>,
++  { friend, tour, swiss, team, publicNames }: Partial<UserCompleteOpts>,
+ ): Promise<ResultOfTerm> => {
+   const result = await xhr.json(
+     xhr.url('/api/player/autocomplete', {
+@@ -50,6 +53,7 @@ export const fetchUsers = async (
+       swiss,
+       team,
+       object: 1,
++      publicName: publicNames ? 1 : undefined,
+     }),
+   );
+   return { term, ...result };
+@@ -67,5 +71,5 @@ export const renderUserEntry = (o: LightUserOnline, tag = 'a'): string => {
+     ? `<span class="utitle"${o.title === 'BOT' ? ' data-bot="data-bot"' : ''}>${o.title}</span>&nbsp;`
+     : '';
+   const flair = o.flair ? `<img class="uflair" src="${site.asset.flairSrc(o.flair)}" alt="" />` : '';
+-  return `<${tag} class="complete-result ulpt user-link${o.online ? ' online' : ''}" ${hrefAttr}="${profileUrl(o.name)}"><icon class="line${o.patron ? ' patron' : ''}${patronClass}"></icon>${title}${o.name}${flair}</${tag}>`;
++  return `<${tag} class="complete-result ulpt user-link${o.online ? ' online' : ''}" ${hrefAttr}="${profileUrl(o.name)}"><icon class="line${o.patron ? ' patron' : ''}${patronClass}"></icon>${title}${escapeHtml(o.displayName || o.name)}${flair}</${tag}>`;
+ };
 diff --git a/ui/lib/src/view/userLink.ts b/ui/lib/src/view/userLink.ts
 index 334435d..05a29ed 100644
 --- a/ui/lib/src/view/userLink.ts
@@ -5537,8 +5787,38 @@ index f91c71d..665cbe5 100644
      : player.ai
        ? i18n.site.aiNameLevelAiLevel('Stockfish', player.ai)
        : i18n.site.anonymous;
+diff --git a/ui/site/src/clinput.ts b/ui/site/src/clinput.ts
+index c89c454..e1562f0 100644
+--- a/ui/site/src/clinput.ts
++++ b/ui/site/src/clinput.ts
+@@ -10,6 +10,7 @@ import { profileUrl } from 'lib/view/userLink';
+ type Entry = LightUserOnline | HTMLAnchorElement;
+ 
+ export function addClinputKeyHandler({ input }: { input: HTMLInputElement }) {
++  const publicNames = document.documentElement.dataset.brand === 'mutechess';
+   const fetchLinks = (term: string): HTMLAnchorElement[] => {
+     const all = menuLinks()
+       .filter(a => a.textContent?.toLowerCase().includes(term.toLowerCase()))
+@@ -28,7 +29,7 @@ export function addClinputKeyHandler({ input }: { input: HTMLInputElement }) {
+     return all;
+   };
+ 
+-  const debouncedXhr = debounce((t: string) => fetchUsers(t, { friend: true }), 150);
++  const debouncedXhr = debounce((t: string) => fetchUsers(t, { friend: true, publicNames }), 150);
+ 
+   const completeOpts: CompleteOpts<Entry> = {
+     input,
+@@ -39,7 +40,7 @@ export function addClinputKeyHandler({ input }: { input: HTMLInputElement }) {
+     render: o => (isLink(o) ? o : renderUserEntry(o)),
+     populate: r => r.name,
+     onSelect: r => execute(r),
+-    regex: /^[a-z][\w-]{2,29}$/i,
++    regex: publicNames ? /^[^\u0000-\u001f\u007f]{2,30}$/u : /^[a-z][\w-]{2,29}$/i,
+   };
+ 
+   complete<Entry>(completeOpts);
 diff --git a/ui/site/src/topBar.ts b/ui/site/src/topBar.ts
-index 18646b3..662a537 100644
+index 18646b3..5eb1d07 100644
 --- a/ui/site/src/topBar.ts
 +++ b/ui/site/src/topBar.ts
 @@ -56,7 +56,7 @@ export default function () {
@@ -5559,6 +5839,26 @@ index 18646b3..662a537 100644
      // notifyApp
      let instance: Promise<any> | undefined;
      const $toggle = $('#notify-toggle');
+@@ -157,8 +157,8 @@ export default function () {
+     });
+   }
+ 
+-  {
+-    // cli
++  (() => {
++    // The focused header omits search. Skip only CLI setup, not native scrolling.
+     const $wrap = $('#clinput');
+     if (!$wrap.length) return;
+     const $input = $wrap.find('input');
+@@ -200,7 +200,7 @@ export default function () {
+         $input[0]!.focus();
+         top.classList.remove('hide');
+       });
+-  }
++  })();
+ 
+   {
+     // stick top bar
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
 index 0000000..f2a4e3a
@@ -6592,10 +6892,10 @@ index 0000000..ea29298
 +  def find(key: String): Option[NoSweatStudyPlan] = plans.find(_.key == key)
 diff --git a/app/controllers/NoSweat.scala b/app/controllers/NoSweat.scala
 new file mode 100644
-index 0000000..629d98b
+index 0000000..8104140
 --- /dev/null
 +++ b/app/controllers/NoSweat.scala
-@@ -0,0 +1,240 @@
+@@ -0,0 +1,244 @@
 +package controllers
 +
 +import play.api.libs.json.*
@@ -6699,6 +6999,10 @@ index 0000000..629d98b
 +
 +  def securityPage = Auth: context ?=>
 +    me ?=> handle(Ok.page(views.noSweatSecurity(me.value)))
++
++  def nostrKeys = Auth: context ?=>
++    me ?=>
++      handle(Ok.page(views.noSweatNostr(me.value)).map(_.withHeaders("Cache-Control" -> "no-store")))
 +
 +  def securityApply = AuthBody(parse.tolerantText(4096)): context ?=>
 +    me ?=>
@@ -7258,6 +7562,100 @@ index 0000000..7f9a91f
 +            "Your secret key stays in your browser. Signing in does not post anything to Nostr."
 +          ),
 +          a(href := "/")("Play without signing in")
++        )
+diff --git a/app/views/noSweatNostr.scala b/app/views/noSweatNostr.scala
+new file mode 100644
+index 0000000..2e275fd
+--- /dev/null
++++ b/app/views/noSweatNostr.scala
+@@ -0,0 +1,88 @@
++package views
++
++import lila.app.UiEnv.{ *, given }
++
++object noSweatNostr:
++  private val communityNpub = "npub1w6l8e4mqa4ruqs2vdvwhdxhp9ke9ax8kpncy2wy26tja3d7rzpgq06c9jl"
++
++  def apply(user: User)(using Context) =
++    account.ui
++      .AccountPage("Nostr", "nostr")
++      .headAppend(script(src := s"${assetPath("nosweat/nostr.js")}?v=account-keys1", defer)):
++        div(
++          id := "nostr-keys",
++          cls := "box box-pad form3",
++          attr("data-public-key") := user.nostrKey.getOrElse("")
++        )(
++          h1("Nostr"),
++          h2("Chess on Nostr"),
++          p(
++            "Your Mute Chess identity also works in Nostr social apps. Primal is one way to get started in your browser."
++          ),
++          p(
++            a(
++              href := s"https://primal.net/p/$communityNpub",
++              target := "_blank",
++              rel := "noopener noreferrer",
++              cls := "button"
++            )(
++              "Follow Mute Chess on Primal"
++            ),
++            " ",
++            a(href := "https://primal.net/", target := "_blank", rel := "noopener noreferrer")("Open Primal")
++          ),
++          ol(
++            li("Sign in to Primal with your existing Nostr signer to use the same identity."),
++            li("Open Mute Chess’s profile and choose Follow."),
++            li(
++              "Search for #chess to discover posts and people. You can also explore the people Mute Chess follows."
++            )
++          ),
++          p(
++            "If your key is saved only in this browser, back it up below and import it into a signer you trust. Keep your nsec private; following someone only needs their public profile."
++          ),
++          user.nostrKey
++            .flatMap(lila.core.NostrName.npub)
++            .map: npub =>
++              frag(
++                h2("Public key · npub"),
++                p("Your public identity. You can share this with other people."),
++                div(cls := "nosweat-key-field")(
++                  input(id := "nostr-keys-npub", aria.label := "Nostr public key", readonly, value := npub),
++                  button(id := "nostr-keys-copy-npub", tpe := "button", cls := "button")("Copy npub")
++                ),
++                h2("Private key · nsec"),
++                p(
++                  strong("Anyone with your nsec can sign in as you and use your Nostr identity."),
++                  " Never share it or send it to support. Store a backup in your password manager. Copying it also places it on your device’s clipboard."
++                ),
++                p(
++                  "Only a matching key saved in this browser can be shown here. If you use an external signer, manage your private key in that signer. Your nsec is never sent to this server."
++                ),
++                label(
++                  input(id := "nostr-keys-ack", tpe := "checkbox"),
++                  " I understand that my private key gives full access to my Nostr identity."
++                ),
++                p(
++                  button(id := "nostr-keys-reveal", tpe := "button", cls := "button", disabled)(
++                    "Show private key"
++                  )
++                ),
++                div(id := "nostr-keys-private", hidden)(
++                  div(cls := "nosweat-key-field")(
++                    input(
++                      id := "nostr-keys-nsec",
++                      aria.label := "Nostr private key",
++                      readonly,
++                      autocomplete := "off",
++                      spellcheck := false
++                    ),
++                    button(id := "nostr-keys-copy-nsec", tpe := "button", cls := "button", disabled)(
++                      "Copy nsec"
++                    )
++                  ),
++                  p("The key hides automatically after one minute or when you leave this tab.")
++                ),
++                p(id := "nostr-keys-status", role := "status", aria.live := "polite")
++              )
 +        )
 diff --git a/app/views/noSweatPatron.scala b/app/views/noSweatPatron.scala
 new file mode 100644
@@ -7829,6 +8227,41 @@ index 0000000..376f9b7
 +      !NoSweatStudyScope.valid("trial1", local.replace("27028", "27018"), local, "127.0.0.1:19763", false)
 +    )
 +    assert(!NoSweatStudyScope.valid("../bad", local, local, "127.0.0.1:19763", false))
+diff --git a/modules/user/src/main/NoSweatUserSearch.scala b/modules/user/src/main/NoSweatUserSearch.scala
+new file mode 100644
+index 0000000..d864975
+--- /dev/null
++++ b/modules/user/src/main/NoSweatUserSearch.scala
+@@ -0,0 +1,8 @@
++package lila.user
++
++object NoSweatUserSearch:
++  def read(raw: String): Option[String] =
++    val term = raw.trim
++    Option.when(term.length >= 2 && term.length <= 30 && !term.exists(_.isControl))(term)
++
++  def literalPrefix(term: String): String = "^" + java.util.regex.Pattern.quote(term)
+diff --git a/modules/user/src/test/NoSweatUserSearchTest.scala b/modules/user/src/test/NoSweatUserSearchTest.scala
+new file mode 100644
+index 0000000..6904666
+--- /dev/null
++++ b/modules/user/src/test/NoSweatUserSearchTest.scala
+@@ -0,0 +1,15 @@
++package lila.user
++
++class NoSweatUserSearchTest extends munit.FunSuite:
++  test("public search accepts short names, spaces and Unicode but bounds the term"):
++    assertEquals(NoSweatUserSearch.read("  Al  "), Some("Al"))
++    assertEquals(NoSweatUserSearch.read("Alice Smith"), Some("Alice Smith"))
++    assertEquals(NoSweatUserSearch.read("友だち"), Some("友だち"))
++    assertEquals(NoSweatUserSearch.read("a"), None)
++    assertEquals(NoSweatUserSearch.read("a" * 31), None)
++    assertEquals(NoSweatUserSearch.read("Al\nBob"), None)
++
++  test("search punctuation is literal rather than a regular expression"):
++    val regex = NoSweatUserSearch.literalPrefix("Al.*").r
++    assert(regex.findFirstIn("Al.* Smith").nonEmpty)
++    assert(regex.findFirstIn("Alice Smith").isEmpty)
 diff --git a/modules/user/src/test/PublicNameTest.scala b/modules/user/src/test/PublicNameTest.scala
 new file mode 100644
 index 0000000..9869ce0
@@ -10341,10 +10774,10 @@ HcmV?d00001
 
 diff --git a/public/nosweat/brand.css b/public/nosweat/brand.css
 new file mode 100644
-index 0000000..4792cc7
+index 0000000..66207ac
 --- /dev/null
 +++ b/public/nosweat/brand.css
-@@ -0,0 +1,150 @@
+@@ -0,0 +1,152 @@
 +.site-title .nosweat-header-icon{width:38px;height:38px;margin-right:2px}.site-title .nosweat-wordmark{width:174px;height:50px;object-fit:contain}.nosweat-light{display:none}.light .nosweat-dark{display:none}.light .nosweat-light{display:block}.nosweat-login-wordmark{width:272px;max-width:100%;height:62px}.auth__brand{justify-content:center}@media(max-width:799px){.site-title .nosweat-wordmark{display:none!important}.site-title .nosweat-header-icon{width:36px;height:36px;margin:0}}
 +
 +main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-dark.svg")}.light main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-light.svg")}
@@ -10469,7 +10902,7 @@ index 0000000..4792cc7
 +.nosweat-opening-dialog p { margin-bottom:1.5em; }
 +.analysis-chart.nosweat-chart { display:flex; flex-direction:column; }
 +.nosweat-chart .analysis-chart-actions { position:static; inset:auto; flex:0 0 32px; height:32px; align-items:center; border-bottom:1px solid var(--c-border); padding:3px 7px; }
-+.nosweat-chart .analysis-chart-actions :is(i,button) { padding:3px; border:0; background:none; }
++.nosweat-chart .analysis-chart-actions :is(i,button) { margin:0; padding:3px; border:0; background:none; }
 +.nosweat-chart .analysis-chart-plot { flex:1; min-height:0; position:relative; }
 +.nosweat-review-settings { margin-top:1.5em; }
 +.nosweat-review-quality { display:flex; gap:1em; flex-wrap:wrap; margin:1em 0; }
@@ -10490,9 +10923,11 @@ index 0000000..4792cc7
 +.light .nosweat-policy button[data-blunder-rank="2"] { color:#b71830; }
 +.light .nosweat-policy button[data-blunder-rank="3"] { color:#bb122d; }
 +.light .nosweat-policy button[data-blunder-rank="4"] { color:#bf0829; }
-+.nosweat-profile-key { min-width:0; max-width:100%; flex-basis:100%; font-size:.8em; }
-+.nosweat-profile-key > span { display:block; margin:.3em 0; color:var(--c-font-dim); }
-+.nosweat-profile-key input { max-width:100%; }
++.nosweat-key-field { display:flex; gap:.5em; align-items:center; margin:1em 0; }
++.nosweat-key-field input { min-width:0; flex:1; font-family:monospace; }
++#nostr-keys h2 { margin-top:1.5em; }
++#nostr-keys label { display:flex; gap:.5em; align-items:baseline; }
++
 +
 +.analyse .game__meta__players .player { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 diff --git a/public/nosweat/favicon-32.png b/public/nosweat/favicon-32.png
@@ -11517,10 +11952,10 @@ index 0000000..ec4cc78
 +};
 diff --git a/ui/analyse/src/noSweatAnalysis.ts b/ui/analyse/src/noSweatAnalysis.ts
 new file mode 100644
-index 0000000..7163445
+index 0000000..ec2a16b
 --- /dev/null
 +++ b/ui/analyse/src/noSweatAnalysis.ts
-@@ -0,0 +1,712 @@
+@@ -0,0 +1,715 @@
 +import type { DrawShape } from '@lichess-org/chessground/draw';
 +import { parseUci } from 'chessops/util';
 +import { attributesModule, classModule, init } from 'snabbdom';
@@ -11533,6 +11968,7 @@ index 0000000..7163445
 +
 +import type AnalyseCtrl from './ctrl';
 +import { engineArrows, engineShapes, engineColors } from './noSweatArrows';
++import { BoardReview } from './noSweatBoardReview';
 +import { candidateQuality, qualityLabels, stockfishWinrate, blunderRanks } from './noSweatCandidateQuality';
 +import { encodeHistory, policy, san, position, standardUci, type Candidate } from './noSweatCore';
 +import { reviewClick } from './noSweatEvents';
@@ -11566,6 +12002,7 @@ index 0000000..7163445
 +}
 +const ratings = Array.from({ length: 21 }, (_, i) => 600 + i * 100);
 +export class NoSweatAnalysis {
++  readonly boardReview: BoardReview;
 +  enabled = false;
 +  model = '5m';
 +  selfElo = 1500;
@@ -11619,6 +12056,7 @@ index 0000000..7163445
 +  private readonly qualityFailed = new Set<string>();
 +
 +  constructor(readonly ctrl: AnalyseCtrl) {
++    this.boardReview = new BoardReview(ctrl);
 +    Object.assign(this, readEnginePreferences(storage.make('nosweat.enginePreferences.v2').get()));
 +    this.enabled = !!ctrl.cevalEnabled();
 +    ctrl.ceval.storedPv(2);
@@ -12240,6 +12678,190 @@ index 0000000..ddf9d0d
 +++ b/ui/analyse/src/noSweatArrows.ts
 @@ -0,0 +1 @@
 +export * from 'lib/nosweat/arrows';
+diff --git a/ui/analyse/src/noSweatBoardReview.ts b/ui/analyse/src/noSweatBoardReview.ts
+new file mode 100644
+index 0000000..f2bbbd1
+--- /dev/null
++++ b/ui/analyse/src/noSweatBoardReview.ts
+@@ -0,0 +1,178 @@
++import type { AcplChart, ChartGame } from 'chart';
++
++import { licon } from 'lib/licon';
++import { pubsub } from 'lib/pubsub';
++import { bind, confirm, hl, onInsert, type VNode } from 'lib/view';
++
++import type AnalyseCtrl from './ctrl';
++
++// The free board uses the same local review, chart and summary as game replay.
++// Only the under-board shell differs: editable FEN/PGN replaces game exports.
++export class BoardReview {
++  private selected = 'computer-analysis';
++  private panel?: HTMLElement;
++  private chart?: AcplChart;
++  private pending = false;
++  private generation = 0;
++  private dirty = false;
++  private failed = false;
++  private button?: HTMLButtonElement;
++
++  constructor(private readonly ctrl: AnalyseCtrl) {}
++
++  view(inputs?: VNode): VNode {
++    this.sync();
++    const tab = (id: string, label: string) =>
++      hl(
++        'button',
++        {
++          attrs: { type: 'button', role: 'tab', 'aria-selected': String(this.selected === id) },
++          class: { active: this.selected === id },
++          hook: bind('click', () => {
++            this.selected = id;
++            if (id === 'computer-analysis') this.ctrl.settings.set('showMainlineAnalysis', true);
++            this.ctrl.redraw();
++            this.chart?.resize();
++          }),
++        },
++        label,
++      );
++    return hl(
++      'div.analyse__underboard',
++      {
++        hook: onInsert(elm => this.ctrl.noSweat?.mountOpening(elm)),
++      },
++      [
++        hl('div.analyse__underboard__menu', { attrs: { role: 'tablist' } }, [
++          tab('computer-analysis', i18n.site.computerAnalysis),
++          tab('fen-pgn', i18n.study.shareAndExport),
++        ]),
++        hl('div.analyse__underboard__panels', [
++          hl('div.computer-analysis', {
++            class: { active: this.selected === 'computer-analysis' },
++            hook: {
++              ...onInsert(elm => {
++                this.panel = elm;
++                pubsub.on('analysis.server.progress', this.onAnalysis);
++                this.sync();
++              }),
++              destroy: () => {
++                this.reset();
++                this.panel = undefined;
++                pubsub.off('analysis.server.progress', this.onAnalysis);
++              },
++            },
++          }),
++          hl('div.fen-pgn', { class: { active: this.selected === 'fen-pgn' } }, [inputs]),
++        ]),
++      ],
++    );
++  }
++
++  private readonly start = () => {
++    if (!this.ctrl.canAnalyseMainline()) return;
++    this.ctrl.settings.set('showMainlineAnalysis', true);
++    void site.asset.loadEsm('analyse.local', { init: { ctrl: this.ctrl, start: true } });
++  };
++
++  private readonly clear = async () => {
++    if (await confirm(i18n.study.clearLocal)) await this.ctrl.idbTree.clear('analysis');
++  };
++
++  private readonly onAnalysis = () => {
++    this.dirty = true;
++  };
++
++  private reset(): void {
++    this.generation++;
++    if (this.chart) {
++      pubsub.off('ply', this.chart.selectPly);
++      this.chart.destroy();
++    }
++    this.chart = undefined;
++    this.pending = false;
++    this.failed = false;
++    this.panel?.replaceChildren();
++    this.button = undefined;
++  }
++
++  sync(): void {
++    const panel = this.panel;
++    if (!panel) return;
++    if (!this.ctrl.mainlineAnalysis) {
++      if (this.chart || this.pending) this.reset();
++      if (!this.button) {
++        this.button = document.createElement('button');
++        this.button.type = 'button';
++        this.button.className = 'button text';
++        this.button.dataset.icon = licon.Cogs;
++        this.button.onclick = this.start;
++        panel.append(this.button);
++      }
++      this.button.disabled = !this.ctrl.canAnalyseMainline();
++      this.button.textContent = this.button.disabled ? 'Add moves to analyze' : 'Analyze game';
++      return;
++    }
++    if (this.chart) {
++      if (this.dirty) this.chart.updateData(this.ctrl.data, this.ctrl.mainline);
++      this.dirty = false;
++      return;
++    }
++    if (this.pending || this.failed) return;
++    this.reset();
++    const generation = this.generation;
++    this.pending = true;
++    const container = document.createElement('div');
++    container.id = 'acpl-chart-container';
++    container.className = 'analysis-chart nosweat-chart';
++    const actions = document.createElement('div');
++    actions.className = 'analysis-chart-actions';
++    for (const [label, icon, click] of [
++      ['Analyze game', licon.Cogs, this.start],
++      [i18n.study.clearLocal, licon.X, this.clear],
++    ] as const) {
++      const button = document.createElement('button');
++      button.type = 'button';
++      button.title = label;
++      button.setAttribute('aria-label', label);
++      button.dataset.icon = icon;
++      button.onclick = click;
++      actions.append(button);
++    }
++    const plot = document.createElement('div');
++    plot.className = 'analysis-chart-plot';
++    const canvas = document.createElement('canvas');
++    canvas.id = 'acpl-chart';
++    plot.append(canvas);
++    container.append(actions, plot);
++    panel.append(container);
++    void site.asset
++      .loadEsm<ChartGame>('chart.game')
++      .then(async module => {
++        if (generation !== this.generation || !canvas.isConnected) return;
++        const chart = await module.acpl(canvas, this.ctrl.data, this.ctrl.mainline);
++        if (generation !== this.generation || !canvas.isConnected) {
++          pubsub.off('ply', chart.selectPly);
++          chart.destroy();
++          return;
++        }
++        this.chart = chart;
++        this.pending = false;
++        this.dirty = true;
++        this.sync();
++      })
++      .catch(() => {
++        if (generation !== this.generation) return;
++        this.reset();
++        this.failed = true;
++        const retry = document.createElement('button');
++        retry.className = 'button';
++        retry.textContent = 'Retry graph';
++        retry.onclick = () => {
++          this.failed = false;
++          this.sync();
++        };
++        panel.append(retry);
++      });
++  }
++}
 diff --git a/ui/analyse/src/noSweatBrilliants.ts b/ui/analyse/src/noSweatBrilliants.ts
 new file mode 100644
 index 0000000..d1a01b5
@@ -13647,6 +14269,152 @@ index 0000000..759163b
 +    this.pending.clear();
 +  }
 +}
+diff --git a/ui/analyse/tests/boardReview.test.ts b/ui/analyse/tests/boardReview.test.ts
+new file mode 100644
+index 0000000..dc4490b
+--- /dev/null
++++ b/ui/analyse/tests/boardReview.test.ts
+@@ -0,0 +1,140 @@
++import assert from 'node:assert/strict';
++import { mock, test } from 'node:test';
++import { attributesModule, classModule, init } from 'snabbdom';
++
++import { pubsub } from 'lib/pubsub';
++import { hl } from 'lib/view';
++
++import type AnalyseCtrl from '../src/ctrl';
++import { IdbTree } from '../src/idbTree';
++import { LocalAnalysisEngine, type LocalAnalysisResult } from '../src/local/localAnalysisEngine';
++import { BoardReview } from '../src/noSweatBoardReview';
++
++const fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
++const makeLine = () => {
++  const child = {
++    id: 'ab',
++    ply: 1,
++    uci: 'e2e4',
++    fen: fen.replace(' w ', ' b '),
++    children: [],
++    glyphs: [
++      { id: 4, symbol: '??', name: 'Blunder', comp: true },
++      { id: 1, symbol: '!', name: 'Good' },
++    ],
++  };
++  return [{ id: '', ply: 0, fen, children: [child] }, child];
++};
++
++test('board review stays in memory, is specific to the analyzed line, and clearing retains moves and imported glyphs', async () => {
++  const nodes = makeLine();
++  const ctrl = {
++    noSweat: {},
++    synthetic: true,
++    mainline: nodes,
++    tree: { root: nodes[0] },
++    opts: {},
++    data: { game: { id: 'synthetic' } },
++    redraw() {},
++  } as unknown as AnalyseCtrl;
++  const idb = new IdbTree(ctrl);
++  const analysis = { id: 'synthetic', white: { accuracy: 90 }, black: { accuracy: 80 } };
++  await idb.saveAnalysis({ localUpdate: { analysis, tree: nodes[0] } } as LocalAnalysisResult);
++  assert.equal(idb.localAnalysis, analysis);
++  ctrl.mainline = [...nodes, { ...nodes[1], ply: 2 }] as any;
++  assert.equal(idb.hasLocalAnalysis, false);
++  ctrl.mainline = nodes as any;
++  assert.equal(idb.hasLocalAnalysis, true);
++  await idb.clear('analysis');
++  assert.equal(idb.hasLocalAnalysis, false);
++  assert.equal(nodes[0].children[0], nodes[1]);
++  assert.deepEqual(
++    nodes[1].glyphs?.map(g => g.symbol),
++    ['!'],
++  );
++});
++
++test('a board line needs no saved-game export and detects replacement while preparing review', async () => {
++  const nodes = makeLine();
++  const ctrl = {
++    noSweat: {},
++    synthetic: true,
++    mainline: nodes,
++    tree: { root: nodes[0] },
++  } as unknown as AnalyseCtrl;
++  const fetch = mock.method(globalThis, 'fetch', async () => {
++    throw new Error('no game export exists');
++  });
++  const engine = new LocalAnalysisEngine(ctrl);
++  assert.deepEqual(await engine.getDivision(), {});
++  assert.equal(fetch.mock.callCount(), 0);
++  assert.equal(engine.isCurrent, true);
++  ctrl.mainline = [nodes[0]] as any;
++  assert.equal(engine.isCurrent, false);
++  fetch.mock.restore();
++});
++
++test('study review retains its native chapter division request', async () => {
++  const nodes = makeLine();
++  const ctrl = {
++    noSweat: {},
++    synthetic: true,
++    mainline: nodes,
++    tree: { root: nodes[0] },
++    study: { chapterConfigUrl: () => '/study/config/chapter' },
++  } as unknown as AnalyseCtrl;
++  const fetch = mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({ middle: 20 })));
++  const engine = new LocalAnalysisEngine(ctrl);
++  assert.deepEqual(await engine.getDivision(), { middle: 20 });
++  assert.equal(fetch.mock.calls[0].arguments[0], '/study/config/chapter?divisionOnly=1');
++  fetch.mock.restore();
++});
++
++test('board uses native review entry point and chart, preserving editable inputs when analysis is cleared', async () => {
++  document.documentElement.lang = 'en-US';
++  let moves = false;
++  const chart = { updateData: mock.fn(), resize() {}, destroy: mock.fn(), selectPly() {} };
++  const acpl = mock.fn(async () => chart);
++  const load = mock.fn(async (name: string) => (name === 'chart.game' ? { acpl } : {}));
++  (site as any).asset = { loadEsm: load };
++  const ctrl = {
++    noSweat: { mountOpening() {} },
++    data: {},
++    mainline: [],
++    settings: { set() {} },
++    canAnalyseMainline: () => moves,
++    mainlineAnalysis: undefined,
++  } as unknown as AnalyseCtrl;
++  const board = new BoardReview(ctrl);
++  const host = document.createElement('div');
++  document.body.append(host);
++  const patch = init([attributesModule, classModule]);
++  let vnode = patch(host, board.view(hl('textarea', { attrs: { 'aria-label': 'PGN' } })));
++  ctrl.redraw = () => {
++    vnode = patch(vnode, board.view(hl('textarea', { attrs: { 'aria-label': 'PGN' } })));
++  };
++  const root = vnode.elm as HTMLElement;
++  const input = root.querySelector('textarea')!;
++  input.value = '1. e4 e5';
++  assert.equal(root.querySelector<HTMLButtonElement>('.computer-analysis button')!.disabled, true);
++  moves = true;
++  ctrl.redraw();
++  root.querySelector<HTMLButtonElement>('.computer-analysis button')!.click();
++  assert.equal(load.mock.calls[0].arguments[0], 'analyse.local');
++  assert.deepEqual((load.mock.calls[0].arguments as any)[1].init, { ctrl, start: true });
++  (ctrl as any).mainlineAnalysis = {};
++  ctrl.redraw();
++  await new Promise(resolve => setTimeout(resolve, 0));
++  assert.equal(acpl.mock.callCount(), 1);
++  assert.ok(root.querySelector('.analysis-chart-actions + .analysis-chart-plot canvas'));
++  pubsub.emit('analysis.server.progress', ctrl.data);
++  ctrl.redraw();
++  assert.ok(chart.updateData.mock.callCount() > 0);
++  (ctrl as any).mainlineAnalysis = undefined;
++  ctrl.redraw();
++  assert.equal(chart.destroy.mock.callCount(), 1);
++  assert.equal(root.querySelector('textarea'), input);
++  assert.equal(input.value, '1. e4 e5');
++  patch(vnode, hl('div'));
++  root.remove();
++});
 diff --git a/ui/analyse/tests/candidateColorLifecycle.test.ts b/ui/analyse/tests/candidateColorLifecycle.test.ts
 new file mode 100644
 index 0000000..39e18d3
@@ -32053,10 +32821,10 @@ index 0000000..cc2de6d
 +});
 diff --git a/ui/analyse/tests/summaryLayout.test.ts b/ui/analyse/tests/summaryLayout.test.ts
 new file mode 100644
-index 0000000..28b60d2
+index 0000000..1931365
 --- /dev/null
 +++ b/ui/analyse/tests/summaryLayout.test.ts
-@@ -0,0 +1,37 @@
+@@ -0,0 +1,57 @@
 +import assert from 'node:assert/strict';
 +import { mock, test } from 'node:test';
 +import { init, attributesModule, classModule } from 'snabbdom';
@@ -32092,6 +32860,26 @@ index 0000000..28b60d2
 +    root.textContent?.includes('W'.repeat(30)),
 +    'full labels remain accessible despite CSS truncation',
 +  );
++  root.remove();
++});
++
++test('short FEN-start reviews show unavailable native metrics without inventing scores', () => {
++  const ctrl = {
++    noSweat: {},
++    mainline: [],
++    mainlineAnalysis: { white: {}, black: { acpl: 0 } },
++    settings: { showMainlineAnalysis: true },
++    idbTree: { hasLocalAnalysis: true },
++    data: { player: { color: 'white' }, opponent: { color: 'black' } },
++  } as unknown as AnalyseCtrl;
++  const host = document.createElement('div');
++  document.body.append(host);
++  const vnode = init([attributesModule, classModule])(host, render(ctrl));
++  const root = vnode.elm as HTMLElement;
++  assert.ok(!root.textContent?.includes('undefined'));
++  const cells = [...root.querySelectorAll('.accuracy td')];
++  assert.deepEqual([cells[0].textContent, cells[2].textContent], ['—', '—']);
++  assert.equal(root.querySelector('tbody tr:last-child td:last-child')?.textContent, '0');
 +  root.remove();
 +});
 diff --git a/ui/bits/css/build/bits.patron.scss b/ui/bits/css/build/bits.patron.scss
@@ -33157,6 +33945,23 @@ index 0000000..f719c6b
 +            mode === 'view' && enabled && !hidden && !threat,
 +          );
 +});
+diff --git a/ui/lib/tests/publicNameSearch.test.ts b/ui/lib/tests/publicNameSearch.test.ts
+new file mode 100644
+index 0000000..0a3f68a
+--- /dev/null
++++ b/ui/lib/tests/publicNameSearch.test.ts
+@@ -0,0 +1,11 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++
++import { renderUserEntry } from '../src/view/userComplete';
++
++test('autocomplete displays the escaped public name but links to the canonical account', () => {
++  const result = renderUserEntry({ name: 'n0123456789abcdef', displayName: 'Alice <friend>' });
++  assert.ok(result.includes('href="/@/n0123456789abcdef"'));
++  assert.ok(result.includes('Alice &lt;friend&gt;'));
++  assert.ok(!result.includes('Alice <friend>'));
++});
 diff --git a/ui/puzzle/src/noSweatMaia.ts b/ui/puzzle/src/noSweatMaia.ts
 new file mode 100644
 index 0000000..0e124a8
@@ -33977,10 +34782,10 @@ index 0000000..9fc8e4d
 +});
 diff --git a/ui/site/tests/topBar.test.ts b/ui/site/tests/topBar.test.ts
 new file mode 100644
-index 0000000..bdf5669
+index 0000000..d8ffa8b
 --- /dev/null
 +++ b/ui/site/tests/topBar.test.ts
-@@ -0,0 +1,26 @@
+@@ -0,0 +1,36 @@
 +import assert from 'node:assert/strict';
 +import { test, mock } from 'node:test';
 +
@@ -34001,6 +34806,16 @@ index 0000000..bdf5669
 +  });
 +  const { default: initTopBar } = await import('../src/topBar');
 +  initTopBar();
++  let scrollY = 0;
++  Object.defineProperty(window, 'scrollY', { configurable: true, get: () => scrollY });
++  Object.defineProperty(document.body, 'scrollHeight', { configurable: true, value: 2000 });
++  scrollY = 100;
++  window.dispatchEvent(new window.Event('scroll'));
++  assert.ok(document.getElementById('top')!.classList.contains('hide'));
++  assert.ok(document.getElementById('top')!.classList.contains('scrolled'));
++  scrollY = 0;
++  window.dispatchEvent(new window.Event('scroll'));
++  assert.ok(!document.getElementById('top')!.classList.contains('hide'));
 +  pubsub.emit('socket.in.challenges', {});
 +  pubsub.emit('socket.in.notifications', { notifications: {} as Paginator<never>, unread: 1 });
 +  pubsub.emit('notify-app.set-read', 'someone');
