@@ -88,3 +88,27 @@ jobs:
           node "$GITHUB_WORKSPACE/puzzles/validate.mjs" /tmp/lila/node_modules/.pnpm/chessops@0.15.1/node_modules/chessops
           node ui/test
           ./ui/build --no-install site lobby analyse round editor dasher puzzle bits learn coordinateTrainer storm user
+
+  native-forum:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      GIT_LFS_SKIP_SMUDGE: '1'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Prepare the pinned native forum sources
+        run: |
+          git init /tmp/lila
+          git -C /tmp/lila fetch --depth=1 https://github.com/lichess-org/lila.git b551752d2a0e7a63459d9812825d95a633a98737
+          git -C /tmp/lila checkout --detach FETCH_HEAD
+          git -C /tmp/lila apply "$GITHUB_WORKSPACE/deploy/lila/patches/lila-nostr-maia.patch"
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: sbt
+          cache-dependency-path: deploy/lila/patches/lila-nostr-maia.patch
+      - uses: sbt/setup-sbt@f9efdb0d6d5959d3e1510935d4ff64a65821a256 # v1
+      - name: Compile and test native forum permissions
+        working-directory: /tmp/lila
+        run: sbt -J-Xms128m -J-Xmx3g -J-Xss2m -J-XX:ActiveProcessorCount=2 -Dsbt.task.cpus=2 -Dsbt.supershell=false 'forum/scalafmtCheck;forum/Test/scalafmtCheck;forum/testOnly lila.forum.ForumAccessTest'

@@ -41,7 +41,7 @@ try {
   const patron=html(await request('/patron'));
   assert.ok(patron.querySelector('a[aria-label="Close donation"]'));
   assert.match(patron.body.textContent,/dash@walletofsatoshi.com/);
-  const category=await request('/forum/mute-feedback');assert.match(category,/Posting opens|Sign in/);
+  const category=await request('/forum/mute-feedback');assert.match(category,/Sign in with Nostr/);
 
   const practice=html(await request('/practice'));
   const course=practice.querySelector('a[href^="/practice/"]');assert.ok(course,'Installed practice course');

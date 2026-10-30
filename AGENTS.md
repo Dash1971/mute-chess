@@ -224,3 +224,12 @@ Keep the 90-minute deadline and stop admissions at 75 minutes. Preserve native
 perfs/history, one game per bot, ±200 matching and all safeguards. No automatic
 extension, forced establishment, roster expansion or normal-play cap change.
 Report how many bot-speed ratings meet the native provisional threshold.
+
+
+## Immediate forum posting (owner request, October 30, 2026)
+
+Issue #81 removes the two-day and completed-game forum qualification for signed-in
+human Mute Chess accounts. Preserve native bot denial, category permissions,
+moderation, captcha, spam protections and rate limits. This supersedes the earlier
+requirement to retain upstream age/game qualification; default upstream mode is
+unchanged. See `docs/native-learning-community.md`.

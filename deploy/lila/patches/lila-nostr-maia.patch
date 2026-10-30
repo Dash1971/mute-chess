@@ -903,6 +903,19 @@ index 9688ca7..f6a2f8b 100644
  
  object page:
  
+diff --git a/build.sbt b/build.sbt
+index 885adb4..06960ae 100644
+--- a/build.sbt
++++ b/build.sbt
+@@ -452,7 +452,7 @@ lazy val msg = module("msg",
+ 
+ lazy val forum = module("forum",
+   Seq(memo, ui),
+-  Seq()
++  tests.bundle
+ )
+ 
+ lazy val forumSearch = module("forumSearch",
 diff --git a/conf/routes b/conf/routes
 index f2a7ab2..2fc4376 100644
 --- a/conf/routes
@@ -1154,8 +1167,46 @@ index 2d2ccc9..82ca5f9 100644
    ):
      def nonEmptyRealName: Option[RealName] = ne(realName)
  
+diff --git a/modules/forum/src/main/Env.scala b/modules/forum/src/main/Env.scala
+index 622aab0..3060dbe 100644
+--- a/modules/forum/src/main/Env.scala
++++ b/modules/forum/src/main/Env.scala
+@@ -62,6 +62,8 @@ final class Env(
+   lazy val recentTeamPosts = RecentTeamPosts: id =>
+     postRepo.recentIdsInCateg(ForumCateg.fromTeamId(id), 6).flatMap(postApi.miniViews)
+ 
++  private val immediatePosting = appConfig.getOptional[Boolean]("nosweat.enabled").getOrElse(false)
++
+   lazy val access = wire[ForumAccess]
+ 
+   lila.common.Bus.sub[lila.core.team.TeamCreate]:
+diff --git a/modules/forum/src/main/ForumAccess.scala b/modules/forum/src/main/ForumAccess.scala
+index cfd6d7b..986bc92 100644
+--- a/modules/forum/src/main/ForumAccess.scala
++++ b/modules/forum/src/main/ForumAccess.scala
+@@ -6,7 +6,8 @@ import lila.core.team.Access
+ 
+ final class ForumAccess(
+     teamApi: lila.core.team.TeamApi,
+-    relationApi: lila.core.relation.RelationApi
++    relationApi: lila.core.relation.RelationApi,
++    immediatePosting: Boolean
+ )(using Executor):
+ 
+   enum Operation:
+@@ -40,7 +41,9 @@ final class ForumAccess(
+ 
+   private def canWriteInAnyForum(using me: Option[Me]) = me.exists: me =>
+     !me.isBot && {
+-      (me.count.game > 0 && me.createdSinceDays(2)) || me.hasTitle || me.isVerified || me.isPatron
++      immediatePosting || (me.count.game > 0 && me.createdSinceDays(
++        2
++      )) || me.hasTitle || me.isVerified || me.isPatron
+     }
+ 
+   def isGrantedMod(categId: ForumCategId)(using meOpt: Option[Me]): Fu[Boolean] = meOpt.soUse:
 diff --git a/modules/forum/src/main/ui/CategUi.scala b/modules/forum/src/main/ui/CategUi.scala
-index bfd027c..442ece9 100644
+index bfd027c..790cd09 100644
 --- a/modules/forum/src/main/ui/CategUi.scala
 +++ b/modules/forum/src/main/ui/CategUi.scala
 @@ -21,7 +21,7 @@ final class CategUi(helpers: Helpers, bits: ForumBits):
@@ -1182,7 +1233,7 @@ index bfd027c..442ece9 100644
            ),
 +          Option.unless(canWrite)(
 +            p(cls := "box-pad forum-posting-help")(
-+              if ctx.isAuth then frag("Posting opens after one completed game and two days on your account.")
++              if ctx.isAuth then frag("Posting is unavailable for this account or category.")
 +              else frag(a(href := "/login?referrer=/forum")("Sign in with Nostr"), " to post.")
 +            )
 +          ),
@@ -6768,7 +6819,7 @@ index 0000000..e57f6e5
 +    )
 diff --git a/app/views/noSweatInfo.scala b/app/views/noSweatInfo.scala
 new file mode 100644
-index 0000000..179e814
+index 0000000..e28aa9d
 --- /dev/null
 +++ b/app/views/noSweatInfo.scala
 @@ -0,0 +1,230 @@
@@ -6894,7 +6945,7 @@ index 0000000..179e814
 +        ),
 +        h2("How do I post in the forum?"),
 +        p(
-+          "Open a forum category and choose New Topic. Normal accounts need a completed game and must be at least two days old. Replies are at the bottom of a topic. The forum and other secondary features are currently kept out of the main navigation."
++          "Sign in, open a forum category and choose New Topic. You can post immediately, without playing a game or waiting. Replies are at the bottom of a topic. Forum rules, moderation and posting limits still apply."
 +        ),
 +        h2("How do patron wings work?"),
 +        p(
@@ -7541,6 +7592,103 @@ index 0000000..e3492f8
 +    assertEquals(NostrName.display("n" + key.take(19), Some("My name"), Some(key)), Some("My name"))
 +    assertEquals(NostrName.display("n" + key.take(19), None, None), None)
 +    assertEquals(NostrName.npub("not-a-key"), None)
+diff --git a/modules/forum/src/test/ForumAccessTest.scala b/modules/forum/src/test/ForumAccessTest.scala
+new file mode 100644
+index 0000000..840c50a
+--- /dev/null
++++ b/modules/forum/src/test/ForumAccessTest.scala
+@@ -0,0 +1,91 @@
++package lila.forum
++
++import chess.PlayerTitle
++
++import lila.core.user.{ Count, KidMode, Plan, UserEnabled }
++import lila.core.team.{ Access, TeamApi }
++
++class ForumAccessTest extends munit.FunSuite:
++  given Executor = scala.concurrent.ExecutionContext.global
++
++  private val fresh = User(
++    id = UserId("newposter"),
++    username = UserName("NewPoster"),
++    count = Count(0, 0, 0, 0, 0),
++    enabled = UserEnabled(true),
++    roles = Nil,
++    playTime = None,
++    createdAt = nowInstant,
++    seenAt = None,
++    kid = KidMode(false),
++    lang = None,
++    plan = Plan(0, false, false, None)
++  )
++  private val category = ForumCategId("mute-feedback")
++
++  // Global categories do not call the team/relation APIs.
++  private def access(immediate: Boolean) = new ForumAccess(null, null, immediate)
++  private def canWrite(user: Option[User], immediate: Boolean) =
++    access(immediate).isGrantedWrite(category)(using user.map(Me(_)))
++
++  test("Mute Chess permits a fresh human with no games to post"):
++    canWrite(Some(fresh), true).map(assertEquals(_, true))
++
++  test("anonymous users and bots remain unable to post"):
++    for
++      anonymous <- canWrite(None, true)
++      bot <- canWrite(Some(fresh.copy(title = Some(PlayerTitle.BOT))), true)
++    yield
++      assertEquals(anonymous, false)
++      assertEquals(bot, false)
++
++  test("upstream mode still requires both account age and a completed game"):
++    val played = fresh.copy(count = Count(0, 1, 0, 0, 1))
++    val old = fresh.copy(createdAt = nowInstant.minusDays(3))
++    for
++      newAccount <- canWrite(Some(fresh), false)
++      onlyGame <- canWrite(Some(played), false)
++      onlyAge <- canWrite(Some(old), false)
++      eligible <- canWrite(Some(played.copy(createdAt = old.createdAt)), false)
++    yield
++      assertEquals(newAccount, false)
++      assertEquals(onlyGame, false)
++      assertEquals(onlyAge, false)
++      assertEquals(eligible, true)
++
++  test("upstream title and patron exemptions remain available"):
++    for
++      titled <- canWrite(Some(fresh.copy(title = Some(PlayerTitle.GM))), false)
++      patron <- canWrite(Some(fresh.copy(plan = Plan(1, true, false, None))), false)
++    yield
++      assertEquals(titled, true)
++      assertEquals(patron, true)
++
++  private class TeamFixture(mode: Access, member: Boolean, leader: Boolean) extends TeamApi:
++    def forumAccessOf(id: TeamId) = fuccess(mode)
++    def isMember(id: TeamId)(using lila.core.userId.MyId) = fuccess(member)
++    def isLeader(id: TeamId)(using lila.core.userId.MyId) = fuccess(leader)
++    def filterHideForum(ids: Iterable[TeamId]) = throw new UnsupportedOperationException
++    def leaderIds(id: TeamId) = throw new UnsupportedOperationException
++    def creatorOf(id: TeamId) = throw new UnsupportedOperationException
++    def filterUserIdsInTeam(id: TeamId, users: Iterable[UserId]) = throw new UnsupportedOperationException
++    def hasCommPerm(id: TeamId)(using lila.core.userId.MyId) = throw new UnsupportedOperationException
++    def cursor = throw new UnsupportedOperationException
++
++  test("immediate posting preserves disabled, member and leader team permissions"):
++    given Option[Me] = Some(Me(fresh))
++    val teamCategory = ForumCateg.fromTeamId(TeamId("private-team"))
++    def allowed(mode: Access, member: Boolean = false, leader: Boolean = false) =
++      new ForumAccess(new TeamFixture(mode, member, leader), null, true).isGrantedWrite(teamCategory)
++    for
++      disabled <- allowed(Access.None, member = true, leader = true)
++      outsider <- allowed(Access.Everyone)
++      member <- allowed(Access.Members, member = true)
++      notLeader <- allowed(Access.Leaders, member = true)
++      leader <- allowed(Access.Leaders, member = true, leader = true)
++    yield
++      assertEquals(disabled, false)
++      assertEquals(outsider, false)
++      assertEquals(member, true)
++      assertEquals(notLeader, false)
++      assertEquals(leader, true)
 diff --git a/modules/game/src/main/NoSweatStudyScope.scala b/modules/game/src/main/NoSweatStudyScope.scala
 new file mode 100644
 index 0000000..b3ca768
