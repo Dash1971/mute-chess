@@ -3314,18 +3314,30 @@ index 83a184c..1ff5e25 100644
    resizeCache.meta ??= document.querySelector<HTMLElement>('.game__meta');
    if (!resizeCache.board || !resizeCache.meta) return;
 diff --git a/ui/analyse/src/view/roundTraining.ts b/ui/analyse/src/view/roundTraining.ts
-index 99a8328..a544a56 100644
+index 99a8328..df0faee 100644
 --- a/ui/analyse/src/view/roundTraining.ts
 +++ b/ui/analyse/src/view/roundTraining.ts
-@@ -9,6 +9,7 @@ import type AnalyseCtrl from '@/ctrl';
- import { findTag } from '@/study/studyChapters';
+@@ -6,9 +6,10 @@ import { bind, dataIcon, onInsert } from 'lib/view';
+ import { userLink } from 'lib/view/userLink';
+ 
+ import type AnalyseCtrl from '@/ctrl';
+-import { findTag } from '@/study/studyChapters';
  
  import type { AnalysisMetaSide, GamePhase } from '../interfaces';
 +import { classificationCounts, moveClasses } from '../noSweatFullReview';
++import { findTag } from '../study/studyChapters';
  
  type AdviceKind = 'inaccuracy' | 'mistake' | 'blunder';
  
-@@ -79,6 +80,67 @@ const error = (nb: number, color: Color, advice: Advice) =>
+@@ -24,6 +25,7 @@ const renderPlayer = ({ data, study }: AnalyseCtrl, color: Color): VNode => {
+     ? userLink({ ...user, name: user.username, ratingDiff, line: false })
+     : h(
+         'span',
++        { attrs: { title: name } },
+         name ||
+           (ai && 'Stockfish level ' + ai) ||
+           (study && findTag(study.data.chapter.tags, color)) ||
+@@ -79,6 +81,67 @@ const error = (nb: number, color: Color, advice: Advice) =>
    );
  
  const doRender = (ctrl: AnalyseCtrl): VNode => {
@@ -3393,7 +3405,7 @@ index 99a8328..a544a56 100644
    return h(
      'div.advice-summary',
      {
-@@ -139,6 +201,7 @@ export function render(ctrl: AnalyseCtrl): VNode | undefined {
+@@ -139,10 +202,17 @@ export function render(ctrl: AnalyseCtrl): VNode | undefined {
    // don't cache until the analysis is complete!
    const buster = ctrl.mainlineAnalysis.partial ? Math.random() : '';
    let cacheKey = String(buster) + !!ctrl.retro + Boolean(ctrl.idbTree.hasLocalAnalysis);
@@ -3401,6 +3413,17 @@ index 99a8328..a544a56 100644
    if (ctrl.study) cacheKey += ctrl.study.data.chapter.id;
  
    return h('div.analyse__round-training', [
+-    h('div.analyse__acpl', thunk('div.advice-summary', doRender, [ctrl, cacheKey])),
++    h(
++      'div.analyse__acpl',
++      thunk(ctrl.noSweat ? 'div.advice-summary.nosweat-summary' : 'div.advice-summary', doRender, [
++        ctrl,
++        cacheKey,
++      ]),
++    ),
+     puzzleLink(ctrl),
+   ]);
+ }
 diff --git a/ui/analyse/src/view/settingsView.ts b/ui/analyse/src/view/settingsView.ts
 index 89b6efa..81bc593 100644
 --- a/ui/analyse/src/view/settingsView.ts
@@ -8844,10 +8867,10 @@ HcmV?d00001
 
 diff --git a/public/nosweat/brand.css b/public/nosweat/brand.css
 new file mode 100644
-index 0000000..93234a4
+index 0000000..198514c
 --- /dev/null
 +++ b/public/nosweat/brand.css
-@@ -0,0 +1,119 @@
+@@ -0,0 +1,121 @@
 +.site-title .nosweat-header-icon{width:38px;height:38px;margin-right:7px}.site-title .nosweat-wordmark{width:174px;height:50px;object-fit:contain}.nosweat-light{display:none}.light .nosweat-dark{display:none}.light .nosweat-light{display:block}.nosweat-login-wordmark{width:272px;max-width:100%;height:62px}.auth__brand{justify-content:center}@media(max-width:799px){.site-title .nosweat-wordmark{display:none!important}.site-title .nosweat-header-icon{width:36px;height:36px;margin:0}}
 +
 +main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-dark.svg")}.light main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-light.svg")}
@@ -8967,6 +8990,8 @@ index 0000000..93234a4
 +.nosweat-profile-key { min-width:0; max-width:100%; flex-basis:100%; font-size:.8em; }
 +.nosweat-profile-key > span { display:block; margin:.3em 0; color:var(--c-font-dim); }
 +.nosweat-profile-key input { max-width:100%; }
++
++.analyse .game__meta__players .player { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 diff --git a/public/nosweat/favicon-32.png b/public/nosweat/favicon-32.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..4261e6d916997479521a76cde8d32c2f0eee3236
@@ -9949,10 +9974,10 @@ index 0000000..ec4cc78
 +};
 diff --git a/ui/analyse/src/noSweatAnalysis.ts b/ui/analyse/src/noSweatAnalysis.ts
 new file mode 100644
-index 0000000..75093bb
+index 0000000..026271c
 --- /dev/null
 +++ b/ui/analyse/src/noSweatAnalysis.ts
-@@ -0,0 +1,767 @@
+@@ -0,0 +1,740 @@
 +import type { DrawShape } from '@lichess-org/chessground/draw';
 +import { parseUci } from 'chessops/util';
 +import { attributesModule, classModule, init } from 'snabbdom';
@@ -9966,7 +9991,7 @@ index 0000000..75093bb
 +import type AnalyseCtrl from './ctrl';
 +import { engineArrows, engineShapes, engineColors } from './noSweatArrows';
 +import { candidateQuality, qualityLabels, stockfishWinrate } from './noSweatCandidateQuality';
-+import { encodeHistory, policy, san, position, standardUci, legalUcis, type Candidate } from './noSweatCore';
++import { encodeHistory, policy, san, position, standardUci, type Candidate } from './noSweatCore';
 +import { reviewClick } from './noSweatEvents';
 +import { ReviewFish, type Review } from './noSweatFish';
 +import { gameReviewQualities, gameReviewQuality } from './noSweatFullReview';
@@ -10010,7 +10035,6 @@ index 0000000..75093bb
 +  history = true;
 +  maiaArrows = true;
 +  fishArrows = true;
-+  allMoves = false;
 +  ratingTable = true;
 +  private ratingContext = '';
 +  private ratingKey(): string {
@@ -10040,7 +10064,6 @@ index 0000000..75093bb
 +  private readonly cache = new Map<string, Prediction>();
 +  private readonly fish: ReviewFish;
 +  private readonly reviewCache = new Map<string, Review>();
-+  private fishBest?: string;
 +  private compareBusy = false;
 +  private qualityBusy = false;
 +  private qualityRoot?: Review;
@@ -10187,7 +10210,6 @@ index 0000000..75093bb
 +    const ratingContext = this.ratingKey();
 +    if (ratingContext !== this.ratingContext) this.byRating.clear();
 +    this.ratingContext = ratingContext;
-+    this.fishBest = undefined;
 +    this.ctrl.setAutoShapes();
 +    this.error = '';
 +    this.status = '';
@@ -10321,35 +10343,11 @@ index 0000000..75093bb
 +      : [];
 +  }
 +
-+  private currentFishBest(): string | undefined {
-+    return this.normalUci(this.nativeLines()[0]?.moves[0]) ?? this.fishBest;
-+  }
 +  private normalUci(uci?: string): string | undefined {
 +    if (!uci) return undefined;
 +    const move = parseUci(uci);
 +    return move ? standardUci(position(this.ctrl.node.fen), move) : undefined;
 +  }
-+  private readonly played = (): string | undefined => this.normalUci(this.ctrl.node.children[0]?.uci);
-+  private readonly rows = (): Candidate[] => {
-+    const chosen = new Set([
-+      ...(this.allMoves
-+        ? [...this.candidates, ...this.secondaryCandidates]
-+        : [...this.candidates.slice(0, 3), ...this.secondaryCandidates.slice(0, 3)]
-+      ).map(c => c.uci),
-+      ...this.nativeLines().flatMap(pv => {
-+        const uci = this.normalUci(pv.moves[0]);
-+        return uci ? [uci] : [];
-+      }),
-+    ]);
-+    const played = this.played();
-+    if (played) chosen.add(played);
-+    const best = this.currentFishBest();
-+    if (best) chosen.add(best);
-+    const legal = new Set(legalUcis(this.ctrl.node.fen));
-+    return [...chosen]
-+      .filter(uci => legal.has(uci))
-+      .map(uci => ({ uci, probability: this.candidates.find(c => c.uci === uci)?.probability ?? 0 }));
-+  };
 +  private readonly preview = (uci: string): void => {
 +    this.returnPath ??= this.ctrl.path;
 +    this.ctrl.playUci(uci);
@@ -30149,6 +30147,49 @@ index 0000000..db87c38
 +    ],
 +  ]);
 +  assert.deepEqual(chartMoves(values), ['g1f3', 'e2e4', 'd2d4']);
++});
+diff --git a/ui/analyse/tests/summaryLayout.test.ts b/ui/analyse/tests/summaryLayout.test.ts
+new file mode 100644
+index 0000000..28b60d2
+--- /dev/null
++++ b/ui/analyse/tests/summaryLayout.test.ts
+@@ -0,0 +1,37 @@
++import assert from 'node:assert/strict';
++import { mock, test } from 'node:test';
++import { init, attributesModule, classModule } from 'snabbdom';
++
++import type AnalyseCtrl from '../src/ctrl';
++
++mock.module('../src/study/studyChapters.ts', { namedExports: { findTag: () => undefined } });
++document.documentElement.lang = 'en-US';
++const { render } = await import('../src/view/roundTraining');
++
++test('cached summary keeps its layout class on the actual DOM with long player names', () => {
++  const ctrl = {
++    noSweat: {},
++    mainline: [],
++    mainlineAnalysis: { white: { accuracy: 80, acpl: 20 }, black: { accuracy: 70, acpl: 30 } },
++    settings: { showMainlineAnalysis: true },
++    idbTree: { hasLocalAnalysis: true },
++    data: {
++      player: { color: 'white', name: 'W'.repeat(30) },
++      opponent: { color: 'black', name: 'M'.repeat(30) },
++    },
++  } as unknown as AnalyseCtrl;
++  const host = document.createElement('div');
++  document.body.append(host);
++  const vnode = init([attributesModule, classModule])(host, render(ctrl));
++  const root = vnode.elm as HTMLElement;
++  assert.ok(
++    root.querySelector('.nosweat-summary table'),
++    'the cached root must retain the class that bounds the columns',
++  );
++  assert.equal(root.querySelectorAll('.nosweat-summary-player').length, 2);
++  assert.ok(
++    root.textContent?.includes('W'.repeat(30)),
++    'full labels remain accessible despite CSS truncation',
++  );
++  root.remove();
 +});
 diff --git a/ui/bits/css/build/bits.patron.scss b/ui/bits/css/build/bits.patron.scss
 new file mode 100644

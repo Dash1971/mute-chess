@@ -17,7 +17,7 @@ async function call(path, body, expected = 200, json = false) {
   });
   const text = await response.text();
   assert.ok([expected].flat().includes(response.status), `${path}: ${response.status}`);
-  return json ? JSON.parse(text) : text;
+  return json && text ? JSON.parse(text) : text;
 }
 async function login(key, username) {
   const pubkey = getPublicKey(key);
@@ -32,7 +32,7 @@ async function login(key, username) {
     Origin: origin, 'Content-Type': 'application/json', Authorization: 'Nostr ' + Buffer.from(JSON.stringify(event)).toString('base64'),
   }, body });
   assert.equal(response.status, 200);
-  cookie = response.headers.getSetCookie().find(c => /^(?:nosweat_session|lila2)=/.test(c)).split(';')[0];
+  cookie = response.headers.getSetCookie().find(c => /^(?:nosweat_session|nosweatliladev|lila2)=/.test(c)).split(';')[0];
   return (await response.json()).username;
 }
 const key = generateSecretKey(), namedKey = generateSecretKey();
@@ -69,7 +69,7 @@ try {
   const page = await call('/@/' + namedHandle);
   assert.ok(page.includes(explicit));
   assert.ok(!page.includes(npubEncode(getPublicKey(namedKey)).slice(0, 9) + '…'));
-  console.log(JSON.stringify({ ok: true, checks: ['compact generated name and independent NIP-19 encoding',
+  console.log(JSON.stringify({ ok: true, handle, checks: ['compact generated name and independent NIP-19 encoding',
     'full public key on profile', '20-character name accepted; 21 rejected',
     'canonical handle retained; clearing name restores fallback', 'chosen signup handle retained',
     ...(process.env.PROFILE_TEST_GAME ? ['native private note save/read; no spectator room'] : [])] }));
