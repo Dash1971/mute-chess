@@ -34,7 +34,11 @@ collapse that unused grid track only when keyboard input is absent (#117). Keep 
 vertical space below the name. Reserve that row even when no opening is known. Long
 names stay on one line with an ellipsis and expose their full text by native
 tooltip and a keyboard/click-accessible dialog, without moving other panels. Truncation is remeasured after fonts finish loading
-as well as when its available width changes.
+as well as when its available width changes. The lower native player strip is
+observed for size changes; reserve its width plus 8px on both sides of the opening
+row (#119). This keeps the name centered and at the accepted vertical position
+while leaving captured material and clocks unobstructed. Native strip rendering
+and clock/material semantics are unchanged.
 
 The same 3,810 CC0 Lichess opening rows bundled by Mobile Maia are reduced to
 EPD/ECO/name in `public/nosweat/openings.json`. Their upstream source is

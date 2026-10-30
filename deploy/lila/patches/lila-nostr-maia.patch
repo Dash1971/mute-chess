@@ -2590,7 +2590,7 @@ index 0c0ed10..0fd8c57 100644
  
    val logo = raw:
 diff --git a/modules/web/src/main/ui/layout.scala b/modules/web/src/main/ui/layout.scala
-index 1c7a30b..9a1d07d 100644
+index 1c7a30b..ddc707d 100644
 --- a/modules/web/src/main/ui/layout.scala
 +++ b/modules/web/src/main/ui/layout.scala
 @@ -17,8 +17,17 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
@@ -2654,7 +2654,7 @@ index 1c7a30b..9a1d07d 100644
 -    s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
 -      s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
 +    if isMuteChess then
-+      """<link rel="alternate icon" type="image/png" href="/assets/nosweat/favicon-32.png?v=quiet-signal1"><link id="favicon" rel="icon" type="image/svg+xml" href="/assets/nosweat/favicon.svg?v=quiet-signal1"><link rel="stylesheet" href="/assets/nosweat/brand.css?v=analysis7"><link rel="stylesheet" href="/assets/nosweat/quiet-signal.css?v=quiet-signal2">"""
++      """<link rel="alternate icon" type="image/png" href="/assets/nosweat/favicon-32.png?v=quiet-signal1"><link id="favicon" rel="icon" type="image/svg+xml" href="/assets/nosweat/favicon.svg?v=quiet-signal1"><link rel="stylesheet" href="/assets/nosweat/brand.css?v=analysis8"><link rel="stylesheet" href="/assets/nosweat/quiet-signal.css?v=quiet-signal2">"""
 +    else
 +      s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
 +        s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
@@ -10341,7 +10341,7 @@ HcmV?d00001
 
 diff --git a/public/nosweat/brand.css b/public/nosweat/brand.css
 new file mode 100644
-index 0000000..5f3d8ee
+index 0000000..4792cc7
 --- /dev/null
 +++ b/public/nosweat/brand.css
 @@ -0,0 +1,150 @@
@@ -10459,7 +10459,7 @@ index 0000000..5f3d8ee
 +.nosweat-summary td button { min-width:2em; padding:.15em; }
 +.nosweat-summary .accuracy td { border-top:1px solid var(--c-border); padding-top:.5em; font-weight:bold; }
 +.nosweat-summary > .button { margin-top:.7em; font-size:.85em; }
-+.nosweat-opening { height:28px; min-height:28px; min-width:0; display:flex; align-items:center; margin:0 0 3px; }
++.nosweat-opening { height:28px; min-height:28px; min-width:0; display:flex; align-items:center; margin:0 0 3px; box-sizing:border-box; padding-inline:min(50%, var(--nosweat-opening-clearance, 0px)); }
 +.nosweat-opening-name { width:100%; min-width:0; padding:0 12px 8px; font-size:13px; line-height:20px; background:none; color:var(--c-font-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:center; text-transform:none; cursor:default; }
 +.nosweat-opening-name.truncated { cursor:pointer; }
 +.nosweat-opening-name:disabled { opacity:1; cursor:default; }
@@ -13201,10 +13201,10 @@ index 0000000..a1b7d9f
 +}
 diff --git a/ui/analyse/src/noSweatOpening.ts b/ui/analyse/src/noSweatOpening.ts
 new file mode 100644
-index 0000000..1b81527
+index 0000000..a619492
 --- /dev/null
 +++ b/ui/analyse/src/noSweatOpening.ts
-@@ -0,0 +1,123 @@
+@@ -0,0 +1,130 @@
 +import { Chess } from 'chessops/chess';
 +import { makeFen, parseFen } from 'chessops/fen';
 +
@@ -13281,6 +13281,8 @@ index 0000000..1b81527
 +    };
 +    this.observer = new ResizeObserver(() => this.measure());
 +    this.observer.observe(this.label);
++    const playerStrip = underboard.closest('.analyse')?.querySelector('.analyse__player_strip.bottom');
++    if (playerStrip) this.observer.observe(playerStrip);
 +    void document.fonts?.ready.then(() => this.measure());
 +    window.addEventListener('pagehide', () => this.observer.disconnect(), { once: true });
 +    void loadOpenings()
@@ -13321,6 +13323,11 @@ index 0000000..1b81527
 +  }
 +
 +  private measure(): void {
++    // Native material and clocks share this row. Keep the name centered on the
++    // board by reserving the lower player strip's width on both sides.
++    const strip = this.row.closest('.analyse')?.querySelector('.analyse__player_strip.bottom');
++    const width = strip?.getBoundingClientRect().width ?? 0;
++    this.row.style.setProperty('--nosweat-opening-clearance', `${width > 1 ? Math.ceil(width) + 8 : 0}px`);
 +    const truncated = this.label.scrollWidth > this.label.clientWidth;
 +    this.label.disabled = !truncated;
 +    this.label.classList.toggle('truncated', truncated);
@@ -31901,10 +31908,10 @@ index 0000000..db87c38
 +});
 diff --git a/ui/analyse/tests/openingLabel.test.ts b/ui/analyse/tests/openingLabel.test.ts
 new file mode 100644
-index 0000000..f08d7bc
+index 0000000..5e68547
 --- /dev/null
 +++ b/ui/analyse/tests/openingLabel.test.ts
-@@ -0,0 +1,82 @@
+@@ -0,0 +1,101 @@
 +import assert from 'node:assert/strict';
 +import { mock, test } from 'node:test';
 +
@@ -31923,13 +31930,16 @@ index 0000000..f08d7bc
 +test('font completion rechecks long ECO names and exposes escaped full details without changing the row', async () => {
 +  let measure = () => {};
 +  let disconnected = false;
++  const observed: Element[] = [];
 +  Object.defineProperty(globalThis, 'ResizeObserver', {
 +    configurable: true,
 +    value: class {
 +      constructor(callback: () => void) {
 +        measure = callback;
 +      }
-+      observe() {}
++      observe(element: Element) {
++        observed.push(element);
++      }
 +      disconnect() {
 +        disconnected = true;
 +      }
@@ -31962,11 +31972,26 @@ index 0000000..f08d7bc
 +    data: { game: {} },
 +  } as unknown as AnalyseCtrl;
 +  const underboard = document.createElement('div');
-+  document.body.append(underboard);
++  const analyse = document.createElement('main');
++  analyse.className = 'analyse';
++  const strip = document.createElement('div');
++  strip.className = 'analyse__player_strip bottom';
++  let stripWidth = 36.7;
++  strip.getBoundingClientRect = () => ({ width: stripWidth }) as DOMRect;
++  analyse.append(strip, underboard);
++  document.body.append(analyse);
 +  const opening = new OpeningLabel(ctrl, underboard);
 +  await new Promise(resolve => setTimeout(resolve, 0));
 +  const row = underboard.firstElementChild!;
 +  const label = underboard.querySelector('button')!;
++  assert.ok(observed.includes(strip));
++  assert.equal((row as HTMLElement).style.getPropertyValue('--nosweat-opening-clearance'), '45px');
++  stripWidth = 120;
++  measure();
++  assert.equal((row as HTMLElement).style.getPropertyValue('--nosweat-opening-clearance'), '128px');
++  stripWidth = 1;
++  measure();
++  assert.equal((row as HTMLElement).style.getPropertyValue('--nosweat-opening-clearance'), '0px');
 +  let textWidth = 200;
 +  Object.defineProperty(label, 'clientWidth', { get: () => 400 });
 +  Object.defineProperty(label, 'scrollWidth', { get: () => textWidth });
@@ -31986,6 +32011,7 @@ index 0000000..f08d7bc
 +  opening.destroy();
 +  assert.equal(disconnected, true);
 +  assert.equal(underboard.children.length, 0);
++  analyse.remove();
 +});
 diff --git a/ui/analyse/tests/openingNames.test.ts b/ui/analyse/tests/openingNames.test.ts
 new file mode 100644
