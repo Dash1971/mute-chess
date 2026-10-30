@@ -1,0 +1,32 @@
+{
+  "status": "draft-preview-only",
+  "applied": false,
+  "executableProductionPlan": false,
+  "previewComputedAtUtc": "2026-10-30T10:17:52.591702+00:00",
+  "referenceRetrievedAtUtc": "2026-10-30T09:50:30.198769+00:00",
+  "previewSourceCommit": "0000000000000000000000000000000000000000",
+  "sourceCommitExplanation": "All-zero sentinel deliberately makes this illustrative preview inapplicable to a verified main release. Generate a fresh installed-release plan for any later approved execution.",
+  "identities": 44,
+  "ratingRows": 176,
+  "modes": {
+    "earned-rating-translation": 91,
+    "unplayed-cross-speed-prior": 85,
+    "derived-standard-translation": 30
+  },
+  "fallbackRows": 24,
+  "earnedBulletAccounts": [
+    "chromesparrow",
+    "patchwork",
+    "sideband"
+  ],
+  "previewCsvSha256": "61d00ba0ef5e94b750440b36ae86d69f611a0dafde95df63569bc3a95cd216f7",
+  "referenceSnapshotSha256": "77331637b592f516a577dc789c25d1d9b25bba0e3b62af4248a9920bc239955d",
+  "rosterSha256": "e9f0ffa317656c46a0839d1ae73c0f23b110c224a6afd7325a12afbaeeb6694c",
+  "notes": [
+    "Read-only snapshot of existing public managed bot perfs; no public mutation.",
+    "Original roster seeds, historical game ratings and rating histories are not rescaled.",
+    "Sparse/provisional upper reference pairs use a visible nearest-supported-band offset; broad prior RD is retained."
+  ],
+  "derivedStandardSnapshots": 30,
+  "totalPreviewRows": 206
+}

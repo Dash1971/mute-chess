@@ -1,0 +1,336 @@
+{
+  "retrievedAtUtc": "2026-10-30T09:50:30.198769+00:00",
+  "source": "https://lichess.org/api/users",
+  "users": [
+    {
+      "id": "maia3-79m_1000",
+      "profileUrl": "https://lichess.org/@/maia3-79m_1000",
+      "perfs": {
+        "bullet": {
+          "rating": 1632,
+          "rd": 46,
+          "games": 254,
+          "prov": false
+        },
+        "blitz": {
+          "rating": 1280,
+          "rd": 45,
+          "games": 603,
+          "prov": false
+        },
+        "rapid": {
+          "rating": 1289,
+          "rd": 45,
+          "games": 1437,
+          "prov": false
+        },
+        "classical": {
+          "rating": 1545,
+          "rd": 61,
+          "games": 93,
+          "prov": false
+        }
+      }
+    },
+    {
+      "id": "maia3-79m_1200",
+      "profileUrl": "https://lichess.org/@/maia3-79m_1200",
+      "perfs": {
+        "bullet": {
+          "rating": 1747,
+          "rd": 45,
+          "games": 494,
+          "prov": false
+        },
+        "blitz": {
+          "rating": 1387,
+          "rd": 60,
+          "games": 146,
+          "prov": false
+        },
+        "rapid": {
+          "rating": 1463,
+          "rd": 45,
+          "games": 754,
+          "prov": false
+        },
+        "classical": {
+          "rating": 1567,
+          "rd": 53,
+          "games": 247,
+          "prov": false
+        }
+      }
+    },
+    {
+      "id": "maia3-79m_1400",
+      "profileUrl": "https://lichess.org/@/maia3-79m_1400",
+      "perfs": {
+        "bullet": {
+          "rating": 1914,
+          "rd": 63,
+          "games": 85,
+          "prov": false
+        },
+        "blitz": {
+          "rating": 1490,
+          "rd": 45,
+          "games": 383,
+          "prov": false
+        },
+        "rapid": {
+          "rating": 1584,
+          "rd": 45,
+          "games": 463,
+          "prov": false
+        },
+        "classical": {
+          "rating": 1681,
+          "rd": 46,
+          "games": 246,
+          "prov": false
+        }
+      }
+    },
+    {
+      "id": "maia3-79m_1600",
+      "profileUrl": "https://lichess.org/@/maia3-79m_1600",
+      "perfs": {
+        "bullet": {
+          "rating": 2018,
+          "rd": 46,
+          "games": 219,
+          "prov": false
+        },
+        "blitz": {
+          "rating": 1649,
+          "rd": 46,
+          "games": 521,
+          "prov": false
+        },
+        "rapid": {
+          "rating": 1695,
+          "rd": 45,
+          "games": 145,
+          "prov": false
+        },
+        "classical": {
+          "rating": 1797,
+          "rd": 49,
+          "games": 133,
+          "prov": false
+        }
+      }
+    },
+    {
+      "id": "maia3-79m_1800",
+      "profileUrl": "https://lichess.org/@/maia3-79m_1800",
+      "perfs": {
+        "bullet": {
+          "rating": 2090,
+          "rd": 52,
+          "games": 96,
+          "prov": false
+        },
+        "blitz": {
+          "rating": 1825,
+          "rd": 45,
+          "games": 217,
+          "prov": false
+        },
+        "rapid": {
+          "rating": 1695,
+          "rd": 105,
+          "games": 41,
+          "prov": false
+        },
+        "classical": {
+          "rating": 1803,
+          "rd": 63,
+          "games": 51,
+          "prov": false
+        }
+      }
+    },
+    {
+      "id": "maia3-79m_2000",
+      "profileUrl": "https://lichess.org/@/maia3-79m_2000",
+      "perfs": {
+        "bullet": {
+          "rating": 2250,
+          "rd": 82,
+          "games": 61,
+          "prov": false
+        },
+        "blitz": {
+          "rating": 2010,
+          "rd": 59,
+          "games": 61,
+          "prov": false
+        },
+        "rapid": {
+          "rating": 2022,
+          "rd": 49,
+          "games": 112,
+          "prov": false
+        },
+        "classical": {
+          "rating": 2137,
+          "rd": 58,
+          "games": 140,
+          "prov": false
+        }
+      }
+    },
+    {
+      "id": "maia3-79m_2200",
+      "profileUrl": "https://lichess.org/@/maia3-79m_2200",
+      "perfs": {
+        "bullet": {
+          "rating": 2355,
+          "rd": 126,
+          "games": 47,
+          "prov": true
+        },
+        "blitz": {
+          "rating": 2263,
+          "rd": 120,
+          "games": 35,
+          "prov": true
+        },
+        "rapid": {
+          "rating": 2108,
+          "rd": 158,
+          "games": 26,
+          "prov": true
+        },
+        "classical": {
+          "rating": 1698,
+          "rd": 344,
+          "games": 7,
+          "prov": true
+        }
+      }
+    },
+    {
+      "id": "maia3-79m_2400",
+      "profileUrl": "https://lichess.org/@/maia3-79m_2400",
+      "perfs": {
+        "bullet": {
+          "rating": 2405,
+          "rd": 73,
+          "games": 45,
+          "prov": false
+        },
+        "blitz": {
+          "rating": 2159,
+          "rd": 130,
+          "games": 19,
+          "prov": true
+        },
+        "rapid": {
+          "rating": 2331,
+          "rd": 458,
+          "games": 12,
+          "prov": true
+        },
+        "classical": {
+          "rating": 2008,
+          "rd": 378,
+          "games": 10,
+          "prov": true
+        }
+      }
+    },
+    {
+      "id": "maia3-79m_2600",
+      "profileUrl": "https://lichess.org/@/maia3-79m_2600",
+      "perfs": {
+        "bullet": {
+          "rating": 2320,
+          "rd": 136,
+          "games": 72,
+          "prov": true
+        },
+        "blitz": {
+          "rating": 2485,
+          "rd": 143,
+          "games": 31,
+          "prov": true
+        },
+        "rapid": {
+          "rating": 2256,
+          "rd": 204,
+          "games": 32,
+          "prov": true
+        },
+        "classical": {
+          "rating": 2270,
+          "rd": 142,
+          "games": 18,
+          "prov": true
+        }
+      }
+    },
+    {
+      "id": "maia3-79m_600",
+      "profileUrl": "https://lichess.org/@/maia3-79m_600",
+      "perfs": {
+        "bullet": {
+          "rating": 1400,
+          "rd": 54,
+          "games": 178,
+          "prov": false
+        },
+        "blitz": {
+          "rating": 898,
+          "rd": 45,
+          "games": 969,
+          "prov": false
+        },
+        "rapid": {
+          "rating": 973,
+          "rd": 45,
+          "games": 1877,
+          "prov": false
+        },
+        "classical": {
+          "rating": 1115,
+          "rd": 46,
+          "games": 351,
+          "prov": false
+        }
+      }
+    },
+    {
+      "id": "maia3-79m_800",
+      "profileUrl": "https://lichess.org/@/maia3-79m_800",
+      "perfs": {
+        "bullet": {
+          "rating": 1560,
+          "rd": 46,
+          "games": 255,
+          "prov": false
+        },
+        "blitz": {
+          "rating": 1125,
+          "rd": 45,
+          "games": 688,
+          "prov": false
+        },
+        "rapid": {
+          "rating": 1176,
+          "rd": 45,
+          "games": 1726,
+          "prov": false
+        },
+        "classical": {
+          "rating": 1231,
+          "rd": 53,
+          "games": 160,
+          "prov": false
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "qualificationOnly": true,
+  "database": "nosweat_calibration_qrating103_63cd48ea",
+  "identities": 44,
+  "poolRatings": 176,
+  "derivedStandardSnapshots": 30,
+  "earnedBulletPreserved": 3,
+  "checks": [
+    "stale-plan-rejected-before-writes",
+    "prepare-writes-only-audit",
+    "partial-write-and-repeated-apply-guard",
+    "resume-never-subtracts-twice",
+    "restore-rejects-intervening-results",
+    "partial-restore-recovery-and-exact-before-images",
+    "humans-unmanaged-bots-users-games-history-untouched",
+    "active-game-guard"
+  ],
+  "noInferenceOrPublicWrites": true,
+  "beforeSha256": "2558a65aa45b3ed9e66a7c9aff4077a17f08f69fe5fcd942a1e90f4347dbeccf",
+  "restoredExactly": true,
+  "codeSha256": {
+    "rating_plan.py": "9fb9a3c7aeccc169bd3ac82783b4b5a234fc909e2132a7e159abbc667984da70",
+    "database.js": "dfe096209ad3b6aaddadf910a08811a0d946ebfe8c420961286595241e571578",
+    "qualify.py": "fdd543593cb36543d107a7303ca60a914395b9eee3ebf4968d62ea55aed7cf2b"
+  },
+  "publicReadOnlyBeforeAfterUnchanged": true
+}

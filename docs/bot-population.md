@@ -81,3 +81,13 @@ Cross-speed transfers remain provisional priors with separate uncertainty; do no
 Maia's current move selector has no clock input or time-dependent search. With added waits disabled, Blitz and Rapid self-play can therefore have very similar relative-strength evidence when clocks do not decide games. The external speed-specific priors remain important because human opposition differs across the Lichess pools. Do not expect a closed bot pool alone to reproduce all of those human-facing differences.
 
 Public profiles link here for methodology. Historical game policy details retain their own version; a current profile describes the current policy.
+
+## Proposed external anchor and cross-speed prior update
+
+[#103](https://github.com/Dash1971/mute-chess/issues/103) prepares a **draft-only**
+one-time −75 earned-rating translation and matched Bullet/Classical priors.
+[Scope, dated references, before/after preview and recovery procedure](bot-rating-adjustment.md)
+are public for review. Nothing is applied by merging/deploying the source;
+original seeds, histories and native Glicko remain intact. Publish a non-secret
+completion receipt and actual before/after table here after any separately
+approved execution rather than presenting this draft as completed calibration.
