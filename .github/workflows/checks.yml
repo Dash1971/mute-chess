@@ -111,4 +111,4 @@ jobs:
       - uses: sbt/setup-sbt@f9efdb0d6d5959d3e1510935d4ff64a65821a256 # v1
       - name: Compile and test native forum permissions
         working-directory: /tmp/lila
-        run: sbt -J-Xms128m -J-Xmx3g -J-Xss2m -J-XX:ActiveProcessorCount=2 -Dsbt.task.cpus=2 -Dsbt.supershell=false 'forum/scalafmtCheck' 'forum/Test/scalafmtCheck' 'forum/testOnly lila.forum.ForumAccessTest'
+        run: sbt -J-Xms128m -J-Xmx3g -J-Xss2m -J-XX:ActiveProcessorCount=2 -Dsbt.task.cpus=2 -Dsbt.supershell=false 'forum/scalafmtCheck;forum/Test/scalafmtCheck;forum/testOnly lila.forum.ForumAccessTest'
