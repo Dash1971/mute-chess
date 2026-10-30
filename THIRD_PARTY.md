@@ -47,3 +47,12 @@ Maia candidate quality uses the empirical Stockfish CP/winrate lookup and catego
 boundaries from CSSLab/maia-platform-frontend at
 `a6e52f5c811ee18863cb2f0e81f2433a5b9905de`, GPL-3.0. The source references, original
 license and provenance are retained in `third-party/maia-platform-quality/`.
+
+## Lichess opening names
+
+The CC0 opening table follows Mobile Maia's bundled dataset at
+`8563954429c2fb53ce0fe0e16c73c5d8a73ccfe0`, from lichess-org/chess-openings
+`4b8622759e7ae6f93f011cc6c83a3823401ab45e`. The native patch includes
+`public/nosweat/openings.json` and `OPENINGS_CC0.txt`. See
+[analysis presentation](docs/analysis-presentation.md) for reproduction and the
+AGPL Mobile Maia opening/phase presentation references.

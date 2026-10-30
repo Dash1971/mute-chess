@@ -243,3 +243,19 @@ exports explicit. Preserve the existing browser key-store name/schema, identitie
 NIP-07 and signed 2FA flow. No custom passphrase, local unlock or encrypted backup
 format. Browser persistence is optional and must not block sign-in. See
 `docs/nostr-sign-in-backup.md` for the UX, platform research and verification.
+
+
+## Accepted analysis presentation (owner approval, October 31, 2026)
+
+Implement the accepted full-screen mockup under #111, preserving the native
+three-column layout and controls. Compact fixed Maia frames, an inline rating
+legend, mirrored summary counts, chart actions above the plot and the tighter
+existing logo gap are approved. Remove Private Notes UI without deleting saved
+notes; this supersedes the earlier notes-only replay direction. Keep puzzle
+analysis separate and its Maia rows on one line. Use graded red blunder shades
+with the Maia platform's Stockfish ordering, never likelihood buckets. Opening
+names follow Mobile Maia (including ECO code, path/variation lookup and bounded
+long-name details), directly under the board. Add Mobile Maia's game-phase
+labels and boundaries to the native graph; keep native evaluation, accuracy,
+ACPL and learning semantics and continue to omit phase accuracy. Use American
+English in communication and product text. See docs/analysis-presentation.md.

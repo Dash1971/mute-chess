@@ -196,3 +196,12 @@ review gating tests, narrow and desktop browser layout, native UI formatting,
 lint, type checking and build. The presentation hook remains in the existing
 namespaced puzzle adapter and puzzle stylesheet; no native controller behavior
 or server changes are needed.
+
+
+## Accepted compact analysis (#111, October 31, 2026)
+
+The accepted full-screen presentation is specified in
+[analysis-presentation.md](analysis-presentation.md). It supersedes the earlier
+wrapped puzzle rows, flat candidate blunder color and retained Private Notes UI.
+Preserve all native chess and review contracts. Mobile Maia is the reference for
+ECO opening names under the board and the graph's game-phase boundaries.
