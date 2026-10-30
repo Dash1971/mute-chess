@@ -51,6 +51,10 @@ jobs:
           PY
       - name: Service boundary contracts
         run: python -m unittest discover -s deploy/public -p 'test_*.py'
+      - name: Documented upstream departures
+        run: |
+          python deploy/lila/check-upstream.py
+          python -m unittest discover -s deploy/lila -p 'test_*.py'
   upstream-patches:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
