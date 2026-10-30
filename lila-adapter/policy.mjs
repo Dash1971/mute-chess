@@ -1,33 +1,59 @@
 import { randomBytes, randomInt, createHash } from 'node:crypto';
 import { MODEL_SHA256 } from './maia.mjs';
 import { AdapterError } from './nostr-auth.mjs';
+import { TIMING_STYLES, validatePersonality } from './personality.mjs';
 
-export const TIMING_VERSION = 'lognormal-mobile-controls-clock-cap-v2';
+export const LEGACY_TIMING_VERSION = 'lognormal-mobile-controls-clock-cap-v2';
+export const TIMING_VERSION = 'lognormal-mobile-controls-personality-v3';
 
+function legacyVersionFor(bot) {
+  const { personality, ...legacyBot } = bot;
+  return 'maia79-lila-v2-' + createHash('sha256').update(JSON.stringify({ bot: legacyBot, model: MODEL_SHA256,
+    sampler: 'softmax-categorical-numpy-pcg64-inclusive-nucleus-v1', timing: LEGACY_TIMING_VERSION })).digest('hex').slice(0, 16);
+}
 export function versionFor(bot) {
-  return 'maia79-lila-v2-' + createHash('sha256').update(JSON.stringify({ bot, model: MODEL_SHA256,
+  if (!bot.personality) return legacyVersionFor(bot);
+  validatePersonality(bot.personality);
+  return 'maia79-lila-v3-' + createHash('sha256').update(JSON.stringify({ bot, model: MODEL_SHA256,
     sampler: 'softmax-categorical-numpy-pcg64-inclusive-nucleus-v1', timing: TIMING_VERSION })).digest('hex').slice(0, 16);
 }
 export function freeze(bot) {
+  const personality = bot.personality && validatePersonality(bot.personality);
   return { version: versionFor(bot), bot: bot.id, name: bot.name, modelSha256: MODEL_SHA256,
     encoderRevision: 'CSSLab-1e13597c-numpy-history-v1', selfElo: bot.conditioning_self,
-    opponentElo: bot.conditioning_opponent, history: randomInt(2) === 1,
-    historyMixture: '50/50 frozen per game', profile: bot.sampling_profile,
+    opponentElo: bot.conditioning_opponent, history: personality ? personality.history : randomInt(2) === 1,
+    historyMixture: personality ? 'fixed per bot' : '50/50 frozen per game', profile: bot.sampling_profile,
     openingFullMoves: bot.opening.full_moves ?? 0, temperature: bot.temperature_after_opening,
-    topP: bot.top_p_after_opening, timingVersion: TIMING_VERSION,
+    topP: bot.top_p_after_opening, timingVersion: personality ? TIMING_VERSION : LEGACY_TIMING_VERSION,
+    ...(personality ? { humanTiming: personality.humanTiming, timingStyle: personality.timingStyle } : {}),
     samplingSeed: randomBytes(16).toString('hex'), rated: false,
     calibration: bot.conditioning_self >= 2200 ? 'experimental-unvalidated' : 'unvalidated-provisional' };
 }
 export function effectivePolicy(policy, ply, roster) {
-  const bot = roster.find(bot => bot.id === policy.bot);
-  if (!bot || policy.version !== versionFor(bot) || policy.modelSha256 !== MODEL_SHA256 ||
-      policy.timingVersion !== TIMING_VERSION || policy.selfElo !== bot.conditioning_self || policy.opponentElo !== bot.conditioning_opponent ||
+  const bot = roster instanceof Map ? roster.get(policy.bot) : roster.find(bot => bot.id === policy.bot);
+  const legacy = bot && policy.version === legacyVersionFor(bot) && policy.timingVersion === LEGACY_TIMING_VERSION;
+  const current = bot?.personality && policy.version === versionFor(bot) && policy.timingVersion === TIMING_VERSION &&
+    policy.history === bot.personality.history && policy.humanTiming === bot.personality.humanTiming &&
+    policy.timingStyle === bot.personality.timingStyle;
+  if (!bot || (!legacy && !current) || policy.modelSha256 !== MODEL_SHA256 ||
+      policy.selfElo !== bot.conditioning_self || policy.opponentElo !== bot.conditioning_opponent ||
       typeof policy.history !== 'boolean' || !/^[a-f0-9]{32}$/.test(policy.samplingSeed))
     throw new AdapterError(503, 'Frozen policy is unavailable; game must be voided');
   const opening = ply < (bot.opening.full_moves ?? 0) * 2;
   return { selfElo: policy.selfElo, opponentElo: policy.opponentElo, history: policy.history,
     temperature: opening ? 1 : bot.temperature_after_opening, topP: opening ? 1 : bot.top_p_after_opening,
     seed: createHash('sha256').update(policy.samplingSeed + ':' + ply).digest('hex').slice(0, 16) };
+}
+
+export function targetTimeForPolicy(policy, clock, random) {
+  if (policy.timingVersion === LEGACY_TIMING_VERSION) return targetTime(clock, random);
+  if (policy.timingVersion !== TIMING_VERSION || typeof policy.humanTiming !== 'boolean' ||
+      !Object.hasOwn(TIMING_STYLES, policy.timingStyle)) throw new AdapterError(503, 'Timing policy unavailable');
+  if (!policy.humanTiming) return 0;
+  const cap = clock?.baseSeconds === 60 && !clock.incrementSeconds ? 3000 :
+    ((clock?.baseSeconds === 120 && clock.incrementSeconds === 1) ||
+      (clock?.baseSeconds === 180 && [0, 2].includes(clock.incrementSeconds))) ? 4500 : 9000;
+  return Math.min(cap, Math.round(targetTime(clock, random) * TIMING_STYLES[policy.timingStyle]));
 }
 
 // Port of Mobile Maia sampleHumanMoveTime (preview 8563954429c2...), with a

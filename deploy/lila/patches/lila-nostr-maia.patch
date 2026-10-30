@@ -842,7 +842,7 @@ index ab74f28..37b206a 100644
  val auth = lila.web.ui.AuthUi(helpers)
  
 diff --git a/app/views/user/show/header.scala b/app/views/user/show/header.scala
-index 26a6045..ec284bc 100644
+index 26a6045..1594f12 100644
 --- a/app/views/user/show/header.scala
 +++ b/app/views/user/show/header.scala
 @@ -10,7 +10,7 @@ import lila.web.ui.bits.splitNumber
@@ -881,6 +881,14 @@ index 26a6045..ec284bc 100644
          div(cls := "trophies")(
            views.user.bits.perfTrophies(u, info.ranks),
            otherTrophies(info),
+@@ -162,6 +173,7 @@ object header:
+                   .so(profile.nonEmptyBio)
+                   .map: bio =>
+                     p(cls := List("bio" -> true, "muted" -> muted))(richText(bio, nl2br = true)),
++                env.noSweat.botPolicy(u.id).map(views.noSweatBot(_)),
+                 div(cls := "stats")(
+                   profile.officialRating.map: r =>
+                     div(r.name.toUpperCase, " rating: ", strong(r.rating)),
 diff --git a/app/views/user/show/page.scala b/app/views/user/show/page.scala
 index 9688ca7..f6a2f8b 100644
 --- a/app/views/user/show/page.scala
@@ -1017,6 +1025,48 @@ index 2fde85c..b009933 100644
  
      val embedUserAnalysisBody = div(id := "main-wrap", cls := "is2d")(
        main(cls := "analyse")(
+diff --git a/modules/bot/src/main/OnlineApiUsers.scala b/modules/bot/src/main/OnlineApiUsers.scala
+index 365892c..3b6f6c2 100644
+--- a/modules/bot/src/main/OnlineApiUsers.scala
++++ b/modules/bot/src/main/OnlineApiUsers.scala
+@@ -2,8 +2,8 @@ package lila.bot
+ 
+ import lila.common.Bus
+ import lila.core.perf.UserWithPerfs
+-import lila.core.socket.{ ApiUserIsOnline, IsOnline }
+-import lila.memo.CacheApi.buildAsyncTimeout
++import lila.core.socket.{ ApiUserIsOnline, IsOnline, ManagedApiUsersOnline }
++import lila.memo.CacheApi.{ buildAsyncTimeout, invalidate }
+ import lila.memo.ExpireCallbackMemo
+ 
+ final class OnlineApiUsers(
+@@ -27,12 +27,25 @@ final class OnlineApiUsers(
+     cache.put(userId)
+     if wasOffline then publish(userId, isOnline = true)
+ 
++  private val managed: ManagedPresence = new ManagedPresence(
++    cacheTtl.toMillis,
++    () => System.nanoTime() / 1_000_000,
++    ids =>
++      usersCache.invalidate({})
++      jsonCache.invalidate({})
++      Bus.pub(ManagedApiUsersOnline(ids))
++  )
++
++  scheduler.scheduleWithFixedDelay(1.second, 1.second)(() => managed.expire())
++
++  def setManagedOnline(ids: Set[UserId]): Unit = managed.heartbeat(ids)
++
+   private def publish(userId: UserId, isOnline: Boolean) =
+     Bus.pub(ApiUserIsOnline(userId, isOnline))
+ 
+   private val usersCache = cacheApi.unit[List[UserWithPerfs]]("onlineApiUsers.list"):
+     _.expireAfterWrite(cacheTtl).buildAsyncTimeout(): _ =>
+-      userApi.visibleBotsByIds(cache.keySet)
++      userApi.visibleBotsByIds(cache.keySet ++ managed.activeIds)
+ 
+   def getUsers = usersCache.get({})
+ 
 diff --git a/modules/common/src/main/Json.scala b/modules/common/src/main/Json.scala
 index 9eaae2b..60120b9 100644
 --- a/modules/common/src/main/Json.scala
@@ -1047,6 +1097,18 @@ index ed7f5cb..3a48f8c 100644
    def isBot = title.contains(PlayerTitle.BOT)
    def isPatron = patronMonths.isOngoing
    def isPatronLifetime = patronMonths.isLifetime
+diff --git a/modules/core/src/main/socket.scala b/modules/core/src/main/socket.scala
+index ed982e9..7fea96c 100644
+--- a/modules/core/src/main/socket.scala
++++ b/modules/core/src/main/socket.scala
+@@ -46,6 +46,7 @@ object SendTos:
+     SendTos(userIds, makeMessage(typ, data))
+ 
+ case class ApiUserIsOnline(userId: UserId, isOnline: Boolean)
++case class ManagedApiUsersOnline(userIds: Set[UserId])
+ 
+ // announce something to all clients
+ case class Announce(msg: String, date: Instant, json: JsObject)
 diff --git a/modules/core/src/main/user.scala b/modules/core/src/main/user.scala
 index 2d2ccc9..82ca5f9 100644
 --- a/modules/core/src/main/user.scala
@@ -1637,6 +1699,44 @@ index 85c24e2..a97ff6d 100644
              ),
              (sessions.sizeIs > 1).option:
                postForm(cls := "revoke-all", action := routes.Account.signout("all")):
+diff --git a/modules/socket/src/main/RemoteSocket.scala b/modules/socket/src/main/RemoteSocket.scala
+index 987631f..34a17ac 100644
+--- a/modules/socket/src/main/RemoteSocket.scala
++++ b/modules/socket/src/main/RemoteSocket.scala
+@@ -30,6 +30,7 @@ final class RemoteSocket(
+   private type UserIds = Set[UserId]
+ 
+   val onlineUserIds: AtomicReference[Set[UserId]] = AtomicReference(initialUserIds)
++  private val managedOnlineIds = AtomicReference(Set.empty[UserId])
+ 
+   def kit = SocketKit(subscribe, channel => makeSender(channel, 1).send, baseHandler)
+   def parallelKit = ParallelSocketKit(subscribeRoundRobin, makeSender, baseHandler)
+@@ -54,7 +55,8 @@ final class RemoteSocket(
+     case In.Ping(id) => send.exec(Out.pong(id))
+     case In.WsBoot =>
+       logger.warn("Remote socket boot")
+-      onlineUserIds.set(initialUserIds)
++      onlineUserIds.set(initialUserIds ++ managedOnlineIds.get)
++      managedOnlineIds.get.foreach(id => send.exec(Out.apiUserOnline(id, true)))
+ 
+   Bus.sub[SendTos]:
+     case SendTos(userIds, payload) =>
+@@ -109,6 +111,15 @@ final class RemoteSocket(
+       send.exec(Out.apiUserOnline(userId, value))
+       if value then onlineUserIds.getAndUpdate(_ + userId)
+ 
++  Bus.sub[ManagedApiUsersOnline]:
++    case ManagedApiUsersOnline(ids) =>
++      val previous = managedOnlineIds.getAndSet(ids)
++      val removed = previous -- ids
++      val added = ids -- previous
++      onlineUserIds.getAndUpdate(current => (current -- removed) ++ added)
++      removed.foreach(id => send.exec(Out.apiUserOnline(id, false)))
++      added.foreach(id => send.exec(Out.apiUserOnline(id, true)))
++
+   Bus.sub[Follow]:
+     case Follow(u1, u2) => send.exec(Out.follow(u1, u2))
+ 
 diff --git a/modules/storm/src/main/ui/StormUi.scala b/modules/storm/src/main/ui/StormUi.scala
 index 7d4c281..fc26dc0 100644
 --- a/modules/storm/src/main/ui/StormUi.scala
@@ -5311,10 +5411,10 @@ index 18646b3..662a537 100644
      const $toggle = $('#notify-toggle');
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..8f10712
+index 0000000..23c2617
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,637 @@
+@@ -0,0 +1,690 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -5340,7 +5440,6 @@ index 0000000..8f10712
 +  private lazy val token = env.config.get[String]("nosweat.adapterToken")
 +  private val records = env.mongo.mainDb(CollName("nosweat_game"))
 +  private val lastPoll = AtomicLong(System.currentTimeMillis())
-+  private val lastOnline = AtomicLong(0L)
 +  private val adapterInstance = AtomicReference("")
 +  private val connectedBots = java.util.concurrent.ConcurrentHashMap.newKeySet[GameId]()
 +  private val queue = scalalib.actor.AsyncActorSequencer(
@@ -5355,6 +5454,61 @@ index 0000000..8f10712
 +    )
 +    .as[List[JsObject]]
 +  private def botId(bot: JsObject): UserId = UserId((bot \ "username").as[String].toLowerCase)
++  private lazy val botsById = roster.map(bot => botId(bot) -> bot).toMap
++  private lazy val botIds = botsById.keySet
++  private val ratingCatalog = new lila.bot.PoolCatalog
++  private val poolKeys = List(
++    PerfKey.ultraBullet,
++    PerfKey.bullet,
++    PerfKey.blitz,
++    PerfKey.rapid,
++    PerfKey.classical,
++    PerfKey.correspondence
++  )
++
++  def botPolicy(id: UserId): Option[JsObject] =
++    Option
++      .when(enabled)(botsById.get(id))
++      .flatten
++      .filter(bot => (bot \ "personality").asOpt[JsObject].isDefined)
++
++  private def reloadBotRatings(): Funit =
++    env.user.perfsRepo
++      .idsMap(botIds.toList, _.pri)
++      .map: perfs =>
++        requireThat(perfs.size == botIds.size, 503, "Bot rating data is unavailable")
++        ratingCatalog.replace(perfs.map: (id, ps) =>
++          id -> poolKeys.map(key => key -> ps(key).intRating.value).toMap)
++
++  private def refreshBotRating(id: UserId): Funit =
++    env.user.perfsRepo
++      .perfsOf(id)
++      .map: ps =>
++        ratingCatalog.update(id, poolKeys.map(key => key -> ps(key).intRating.value).toMap)
++
++  private def poolOpponent(key: PerfKey, rating: Int, busy: Set[UserId]): Fu[lila.core.user.WithPerf] =
++    def pick(excluded: Set[UserId], retries: Int): Fu[lila.core.user.WithPerf] =
++      val eligible = ratingCatalog.within(key, rating, excluded)
++      if eligible.isEmpty || retries == 0 then
++        fufail(
++          NoSweatError(503, "No opponent within 200 rating points is available. Please try again shortly.")
++        )
++      else
++        val id = eligible(scalalib.SecureRandom.nextInt(eligible.size))
++        env.user.api
++          .byIdWithPerf(id, key)
++          .flatMap:
++            case Some(opponent)
++                if opponent.user.isBot && opponent.user.enabled.yes && math.abs(
++                  opponent.perf.intRating.value - rating
++                ) <= 200 =>
++              fuccess(opponent)
++            case Some(opponent) if opponent.user.isBot && opponent.user.enabled.yes =>
++              refreshBotRating(id).flatMap(_ => pick(excluded + id, retries - 1))
++            case _ =>
++              ratingCatalog.update(id, Map.empty)
++              pick(excluded + id, retries - 1)
++    pick(busy, 4)
 +  private def requireThat(ok: Boolean, status: Int, message: String): Unit =
 +    if !ok then throw NoSweatError(status, message)
 +
@@ -5469,67 +5623,70 @@ index 0000000..8f10712
 +      )
 +    yield Json.obj("confirmed" -> true, "until" -> until.toString)
 +
++  private def provisionBot(bot: JsObject): Funit =
++    val name = UserName((bot \ "username").as[String])
++    for
++      existing <- env.user.repo.byId(name.id)
++      loaded <- existing.fold(env.user.repo.createNoSweatBot(name))(u => fuccess(u.some))
++      user = loaded.getOrElse(throw NoSweatError(503, "Could not provision bot"))
++      doc <- env.user.repo.withColl(_.byId[Bdoc](name.id))
++      _ = requireThat(
++        user.isBot && doc.exists(_.getAsOpt[Boolean]("noSweatBot").contains(true)),
++        503,
++        "A roster name is occupied by an account outside the club roster"
++      )
++      _ <-
++        if doc.exists(_.getAsOpt[String]("noSweatSeedVersion").isDefined) then funit
++        else
++          List(("blitz", PerfKey.blitz), ("rapid", PerfKey.rapid))
++            .foldLeft(funit): (prev, entry) =>
++              prev.flatMap: _ =>
++                val prior = (bot \ "ratings" \ entry._1)
++                val perf = lila.rating.Perf.default.copy(
++                  glicko = new chess.rating.glicko.Glicko(
++                    (prior \ "initial_rating").as[Double],
++                    (prior \ "initial_rd").as[Double],
++                    0.09
++                  ),
++                  latest = nowInstant.some
++                )
++                env.user.perfsRepo.setPerf(user.id, entry._2, perf)
++            .flatMap(_ =>
++              env.user.repo.withColl(
++                _.update.one(bid(name.id), set("noSweatSeedVersion" -> "roster-priors-v1")).void
++              )
++            )
++      _ <-
++        if doc.exists(_.getAsOpt[String]("noSweatPoolSeedVersion").isDefined) then funit
++        else
++          List(PerfKey.ultraBullet, PerfKey.bullet, PerfKey.classical, PerfKey.correspondence)
++            .foldLeft(funit): (prev, key) =>
++              prev.flatMap: _ =>
++                val prior =
++                  (bot \ "ratings" \ (if key == PerfKey.classical || key == PerfKey.correspondence then
++                                        "rapid"
++                                      else "blitz"))
++                val perf = lila.rating.Perf.default.copy(
++                  glicko = new chess.rating.glicko.Glicko(
++                    (prior \ "initial_rating").as[Double],
++                    (prior \ "initial_rd").as[Double],
++                    0.09
++                  ),
++                  latest = nowInstant.some
++                )
++                env.user.perfsRepo.setPerf(user.id, key, perf)
++            .flatMap(_ =>
++              env.user.repo.withColl(
++                _.update.one(bid(name.id), set("noSweatPoolSeedVersion" -> "pool-priors-v1")).void
++              )
++            )
++    yield env.user.lightUserApi.invalidate(user.id)
++
 +  private def initialize(): Funit =
 +    roster
-+      .foldLeft(funit): (previous, bot) =>
-+        previous.flatMap: _ =>
-+          val name = UserName((bot \ "username").as[String])
-+          for
-+            existing <- env.user.repo.byId(name.id)
-+            loaded <- existing.fold(env.user.repo.createNoSweatBot(name))(u => fuccess(u.some))
-+            user = loaded.getOrElse(throw NoSweatError(503, "Could not provision bot"))
-+            doc <- env.user.repo.withColl(_.byId[Bdoc](name.id))
-+            _ = requireThat(
-+              user.isBot && doc.exists(_.getAsOpt[Boolean]("noSweatBot").contains(true)),
-+              503,
-+              "A roster name is occupied by an account outside the club roster"
-+            )
-+            _ <-
-+              if doc.exists(_.getAsOpt[String]("noSweatSeedVersion").isDefined) then funit
-+              else
-+                List(("blitz", PerfKey.blitz), ("rapid", PerfKey.rapid))
-+                  .foldLeft(funit): (prev, entry) =>
-+                    prev.flatMap: _ =>
-+                      val prior = (bot \ "ratings" \ entry._1)
-+                      val perf = lila.rating.Perf.default.copy(
-+                        glicko = new chess.rating.glicko.Glicko(
-+                          (prior \ "initial_rating").as[Double],
-+                          (prior \ "initial_rd").as[Double],
-+                          0.09
-+                        ),
-+                        latest = nowInstant.some
-+                      )
-+                      env.user.perfsRepo.setPerf(user.id, entry._2, perf)
-+                  .flatMap(_ =>
-+                    env.user.repo.withColl(
-+                      _.update.one(bid(name.id), set("noSweatSeedVersion" -> "roster-priors-v1")).void
-+                    )
-+                  )
-+            _ <-
-+              if doc.exists(_.getAsOpt[String]("noSweatPoolSeedVersion").isDefined) then funit
-+              else
-+                List(PerfKey.ultraBullet, PerfKey.bullet, PerfKey.classical, PerfKey.correspondence)
-+                  .foldLeft(funit): (prev, key) =>
-+                    prev.flatMap: _ =>
-+                      val prior =
-+                        (bot \ "ratings" \ (if key == PerfKey.classical || key == PerfKey.correspondence then
-+                                              "rapid"
-+                                            else "blitz"))
-+                      val perf = lila.rating.Perf.default.copy(
-+                        glicko = new chess.rating.glicko.Glicko(
-+                          (prior \ "initial_rating").as[Double],
-+                          (prior \ "initial_rd").as[Double],
-+                          0.09
-+                        ),
-+                        latest = nowInstant.some
-+                      )
-+                      env.user.perfsRepo.setPerf(user.id, key, perf)
-+                  .flatMap(_ =>
-+                    env.user.repo.withColl(
-+                      _.update.one(bid(name.id), set("noSweatPoolSeedVersion" -> "pool-priors-v1")).void
-+                    )
-+                  )
-+          yield env.user.lightUserApi.invalidate(user.id)
++      .grouped(16)
++      .foldLeft(funit)((previous, batch) => previous.flatMap(_ => batch.toList.traverse(provisionBot).void))
++      .flatMap(_ => reloadBotRatings())
 +      .flatMap: _ =>
 +        // A process restart never guesses how much time unfinished games lost.
 +        records
@@ -5542,6 +5699,14 @@ index 0000000..8f10712
 +            )
 +
 +  val ready: Funit = if enabled then initialize() else funit
++
++  if enabled then
++    lila.common.Bus.sub[lila.core.game.FinishGame]: finish =>
++      finish.game.userIds
++        .filter(botIds)
++        .foreach: id =>
++          queue(ready.flatMap(_ => refreshBotRating(id))).failed.foreach: error =>
++            lila.log("nosweat").error("Could not refresh bot rating catalog", error)
 +
 +  if enabled then
 +    env.system.scheduler.scheduleWithFixedDelay(5.seconds, 5.seconds): () =>
@@ -5778,19 +5943,9 @@ index 0000000..8f10712
 +          val busy = games.flatMap(_._1.getAsOpt[UserId]("bot")).toSet
 +          for
 +            human <- user.traverse(u => env.user.api.byIdWithPerf(u.id, perfKey)).map(_.flatten)
-+            opponents <- roster.traverse(b => env.user.api.byIdWithPerf(botId(b), perfKey))
 +            rating = human.fold(1500)(_.perf.intRating.value)
-+            eligible = opponents.flatten.filter(o =>
-+              o.user.isBot && !busy(o.user.id) &&
-+                math.abs(o.perf.intRating.value - rating) <= 200
-+            )
-+            _ = requireThat(
-+              eligible.nonEmpty,
-+              503,
-+              "No opponent within 200 rating points is available. Please try again shortly."
-+            )
-+            opponent = eligible(scalalib.SecureRandom.nextInt(eligible.size))
-+            bot = roster.find(b => botId(b) == opponent.user.id).get
++            opponent <- poolOpponent(perfKey, rating, busy)
++            bot = botsById(opponent.user.id)
 +            slug = (bot \ "id").as[String]
 +            frozen <- adapter("/freeze", Json.obj("bot" -> slug))
 +            policy = frozen.as[JsObject] ++ Json.obj("rated" -> rated)
@@ -5849,15 +6004,12 @@ index 0000000..8f10712
 +    )
 +
 +  def games(instance: Option[String]): Fu[JsValue] =
-+    val restarted = instance
-+      .filter(_.matches("[0-9a-f-]{36}"))
++    val pollingInstance = instance.filter(_.matches("[0-9a-f-]{36}"))
++    val restarted = pollingInstance
 +      .exists: next =>
 +        lastPoll.set(System.currentTimeMillis())
 +        val previous = adapterInstance.getAndSet(next)
 +        previous.nonEmpty && previous != next
-+    if System.currentTimeMillis() - lastOnline.get() > 5000 then
-+      lastOnline.set(System.currentTimeMillis())
-+      roster.foreach(bot => env.bot.onlineApiUsers.setOnline(botId(bot)))
 +    val recover = if !restarted then funit
 +    else
 +      ready
@@ -5867,6 +6019,7 @@ index 0000000..8f10712
 +            prev.flatMap(_ => failGame(entry._2.id, "maia_adapter_restart"))
 +          )
 +    ready
++      .map(_ => pollingInstance.foreach(_ => env.bot.onlineApiUsers.setManagedOnline(botIds)))
 +      .flatMap(_ => recover)
 +      .flatMap(_ => current())
 +      .flatMap: games =>
@@ -6170,6 +6323,48 @@ index 0000000..9d3afd9
 +
 +  def game(id: GameId) = Auth: context ?=>
 +    user ?=> handle(club.details(id, user.value).map(_.fold(NotFound)(Ok(_))))
+diff --git a/app/views/noSweatBot.scala b/app/views/noSweatBot.scala
+new file mode 100644
+index 0000000..e57f6e5
+--- /dev/null
++++ b/app/views/noSweatBot.scala
+@@ -0,0 +1,36 @@
++package views
++
++import play.api.libs.json.*
++import lila.app.UiEnv.{ *, given }
++
++object noSweatBot:
++  def apply(bot: JsObject)(using Context): Frag =
++    val personality = (bot \ "personality").as[JsObject]
++    val opening = (bot \ "opening" \ "full_moves").asOpt[Int].getOrElse(0)
++    val timing = (personality \ "humanTiming").as[Boolean]
++    val history = (personality \ "history").as[Boolean]
++    val style = (personality \ "timingStyle").as[String].replace('-', ' ')
++    div(cls := "nosweat-bot-policy")(
++      h2("Bot settings"),
++      table(
++        tbody(
++          tr(th("Model"), td("Maia3 79M")),
++          tr(
++            th("Conditioning"),
++            td(s"${(bot \ "conditioning_self").as[Int]} / ${(bot \ "conditioning_opponent").as[Int]}")
++          ),
++          tr(th("Temperature"), td((bot \ "temperature_after_opening").as[Double].toString)),
++          tr(th("Top-p"), td((bot \ "top_p_after_opening").as[Double].toString)),
++          tr(th("Move history"), td(if history then "On" else "Off")),
++          tr(th("Human timing"), td(if timing then "On" else "Off")),
++          tr(th("Timing style"), td(style + (if timing then "" else " (inactive)"))),
++          (opening > 0).option(tr(th("Opening"), td(s"Full sampling for the first $opening moves")))
++        )
++      ),
++      p(
++        "These settings stay fixed across games. Conditioning is a model input, not a measured playing rating."
++      ),
++      a(href := "https://github.com/Dash1971/mute-chess/blob/main/docs/bot-population.md")(
++        "Policy and rating methodology"
++      )
++    )
 diff --git a/app/views/noSweatInfo.scala b/app/views/noSweatInfo.scala
 new file mode 100644
 index 0000000..179e814
@@ -6711,6 +6906,157 @@ index 0000000..14659d9
 +          ),
 +          a(id := "nostr-security-done", href := "/club/security", cls := "button", hidden)("Done")
 +        )
+diff --git a/modules/bot/src/main/ManagedPresence.scala b/modules/bot/src/main/ManagedPresence.scala
+new file mode 100644
+index 0000000..45ec2e2
+--- /dev/null
++++ b/modules/bot/src/main/ManagedPresence.scala
+@@ -0,0 +1,26 @@
++package lila.bot
++
++/** One expiring health lease for a managed roster, not one timer per account. */
++private[bot] final class ManagedPresence(
++    ttlMillis: Long,
++    now: () => Long,
++    publish: Set[UserId] => Unit
++):
++  private var ids = Set.empty[UserId]
++  private var online = false
++  private var until = 0L
++
++  def heartbeat(next: Set[UserId]): Unit = synchronized:
++    until = now() + ttlMillis
++    val changed = !online || ids != next
++    ids = next
++    online = true
++    if changed then publish(ids)
++
++  def expire(): Unit = synchronized:
++    if online && now() >= until then
++      online = false
++      publish(Set.empty)
++
++  def activeIds: Set[UserId] = synchronized:
++    if online then ids else Set.empty
+diff --git a/modules/bot/src/main/PoolCatalog.scala b/modules/bot/src/main/PoolCatalog.scala
+new file mode 100644
+index 0000000..902252a
+--- /dev/null
++++ b/modules/bot/src/main/PoolCatalog.scala
+@@ -0,0 +1,40 @@
++package lila.bot
++
++import scala.collection.immutable.TreeMap
++import lila.core.perf.PerfKey
++
++/** Derived index only. Native perfs remain authoritative and are checked at admission. */
++final class PoolCatalog:
++  private var ratings = Map.empty[UserId, Map[PerfKey, Int]]
++  private var pools = Map.empty[PerfKey, TreeMap[Int, Set[UserId]]]
++
++  def replace(entries: Map[UserId, Map[PerfKey, Int]]): Unit = synchronized:
++    ratings = Map.empty
++    pools = Map.empty
++    entries.foreach((id, perfs) => update(id, perfs))
++
++  def update(id: UserId, perfs: Map[PerfKey, Int]): Unit = synchronized:
++    ratings
++      .get(id)
++      .foreach(_.foreach: (key, rating) =>
++        val pool = pools(key)
++        val ids = pool(rating) - id
++        pools = pools.updated(key, if ids.isEmpty then pool.removed(rating) else pool.updated(rating, ids)))
++    if perfs.isEmpty then ratings = ratings.removed(id)
++    else
++      ratings = ratings.updated(id, perfs)
++      perfs.foreach: (key, rating) =>
++        val pool = pools.getOrElse(key, TreeMap.empty[Int, Set[UserId]])
++        pools = pools.updated(key, pool.updated(rating, pool.getOrElse(rating, Set.empty) + id))
++
++  def within(key: PerfKey, rating: Int, excluded: Set[UserId]): Vector[UserId] = synchronized:
++    pools
++      .get(key)
++      .fold(Vector.empty[UserId]): pool =>
++        pool
++          .rangeFrom(rating - 200)
++          .rangeTo(rating + 200)
++          .valuesIterator
++          .flatMap(_.iterator)
++          .filterNot(excluded)
++          .toVector
+diff --git a/modules/bot/src/test/ManagedPresenceTest.scala b/modules/bot/src/test/ManagedPresenceTest.scala
+new file mode 100644
+index 0000000..1752531
+--- /dev/null
++++ b/modules/bot/src/test/ManagedPresenceTest.scala
+@@ -0,0 +1,29 @@
++package lila.bot
++
++class ManagedPresenceTest extends munit.FunSuite:
++  test("healthy 10,000-bot heartbeats publish once; expiry and recovery publish one transition each"):
++    var now = 0L
++    var events = Vector.empty[Set[UserId]]
++    val ids = (0 until 10000).map(i => UserId(s"bot$i")).toSet
++    val presence = new ManagedPresence(10000, () => now, next => events :+= next)
++    assertEquals(presence.activeIds, Set.empty[UserId])
++    presence.heartbeat(ids)
++    for _ <- 0 until 100 do
++      now += 1000
++      presence.heartbeat(ids)
++      presence.expire()
++    assertEquals(events, Vector(ids))
++    now += 10000
++    presence.expire()
++    presence.expire()
++    assertEquals(events, Vector(ids, Set.empty))
++    assertEquals(presence.activeIds, Set.empty[UserId])
++    presence.heartbeat(ids)
++    assertEquals(events, Vector(ids, Set.empty, ids))
++
++  test("a roster replacement publishes the replacement without ghost identities"):
++    var latest = Set.empty[UserId]
++    val presence = new ManagedPresence(10000, () => 0, next => latest = next)
++    presence.heartbeat(Set(UserId("oldbot")))
++    presence.heartbeat(Set(UserId("newbot")))
++    assertEquals(latest, Set(UserId("newbot")))
+diff --git a/modules/bot/src/test/PoolCatalogTest.scala b/modules/bot/src/test/PoolCatalogTest.scala
+new file mode 100644
+index 0000000..8ffa31b
+--- /dev/null
++++ b/modules/bot/src/test/PoolCatalogTest.scala
+@@ -0,0 +1,32 @@
++package lila.bot
++
++import lila.core.perf.PerfKey
++
++class PoolCatalogTest extends munit.FunSuite:
++  test("10,000 identities preserve the exact rating window, speed and busy exclusion"):
++    val catalog = new PoolCatalog
++    val entries = (0 until 10000).map: i =>
++      UserId(s"bot$i") -> Map(PerfKey.blitz -> (400 + i % 2400), PerfKey.rapid -> (600 + i % 2000))
++    val ratings = entries.toMap
++    catalog.replace(ratings)
++    val busy = Set(UserId("bot700"), UserId("bot800"))
++    for key <- List(PerfKey.blitz, PerfKey.rapid); rating <- List(400, 1000, 1500, 2600) do
++      val actual = catalog.within(key, rating, busy)
++      val expected = ratings.collect:
++        case (id, perfs) if math.abs(perfs(key) - rating) <= 200 && !busy(id) => id
++      assertEquals(actual.toSet, expected.toSet)
++      assertEquals(actual.distinct.size, actual.size)
++
++  test("updates remove old buckets; restart replacement removes retired accounts"):
++    val catalog = new PoolCatalog
++    val id = UserId("testbot")
++    catalog.update(id, Map(PerfKey.blitz -> 1500, PerfKey.rapid -> 1800))
++    catalog.update(id, Map(PerfKey.blitz -> 2100, PerfKey.rapid -> 1800))
++    assertEquals(catalog.within(PerfKey.blitz, 1500, Set.empty), Vector.empty)
++    assertEquals(catalog.within(PerfKey.blitz, 2100, Set.empty), Vector(id))
++    assertEquals(catalog.within(PerfKey.rapid, 1800, Set.empty), Vector(id))
++    catalog.update(id, Map.empty)
++    assertEquals(catalog.within(PerfKey.rapid, 1800, Set.empty), Vector.empty)
++    catalog.update(id, Map(PerfKey.blitz -> 1500))
++    catalog.replace(Map.empty)
++    assertEquals(catalog.within(PerfKey.blitz, 1500, Set.empty), Vector.empty)
 diff --git a/modules/core/src/main/NostrName.scala b/modules/core/src/main/NostrName.scala
 new file mode 100644
 index 0000000..6d6be63
@@ -6825,10 +7171,10 @@ index 0000000..9d040d7
 +<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8" shape-rendering="crispEdges"><title>Quiet Signal chessboard</title><rect width="8" height="8" fill="#c7cfba"/><path d="M1 0h1v1h-1z M3 0h1v1h-1z M5 0h1v1h-1z M7 0h1v1h-1z M0 1h1v1h-1z M2 1h1v1h-1z M4 1h1v1h-1z M6 1h1v1h-1z M1 2h1v1h-1z M3 2h1v1h-1z M5 2h1v1h-1z M7 2h1v1h-1z M0 3h1v1h-1z M2 3h1v1h-1z M4 3h1v1h-1z M6 3h1v1h-1z M1 4h1v1h-1z M3 4h1v1h-1z M5 4h1v1h-1z M7 4h1v1h-1z M0 5h1v1h-1z M2 5h1v1h-1z M4 5h1v1h-1z M6 5h1v1h-1z M1 6h1v1h-1z M3 6h1v1h-1z M5 6h1v1h-1z M7 6h1v1h-1z M0 7h1v1h-1z M2 7h1v1h-1z M4 7h1v1h-1z M6 7h1v1h-1z" fill="#668478"/></svg>
 diff --git a/public/nosweat-roster.json b/public/nosweat-roster.json
 new file mode 100644
-index 0000000..f8dcde1
+index 0000000..c4e86cd
 --- /dev/null
 +++ b/public/nosweat-roster.json
-@@ -0,0 +1,1806 @@
+@@ -0,0 +1,2070 @@
 +[
 +  {
 +    "id": "pixel-moth",
@@ -6869,7 +7215,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_600",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "PixelMoth"
++    "username": "PixelMoth",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": true,
++      "humanTiming": false,
++      "timingStyle": "slow"
++    }
 +  },
 +  {
 +    "id": "glitch-cat",
@@ -6910,7 +7262,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_600",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "GlitchCat"
++    "username": "GlitchCat",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": false,
++      "timingStyle": "very-slow"
++    }
 +  },
 +  {
 +    "id": "pocket-static",
@@ -6951,7 +7309,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_600",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "PocketStatic"
++    "username": "PocketStatic",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": false,
++      "timingStyle": "very-slow"
++    }
 +  },
 +  {
 +    "id": "cassette-kid",
@@ -6992,7 +7356,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_600",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "CassetteKid"
++    "username": "CassetteKid",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": true,
++      "humanTiming": true,
++      "timingStyle": "very-slow"
++    }
 +  },
 +  {
 +    "id": "copper-byte",
@@ -7033,7 +7403,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_800",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "CopperByte"
++    "username": "CopperByte",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": true,
++      "timingStyle": "slow"
++    }
 +  },
 +  {
 +    "id": "neon-finch",
@@ -7074,7 +7450,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_800",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "NeonFinch"
++    "username": "NeonFinch",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": false,
++      "timingStyle": "fast"
++    }
 +  },
 +  {
 +    "id": "patchwork",
@@ -7115,7 +7497,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_800",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "Patchwork"
++    "username": "Patchwork",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": true,
++      "timingStyle": "fast"
++    }
 +  },
 +  {
 +    "id": "velvet-circuit",
@@ -7156,7 +7544,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_800",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "VelvetCircuit"
++    "username": "VelvetCircuit",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": true,
++      "timingStyle": "very-slow"
++    }
 +  },
 +  {
 +    "id": "cobalt-mist",
@@ -7197,7 +7591,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_1000",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "CobaltMist"
++    "username": "CobaltMist",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": true,
++      "humanTiming": true,
++      "timingStyle": "fast"
++    }
 +  },
 +  {
 +    "id": "sideband",
@@ -7238,7 +7638,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_1000",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "Sideband"
++    "username": "Sideband",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": true,
++      "timingStyle": "normal"
++    }
 +  },
 +  {
 +    "id": "chrome-sparrow",
@@ -7279,7 +7685,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_1000",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "ChromeSparrow"
++    "username": "ChromeSparrow",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": true,
++      "timingStyle": "slow"
++    }
 +  },
 +  {
 +    "id": "chrome-alley",
@@ -7320,7 +7732,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_1000",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "ChromeAlley"
++    "username": "ChromeAlley",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": true,
++      "humanTiming": true,
++      "timingStyle": "slow"
++    }
 +  },
 +  {
 +    "id": "violet-metro",
@@ -7361,7 +7779,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_1200",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "VioletMetro"
++    "username": "VioletMetro",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": true,
++      "timingStyle": "very-slow"
++    }
 +  },
 +  {
 +    "id": "static-rain",
@@ -7402,7 +7826,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_1200",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "StaticRain"
++    "username": "StaticRain",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": true,
++      "humanTiming": false,
++      "timingStyle": "normal"
++    }
 +  },
 +  {
 +    "id": "rooftop-echo",
@@ -7443,7 +7873,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_1200",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "RooftopEcho"
++    "username": "RooftopEcho",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": false,
++      "timingStyle": "very-fast"
++    }
 +  },
 +  {
 +    "id": "carbon-kite",
@@ -7484,7 +7920,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_1200",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "CarbonKite"
++    "username": "CarbonKite",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": true,
++      "humanTiming": true,
++      "timingStyle": "fast"
++    }
 +  },
 +  {
 +    "id": "neon-rook",
@@ -7525,7 +7967,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_1400",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "NeonRook"
++    "username": "NeonRook",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": true,
++      "humanTiming": false,
++      "timingStyle": "very-slow"
++    }
 +  },
 +  {
 +    "id": "quiet-proxy",
@@ -7566,7 +8014,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_1400",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "QuietProxy"
++    "username": "QuietProxy",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": false,
++      "timingStyle": "normal"
++    }
 +  },
 +  {
 +    "id": "night-courier",
@@ -7607,7 +8061,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_1400",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "NightCourier"
++    "username": "NightCourier",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": true,
++      "humanTiming": false,
++      "timingStyle": "very-fast"
++    }
 +  },
 +  {
 +    "id": "rust-halo",
@@ -7648,7 +8108,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_1400",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "RustHalo"
++    "username": "RustHalo",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": true,
++      "timingStyle": "very-fast"
++    }
 +  },
 +  {
 +    "id": "cipher-fox",
@@ -7689,7 +8155,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_1600",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "CipherFox"
++    "username": "CipherFox",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": true,
++      "timingStyle": "normal"
++    }
 +  },
 +  {
 +    "id": "analog-ghost",
@@ -7730,7 +8202,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_1600",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "AnalogGhost"
++    "username": "AnalogGhost",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": true,
++      "humanTiming": true,
++      "timingStyle": "fast"
++    }
 +  },
 +  {
 +    "id": "switchback",
@@ -7771,7 +8249,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_1600",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "Switchback"
++    "username": "Switchback",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": true,
++      "humanTiming": true,
++      "timingStyle": "very-slow"
++    }
 +  },
 +  {
 +    "id": "static-bishop",
@@ -7812,7 +8296,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_1600",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "StaticBishop"
++    "username": "StaticBishop",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": true,
++      "humanTiming": false,
++      "timingStyle": "very-slow"
++    }
 +  },
 +  {
 +    "id": "ghost-relay",
@@ -7853,7 +8343,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_1800",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "GhostRelay"
++    "username": "GhostRelay",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": true,
++      "timingStyle": "very-slow"
++    }
 +  },
 +  {
 +    "id": "night-current",
@@ -7894,7 +8390,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_1800",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "NightCurrent"
++    "username": "NightCurrent",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": true,
++      "humanTiming": false,
++      "timingStyle": "fast"
++    }
 +  },
 +  {
 +    "id": "neon-knight",
@@ -7935,7 +8437,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_1800",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "NeonKnight"
++    "username": "NeonKnight",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": true,
++      "humanTiming": true,
++      "timingStyle": "normal"
++    }
 +  },
 +  {
 +    "id": "ghost-gambit",
@@ -7976,7 +8484,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_1800",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "GhostGambit"
++    "username": "GhostGambit",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": true,
++      "timingStyle": "fast"
++    }
 +  },
 +  {
 +    "id": "chrome-castle",
@@ -8017,7 +8531,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_2000",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "ChromeCastle"
++    "username": "ChromeCastle",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": true,
++      "humanTiming": true,
++      "timingStyle": "slow"
++    }
 +  },
 +  {
 +    "id": "midnight-signal",
@@ -8058,7 +8578,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_2000",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "MidnightSignal"
++    "username": "MidnightSignal",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": true,
++      "humanTiming": true,
++      "timingStyle": "very-fast"
++    }
 +  },
 +  {
 +    "id": "circuit-saint",
@@ -8099,7 +8625,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_2000",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "CircuitSaint"
++    "username": "CircuitSaint",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": true,
++      "timingStyle": "very-fast"
++    }
 +  },
 +  {
 +    "id": "null-echo",
@@ -8140,7 +8672,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_2000",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "NullEcho"
++    "username": "NullEcho",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": true,
++      "humanTiming": false,
++      "timingStyle": "normal"
++    }
 +  },
 +  {
 +    "id": "neon-drift",
@@ -8181,7 +8719,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_2200",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "NeonDrift"
++    "username": "NeonDrift",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": false,
++      "timingStyle": "very-slow"
++    }
 +  },
 +  {
 +    "id": "signal-weaver",
@@ -8222,7 +8766,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_2200",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "SignalWeaver"
++    "username": "SignalWeaver",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": true,
++      "humanTiming": true,
++      "timingStyle": "slow"
++    }
 +  },
 +  {
 +    "id": "quantum-shade",
@@ -8263,7 +8813,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_2200",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "QuantumShade"
++    "username": "QuantumShade",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": true,
++      "timingStyle": "normal"
++    }
 +  },
 +  {
 +    "id": "blackout",
@@ -8304,7 +8860,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_2200",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "Blackout"
++    "username": "Blackout",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": true,
++      "timingStyle": "very-fast"
++    }
 +  },
 +  {
 +    "id": "indigo-pulse",
@@ -8345,7 +8907,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_2400",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "IndigoPulse"
++    "username": "IndigoPulse",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": true,
++      "timingStyle": "fast"
++    }
 +  },
 +  {
 +    "id": "holo-raven",
@@ -8386,7 +8954,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_2400",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "HoloRaven"
++    "username": "HoloRaven",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": true,
++      "humanTiming": false,
++      "timingStyle": "normal"
++    }
 +  },
 +  {
 +    "id": "chrome-oracle",
@@ -8427,7 +9001,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_2400",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "ChromeOracle"
++    "username": "ChromeOracle",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": true,
++      "humanTiming": false,
++      "timingStyle": "very-slow"
++    }
 +  },
 +  {
 +    "id": "zero-day",
@@ -8468,7 +9048,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_2400",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "ZeroDay"
++    "username": "ZeroDay",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": true,
++      "timingStyle": "very-fast"
++    }
 +  },
 +  {
 +    "id": "ultraviolet",
@@ -8509,7 +9095,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_2600",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "Ultraviolet"
++    "username": "Ultraviolet",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": true,
++      "timingStyle": "normal"
++    }
 +  },
 +  {
 +    "id": "prism-wraith",
@@ -8550,7 +9142,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_2600",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "PrismWraith"
++    "username": "PrismWraith",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": true,
++      "humanTiming": false,
++      "timingStyle": "very-slow"
++    }
 +  },
 +  {
 +    "id": "event-horizon",
@@ -8591,7 +9189,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_2600",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "EventHorizon"
++    "username": "EventHorizon",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": false,
++      "timingStyle": "normal"
++    }
 +  },
 +  {
 +    "id": "kernel-ghost",
@@ -8632,7 +9236,13 @@ index 0000000..f8dcde1
 +    "reference_account": "maia3-79m_2600",
 +    "baseline_assumption": "reference is comparable to full sampling; unverified",
 +    "configuration_status": "private-unrated-alpha-v1",
-+    "username": "KernelGhost"
++    "username": "KernelGhost",
++    "personality": {
++      "assignment": "sha256-independent-fields-v1",
++      "history": false,
++      "humanTiming": true,
++      "timingStyle": "very-fast"
++    }
 +  }
 +]
 diff --git a/public/nosweat/app-icon-192.png b/public/nosweat/app-icon-192.png
@@ -8915,15 +9525,21 @@ HcmV?d00001
 
 diff --git a/public/nosweat/brand.css b/public/nosweat/brand.css
 new file mode 100644
-index 0000000..198514c
+index 0000000..49fe2fd
 --- /dev/null
 +++ b/public/nosweat/brand.css
-@@ -0,0 +1,121 @@
+@@ -0,0 +1,127 @@
 +.site-title .nosweat-header-icon{width:38px;height:38px;margin-right:7px}.site-title .nosweat-wordmark{width:174px;height:50px;object-fit:contain}.nosweat-light{display:none}.light .nosweat-dark{display:none}.light .nosweat-light{display:block}.nosweat-login-wordmark{width:272px;max-width:100%;height:62px}.auth__brand{justify-content:center}@media(max-width:799px){.site-title .nosweat-wordmark{display:none!important}.site-title .nosweat-header-icon{width:36px;height:36px;margin:0}}
 +
 +main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-dark.svg")}.light main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-light.svg")}
 +
 +
++.nosweat-bot-policy { margin:1em 0; max-width:32em; }
++.nosweat-bot-policy h2 { font-size:1.1em; margin-bottom:.6em; }
++.nosweat-bot-policy table { width:100%; border-collapse:collapse; }
++.nosweat-bot-policy th,.nosweat-bot-policy td { text-align:left; padding:.3em .6em .3em 0; vertical-align:top; }
++.nosweat-bot-policy th { font-weight:normal; color:var(--c-font-dim); width:40%; }
++.nosweat-bot-policy p { color:var(--c-font-dim); font-size:.85em; margin:.7em 0; }
 +.nosweat-analysis { padding:.7em; border-bottom:1px solid var(--c-border); font-size:.85em; max-height:48vh; overflow:auto; flex-shrink:0; }
 +.nosweat-analysis__heading,.nosweat-analysis__settings,.nosweat-analysis__options,.nosweat-analysis__actions { display:flex; flex-wrap:wrap; align-items:center; gap:.4em .7em; }
 +.nosweat-analysis__heading { justify-content:space-between; }

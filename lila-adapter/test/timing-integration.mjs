@@ -43,7 +43,8 @@ try{
     ws.send(JSON.stringify({t:'resign'}));await wait(async()=> (await call('/game'+active.url)).game.status.id>=30,'resignation');
     const timings=storedMoves(active.id);assert.equal(timings.length,4);
     for(const timing of timings){
-      if(minutes===1)assert.ok(timing.targetMs>=275&&timing.targetMs<=3000);
+      if (!state.policy.humanTiming) assert.equal(timing.targetMs, 0);
+      else if (minutes === 1) assert.ok(timing.targetMs >= 100 && timing.targetMs <= 3000);
       assert.ok(timing.actualMs>=Math.floor(timing.inferenceMs)-2,'inference counted within actual duration');
       assert.ok(timing.actualMs<=Math.max(timing.targetMs,timing.inferenceMs)+2000,'no second full delay after inference');
     }

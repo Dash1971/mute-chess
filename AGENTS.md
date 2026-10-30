@@ -140,3 +140,22 @@ to Lichess's patron page. Frame Mute Chess donations around its specific Maia
 integration with the Lichess experience. Keep clear, linked credits on About for
 Lichess/Lila, Maia, En Croissant, Mobile Maia and Stockfish, and link source and
 license notices. See #67.
+
+## Bot population and calibration boundaries (owner decision, October 30, 2026)
+
+Target a 10,000-identity roster shaped by Lichess's observed per-speed rating
+distributions. Sampling, move-history on/off, human timing on/off and one of five
+timing styles persist per bot. Preserve uniform selection within the supported
+rating window; do not add recent-opponent avoidance. Only the human clicking
+Rematch can request another game. Use native limited preset chat with brief bot
+replies in bot games (#70), retaining friend chat. Keep attributes transparent on
+profiles and methodology in GitHub.
+
+Implement scalable presence/rating lookup first (#72), retaining the current 44
+identities and earned ratings for that infrastructure release. The combined
+bot-versus-bot run must actually set/update native Glicko ratings while measuring
+full-stack capacity, but remains planning-only in #73: agree a bounded server
+pilot and compute/runtime budget before any calibration or load test. No run on
+the owner's Mac, unattended overnight job or capacity increase is authorized by
+the infrastructure work. Timezone availability, breaks and country-inspired
+personas are deferred in #71. See #69 and `docs/bot-population.md`.
