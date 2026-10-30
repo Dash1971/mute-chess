@@ -1602,10 +1602,10 @@ index 468bba6..5360a09 100644
              else if !checked then div(iconTag(Icon.X))
              else
 diff --git a/modules/pref/src/main/ui/AccountUi.scala b/modules/pref/src/main/ui/AccountUi.scala
-index 6568e7b..da71aa9 100644
+index 6568e7b..773b29b 100644
 --- a/modules/pref/src/main/ui/AccountUi.scala
 +++ b/modules/pref/src/main/ui/AccountUi.scala
-@@ -87,47 +87,15 @@ final class AccountUi(helpers: Helpers):
+@@ -87,47 +87,17 @@ final class AccountUi(helpers: Helpers):
            a(activeCls("notification"), href := routes.Pref.form("notification"))(
              trans.site.notifications()
            ),
@@ -1618,16 +1618,17 @@ index 6568e7b..da71aa9 100644
 -          ),
 -          Granter
 -            .opt(_.Coach)
--            .option(
++          ctx.me
++            .exists(_.nostrKey.isDefined)
+             .option(
 -              a(activeCls("coach"), href := routes.Coach.edit)(
 -                trans.coach.lichessCoach()
 -              )
--            ),
++              a(activeCls("nostr"), href := "/club/nostr")("Nostr")
+             ),
 -          a(activeCls("password"), href := routes.Account.passwd)(
 -            trans.site.changePassword()
-+          ctx.me.exists(_.nostrKey.isDefined).option(
-+            a(activeCls("nostr"), href := "/club/nostr")("Nostr")
-           ),
+-          ),
 -          a(activeCls("email"), href := routes.Account.email)(
 -            trans.site.changeEmail()
 -          ),
@@ -6892,10 +6893,10 @@ index 0000000..ea29298
 +  def find(key: String): Option[NoSweatStudyPlan] = plans.find(_.key == key)
 diff --git a/app/controllers/NoSweat.scala b/app/controllers/NoSweat.scala
 new file mode 100644
-index 0000000..8104140
+index 0000000..5ad3b84
 --- /dev/null
 +++ b/app/controllers/NoSweat.scala
-@@ -0,0 +1,244 @@
+@@ -0,0 +1,243 @@
 +package controllers
 +
 +import play.api.libs.json.*
@@ -7001,8 +7002,7 @@ index 0000000..8104140
 +    me ?=> handle(Ok.page(views.noSweatSecurity(me.value)))
 +
 +  def nostrKeys = Auth: context ?=>
-+    me ?=>
-+      handle(Ok.page(views.noSweatNostr(me.value)).map(_.withHeaders("Cache-Control" -> "no-store")))
++    me ?=> handle(Ok.page(views.noSweatNostr(me.value)).map(_.withHeaders("Cache-Control" -> "no-store")))
 +
 +  def securityApply = AuthBody(parse.tolerantText(4096)): context ?=>
 +    me ?=>
