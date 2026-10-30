@@ -1,0 +1,379 @@
+{
+  "run": "r20261030a",
+  "main": "598f5feca75791d8d8d9608ee9f77ff4973c1c02",
+  "public_ratings": true,
+  "profile": "pilot-10-v1",
+  "worker_count": 1,
+  "played_graph_component_sizes": {
+    "blitz": [
+      42,
+      2
+    ],
+    "rapid": [
+      44
+    ]
+  },
+  "supervisor": {
+    "run": "r20261030a",
+    "commit": "598f5feca75791d8d8d9608ee9f77ff4973c1c02",
+    "reason": "completed",
+    "started": 1793344833485,
+    "ended": 1793346232687,
+    "configurationRestored": true
+  },
+  "worker_elapsed_seconds": 1360.7729997634888,
+  "admitted": 100,
+  "completed": 100,
+  "native_rated_updates": 100,
+  "aborted_records": 0,
+  "completed_by_speed": {
+    "blitz": 49,
+    "rapid": 51
+  },
+  "finish_statuses": {
+    "draw": 8,
+    "mate": 85,
+    "stalemate": 7
+  },
+  "bots_played": 44,
+  "bot_speed_pairs_played": 88,
+  "native_player_results_added": 200,
+  "player_results_agree_with_rated_game_count": true,
+  "bot_speed_pairs_established_before": 0,
+  "bot_speed_pairs_established_after": 0,
+  "games_added_per_bot_speed": {
+    "count": 88,
+    "min": 1,
+    "median": 2.0,
+    "p95": 4,
+    "p99": 5,
+    "max": 5
+  },
+  "initial_rd": {
+    "count": 88,
+    "min": 176.99299795063675,
+    "median": 200.2312770111401,
+    "p95": 300.1542337946872,
+    "p99": 458.1010412806582,
+    "max": 458.1010412806582
+  },
+  "final_rd": {
+    "count": 88,
+    "min": 137.43909527890548,
+    "median": 166.22496802950513,
+    "p95": 244.73821238278404,
+    "p99": 277.4530808159385,
+    "max": 277.4530808159385
+  },
+  "absolute_rating_change": {
+    "count": 88,
+    "min": 3.6991062763045193,
+    "median": 57.22714694960439,
+    "p95": 213.4076138478763,
+    "p99": 299.37643035081146,
+    "max": 299.37643035081146
+  },
+  "biggest_rating_changes": [
+    {
+      "bot": "event-horizon",
+      "speed": "rapid",
+      "initial_rating": 2500,
+      "final_rating": 2799.3764303508115,
+      "rating_change": 299.37643035081146,
+      "initial_rd": 300.1542336391085,
+      "final_rd": 241.75557176054315,
+      "initial_games": 0,
+      "final_games": 2,
+      "games_added": 2,
+      "initial_provisional": true,
+      "final_provisional": true
+    },
+    {
+      "bot": "quantum-shade",
+      "speed": "blitz",
+      "initial_rating": 2500,
+      "final_rating": 2772.711018999162,
+      "rating_change": 272.7110189991622,
+      "initial_rd": 300.15423376134885,
+      "final_rd": 219.719634181615,
+      "initial_games": 0,
+      "final_games": 2,
+      "games_added": 2,
+      "initial_provisional": true,
+      "final_provisional": true
+    },
+    {
+      "bot": "event-horizon",
+      "speed": "blitz",
+      "initial_rating": 2750,
+      "final_rating": 2518.5100857607226,
+      "rating_change": -231.48991423927737,
+      "initial_rd": 300.154233641129,
+      "final_rd": 204.8870132600905,
+      "initial_games": 0,
+      "final_games": 3,
+      "games_added": 3,
+      "initial_provisional": true,
+      "final_provisional": true
+    },
+    {
+      "bot": "circuit-saint",
+      "speed": "rapid",
+      "initial_rating": 2300,
+      "final_rating": 2531.0056908150727,
+      "rating_change": 231.00569081507274,
+      "initial_rd": 200.2312764810987,
+      "final_rd": 156.08249280390012,
+      "initial_games": 0,
+      "final_games": 4,
+      "games_added": 4,
+      "initial_provisional": true,
+      "final_provisional": true
+    },
+    {
+      "bot": "chrome-oracle",
+      "speed": "rapid",
+      "initial_rating": 2600,
+      "final_rating": 2386.5923861521237,
+      "rating_change": -213.4076138478763,
+      "initial_rd": 458.1010412588146,
+      "final_rd": 242.46141421482517,
+      "initial_games": 0,
+      "final_games": 3,
+      "games_added": 3,
+      "initial_provisional": true,
+      "final_provisional": true
+    },
+    {
+      "bot": "patchwork",
+      "speed": "blitz",
+      "initial_rating": 1400,
+      "final_rating": 1198.9553557941163,
+      "rating_change": -201.04464420588374,
+      "initial_rd": 200.23127713835,
+      "final_rd": 154.57711416832518,
+      "initial_games": 0,
+      "final_games": 3,
+      "games_added": 3,
+      "initial_provisional": true,
+      "final_provisional": true
+    },
+    {
+      "bot": "velvet-circuit",
+      "speed": "rapid",
+      "initial_rating": 1450,
+      "final_rating": 1259.513651180697,
+      "rating_change": -190.48634881930298,
+      "initial_rd": 200.23127710806196,
+      "final_rd": 167.67618755120242,
+      "initial_games": 0,
+      "final_games": 2,
+      "games_added": 2,
+      "initial_provisional": true,
+      "final_provisional": true
+    },
+    {
+      "bot": "chrome-sparrow",
+      "speed": "rapid",
+      "initial_rating": 1500,
+      "final_rating": 1686.8653514447817,
+      "rating_change": 186.8653514447817,
+      "initial_rd": 200.23127700962567,
+      "final_rd": 165.5221283850799,
+      "initial_games": 0,
+      "final_games": 2,
+      "games_added": 2,
+      "initial_provisional": true,
+      "final_provisional": true
+    },
+    {
+      "bot": "null-echo",
+      "speed": "blitz",
+      "initial_rating": 2300,
+      "final_rating": 2457.4157673387995,
+      "rating_change": 157.41576733879947,
+      "initial_rd": 200.23127646746903,
+      "final_rd": 145.45448457651037,
+      "initial_games": 0,
+      "final_games": 5,
+      "games_added": 5,
+      "initial_provisional": true,
+      "final_provisional": true
+    },
+    {
+      "bot": "blackout",
+      "speed": "blitz",
+      "initial_rating": 2550,
+      "final_rating": 2397.0640271151874,
+      "rating_change": -152.9359728848126,
+      "initial_rd": 300.1542337381131,
+      "final_rd": 255.0604880162564,
+      "initial_games": 0,
+      "final_games": 1,
+      "games_added": 1,
+      "initial_provisional": true,
+      "final_provisional": true
+    }
+  ],
+  "moves": 9024,
+  "stages": {
+    "1": {
+      "moves": 446,
+      "observed_seconds": 99.61699986457825,
+      "plies_per_second": 4.477147480914936,
+      "inference_ms": {
+        "count": 446,
+        "min": 134.9096269987058,
+        "median": 145.23578550142702,
+        "p95": 162.50180199858733,
+        "p99": 177.64813598478213,
+        "max": 208.57867298764177
+      },
+      "request_commit_ms": {
+        "count": 446,
+        "min": 144.47375200000533,
+        "median": 158.5177720000038,
+        "p95": 176.8612460000004,
+        "p99": 203.13021000000117,
+        "max": 346.54621899999984
+      },
+      "turn_commit_ms": {
+        "count": 446,
+        "min": 194,
+        "median": 222.0,
+        "p95": 245,
+        "p99": 284,
+        "max": 1040
+      },
+      "max_observed_active_games": 1
+    },
+    "2": {
+      "moves": 528,
+      "observed_seconds": 78.04199981689453,
+      "plies_per_second": 6.765587776310398,
+      "inference_ms": {
+        "count": 528,
+        "min": 135.95353698474355,
+        "median": 144.46622801187914,
+        "p95": 161.7830489994958,
+        "p99": 171.9853339891415,
+        "max": 177.4777910031844
+      },
+      "request_commit_ms": {
+        "count": 528,
+        "min": 142.7284240000008,
+        "median": 237.83472549999715,
+        "p95": 290.1592890000029,
+        "p99": 303.47875999999815,
+        "max": 340.34283300000243
+      },
+      "turn_commit_ms": {
+        "count": 528,
+        "min": 263,
+        "median": 294.0,
+        "p95": 313,
+        "p99": 351,
+        "max": 661
+      },
+      "max_observed_active_games": 2
+    },
+    "5": {
+      "moves": 927,
+      "observed_seconds": 134.9300000667572,
+      "plies_per_second": 6.870229004234512,
+      "inference_ms": {
+        "count": 927,
+        "min": 135.26362998527475,
+        "median": 143.2140819961205,
+        "p95": 160.3655889921356,
+        "p99": 176.04455398395658,
+        "max": 205.6457030121237
+      },
+      "request_commit_ms": {
+        "count": 927,
+        "min": 151.76836899999762,
+        "median": 237.99283500001184,
+        "p95": 289.0897939999704,
+        "p99": 306.082379999978,
+        "max": 330.6285050000297
+      },
+      "turn_commit_ms": {
+        "count": 927,
+        "min": 269,
+        "median": 729,
+        "p95": 767,
+        "p99": 891,
+        "max": 936
+      },
+      "max_observed_active_games": 5
+    },
+    "10": {
+      "moves": 7123,
+      "observed_seconds": 1043.6890001296997,
+      "plies_per_second": 6.824830001192713,
+      "inference_ms": {
+        "count": 7123,
+        "min": 135.4478799912613,
+        "median": 144.45537299616262,
+        "p95": 160.2136639994569,
+        "p99": 170.01876601716504,
+        "max": 219.06216500792652
+      },
+      "request_commit_ms": {
+        "count": 7123,
+        "min": 152.70839100005105,
+        "median": 237.63258099998347,
+        "p95": 290.1769510000013,
+        "p99": 304.53307799994946,
+        "max": 390.6391890000086
+      },
+      "turn_commit_ms": {
+        "count": 7123,
+        "min": 203,
+        "median": 1462,
+        "p95": 1613,
+        "p99": 1683,
+        "max": 1898
+      },
+      "max_observed_active_games": 10
+    }
+  },
+  "max_observed_active_games": 10,
+  "all_added_waits_zero": true,
+  "health_ms": {
+    "count": 116,
+    "min": 2.849009004421532,
+    "median": 3.63129899778869,
+    "p95": 5.729814991354942,
+    "p99": 8.336950006196275,
+    "max": 8.772842993494123
+  },
+  "health_failures": 0,
+  "sampled_combined_worker_native_memory_bytes": {
+    "count": 116,
+    "min": 1515700224,
+    "median": 2322190336.0,
+    "p95": 2398191616,
+    "p99": 2400010240,
+    "max": 2400256000
+  },
+  "sampled_combined_worker_native_cpu_cores": {
+    "count": 115,
+    "min": 0.19938503979297886,
+    "median": 2.0857329241734313,
+    "p95": 2.140313438696378,
+    "p99": 2.159054680534918,
+    "max": 2.1613826964957434
+  },
+  "observed_mongo_storage_growth_bytes": 237568,
+  "observed_mongo_operation_deltas": {
+    "insert": 0,
+    "query": 0,
+    "update": 0,
+    "delete": 0,
+    "getmore": 0,
+    "command": 0
+  },
+  "errors": [],
+  "pgn_files": 100
+}

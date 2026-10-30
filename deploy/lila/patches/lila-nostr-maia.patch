@@ -6151,10 +6151,10 @@ index 0000000..f2a4e3a
 +        )
 diff --git a/app/NoSweatStudy.scala b/app/NoSweatStudy.scala
 new file mode 100644
-index 0000000..3128ad5
+index 0000000..8821725
 --- /dev/null
 +++ b/app/NoSweatStudy.scala
-@@ -0,0 +1,286 @@
+@@ -0,0 +1,296 @@
 +package lila.app
 +
 +import play.api.libs.json.*
@@ -6179,6 +6179,11 @@ index 0000000..3128ad5
 +    publicRatings
 +  )
 +  require(!requested || enabled, "Study configuration does not match its explicit deployment scope")
++  private val plan = NoSweatStudyPlan
++    .find(
++      config.getOptional[String]("nosweat.study.profile").getOrElse("pilot-10-v1")
++    )
++    .getOrElse(throw IllegalArgumentException("Unknown study profile"))
 +  private lazy val started = config.get[Long]("nosweat.study.startedEpochMillis")
 +  private lazy val admissionEnd = started + 75L * 60000
 +  private lazy val deadline = started + 90L * 60000
@@ -6218,7 +6223,7 @@ index 0000000..3128ad5
 +        .foreach: found =>
 +          found
 +            .filter(active)
-+            .foreach: doc =>
++            .foreach: _ =>
 +              val game = finish.game
 +              val result = Json.obj(
 +                "status" -> game.status.name,
@@ -6248,8 +6253,7 @@ index 0000000..3128ad5
 +          lila.log("nosweat").error("Study deadline stop failed", error)
 +
 +  private def stage(docs: List[Bdoc]): Int =
-+    val finished = docs.count(_.getAsOpt[String]("state").contains("finished"))
-+    if finished < 5 then 1 else if finished < 10 then 2 else if finished < 20 then 5 else 10
++    plan.capacity(docs.count(_.getAsOpt[String]("state").contains("finished")))
 +
 +  def capacity: Fu[Int] =
 +    if !enabled || closed.get() || System.currentTimeMillis() >= deadline then fuccess(2)
@@ -6295,6 +6299,12 @@ index 0000000..3128ad5
 +      ps <- if withRatings then ratings else fuccess(JsNull)
 +    yield Json.obj(
 +      "runId" -> run,
++      "profile" -> plan.key,
++      "workers" -> plan.workers,
++      "maximumConcurrency" -> plan.maximumConcurrency,
++      "stages" -> plan.stages.map((completed, concurrency) =>
++        Json.obj("completed" -> completed, "concurrency" -> concurrency)
++      ),
 +      "publicRatings" -> publicRatings,
 +      "deadline" -> deadline,
 +      "admissionEnd" -> admissionEnd,
@@ -6441,6 +6451,26 @@ index 0000000..3128ad5
 +          env.round.roundApi.tell(id(doc), lila.core.round.RoundBus.AbortForce)
 +          records.update.one(bid(id(doc)), set("state" -> "aborted", "failure" -> "bounded_study_stop")).void
 +        .void
+diff --git a/app/NoSweatStudyPlan.scala b/app/NoSweatStudyPlan.scala
+new file mode 100644
+index 0000000..3d29fff
+--- /dev/null
++++ b/app/NoSweatStudyPlan.scala
+@@ -0,0 +1,14 @@
++package lila.app
++
++final case class NoSweatStudyPlan(key: String, stages: List[(Int, Int)], workers: Int):
++  def maximumConcurrency = stages.last._2
++  def capacity(completed: Int): Int =
++    require(completed >= 0)
++    stages.takeWhile(_._1 <= completed).last._2
++
++object NoSweatStudyPlan:
++  private val plans = List(
++    NoSweatStudyPlan("pilot-10-v1", List(0 -> 1, 5 -> 2, 10 -> 5, 20 -> 10), 1),
++    NoSweatStudyPlan("ramp-22-v1", List(0 -> 10, 10 -> 15, 25 -> 20, 40 -> 22), 2)
++  )
++  def find(key: String): Option[NoSweatStudyPlan] = plans.find(_.key == key)
 diff --git a/app/controllers/NoSweat.scala b/app/controllers/NoSweat.scala
 new file mode 100644
 index 0000000..629d98b
@@ -11011,6 +11041,28 @@ index 0000000..b207c43
 +<path transform="translate(4818 0)" d="M276.875 -14Q181.45 -14 119.362 28Q57.275 70 44.1 151.325L150.126 178Q157.301 139.85 175.2 118.013Q193.1 96.175 219.525 86.888Q245.95 77.601 276.875 77.601Q323.675 77.601 347.387 94.675Q371.099 111.75 371.099 138.25Q371.099 164.925 348.562 178.212Q326.025 191.5 279.75 199.85L248.6 205.375Q197.65 215.025 155.7 232.35Q113.75 249.675 88.537 280.15Q63.325 310.625 63.325 358.4Q63.325 430.475 116.537 469.363Q169.75 508.25 256.7 508.25Q339.7 508.25 393.913 471.163Q448.125 434.075 464.425 372.15L358.099 340.35Q349.749 381.85 322.975 399.25Q296.2 416.65 256.7 416.65Q217.375 416.65 195.925 402.662Q174.476 388.675 174.476 363.35Q174.476 336.55 196.225 323.825Q217.975 311.1 255.125 304.575L286.275 299.05Q341.225 289.4 385.762 273.075Q430.3 256.75 456.275 226.688Q482.25 196.625 482.25 145.675Q482.25 69.25 426.538 27.625Q370.825 -14 276.875 -14Z"/>
 +</g></g>
 +</svg>
+diff --git a/src/test/scala/NoSweatStudyPlanTest.scala b/src/test/scala/NoSweatStudyPlanTest.scala
+new file mode 100644
+index 0000000..eda5680
+--- /dev/null
++++ b/src/test/scala/NoSweatStudyPlanTest.scala
+@@ -0,0 +1,16 @@
++package lila.app
++
++class NoSweatStudyPlanTest extends munit.FunSuite:
++  test("the original pilot ramp and one-worker plan remain unchanged"):
++    val plan = NoSweatStudyPlan.find("pilot-10-v1").get
++    assertEquals(plan.workers, 1)
++    assertEquals(plan.maximumConcurrency, 10)
++    assertEquals(List(0, 4, 5, 9, 10, 19, 20, 100).map(plan.capacity), List(1, 1, 2, 2, 5, 5, 10, 10))
++
++  test("the expanded trial has explicit steps, two workers and a hard 22-game ceiling"):
++    val plan = NoSweatStudyPlan.find("ramp-22-v1").get
++    assertEquals(plan.workers, 2)
++    assertEquals(plan.maximumConcurrency, 22)
++    assertEquals(List(0, 9, 10, 24, 25, 39, 40, 100).map(plan.capacity), List(10, 10, 15, 15, 20, 20, 22, 22))
++    assertEquals(NoSweatStudyPlan.find("unbounded"), None)
++    intercept[IllegalArgumentException](plan.capacity(-1))
 diff --git a/ui/analyse/src/analyse.nosweatWorker.ts b/ui/analyse/src/analyse.nosweatWorker.ts
 new file mode 100644
 index 0000000..ec4cc78

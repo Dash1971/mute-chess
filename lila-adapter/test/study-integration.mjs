@@ -5,11 +5,12 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { generateSecretKey, getPublicKey, finalizeEvent } from 'nostr-tools/pure';
 import { digest } from '../nostr-auth.mjs';
+import { StudyWorkers } from '../study-workers.mjs';
 import { Maia } from '../maia.mjs';
 import { freezeStudy, studyPolicy } from '../study-policy.mjs';
 const origin = process.env.LILA_ORIGIN;
 if (origin !== 'http://127.0.0.1:19763') throw Error('Qualification origin only');
-const run = 'q20261030a', roster = JSON.parse(await readFile(new URL('../roster.json', import.meta.url)));
+const run = process.env.STUDY_QUAL_RUN_ID ?? 'q20261030a', roster = JSON.parse(await readFile(new URL('../roster.json', import.meta.url)));
 const token = process.env.ADAPTER_TOKEN;
 const request = (path, body, auth = token) => new Promise((resolve, reject) => {
   const req = http.request(new URL(path, origin), { method: body === undefined ? 'GET' : 'POST',
@@ -26,7 +27,8 @@ for (let i = 0; i < 100; i++) {
   try { before = await api('/ratings'); break; } catch { await sleep(1000); }
 }
 assert.ok(before); assert.equal(before.publicRatings, false); assert.equal(before.runId, run);
-assert.equal(Object.keys(before.ratings).length, 44); assert.equal(before.admitted, 0);
+assert.equal(Object.keys(before.ratings).length, 44);
+assert.equal(before.maximumConcurrency, before.workers === 2 ? 22 : 10); assert.equal(before.admitted, 0);
 assert.equal((await request('/club/internal/study', undefined, 'invalid')).status, 403);
 // Rated human admission must still fall back to the normal reservation path while study mode is on.
 async function human(path, body, extra = {}) {
@@ -69,27 +71,47 @@ for (const bot of [a, b]) {
 const pgnResponse = await fetch(`${origin}/game/export/${first.id}.pgn`);
 assert.equal(pgnResponse.status, 200);
 assert.match(await pgnResponse.text(), /\[Result "0-1"\]/);
-// Fresh pair: verify actual Maia inference, frozen per-bot history and native moves.
-const c = roster[4], d = roster[5];
-const secondPolicies = { white: freezeStudy(c, run), black: freezeStudy(d, run) };
-const second = await api('', { white: c.id, black: d.id, speed: 'rapid', policies: secondPolicies });
-const maia = new Maia(process.env.MAIA_PYTHON, new URL('../maia_worker.py', import.meta.url).pathname, process.env.MAIA_MODEL);
+// Multiple independent native games exercise both real model processes in the expanded plan.
+const pairCount = before.workers === 2 ? 4 : 1;
+const fixtures = [];
+for (let index = 0; index < pairCount; index++) {
+  const white = roster[4 + index * 4], black = roster[5 + index * 4];
+  const policies = { white: freezeStudy(white, run), black: freezeStudy(black, run) };
+  const game = await api('', { white: white.id, black: black.id, speed: 'rapid', policies });
+  fixtures.push({ ...game, white, black });
+}
+const maia = new StudyWorkers(before.workers, () => new Maia(process.env.MAIA_PYTHON,
+  new URL('../maia_worker.py', import.meta.url).pathname, process.env.MAIA_MODEL));
+const workersUsed = new Set();
 try {
   await maia.ready;
+  const referencePolicy = studyPolicy(freezeStudy(roster[8], run), run, 0, roster);
+  const references = await Promise.all(Array.from({ length: before.workers }, () => maia.predict([], referencePolicy)));
+  assert.equal(new Set(references.map(r => r.move)).size, 1, 'same policy/seed gives the same move on each worker');
   for (let i = 0; i < 12; i++) {
-    const s = await api(''); const game = s.games.find(g => g.id === second.id);
-    assert.ok(game?.playable);
-    const moves = game.state.moves ? game.state.moves.split(' ') : [];
-    const prediction = await maia.predict(moves, studyPolicy(game.policies[game.turn], run, game.ply, roster));
-    await api(`/${second.id}/move`, { ply: game.ply, move: prediction.move });
+    const state = await api('');
+    await Promise.all(fixtures.map(async fixture => {
+      const game = state.games.find(g => g.id === fixture.id);
+      assert.ok(game?.playable);
+      const moves = game.state.moves ? game.state.moves.split(' ') : [];
+      const prediction = await maia.predict(moves, studyPolicy(game.policies[game.turn], run, game.ply, roster));
+      workersUsed.add(prediction.studyWorker);
+      await api(`/${game.id}/move`, { ply: game.ply, move: prediction.move });
+    }));
   }
 } finally { maia.close(); }
+assert.equal(workersUsed.size, before.workers);
 await api('/stop', { runId: run });
 state = await api('/ratings'); assert.equal(state.closed, true);
 assert.equal((await request('/club/internal/study', { ...setup, policies })).status, 409);
-assert.equal(state.ratings[c.id].rapid.games, before.ratings[c.id].rapid.games);
-const report = { qualificationOnly: true, syntheticMateFixture: first.id, nativeRatedUpdate: result,
+for (const fixture of fixtures) for (const bot of [fixture.white, fixture.black])
+  assert.equal(state.ratings[bot.id].rapid.games, before.ratings[bot.id].rapid.games);
+const report = { qualificationOnly: true, profile: before.profile, workersUsed: [...workersUsed],
+  syntheticMateFixture: first.id, nativeRatedUpdate: result,
   nativePerfsBefore: before.ratings, nativePerfsAfter: state.ratings,
-  maiaNativeMoves: 12, abortedUnratedFixture: second.id, checks: ['unauthorized', 'rated-human-admission-with-study-enabled', 'busy/capacity', 'stale-ply', 'native-mate', 'native-glicko-persistence', 'maia-history-path', 'stop-no-rating', 'closed-admission'] };
+  maiaNativeMoves: pairCount * 12, abortedUnratedFixtures: fixtures.map(f => f.id),
+  checks: ['unauthorized', 'rated-human-admission-with-study-enabled', 'busy/capacity', 'stale-ply',
+    'native-mate', 'native-glicko-persistence', 'maia-history-path', 'multiple-real-workers', 'stop-no-rating', 'closed-admission'] };
 await writeFile(process.env.STUDY_QUAL_REPORT, JSON.stringify(report, null, 2));
-console.log(JSON.stringify({ qualificationOnly: true, nativeMateAndGlicko: true, maiaMoves: 12, stopped: true }));
+console.log(JSON.stringify({ qualificationOnly: true, nativeMateAndGlicko: true,
+  maiaMoves: pairCount * 12, workers: workersUsed.size, stopped: true }));

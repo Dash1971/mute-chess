@@ -85,3 +85,30 @@ The README's human Lichess-alignment goal still needs external/human validation.
 No automatic Bullet/Classical transfer is part of this run; see the dated speed
 reference and #78. The owner accepted ignoring clock pressure for this initial
 Blitz/Rapid study; 1+0 Bullet remains later validation.
+
+## Second bounded step: two workers, up to 22 games (#91)
+
+The owner selected this step after the first run demonstrated substantial host
+headroom at ten games. The original two-core quota was a pilot safeguard, not a
+Maia or host limit. Finish that batch unchanged before deploying the next plan.
+
+`ramp-22-v1` starts at ten games, increases to fifteen after ten completions,
+twenty after twenty-five, and twenty-two after forty. It uses two instances of
+the same pinned worker, with a combined four-core quota and 2,000 MiB memory
+limit. Each worker retains two inference threads and at most two pending
+requests. A failed worker stops the study; it does not silently continue under
+a different declared configuration. The ordinary human-game adapter is unchanged.
+
+The new run retains the 90-minute / 100-admitted-game budget and all native
+safeguards. It continues from earned public perfs; no reseeding or importing.
+Forty-four identities allow at most twenty-two simultaneous bot-versus-bot games.
+Current rating windows or an unmatched remaining pair can reduce actual
+concurrency; report the observed maximum without relaxing matchmaking, adding
+identities or allowing the same bot in two games. Fifty games would require at
+least one hundred identities and is outside this step.
+
+The driver records the native plan, worker count, per-move worker index, frozen
+policies and timings. Compare measured latency, CPU/RAM and native completion
+across both runs; do not infer throughput scaling merely from spare host RAM.
+
+First-batch evidence: [100 public games, ratings/RD and capacity measurements](data/bot-trials/r20261030a/README.md).
