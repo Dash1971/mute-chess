@@ -3482,7 +3482,7 @@ index 1690fe3..593342c 100644
            vnode.data!.gaugeOn = gaugeOn;
          },
 diff --git a/ui/analyse/src/view/main.ts b/ui/analyse/src/view/main.ts
-index 83a184c..89f8764 100644
+index 83a184c..1bec2ab 100644
 --- a/ui/analyse/src/view/main.ts
 +++ b/ui/analyse/src/view/main.ts
 @@ -62,6 +62,8 @@ function analyseView(ctrl: AnalyseCtrl, deps?: typeof studyDeps): VNode {
@@ -3494,15 +3494,11 @@ index 83a184c..89f8764 100644
          }),
        },
        [
-@@ -83,8 +85,10 @@ function analyseView(ctrl: AnalyseCtrl, deps?: typeof studyDeps): VNode {
-           ),
+@@ -84,7 +86,7 @@ function analyseView(ctrl: AnalyseCtrl, deps?: typeof studyDeps): VNode {
        ],
      ),
--    ctrl.chatCtrl && renderChat(ctrl.chatCtrl, { insert: v => v.elm && fixChatHeight(v.elm) }),
+     ctrl.chatCtrl && renderChat(ctrl.chatCtrl, { insert: v => v.elm && fixChatHeight(v.elm) }),
 -    hl('div.chat__members.none', { hook: onInsert(watchers) }),
-+    !ctrl.noSweat &&
-+      ctrl.chatCtrl &&
-+      renderChat(ctrl.chatCtrl, { insert: v => v.elm && fixChatHeight(v.elm) }),
 +    !ctrl.noSweat && hl('div.chat__members.none', { hook: onInsert(watchers) }),
    );
  }
