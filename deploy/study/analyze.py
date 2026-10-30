@@ -40,7 +40,9 @@ def analyze(root):
     finished = [e for e in events if e['type']=='finish']
     moves = [e for e in events if e['type']=='move']
     rated = [e for e in finished if e['result']['ratedUpdate']]
-    assert len({e['id'] for e in admitted}) == len(admitted) <= 100
+    maximum = checkpoint['initial']['maximumAdmitted']
+    assert maximum in (100, 200)
+    assert len({e['id'] for e in admitted}) == len(admitted) <= maximum
     assert len({e['id'] for e in finished}) == len(finished)
     assert {e['id'] for e in finished} <= {e['id'] for e in admitted}
     assert all(e['policies'][color]['runId'] == checkpoint['run'] for e in admitted for color in ('white','black'))

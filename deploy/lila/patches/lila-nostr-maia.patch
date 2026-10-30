@@ -6151,10 +6151,10 @@ index 0000000..f2a4e3a
 +        )
 diff --git a/app/NoSweatStudy.scala b/app/NoSweatStudy.scala
 new file mode 100644
-index 0000000..8821725
+index 0000000..c0ae834
 --- /dev/null
 +++ b/app/NoSweatStudy.scala
-@@ -0,0 +1,296 @@
+@@ -0,0 +1,297 @@
 +package lila.app
 +
 +import play.api.libs.json.*
@@ -6196,7 +6196,7 @@ index 0000000..8821725
 +  private def check(ok: Boolean, status: Int, reason: String): Unit =
 +    if !ok then throw NoSweatError(status, reason)
 +  private def guard(): Unit = check(enabled, 404, "Study is disabled")
-+  private def documents = records.find(bdoc("runId" -> run)).cursor[Bdoc]().list(101)
++  private def documents = records.find(bdoc("runId" -> run)).cursor[Bdoc]().list(plan.maximumAdmitted + 1)
 +  private def active(doc: Bdoc) = doc.getAsOpt[String]("state").exists(Set("reserved", "active").contains)
 +  private def id(doc: Bdoc) = doc.getAsOpt[GameId]("_id").get
 +
@@ -6302,6 +6302,7 @@ index 0000000..8821725
 +      "profile" -> plan.key,
 +      "workers" -> plan.workers,
 +      "maximumConcurrency" -> plan.maximumConcurrency,
++      "maximumAdmitted" -> plan.maximumAdmitted,
 +      "stages" -> plan.stages.map((completed, concurrency) =>
 +        Json.obj("completed" -> completed, "concurrency" -> concurrency)
 +      ),
@@ -6362,7 +6363,7 @@ index 0000000..8821725
 +        .flatMap(d => List(d.getAsOpt[UserId]("white"), d.getAsOpt[UserId]("black")).flatten)
 +        .toSet ++ publicGames.flatMap(_._1.getAsOpt[UserId]("bot"))
 +      _ = check(
-+        docs.size < 100 && docs.count(active) + publicGames.size < stage(docs),
++        docs.size < plan.maximumAdmitted && docs.count(active) + publicGames.size < stage(docs),
 +        409,
 +        "Study limit reached"
 +      )
@@ -6453,13 +6454,18 @@ index 0000000..8821725
 +        .void
 diff --git a/app/NoSweatStudyPlan.scala b/app/NoSweatStudyPlan.scala
 new file mode 100644
-index 0000000..3d29fff
+index 0000000..ea29298
 --- /dev/null
 +++ b/app/NoSweatStudyPlan.scala
-@@ -0,0 +1,14 @@
+@@ -0,0 +1,20 @@
 +package lila.app
 +
-+final case class NoSweatStudyPlan(key: String, stages: List[(Int, Int)], workers: Int):
++final case class NoSweatStudyPlan(
++    key: String,
++    stages: List[(Int, Int)],
++    workers: Int,
++    maximumAdmitted: Int = 100
++):
 +  def maximumConcurrency = stages.last._2
 +  def capacity(completed: Int): Int =
 +    require(completed >= 0)
@@ -6468,7 +6474,8 @@ index 0000000..3d29fff
 +object NoSweatStudyPlan:
 +  private val plans = List(
 +    NoSweatStudyPlan("pilot-10-v1", List(0 -> 1, 5 -> 2, 10 -> 5, 20 -> 10), 1),
-+    NoSweatStudyPlan("ramp-22-v1", List(0 -> 10, 10 -> 15, 25 -> 20, 40 -> 22), 2)
++    NoSweatStudyPlan("ramp-22-v1", List(0 -> 10, 10 -> 15, 25 -> 20, 40 -> 22), 2),
++    NoSweatStudyPlan("calibration-200-v1", List(0 -> 22), 2, 200)
 +  )
 +  def find(key: String): Option[NoSweatStudyPlan] = plans.find(_.key == key)
 diff --git a/app/controllers/NoSweat.scala b/app/controllers/NoSweat.scala
@@ -11043,26 +11050,35 @@ index 0000000..b207c43
 +</svg>
 diff --git a/src/test/scala/NoSweatStudyPlanTest.scala b/src/test/scala/NoSweatStudyPlanTest.scala
 new file mode 100644
-index 0000000..eda5680
+index 0000000..50d8ebb
 --- /dev/null
 +++ b/src/test/scala/NoSweatStudyPlanTest.scala
-@@ -0,0 +1,16 @@
+@@ -0,0 +1,25 @@
 +package lila.app
 +
 +class NoSweatStudyPlanTest extends munit.FunSuite:
 +  test("the original pilot ramp and one-worker plan remain unchanged"):
 +    val plan = NoSweatStudyPlan.find("pilot-10-v1").get
 +    assertEquals(plan.workers, 1)
++    assertEquals(plan.maximumAdmitted, 100)
 +    assertEquals(plan.maximumConcurrency, 10)
 +    assertEquals(List(0, 4, 5, 9, 10, 19, 20, 100).map(plan.capacity), List(1, 1, 2, 2, 5, 5, 10, 10))
 +
 +  test("the expanded trial has explicit steps, two workers and a hard 22-game ceiling"):
 +    val plan = NoSweatStudyPlan.find("ramp-22-v1").get
 +    assertEquals(plan.workers, 2)
++    assertEquals(plan.maximumAdmitted, 100)
 +    assertEquals(plan.maximumConcurrency, 22)
 +    assertEquals(List(0, 9, 10, 24, 25, 39, 40, 100).map(plan.capacity), List(10, 10, 15, 15, 20, 20, 22, 22))
 +    assertEquals(NoSweatStudyPlan.find("unbounded"), None)
 +    intercept[IllegalArgumentException](plan.capacity(-1))
++
++  test("the calibration batch permits exactly the reviewed 200-admission budget"):
++    val plan = NoSweatStudyPlan.find("calibration-200-v1").get
++    assertEquals(plan.maximumAdmitted, 200)
++    assertEquals(plan.maximumConcurrency, 22)
++    assertEquals(plan.workers, 2)
++    assertEquals(List(0, 1, 99, 100, 199, 200).map(plan.capacity), List.fill(6)(22))
 diff --git a/ui/analyse/src/analyse.nosweatWorker.ts b/ui/analyse/src/analyse.nosweatWorker.ts
 new file mode 100644
 index 0000000..ec4cc78

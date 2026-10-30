@@ -114,3 +114,29 @@ across both runs; do not infer throughput scaling merely from spare host RAM.
 First-batch evidence: [100 public games, ratings/RD and capacity measurements](data/bot-trials/r20261030a/README.md).
 
 Second-batch evidence: [200 total public rated games, two-worker results and remaining uncertainty](data/bot-trials/r20261030b/README.md). [Budget VPS sizing](vps-sizing.md) distinguishes measured service load from modeled human capacity.
+
+## Additional 200-game calibration batch (#98)
+
+After 200 retained public games, the owner authorized another batch of **up to
+200 admissions** to measure progress toward native rating establishment. The
+versioned `calibration-200-v1` plan starts at the already-tested 22-slot ceiling
+(actual eligible concurrency may be lower), with two workers/four logical CPUs
+and a 2,000 MiB worker-group memory limit. The original pilot/ramp plans retain
+their 100-admission budgets. The native API supplies the immutable plan budget
+to the driver, and native admission independently enforces it.
+
+Continue earned public ratings and histories without reseeding. Keep the same
+5+3/10+5 controls, sampling/history/conditioning, no-added-wait wrapper, native
+clocks/completion/Glicko and safeguards. The deadline remains 90 minutes with
+admissions ending at 75 minutes; there is no automatic extension or repeat job.
+Publish all outcomes and RD/provisional coverage, including sparse rating bands
+that remain uncertain. Crossing RD <=110 is the first native establishment
+milestone; a closed-pool run does not independently prove human Lichess alignment.
+
+Qualification for this plan passed three native plan tests, 32 adapter tests,
+format/build checks and an isolated native integration run with 48 real Maia
+plies across both workers. Disposable closed reservation fixtures exercised
+admissions 199/200 and rejected a 201st admission using unused bot seats; these
+fixtures are not public games or calibration evidence. The integration also
+verified native mate/Glicko persistence, normal rated-human admission, stale-ply
+rejection and aborted games remaining unrated.
