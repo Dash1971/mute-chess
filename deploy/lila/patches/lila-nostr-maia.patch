@@ -2750,7 +2750,7 @@ index 818aaae..901eb6e 100644
    flair?: Flair;
    patron?: boolean; // BC
 diff --git a/ui/analyse/css/_layout.scss b/ui/analyse/css/_layout.scss
-index 4f219ad..b649753 100644
+index 4f219ad..61f2eac 100644
 --- a/ui/analyse/css/_layout.scss
 +++ b/ui/analyse/css/_layout.scss
 @@ -127,6 +127,10 @@ $analyse-gauge-gap: 4px;
@@ -2768,9 +2768,9 @@ index 4f219ad..b649753 100644
        'uchat   . under   .     controls'
        'uchat   . under   .     round-training';
  
-+    // The empty keyboard row leaves 7px below the board in three columns.
++    // Offset the empty keyboard track between the board and opening row.
 +    &__underboard:has(> .nosweat-opening) {
-+      margin-top: -8px;
++      margin-top: min(0px, calc(2.5em - $col3-uniboard-controls));
 +    }
 +
      &__side {
