@@ -34,9 +34,10 @@ export async function loadKey() {
 export const forgetKey = () => transaction('readwrite', store => store.delete('current'));
 
 // Explicit user action only: browser permission UI must never delay sign-in.
-export async function requestKeyPersistence(storage = globalThis.navigator?.storage) {
-  if (!storage?.persist) return 'unavailable';
+export async function requestKeyPersistence(storage) {
   try {
+    storage ??= globalThis.navigator?.storage;
+    if (typeof storage?.persist !== 'function') return 'unavailable';
     if (await storage.persisted?.()) return 'granted';
     return await storage.persist() ? 'granted' : 'denied';
   } catch { return 'unavailable'; }

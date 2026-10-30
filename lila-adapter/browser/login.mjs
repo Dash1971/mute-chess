@@ -49,8 +49,8 @@ async function signIn(signer, key, save = true) {
 async function exportKey(key, download = false) {
   const nsec = nsecEncode(key);
   if (download) {
-    const url = URL.createObjectURL(new Blob([nsec + '\n'], { type: 'text/plain;charset=utf-8' }));
     const link = document.createElement('a');
+    const url = URL.createObjectURL(new Blob([nsec + '\n'], { type: 'text/plain;charset=utf-8' }));
     try {
       link.href = url;
       link.download = 'mute-chess-nostr-key.txt';
@@ -93,6 +93,7 @@ if (element('extension')) {
     resetFactor(); generated?.fill(0); generated = generateSecretKey();
     element('backup').value = nsecEncode(generated);
     element('backup').type = 'password';
+    element('reveal').textContent = 'Show key';
     element('created').hidden = false;
     element('created').scrollIntoView({ block: 'nearest' });
     element('copy').focus();
@@ -158,6 +159,12 @@ if (element('extension')) {
   action('back', () => { resetFactor(); status(''); });
   element('token').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); element('verify').click(); } });
   element('nsec').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); element('import').click(); } });
-  window.addEventListener('pagehide', () => { pending?.key?.fill(0); generated?.fill(0); });
+  window.addEventListener('pagehide', () => {
+    resetFactor();
+    generated?.fill(0); generated = undefined;
+    element('backup').value = '';
+    element('nsec').value = '';
+    element('created').hidden = true;
+  });
   loadKey().then(key => { element('saved').hidden = !key; key?.fill(0); }).catch(() => {});
 }

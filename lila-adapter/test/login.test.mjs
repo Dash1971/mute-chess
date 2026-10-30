@@ -12,13 +12,13 @@ async function page(login,signer,options={}){
   if (!options.keepSaved) await forgetKey();
   const names=['generate','backup','created','copy','download','copy-saved','download-saved','persist','reveal','create-login','username','extension','saved','use-saved','forget','nsec','import','status','methods','second-factor','token','verify','back'];
   const nodes=new Map(names.map(name=>[name,{dataset:{},value:'',textContent:'',hidden:['created','saved','second-factor'].includes(name),disabled:false,listeners:{},addEventListener(type,fn){this.listeners[type]=fn;},focus(){this.focused=true;},scrollIntoView(){},async click(){await this.listeners.click?.();}}]));
-  const attempts=[],destinations=[],downloads=[],blobs=new Map(),revoked=[];let nonce=0,clipboard='';
+  const attempts=[],destinations=[],downloads=[],blobs=new Map(),revoked=[],events=new Map();let nonce=0,clipboard='';
   class BrowserURL extends URL {
     static createObjectURL(blob){const url='blob:http://127.0.0.1:19663/'+blobs.size;blobs.set(url,blob);return url;}
     static revokeObjectURL(url){revoked.push(url);}
   }
   const context=vm.createContext({console,crypto,TextEncoder,TextDecoder,URL:BrowserURL,Blob,URLSearchParams,Uint8Array,ArrayBuffer,DataView,structuredClone,indexedDB,btoa,atob,setTimeout,clearTimeout,setInterval,clearInterval,AbortSignal,
-    navigator:{storage:options.storage,clipboard:{async writeText(text){if(options.clipboardFails)throw Error('Permission denied');clipboard=text;}}},window:{nostr:signer,addEventListener(){}},
+    navigator:{storage:options.storage,clipboard:{async writeText(text){if(options.clipboardFails)throw Error('Permission denied');clipboard=text;}}},window:{nostr:signer,addEventListener(name,callback){events.set(name,callback);}},
     location:{origin:'http://127.0.0.1:19663',search:'?referrer=%2Fforum',assign(url){destinations.push(url);}},
     document:{body:{append(){}},createElement(){return {click(){downloads.push({href:this.href,download:this.download});},remove(){}};},getElementById(id){return nodes.get(id.replace(/^nostr-/,''))??null;},querySelectorAll(){return [...nodes.values()];}},
     fetch:async(path,options)=>{
@@ -31,7 +31,7 @@ async function page(login,signer,options={}){
       attempts.push({body,event});const result=login(body,event);return new Response(JSON.stringify(result.body),{status:result.status});
     },
   });vm.runInContext(bundle,context);
-  return {node:name=>nodes.get(name),attempts,destinations,downloads,blobs,revoked,get clipboard(){return clipboard;}};
+  return {node:name=>nodes.get(name),attempts,destinations,downloads,blobs,revoked,fire:name=>events.get(name)?.(),get clipboard(){return clipboard;}};
 }
 test('create/copy/save a new key preserves identity and returns to the requested page',async()=>{
   const ui=await page(()=>({status:200,body:{url:'/'}}));assert.equal(ui.node('second-factor').hidden,true);
@@ -97,4 +97,11 @@ test('optional persistence never runs at startup or holds up signer login',async
   const keeping=ui.node('persist').click();await new Promise(resolve=>setTimeout(resolve,0));assert.equal(asked,1);
   await ui.node('extension').click();assert.equal(ui.destinations.length,1);
   finish(false);await keeping;assert.match(ui.node('status').textContent,/manage storage automatically/);key.fill(0);
+});
+
+test('leaving the page clears temporary key fields and cannot export a wiped key on return',async()=>{
+  const ui=await page(()=>({status:200,body:{url:'/'}}));
+  await ui.node('generate').click();assert.match(ui.node('backup').value,/^nsec1/);
+  ui.fire('pagehide');assert.equal(ui.node('backup').value,'');assert.equal(ui.node('created').hidden,true);
+  await ui.node('download').click();assert.equal(ui.downloads.length,0);assert.match(ui.node('status').textContent,/Create a key first/);
 });
