@@ -81,13 +81,13 @@ async function requestStop() {
 for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => { stopping = true; });
 try {
   last = await native('/club/internal/study/ratings');
-  if (last.runId !== run || last.publicRatings !== live || last.admitted !== 0 || last.closed || last.workers !== workerCount ||
+  if (last.runId !== run || last.publicRatings !== live || last.admitted !== 0 || last.closed || last.workers !== workerCount || ![100, 200].includes(last.maximumAdmitted) ||
       last.deadline - Date.now() > 90 * 60000 || Date.now() >= last.admissionEnd)
     throw Error('Study scope/budget mismatch or existing run; use a reviewed checkpoint-resume procedure');
   initial = { started: Date.now(), deadline: last.deadline, admissionEnd: last.admissionEnd,
     ratings: last.ratings, modelSha256: MODEL_SHA256,
     rosterSha256: createHash('sha256').update(JSON.stringify(roster)).digest('hex'),
-    policyVersion: 'native-no-wait-study-v1', maximumAdmitted: 100, maximumConcurrency: last.maximumConcurrency,
+    policyVersion: 'native-no-wait-study-v1', maximumAdmitted: last.maximumAdmitted, maximumConcurrency: last.maximumConcurrency,
     profile: last.profile, workerCount, stages: last.stages, clocks: { blitz: '5+3', rapid: '10+5' } };
   await log({ type: 'start', ...initial, publicRatings: live });
   await save(last);
@@ -115,7 +115,7 @@ try {
       pending.set(g.id, task);
     }
     const capacity = last.capacity;
-    if (last.admitted < 100 && last.games.length + last.publicGames < capacity && Date.now() < initial.admissionEnd) {
+    if (last.admitted < initial.maximumAdmitted && last.games.length + last.publicGames < capacity && Date.now() < initial.admissionEnd) {
       // Fetch current native ratings before each admission; frozen policy inputs never follow Glicko.
       last = await native('/club/internal/study/ratings');
       const match = pairing(roster, last.ratings, last.records);
@@ -128,7 +128,7 @@ try {
         } catch (e) { if (e.status !== 409) throw e; }
       }
     }
-    if (!last.games.length && (last.admitted >= 100 || Date.now() >= initial.admissionEnd)) break;
+    if (!last.games.length && (last.admitted >= initial.maximumAdmitted || Date.now() >= initial.admissionEnd)) break;
     if (last.records.some(r => r.state === 'aborted')) throw Error('Native abort observed; stop for investigation');
     await sleep(100);
   }

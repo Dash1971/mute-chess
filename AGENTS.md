@@ -213,3 +213,14 @@ workers under a four-core inference budget; ramp 10 → 15 → 20 → 22. Retain
 90-minute / 100-admitted-game limit per run, one game per identity, ±200 matching
 and earned public ratings. Do not force 22 when eligible pairs are unavailable.
 No 50-game run or roster expansion is authorized by this choice.
+
+## Next calibration batch (owner authorization, October 30, 2026)
+
+The owner authorized one additional batch of 200 public games (#98), continuing
+from the earned results of the first 200. Use calibration-200-v1: hard ceiling
+200 admissions, up to 22 games, two workers/four logical CPU quota, 2,000 MiB
+worker-group memory, no added human waits, native Blitz/Rapid and Glicko.
+Keep the 90-minute deadline and stop admissions at 75 minutes. Preserve native
+perfs/history, one game per bot, ±200 matching and all safeguards. No automatic
+extension, forced establishment, roster expansion or normal-play cap change.
+Report how many bot-speed ratings meet the native provisional threshold.

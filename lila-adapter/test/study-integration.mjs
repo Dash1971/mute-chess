@@ -1,6 +1,7 @@
 // Disposable qualification only. The legal mate fixture is not calibration evidence.
 import assert from 'node:assert/strict';
 import http from 'node:http';
+import { execFileSync } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { generateSecretKey, getPublicKey, finalizeEvent } from 'nostr-tools/pure';
@@ -28,7 +29,8 @@ for (let i = 0; i < 100; i++) {
 }
 assert.ok(before); assert.equal(before.publicRatings, false); assert.equal(before.runId, run);
 assert.equal(Object.keys(before.ratings).length, 44);
-assert.equal(before.maximumConcurrency, before.workers === 2 ? 22 : 10); assert.equal(before.admitted, 0);
+assert.equal(before.maximumConcurrency, before.workers === 2 ? 22 : 10);
+assert.equal(before.maximumAdmitted, before.profile === 'calibration-200-v1' ? 200 : 100); assert.equal(before.admitted, 0);
 assert.equal((await request('/club/internal/study', undefined, 'invalid')).status, 403);
 // Rated human admission must still fall back to the normal reservation path while study mode is on.
 async function human(path, body, extra = {}) {
@@ -101,6 +103,32 @@ try {
   }
 } finally { maia.close(); }
 assert.equal(workersUsed.size, before.workers);
+let admissionBoundary;
+if (before.maximumAdmitted === 200) {
+  // Only the disposable namespace receives synthetic closed reservation documents.
+  // They test native budget/cursor boundaries, not game outcomes or calibration.
+  assert.ok(/^q[a-z0-9_]{2,31}$/.test(run));
+  assert.ok(process.env.STUDY_QUAL_MONGOSH);
+  const count = (await api('')).admitted;
+  const script = `const run=${JSON.stringify(run)}; const existing=db.nosweat_study_game.countDocuments({runId:run});
+    if(existing!==${count}) throw Error("Fixture count changed");
+    const docs=Array.from({length:199-existing},(_,i)=>({_id:"f"+String(i).padStart(7,"0"),runId:run,state:"finished"}));
+    if(docs.length) db.nosweat_study_game.insertMany(docs);`;
+  execFileSync(process.execPath, [process.env.STUDY_QUAL_MONGOSH,
+    `mongodb://127.0.0.1:27028/nosweat_calibration_${run}`, '--quiet', '--eval', script], { stdio: 'pipe' });
+  assert.equal((await api('')).admitted, 199);
+  const makeSetup = (index) => {
+    const white=roster[index], black=roster[index+1];
+    return { white:white.id, black:black.id, speed:'rapid', policies:{white:freezeStudy(white,run),black:freezeStudy(black,run)} };
+  };
+  const finalGame = await api('', makeSetup(20));
+  fixtures.push({ ...finalGame, white:roster[20], black:roster[21] });
+  assert.equal((await api('')).admitted, 200);
+  // Distinct unused seats ensure the 201st rejection is the budget, not busy-account protection.
+  assert.equal((await request('/club/internal/study', makeSetup(24))).status, 409);
+  assert.equal((await api('')).admitted, 200);
+  admissionBoundary=200;
+}
 await api('/stop', { runId: run });
 state = await api('/ratings'); assert.equal(state.closed, true);
 assert.equal((await request('/club/internal/study', { ...setup, policies })).status, 409);
@@ -109,9 +137,9 @@ for (const fixture of fixtures) for (const bot of [fixture.white, fixture.black]
 const report = { qualificationOnly: true, profile: before.profile, workersUsed: [...workersUsed],
   syntheticMateFixture: first.id, nativeRatedUpdate: result,
   nativePerfsBefore: before.ratings, nativePerfsAfter: state.ratings,
-  maiaNativeMoves: pairCount * 12, abortedUnratedFixtures: fixtures.map(f => f.id),
+  maiaNativeMoves: pairCount * 12, admissionBoundary, abortedUnratedFixtures: fixtures.map(f => f.id),
   checks: ['unauthorized', 'rated-human-admission-with-study-enabled', 'busy/capacity', 'stale-ply',
-    'native-mate', 'native-glicko-persistence', 'maia-history-path', 'multiple-real-workers', 'stop-no-rating', 'closed-admission'] };
+    'native-mate', 'native-glicko-persistence', 'maia-history-path', 'multiple-real-workers', ...(admissionBoundary ? ['native-200-admission-boundary'] : []), 'stop-no-rating', 'closed-admission'] };
 await writeFile(process.env.STUDY_QUAL_REPORT, JSON.stringify(report, null, 2));
 console.log(JSON.stringify({ qualificationOnly: true, nativeMateAndGlicko: true,
   maiaMoves: pairCount * 12, workers: workersUsed.size, stopped: true }));
