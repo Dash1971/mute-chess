@@ -107,10 +107,7 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: sbt
-          cache-dependency-path: |
-            /tmp/lila/build.sbt
-            /tmp/lila/project/build.properties
-            /tmp/lila/project/*.scala
+          cache-dependency-path: deploy/lila/patches/lila-nostr-maia.patch
       - uses: sbt/setup-sbt@f9efdb0d6d5959d3e1510935d4ff64a65821a256 # v1
       - name: Compile and test native forum permissions
         working-directory: /tmp/lila
