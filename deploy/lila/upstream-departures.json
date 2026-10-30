@@ -92,11 +92,12 @@
         },
         {
           "id": "maia-analysis-and-review",
-          "rationale": "Add Maia probabilities/expected scores, validated annotations and stacked analysis cards around the native analysis tree, Stockfish, graph, accuracy and learning flow. Keep engine settings bounded and optional and reject unsupported variants.",
+          "rationale": "Add Maia probabilities/expected scores, validated annotations and stacked analysis cards around the native analysis tree, Stockfish, graph, accuracy and learning flow. Keep engine settings bounded and optional and reject unsupported variants. Puzzle review retains compact, separately wrapped Maia rows with label spacing and independent raw-probability Other expansions; the richer game cards stay separate.",
           "verification": [
             "Native analyse/chart/lib tests and full UI build",
             "analysis/test-client.mjs",
-            "Private analysis and puzzle-review browser qualification"
+            "Private analysis and puzzle-review browser qualification",
+            "Puzzle Maia channel DOM interactions, solving/visibility gates and narrow-width browser layout"
           ],
           "files": [
             "app/controllers/UserAnalysis.scala",
@@ -171,7 +172,8 @@
             "ui/puzzle/src/moveTree.ts",
             "ui/puzzle/src/noSweatMaia.ts",
             "ui/puzzle/src/view/main.ts",
-            "ui/puzzle/src/view/side.ts"
+            "ui/puzzle/src/view/side.ts",
+            "ui/puzzle/tests/noSweatMaia.test.ts"
           ]
         },
         {
