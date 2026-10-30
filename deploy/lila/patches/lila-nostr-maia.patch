@@ -2590,7 +2590,7 @@ index 0c0ed10..0fd8c57 100644
  
    val logo = raw:
 diff --git a/modules/web/src/main/ui/layout.scala b/modules/web/src/main/ui/layout.scala
-index 1c7a30b..87fdf46 100644
+index 1c7a30b..9a1d07d 100644
 --- a/modules/web/src/main/ui/layout.scala
 +++ b/modules/web/src/main/ui/layout.scala
 @@ -17,8 +17,17 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
@@ -2654,7 +2654,7 @@ index 1c7a30b..87fdf46 100644
 -    s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
 -      s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
 +    if isMuteChess then
-+      """<link rel="alternate icon" type="image/png" href="/assets/nosweat/favicon-32.png?v=quiet-signal1"><link id="favicon" rel="icon" type="image/svg+xml" href="/assets/nosweat/favicon.svg?v=quiet-signal1"><link rel="stylesheet" href="/assets/nosweat/brand.css?v=analysis6"><link rel="stylesheet" href="/assets/nosweat/quiet-signal.css?v=quiet-signal2">"""
++      """<link rel="alternate icon" type="image/png" href="/assets/nosweat/favicon-32.png?v=quiet-signal1"><link id="favicon" rel="icon" type="image/svg+xml" href="/assets/nosweat/favicon.svg?v=quiet-signal1"><link rel="stylesheet" href="/assets/nosweat/brand.css?v=analysis7"><link rel="stylesheet" href="/assets/nosweat/quiet-signal.css?v=quiet-signal2">"""
 +    else
 +      s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
 +        s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
@@ -2750,10 +2750,23 @@ index 818aaae..901eb6e 100644
    flair?: Flair;
    patron?: boolean; // BC
 diff --git a/ui/analyse/css/_layout.scss b/ui/analyse/css/_layout.scss
-index 4f219ad..61f2eac 100644
+index 4f219ad..5ae45e9 100644
 --- a/ui/analyse/css/_layout.scss
 +++ b/ui/analyse/css/_layout.scss
-@@ -127,6 +127,10 @@ $analyse-gauge-gap: 4px;
+@@ -113,6 +113,12 @@ $analyse-gauge-gap: 4px;
+       'uchat      .     side';
+     row-gap: 0;
+ 
++    @include mq-less-than-col3 {
++      &:has(.nosweat-opening):not(:has(> .keyboard-move)) {
++        grid-template-rows: fit-content(0) 0;
++      }
++    }
++
+     &__side {
+       margin: $analyse-block-gap 0 0 0;
+     }
+@@ -127,6 +133,10 @@ $analyse-gauge-gap: 4px;
  
      &__underboard {
        margin-top: $analyse-block-gap;
@@ -2764,7 +2777,7 @@ index 4f219ad..61f2eac 100644
      }
  
      .eval-gauge {
-@@ -165,6 +169,11 @@ $analyse-gauge-gap: 4px;
+@@ -165,6 +175,11 @@ $analyse-gauge-gap: 4px;
        'uchat   . under   .     controls'
        'uchat   . under   .     round-training';
  
@@ -2776,7 +2789,7 @@ index 4f219ad..61f2eac 100644
      &__side {
        margin-top: 0;
      }
-@@ -174,6 +183,31 @@ $analyse-gauge-gap: 4px;
+@@ -174,6 +189,31 @@ $analyse-gauge-gap: 4px;
        min-height: 10em;
      }
  

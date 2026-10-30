@@ -29,7 +29,8 @@ path backward and match the latest recognized position, including variations and
 legal en-passant normalization. Display `C00 · Opening name` under the board,
 above the analysis tabs, centered as in Mobile Maia. The opening sits immediately
 beneath the board: omit the native under-board margin and compensate for the empty
-keyboard row in the three-column layout (#115). Keep the 28px row, placing its extra
+keyboard row in the three-column layout (#115). In the two-column layout, explicitly
+collapse that unused grid track only when keyboard input is absent (#117). Keep the 28px row, placing its extra
 vertical space below the name. Reserve that row even when no opening is known. Long
 names stay on one line with an ellipsis and expose their full text by native
 tooltip and a keyboard/click-accessible dialog, without moving other panels. Truncation is remeasured after fonts finish loading
