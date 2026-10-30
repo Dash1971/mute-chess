@@ -38,3 +38,23 @@ About → Credits links and describes the contributions of Lichess/Lila, Maia3 a
 the Maia platform, En Croissant, Mobile Maia and Stockfish, with links to the
 third-party notices and complete corresponding-source archive. Payment and
 patron-wing behavior is unchanged.
+
+## Wallet invoice description compatibility (#108)
+
+Wallet of Satoshi can return either BOLT-11's inline UTF-8 `d` description or
+its SHA-256 `h` description hash. Short browser-signed zap requests can fit
+inline, while longer diagnostic requests may use a hash. Rejecting all inline
+invoices made the real browser flow fail even when longer test requests passed.
+
+Both forms must authenticate the exact serialized signed zap request: inline
+text must match byte-for-byte, or the hash must equal SHA-256 of that text.
+The invoice signature, exact amount, trusted recipient/provider, receipt
+signature and native ledger/account binding remain mandatory. An ordinary
+inline wallet memo or a different signed request does not qualify. Creation and
+receipt verification use the same binding rule; no payment or patron status is
+inferred from invoice generation.
+
+Invoice failures distinguish invalid/expired signed requests, provider network
+or HTTP failures, unreadable responses, and unverified invoices. Public messages
+suggest a safe retry; adapter logs retain only a bounded error code, without
+signed requests, donor IDs, invoices, tokens or provider payloads.

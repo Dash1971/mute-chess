@@ -16,14 +16,14 @@ const request = fields => finalizeEvent({ kind: 9734, created_at: now, content: 
   ['p', support.recipient], ['amount', '100000'], ['lnurl', lnurl], ['relays', ...support.relays],
 ], ...fields }, payer);
 const field = (tag, words) => [tag, words.length >> 5, words.length & 31, ...words];
-function encodedInvoice(description, amount = 'lnbc1u') {
+function encodedInvoice(description, amount = 'lnbc1u', inline = false) {
   // Independent BOLT-11 writer: seven timestamp words, tagged fields, compact
   // recoverable secp256k1 signature, then Bech32 checksum.
   const timestamp = Array.from({ length: 7 }, (_, i) => Math.floor(now / 32 ** (6 - i)) & 31);
   const words = [...timestamp,
     ...field(1, bech32.toWords(sha256(new Uint8Array(32).fill(44)))),
     ...field(16, bech32.toWords(new Uint8Array(32).fill(55))),
-    ...field(23, bech32.toWords(sha256(utf8ToBytes(description))))];
+    ...field(inline ? 13 : 23, bech32.toWords(inline ? utf8ToBytes(description) : sha256(utf8ToBytes(description))))];
   const bits = words.map(w => w.toString(2).padStart(5, '0')).join('').padEnd(Math.ceil(words.length * 5 / 8) * 8, '0');
   const bytes = Uint8Array.from(bits.match(/.{8}/g), b => parseInt(b, 2));
   const digest = sha256(concatBytes(utf8ToBytes(amount), bytes));
@@ -116,4 +116,86 @@ test('address rotation keeps old invoice receipts valid but rejects new requests
   assert.equal(validateZapReceipt(receipt(oldRequest), now + 5, signedWallet).requestId, oldRequest.id);
   const unrelated = request({ tags: request().tags.map(tag => tag[0] === 'lnurl' ? ['lnurl', 'unrelated'] : tag) });
   assert.throws(() => validateZapReceipt(receipt(unrelated), now + 5, signedWallet), /recipient/);
+});
+
+test('invoice failures distinguish expired signatures, provider connectivity and unverified invoices', async () => {
+  const { InvoiceError } = await import('../lightning.mjs');
+  let calls = 0;
+  await assert.rejects(createZapInvoice(request(), async () => { calls++; }, now + 301), error => {
+    assert.ok(error instanceof InvoiceError);
+    assert.equal(error.status, 400);
+    assert.equal(error.code, 'lightning_request_expired');
+    assert.match(error.publicMessage, /device clock/);
+    return true;
+  });
+  assert.equal(calls, 0);
+  const privateDetail = 'sensitive upstream payload must not reach the client';
+  for (const failure of [
+    async () => { throw new TypeError(privateDetail); },
+    async () => new Response(privateDetail, { status: 503 }),
+    async () => new Response(JSON.stringify({ status: 'ERROR', reason: privateDetail })),
+  ]) {
+    await assert.rejects(createZapInvoice(request(), failure, now), error => {
+      assert.ok(error instanceof InvoiceError);
+      assert.equal(error.status, 503);
+      assert.match(error.code, /^lightning_metadata_/);
+      assert.match(error.publicMessage, /try again/i);
+      assert.ok(!error.publicMessage.includes(privateDetail));
+      return true;
+    });
+  }
+  let stage = 0;
+  await assert.rejects(createZapInvoice(request(), async () => new Response(JSON.stringify(++stage === 1 ? {
+    tag: 'payRequest', allowsNostr: true, nostrPubkey: support.issuer,
+    minSendable: 1000, maxSendable: 100000000000,
+    callback: 'https://livingroomofsatoshi.com/api/v1/lnurl/payreq/fixture',
+  } : { pr: 'invalid invoice' })), now), error => {
+    assert.ok(error instanceof InvoiceError);
+    assert.equal(error.status, 502);
+    assert.equal(error.code, 'lightning_invoice_unverified');
+    assert.match(error.publicMessage, /could not be verified/);
+    return true;
+  });
+});
+
+test('a provider failure can be retried with a fresh signed request', async () => {
+  await assert.rejects(createZapInvoice(request(), async () => { throw new Error('offline'); }, now));
+  let stage = 0;
+  const fresh = request({ content: 'Fresh retry' });
+  const result = await createZapInvoice(fresh, async () => new Response(JSON.stringify(++stage === 1 ? {
+    tag: 'payRequest', allowsNostr: true, nostrPubkey: support.issuer,
+    minSendable: 1000, maxSendable: 100000000000,
+    callback: 'https://livingroomofsatoshi.com/api/v1/lnurl/payreq/fixture',
+  } : { pr: encodedInvoice(JSON.stringify(fresh)) })), now);
+  assert.equal(result.amountMsat, 100000);
+  assert.equal(result.donor, getPublicKey(payer));
+});
+
+
+test('wallet inline descriptions bind the exact signed request for invoice creation and settlement', async () => {
+  const req = request(), description = JSON.stringify(req);
+  const inline = encodedInvoice(description, 'lnbc1u', true);
+  const details = invoiceDetails(inline);
+  assert.equal(details.description, description);
+  assert.equal(details.descriptionHash, undefined);
+  let stage = 0;
+  const fetcher = async () => new Response(JSON.stringify(++stage === 1 ? {
+    tag: 'payRequest', allowsNostr: true, nostrPubkey: support.issuer,
+    minSendable: 1000, maxSendable: 100000000000,
+    callback: 'https://livingroomofsatoshi.com/api/v1/lnurl/payreq/fixture',
+  } : { pr: inline }));
+  assert.equal((await createZapInvoice(req, fetcher, now)).invoice, inline);
+  const paid = receipt(req, { tags: receipt(req).tags.map(tag => tag[0] === 'bolt11' ? ['bolt11', inline] : tag) });
+  assert.equal(validateZapReceipt(paid, now + 5, signedWallet).requestId, req.id);
+  for (const unrelated of ['Ordinary wallet payment', JSON.stringify(request({ content: 'Other' }))]) {
+    const wrong = encodedInvoice(unrelated, 'lnbc1u', true);
+    stage = 0;
+    await assert.rejects(createZapInvoice(req, async () => new Response(JSON.stringify(++stage === 1 ? {
+      tag: 'payRequest', allowsNostr: true, nostrPubkey: support.issuer,
+      minSendable: 1000, maxSendable: 100000000000,
+      callback: 'https://livingroomofsatoshi.com/api/v1/lnurl/payreq/fixture',
+    } : { pr: wrong })), now), /does not match/);
+    const invalidReceipt = receipt(req, { tags: receipt(req).tags.map(tag => tag[0] === 'bolt11' ? ['bolt11', wrong] : tag) });
+    assert.throws(() => validateZapReceipt(invalidReceipt, now + 5, signedWallet), /does not match/);
+  }
 });
