@@ -196,11 +196,13 @@
         },
         {
           "id": "focused-native-features",
-          "rationale": "Constrain visible navigation and unsupported routes, standard-only tools and bot-game metadata; preserve native puzzles, community and direct friend invitations. Watch/Learn/explorer remain hidden or deferred, and imported practice data uses the licensed subset rather than upstream production data.",
+          "rationale": "Constrain visible navigation and unsupported routes, standard-only tools and bot-game metadata; preserve native puzzles, community and direct friend invitations. Watch/Learn/explorer remain hidden or deferred, and imported practice data uses the licensed subset rather than upstream production data. Owner-requested immediate forum posting (#81) bypasses only the age/game qualification for signed-in humans when nosweat.enabled; native bot denial, category ACLs, captcha, rate limits and moderation remain authoritative. The forum module adds the existing native test dependency for its access regressions.",
           "verification": [
             "Native site/editor/puzzle tests and UI build",
             "puzzles/ and learning/ validation",
-            "Private community/preferences/friend checks"
+            "Private community/preferences/friend checks",
+            "Native ForumAccessTest (fresh/anonymous/bot/upstream eligibility and team ACLs)",
+            "Private community integration: immediate topic and reply, invalid captcha rejection"
           ],
           "files": [
             "app/controllers/Cms.scala",
@@ -211,8 +213,12 @@
             "app/views/lobby/home.scala",
             "app/views/noSweatInfo.scala",
             "app/views/ui.scala",
+            "build.sbt",
+            "modules/forum/src/main/Env.scala",
+            "modules/forum/src/main/ForumAccess.scala",
             "modules/forum/src/main/ui/CategUi.scala",
             "modules/forum/src/main/ui/ForumBits.scala",
+            "modules/forum/src/test/ForumAccessTest.scala",
             "modules/practice/src/main/PracticeApi.scala",
             "modules/practice/src/main/PracticeStructure.scala",
             "modules/pref/src/main/Pref.scala",

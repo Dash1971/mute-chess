@@ -7,9 +7,13 @@ models and controllers, with standard chess only; no replacement chess applicati
   official opening database requires Lichess authentication. No secondary login,
   token, API connection, opening-data copy or partial connection flow is shipped.
   Its unavailable navigation/control is hidden pending a future decision (#42).
-- Forum uses native categories, posting forms, captcha, age/game qualification,
-  rate limits, moderation and notifications. New accounts retain upstream posting
-  eligibility. No fake content or moderator permissions are seeded. Full-text forum
+- Forum uses native categories, posting forms, captcha, rate limits, moderation
+  and notifications. With `nosweat.enabled=true`, signed-in humans can create topics
+  and reply immediately, without the upstream age/completed-game qualification
+  (#81). Anonymous users and bots cannot post; category/team ACLs, kid-mode checks,
+  closed/archived topics, blocking, spam/promotion checks and moderation remain native.
+  With Mute Chess disabled, upstream age/game and title/verified/patron eligibility
+  remain unchanged. No fake content or moderator permissions are seeded. Full-text forum
   and study search are hidden until a search backend is configured. Blog, coaches,
   teams, tournaments and other unsupported navigation entries are removed.
 - Footer community link is the owner's existing Flotilla Mute Chess room:
@@ -37,3 +41,18 @@ models and controllers, with standard chess only; no replacement chess applicati
 Public routing is method-scoped for these added surfaces and covered by gateway
 integration checks. Native controllers still enforce authentication, CSRF, ACLs
 and validation. New data bootstrap is additive; it must never reset user data.
+
+## Immediate forum posting (#81)
+
+`modules/forum/src/main/Env.scala` passes the existing `nosweat.enabled` flag to
+`ForumAccess`; native configuration has no age/game eligibility override. The
+single shared write grant removes only that qualification for Mute Chess humans,
+so category buttons, reply forms and both POST controllers agree. No moderation
+roles or user records change. The category denial message reports unavailable
+posting without promising an age-based unlock; the FAQ explains immediate posting.
+
+After an upstream rebase, run `forum/testOnly lila.forum.ForumAccessTest` and the
+private `lila-adapter/test/native-community-integration.mjs` qualification. Verify
+new-account topic/reply submission before playing, invalid captcha rejection,
+anonymous/bot denial, team/category ACLs and the default upstream qualification.
+The private integration script no longer ages a database fixture to enable posting.

@@ -19,7 +19,8 @@ control; remove the extra Pause button and the explanatory boilerplate.
 
 The donation page needs a visible close link to the home grid, concise copy and
 properly spaced form/QR/actions. Payment matching, invoices and receipt validation
-are unchanged. Forum posting keeps native eligibility and gets visible guidance.
+are unchanged. Signed-in humans can post in the forum immediately (#81), with
+native category permissions, moderation and anti-spam controls.
 
 The footer offers About, FAQ, Contact, Terms and Privacy, plus actual source and
 social links. The owner explicitly chose the official Nostr identity as the contact
