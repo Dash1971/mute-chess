@@ -1,0 +1,20 @@
+{
+  "games": 200,
+  "allFinalPGNsLegal": true,
+  "nativeFinishPlyAndResultMatch": true,
+  "terminalStatesMatch": true,
+  "submissionEvents": 17258,
+  "finalNativePlies": 17142,
+  "duplicateGamePlySubmissions": 116,
+  "gamesWithObservedPlyRollback": [
+    "MiZPNy3I",
+    "69J5gye6",
+    "gCzsWXj3",
+    "QFbY3RIk"
+  ],
+  "allRepeatedMovesMatchFinalPGN": true,
+  "conflictingMoves": [],
+  "observedSeconds": 1683.51,
+  "uniqueNativePliesPerSecond": 10.182297699449364,
+  "interpretation": "Repeated work is retained in raw evidence. Distinct completed games/perfs are not duplicated. All repeated submissions follow the identical final legal PGN sequence. Headless round-lifecycle behavior needs a separate fix/qualification before another trial."
+}

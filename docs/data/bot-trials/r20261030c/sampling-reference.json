@@ -1,0 +1,61 @@
+{
+  "repository": "https://github.com/Dash1971/mobile-maia-research",
+  "revision": "a2d90a94aac930fe17109f5e7e1b2e351c18b4fd",
+  "sources": [
+    "https://github.com/Dash1971/mobile-maia-research/blob/a2d90a94aac930fe17109f5e7e1b2e351c18b4fd/studies/maia3-sampling/strength/results-79m-app-draw.json",
+    "https://github.com/Dash1971/mobile-maia-research/blob/a2d90a94aac930fe17109f5e7e1b2e351c18b4fd/studies/maia3-sampling/followup/strength/results-primary.json"
+  ],
+  "modelSha256": "3454b03ae78baa64a87b345fdb1a457265d912caec531039b074f07eda0d8010",
+  "selfConditioning": 1600,
+  "opponentConditioning": 1600,
+  "history": false,
+  "samplingStartsAtPly": 0,
+  "relativeTo": "temperature 1.0 / top-p 1.0",
+  "profiles": {
+    "argmax": {
+      "n": 600,
+      "elo_difference": 322.6729355879232,
+      "elo_difference_95_ci": [
+        288.06372136238286,
+        361.7251113829536
+      ]
+    },
+    "focused": {
+      "n": 600,
+      "elo_difference": 270.3709473496885,
+      "elo_difference_95_ci": [
+        237.22722637494823,
+        307.07432668219144
+      ]
+    },
+    "balanced": {
+      "n": 1200,
+      "elo_difference": 71.03990052194632,
+      "elo_difference_95_ci": [
+        52.2154096355758,
+        90.28538584558005
+      ]
+    },
+    "full": {
+      "elo_difference": 0,
+      "n": null
+    }
+  },
+  "lichessReferencePolicyEvidence": {
+    "url": "https://discord.com/channels/1275283861890138122/1275283861890138125/1553341614368493649",
+    "author": "ComradeRamen",
+    "displayedDate": "2026-09-26",
+    "directAccount": "maia3-79m_1600",
+    "temperature": 1.0,
+    "topP": 0.95,
+    "verification": "Owner-supplied screenshot inspected October 30: bot profile image and explicit Temperature 1 / Top P 95% appear in the same post. Owner also confirms the reference family uses this configuration. Live Discord fetch required access unavailable to the web reader.",
+    "screenshotSha256": "cb276558e92e7b57ff06b019f16ebe489d895f789fcde38b65af925e992c7607",
+    "remainingTransferDetails": [
+      "history",
+      "opening-phase sampling",
+      "inclusive/exclusive nucleus boundary",
+      "conditioning/model implementation pins"
+    ]
+  },
+  "interpretation": "Measured direct-match Elo differences are useful prior anchors, not a universal additive or linear sampling-to-Elo law. Subtracting the balanced gain to express offsets relative to a p95 reference is a planning estimate, not a measured comparison with that reference account."
+}

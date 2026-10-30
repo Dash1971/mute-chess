@@ -16,6 +16,8 @@ These are simultaneous **playing** users. Registered accounts and users browsing
 
 [Run one](data/bot-trials/r20261030a/README.md) measured about **6.8 native plies/second** with one worker at two/five/ten simultaneous BOT-versus-BOT games. [Run two](data/bot-trials/r20261030b/README.md) observed up to 21 games with two workers; the final target stage averaged about **9.3 plies/second**. Both seats request immediate inference in these games. A human game requests inference for the bot's turns and includes human thinking and configured bot timing.
 
+[Run three](data/bot-trials/r20261030c/README.md) completed 200 more games at the 22-slot ceiling. It measured **10.18 unique final native plies/second**, with mean Maia calculation **194 ms**, submitted-request acknowledgement **323 ms**, and full turn/queue time **2.04 seconds**. Peak sampled service memory was **2.83 GiB**. A headless lifecycle anomaly caused 116 repeated submissions (0.7%); the report verifies every final PGN and separates repeated work from native throughput. Resolve #101 before another headless trial. These measurements support the existing rough budgets below; they do not constitute a human-client load test.
+
 For rough planning, budget approximately **4.5–5 bot replies/second** from the one-worker configuration and **7–8/second** from two workers. That leaves roughly 15–30% throughput headroom relative to these observations, rather than reserving most of the machine unused. Then:
 
 ```text
