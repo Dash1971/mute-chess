@@ -68,3 +68,14 @@ database, whereas the authorized run updates existing public perfs without
 reset/import. Rebase verification must exercise both BOT seats, native rating
 writes after FinishGame, disabled/public/qualification scope checks, and normal
 human-pool admission while the flag is on. See [methodology](native-bot-trial.md).
+
+## Explicit one-time external rating anchor (#103, draft)
+
+The owner requested a draft operational correction for existing bots, including
+Bullet/Classical reference priors. This is isolated in `deploy/calibration/` and
+[its runbook](bot-rating-adjustment.md); no native patch paths or Glicko formula
+change is introduced. Preserve native perfs, histories, uncertainty/provisional
+rules and all subsequent native rating updates. The fixed-cohort migration is
+manual, audited and guarded by a maintenance window, exact snapshot/plan, backup,
+compare-and-set recovery and normal native cache/index rebuild. It never runs as
+part of app startup or deployment, and draft authorization does not apply it.

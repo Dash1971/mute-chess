@@ -25,6 +25,7 @@ jobs:
       - name: Parse runtime JavaScript and build the browser login
         run: |
           node --check deploy/public/gateway.mjs
+          node --check deploy/calibration/database.js
           node deploy/public/test-nostr.mjs
           node --check lila-adapter/server.mjs
           node --check lila-adapter/study.mjs
