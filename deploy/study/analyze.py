@@ -14,7 +14,7 @@ def distribution(values):
         return {'count': 0}
     def quantile(p):
         return values[min(len(values)-1, max(0, int(__import__('math').ceil(len(values)*p))-1))]
-    return {'count': len(values), 'min': values[0], 'median': statistics.median(values),
+    return {'count': len(values), 'min': values[0], 'mean': statistics.mean(values), 'median': statistics.median(values),
             'p95': quantile(.95), 'p99': quantile(.99), 'max': values[-1]}
 
 
@@ -122,7 +122,11 @@ def analyze(root):
         'initial_rd':distribution([r['initial_rd'] for r in rows]),'final_rd':distribution([r['final_rd'] for r in rows]),
         'absolute_rating_change':distribution([abs(r['rating_change']) for r in rows]),
         'biggest_rating_changes':sorted(rows,key=lambda r:abs(r['rating_change']),reverse=True)[:10],
-        'moves':len(moves),'stages':stage_stats,
+        'moves':len(moves),
+        'move_metric':'acknowledged submission events; repeated game/ply entries remain included',
+        'unique_submitted_game_plies':len({(m['id'],m['ply']) for m in moves}),
+        'repeated_game_ply_submissions':len(moves)-len({(m['id'],m['ply']) for m in moves}),
+        'stages':stage_stats,
         'max_observed_active_games':max(m['concurrency'] for m in moves),
         'all_added_waits_zero':all(m['addedWaitMs']==0 for m in moves),
         'health_ms':distribution([s['health']['ms'] for s in resources if s['health'].get('status')==200]),

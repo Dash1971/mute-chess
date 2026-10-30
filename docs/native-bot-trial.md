@@ -140,3 +140,5 @@ admissions 199/200 and rejected a 201st admission using unused bot seats; these
 fixtures are not public games or calibration evidence. The integration also
 verified native mate/Glicko persistence, normal rated-human admission, stale-ply
 rejection and aborted games remaining unrated.
+
+Third-batch evidence: [200 more public rated games, 38/88 established ratings, original-seed drift and the headless round-state audit](data/bot-trials/r20261030c/README.md). The run is complete; all temporary workers/configuration are stopped/restored. #101 must be investigated before another headless trial.

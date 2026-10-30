@@ -12,6 +12,8 @@ The authoritative configuration is [`lila-adapter/roster.json`](../lila-adapter/
 
 Existing sampling policies are unchanged: Full (temperature 1, top-p 1), Balanced (1, .95), Focused (.5, .9), and Argmax (0, 1). Non-Full policies use Full sampling through both colors' first five moves, then their fixed sampling settings. Conditioning inputs describe the network's input, not measured playing strength. Sampling and timing do not adapt to whether the human is winning.
 
+The original sampling increments and the exact Mobile Maia measurements are compared in [the sampling-reference audit](sampling-reference-audit.md). The historical reference-as-Full assumption remains recorded; #100 tracks the owner-confirmed p95 reference baseline. Earned perfs are never reset to that estimate.
+
 The new `personality` object is stored in the roster. [`assignedPersonality`](../lila-adapter/personality.mjs) reproducibly assigns it using SHA-256 of `mute-pool-personality-v1:<bot-id>:<field>`. Independent field labels select history on/off (50/50), timing on/off (50/50), and one of five equally weighted timing styles. These are assignment probabilities, not quotas: the 44-account sample has 20 history-on and 27 timing-on accounts. Future generators must preserve existing assignments rather than reroll them. No inference is needed to create an identity.
 
 The older descriptive `history_policy` and `timing_policy` fields remain unchanged solely to reproduce version-2 hashes and frozen games. For version-3 games, the explicit `personality.history` and `personality.humanTiming` values take precedence; the legacy prose does not control those games.

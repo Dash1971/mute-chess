@@ -1,0 +1,314 @@
+{
+  "run": "r20261030c",
+  "main": "1d6ab4c6194f3caa0904cc58f099e87bdbfec5e0",
+  "public_ratings": true,
+  "profile": "calibration-200-v1",
+  "worker_count": 2,
+  "played_graph_component_sizes": {
+    "blitz": [
+      41,
+      2,
+      1
+    ],
+    "rapid": [
+      22,
+      10,
+      8,
+      2,
+      1,
+      1
+    ]
+  },
+  "supervisor": {
+    "run": "r20261030c",
+    "commit": "1d6ab4c6194f3caa0904cc58f099e87bdbfec5e0",
+    "profile": "calibration-200-v1",
+    "inferenceBudget": {
+      "workers": 2,
+      "cpu": "400%",
+      "memory": "2000M"
+    },
+    "reason": "completed",
+    "started": 1793350943942,
+    "ended": 1793352673249,
+    "configurationRestored": true
+  },
+  "worker_elapsed_seconds": 1687.3629999160767,
+  "admitted": 200,
+  "completed": 200,
+  "native_rated_updates": 200,
+  "aborted_records": 0,
+  "completed_by_speed": {
+    "blitz": 101,
+    "rapid": 99
+  },
+  "finish_statuses": {
+    "draw": 18,
+    "mate": 170,
+    "stalemate": 12
+  },
+  "bots_played": 44,
+  "bot_speed_pairs_played": 85,
+  "native_player_results_added": 400,
+  "player_results_agree_with_rated_game_count": true,
+  "bot_speed_pairs_established_before": 0,
+  "bot_speed_pairs_established_after": 38,
+  "games_added_per_bot_speed": {
+    "count": 88,
+    "min": 0,
+    "mean": 4.545454545454546,
+    "median": 5.0,
+    "p95": 8,
+    "p99": 9,
+    "max": 9
+  },
+  "initial_rd": {
+    "count": 88,
+    "min": 117.09930327443432,
+    "mean": 150.86667093195695,
+    "median": 142.95805337835708,
+    "p95": 217.67448927441342,
+    "p99": 255.06624831173988,
+    "max": 255.06624831173988
+  },
+  "final_rd": {
+    "count": 88,
+    "min": 91.01327996952048,
+    "mean": 118.9746303226123,
+    "median": 111.85265739445134,
+    "p95": 161.1509755080968,
+    "p99": 255.06825410074794,
+    "max": 255.06825410074794
+  },
+  "absolute_rating_change": {
+    "count": 88,
+    "min": 0.0,
+    "mean": 55.170312766802176,
+    "median": 49.085017170049014,
+    "p95": 128.14545769058532,
+    "p99": 247.26483383401137,
+    "max": 247.26483383401137
+  },
+  "biggest_rating_changes": [
+    {
+      "bot": "zero-day",
+      "speed": "rapid",
+      "initial_rating": 2524.5922117325836,
+      "final_rating": 2771.857045566595,
+      "rating_change": 247.26483383401137,
+      "initial_rd": 186.66407567614058,
+      "final_rd": 130.50176616329063,
+      "initial_games": 5,
+      "final_games": 10,
+      "games_added": 5,
+      "initial_provisional": true,
+      "final_provisional": true
+    },
+    {
+      "bot": "rust-halo",
+      "speed": "blitz",
+      "initial_rating": 1789.8098830026013,
+      "final_rating": 1933.7770713210627,
+      "rating_change": 143.96718831846147,
+      "initial_rd": 143.9005141863791,
+      "final_rd": 120.59103982615942,
+      "initial_games": 4,
+      "final_games": 7,
+      "games_added": 3,
+      "initial_provisional": true,
+      "final_provisional": true
+    },
+    {
+      "bot": "glitch-cat",
+      "speed": "rapid",
+      "initial_rating": 1094.0985344780981,
+      "final_rating": 951.3125668203899,
+      "rating_change": -142.78596765770828,
+      "initial_rd": 153.8100991850508,
+      "final_rd": 98.36406046854661,
+      "initial_games": 3,
+      "final_games": 12,
+      "games_added": 9,
+      "initial_provisional": true,
+      "final_provisional": false
+    },
+    {
+      "bot": "event-horizon",
+      "speed": "rapid",
+      "initial_rating": 2863.8964535402174,
+      "final_rating": 2726.9857865385993,
+      "rating_change": -136.9106670016181,
+      "initial_rd": 217.67448927441342,
+      "final_rd": 192.53204267595078,
+      "initial_games": 3,
+      "final_games": 4,
+      "games_added": 1,
+      "initial_provisional": true,
+      "final_provisional": true
+    },
+    {
+      "bot": "signal-weaver",
+      "speed": "rapid",
+      "initial_rating": 2152.0852691161826,
+      "final_rating": 2280.230726806768,
+      "rating_change": 128.14545769058532,
+      "initial_rd": 178.96527047298974,
+      "final_rd": 141.26184542059693,
+      "initial_games": 4,
+      "final_games": 7,
+      "games_added": 3,
+      "initial_provisional": true,
+      "final_provisional": true
+    },
+    {
+      "bot": "midnight-signal",
+      "speed": "rapid",
+      "initial_rating": 1955.7497393173821,
+      "final_rating": 2075.383855191641,
+      "rating_change": 119.6341158742589,
+      "initial_rd": 141.83155560745038,
+      "final_rd": 105.88318521610024,
+      "initial_games": 4,
+      "final_games": 10,
+      "games_added": 6,
+      "initial_provisional": true,
+      "final_provisional": false
+    },
+    {
+      "bot": "pocket-static",
+      "speed": "blitz",
+      "initial_rating": 1201.0234910782224,
+      "final_rating": 1088.1344968192932,
+      "rating_change": -112.88899425892919,
+      "initial_rd": 142.21023602580055,
+      "final_rd": 102.26233293168923,
+      "initial_games": 4,
+      "final_games": 11,
+      "games_added": 7,
+      "initial_provisional": true,
+      "final_provisional": false
+    },
+    {
+      "bot": "sideband",
+      "speed": "blitz",
+      "initial_rating": 1568.3100832910766,
+      "final_rating": 1458.771343627928,
+      "rating_change": -109.53873966314859,
+      "initial_rd": 135.82430444108704,
+      "final_rd": 101.80395245332981,
+      "initial_games": 6,
+      "final_games": 12,
+      "games_added": 6,
+      "initial_provisional": true,
+      "final_provisional": false
+    },
+    {
+      "bot": "velvet-circuit",
+      "speed": "blitz",
+      "initial_rating": 1478.1729771918665,
+      "final_rating": 1580.7797324587864,
+      "rating_change": 102.60675526691989,
+      "initial_rd": 129.06781869952007,
+      "final_rd": 99.05421269248443,
+      "initial_games": 6,
+      "final_games": 12,
+      "games_added": 6,
+      "initial_provisional": true,
+      "final_provisional": false
+    },
+    {
+      "bot": "night-courier",
+      "speed": "blitz",
+      "initial_rating": 1836.271357270548,
+      "final_rating": 1734.5105116005907,
+      "rating_change": -101.76084566995723,
+      "initial_rd": 135.51041399812314,
+      "final_rd": 116.23270769514832,
+      "initial_games": 5,
+      "final_games": 8,
+      "games_added": 3,
+      "initial_provisional": true,
+      "final_provisional": true
+    }
+  ],
+  "moves": 17258,
+  "move_metric": "acknowledged submission events; repeated game/ply entries remain included",
+  "unique_submitted_game_plies": 17142,
+  "repeated_game_ply_submissions": 116,
+  "stages": {
+    "22": {
+      "moves": 17258,
+      "observed_seconds": 1683.5099999904633,
+      "plies_per_second": 10.251201359123357,
+      "inference_ms": {
+        "count": 17258,
+        "min": 143.7321450212039,
+        "mean": 194.17921240965504,
+        "median": 186.91037798998877,
+        "p95": 259.28436598042026,
+        "p99": 289.99442199710757,
+        "max": 359.68507497454993
+      },
+      "request_commit_ms": {
+        "count": 17258,
+        "min": 149.96546299988404,
+        "mean": 322.8958458535748,
+        "median": 318.94800099998247,
+        "p95": 438.5244950000015,
+        "p99": 493.2050259998068,
+        "max": 625.144091000082
+      },
+      "turn_commit_ms": {
+        "count": 17258,
+        "min": 194,
+        "mean": 2041.2091783520686,
+        "median": 2067.0,
+        "p95": 2393,
+        "p99": 2559,
+        "max": 62528
+      },
+      "max_observed_active_games": 22
+    }
+  },
+  "max_observed_active_games": 22,
+  "all_added_waits_zero": true,
+  "health_ms": {
+    "count": 138,
+    "min": 2.837773005012423,
+    "mean": 4.431195318170796,
+    "median": 4.070181996212341,
+    "p95": 6.125900981714949,
+    "p99": 13.702072988962755,
+    "max": 19.873812998412177
+  },
+  "health_failures": 0,
+  "sampled_combined_worker_native_memory_bytes": {
+    "count": 138,
+    "min": 1537482752,
+    "mean": 2944746362.4347825,
+    "median": 2990157824.0,
+    "p95": 3038609408,
+    "p99": 3041132544,
+    "max": 3042586624
+  },
+  "sampled_combined_worker_native_cpu_cores": {
+    "count": 137,
+    "min": 0.2208681090693539,
+    "mean": 4.134555838903401,
+    "median": 4.111715089867667,
+    "p95": 4.41486846229187,
+    "p99": 4.548923305000988,
+    "max": 4.567208485446472
+  },
+  "observed_mongo_storage_growth_bytes": 368640,
+  "observed_mongo_operation_deltas": {
+    "insert": 0,
+    "query": 0,
+    "update": 0,
+    "delete": 0,
+    "getmore": 0,
+    "command": 0
+  },
+  "errors": [],
+  "pgn_files": 200
+}
