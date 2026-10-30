@@ -6689,10 +6689,10 @@ index 0000000..6d6be63
 +            full.take(9) + "…" + full.takeRight(4)
 diff --git a/modules/core/src/test/NostrNameTest.scala b/modules/core/src/test/NostrNameTest.scala
 new file mode 100644
-index 0000000..33a557d
+index 0000000..e3492f8
 --- /dev/null
 +++ b/modules/core/src/test/NostrNameTest.scala
-@@ -0,0 +1,24 @@
+@@ -0,0 +1,30 @@
 +package lila.core
 +
 +class NostrNameTest extends munit.FunSuite:
@@ -6703,11 +6703,17 @@ index 0000000..33a557d
 +    )
 +    assertEquals(
 +      NostrName.npub("11" * 32),
-+      Some("npub1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygse4sl3h")
++      Some("npub1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygse4sl3h")
 +    )
 +    assertEquals(
 +      NostrName.npub("ff" * 32),
 +      Some("npub1lllllllllllllllllllllllllllllllllllllllllllllllllllsq7lrjw")
++    )
++
++  test("asymmetric public key retains every bit and checksum"):
++    assertEquals(
++      NostrName.npub("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"),
++      Some("npub1qy352euf40x77qfrg4ncn27dauqjx3t83x4ummcpydzk0zdtehhstefp92")
 +    )
 +
 +  test("only generated Nostr handles receive the compact fallback"):
@@ -9943,10 +9949,10 @@ index 0000000..ec4cc78
 +};
 diff --git a/ui/analyse/src/noSweatAnalysis.ts b/ui/analyse/src/noSweatAnalysis.ts
 new file mode 100644
-index 0000000..2db4bcd
+index 0000000..75093bb
 --- /dev/null
 +++ b/ui/analyse/src/noSweatAnalysis.ts
-@@ -0,0 +1,765 @@
+@@ -0,0 +1,767 @@
 +import type { DrawShape } from '@lichess-org/chessground/draw';
 +import { parseUci } from 'chessops/util';
 +import { attributesModule, classModule, init } from 'snabbdom';
@@ -9959,7 +9965,7 @@ index 0000000..2db4bcd
 +
 +import type AnalyseCtrl from './ctrl';
 +import { engineArrows, engineShapes, engineColors } from './noSweatArrows';
-+import { candidateQuality, qualityLabels } from './noSweatCandidateQuality';
++import { candidateQuality, qualityLabels, stockfishWinrate } from './noSweatCandidateQuality';
 +import { encodeHistory, policy, san, position, standardUci, legalUcis, type Candidate } from './noSweatCore';
 +import { reviewClick } from './noSweatEvents';
 +import { ReviewFish, type Review } from './noSweatFish';
@@ -10407,16 +10413,18 @@ index 0000000..2db4bcd
 +        // Color evidence is optional; Maia probabilities remain usable on failure.
 +      })
 +      .finally(() => {
-+        if (this.valid(generation)) this.qualityBusy = false;
++        if (this.valid(generation)) {
++          this.qualityBusy = false;
++          if (this.status === 'Loading Stockfish review…') this.status = '';
++          this.ctrl.redraw();
++        }
 +      });
 +  }
 +  private moveQuality(uci: string) {
 +    if (!this.enabled || !this.analysisAllowed() || this.ctrl.threatMode()) return undefined;
 +    const white = position(this.ctrl.node.fen).turn === 'white';
 +    const scores = [...this.scores.values()].flatMap(s => (s ? [s.score] : []));
-+    const value = (s: EvalScore) =>
-+      (s.mate === undefined ? (s.cp ?? 0) : s.mate > 0 ? 100000 - s.mate : -100000 - s.mate) *
-+      (white ? 1 : -1);
++    const value = (s: EvalScore) => stockfishWinrate(s, white) ?? -1;
 +    const best = scores.reduce<EvalScore | undefined>(
 +      (a, b) => (!a || value(b) > value(a) ? b : a),
 +      undefined,
@@ -10820,7 +10828,7 @@ index 0000000..d1a01b5
 +}
 diff --git a/ui/analyse/src/noSweatCandidateQuality.ts b/ui/analyse/src/noSweatCandidateQuality.ts
 new file mode 100644
-index 0000000..f8d2661
+index 0000000..512451b
 --- /dev/null
 +++ b/ui/analyse/src/noSweatCandidateQuality.ts
 @@ -0,0 +1,232 @@
@@ -11035,7 +11043,7 @@ index 0000000..f8d2661
 +export const qualityFromLoss = (loss: number): CandidateQuality =>
 +  loss <= 0.05 + 1e-10 ? 'good' : loss <= 0.1 + 1e-10 ? 'ok' : 'blunder';
 +
-+const winrate = (score: EvalScore, white: boolean): number | undefined => {
++export const stockfishWinrate = (score: EvalScore, white: boolean): number | undefined => {
 +  if (score.mate !== undefined) return score.mate > 0 === white ? 1 : 0;
 +  if (score.cp === undefined || !Number.isFinite(score.cp)) return undefined;
 +  const cp = Math.max(-10, Math.min(10, (white ? score.cp : -score.cp) / 100));
@@ -11048,8 +11056,8 @@ index 0000000..f8d2661
 +  white: boolean,
 +): CandidateQuality | undefined {
 +  if (!best || !move) return undefined;
-+  const before = winrate(best, white);
-+  const after = winrate(move, white);
++  const before = stockfishWinrate(best, white);
++  const after = stockfishWinrate(move, white);
 +  return before === undefined || after === undefined
 +    ? undefined
 +    : qualityFromLoss(Math.max(0, before - after));
