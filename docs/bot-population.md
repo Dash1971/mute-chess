@@ -120,3 +120,26 @@ seeded generator. These are character references, not affiliations. Wintermute
 is fixed at conditioning2600/argmax/history-on/very-fast human timing; Neuromancer
 is the separate history-off comparison. Measured ratings determine the leader;
 no rating is manufactured to place a character first.
+
+### October 31 results
+
+The completed study contains 2,623 native rated games: 200 original-roster
+warmup games, 1,800 additional training games and 623 held-out games. The
+remaining 377 were not admitted after isolated continuation qualification failed;
+the study workers were stopped and earned ratings retained. Of the original 44,
+43 now have nonprovisional Blitz ratings and all 44 have nonprovisional Rapid
+ratings. The 50 held-out configurations remain provisional after 6–7 games per
+speed.
+
+Primary held-out native-label MAE was 131.4 Blitz / 127.3 Rapid; the preregistered
+secondary procedure gave 127.7 / 127.3, against 124.0 / 119.5 for the unchanged
+seed baseline. Neither fitted procedure met the 100-point target or demonstrated
+a better replacement for the existing heuristic. These uncertain closed-pool
+labels do not establish alignment with human Lichess strength. New identities
+must retain honest uncertainty and learn through native Glicko; no established
+history or RD is copied from another bot.
+
+The canonical [methods, results, complete games and reproduction tools](https://github.com/Dash1971/mobile-maia-research/tree/4800b4e6f5e68d55e64d8c15fa07efe4a4e3c7de/studies/bot-strength-seeding-2026-10-31)
+live in Mobile Maia Research. They also document capacity measurements and the
+limits of extrapolating them to human games or VPS hardware. This report
+introduces no new common rating adjustment or production capacity increase.
