@@ -208,6 +208,7 @@
             "ui/chart/src/noSweatPhases.ts",
             "ui/chart/tests/moveClassifications.test.ts",
             "ui/chart/tests/noSweatPhases.test.ts",
+            "ui/lib/css/ceval/_settings.scss",
             "ui/lib/src/ceval/ctrl.ts",
             "ui/lib/src/ceval/engines/stockfishWebEngine.ts",
             "ui/lib/src/ceval/protocol.ts",
