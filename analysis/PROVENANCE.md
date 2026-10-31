@@ -14,7 +14,7 @@ The earlier custom whole-game review/accuracy dashboard was removed at the owner
 
 The board arrow selection and agreement composition are ported from Mobile Maia `review.dart` (`_stockfishMoves`, `_maiaMoveColors`, `_arrows`, `_agreementArrows`) and `ReviewBoardOverlayPainter` at the same revision. Exactly two distinct Stockfish roots are shown, plus one top move per independently rated Maia channel. SF uses `#3d9be9` / `#8ac8f5`, Maia uses `#e89b3c` / `#e85d68`. SF/Maia agreement uses the SF shaft and Maia head. Two Maias agreeing split the head and, without SF agreement, the shaft. Each unique move is one owned Chessground SVG; quarter-square Maia shaft width and head geometry follow Mobile Maia and never depend on likelihood. Inferior SF-only shafts retain Lila's taper. Regression fixtures reproduce Mobile Maia's distinct, SF-second agreement and double-Maia agreement cases, including flipped orientation. The native SF parser also accepts skipped/same-depth rank windows without publishing duplicate or mixed-depth PVs, and rejects duplicate-root cached results as finished evaluations.
 
-Preview issue #200 drives the left-side candidate panel: raw legal policy at both ratings, live top-two SF evaluations plus bounded searches for missing candidates, played/SF-choice semantics, native variation preview/return, direct 600–2600 input changes, and an optional five-sample rating chart with keyboard-accessible points and exact table. Full context (model hash, both rating inputs, history and position) keys inference caches. Sampling is explicit, not automatic on navigation. Advanced engine preferences remain in native Analysis Menu → Settings. No mockup numbers, private website API, telemetry, or remote inference service is used.
+Preview issue #200 drives the left-side candidate panel: raw legal policy at both ratings, live top-two SF evaluations plus bounded searches for missing candidates, played/SF-choice semantics, native variation preview/return, direct 600–2600 input changes, and a compact 21-sample rating chart with keyboard-accessible points and shared raw-probability tooltips. Full context (model hash, both rating inputs, history and position) keys inference caches. While enabled, the rating sweep loads incrementally on navigation and reuses context-keyed samples; every plotted rating uses matched self/opponent inputs. Advanced engine preferences remain in native Analysis Menu → Settings. No mockup numbers, private website API, telemetry, or remote inference service is used.
 
 The custom arrow geometry is centered at (50,50) inside Chessground’s per-square 100×100 SVG before rotation. This corrects the half-square offset in both orientations. Regression coverage maps actual SVG transforms through Chessground’s fixed viewport contract across pawn, knight, diagonal and promotion moves at four board sizes; browser measurements confirm zero origin/tip error in both orientations.
 
@@ -137,3 +137,27 @@ CC0 TSV, generated from lichess-org/chess-openings
 `4b8622759e7ae6f93f011cc6c83a3823401ab45e`. The native patch retains the
 compact data and CC0 license; `analysis/prepare-openings.py` reproduces them.
 See `docs/analysis-presentation.md` for the approved boundaries and verification.
+
+
+## Maia Moves by Rating source audit (#146)
+
+The chart follows CSSLab/maia-platform-frontend
+`a6e52f5c811ee18863cb2f0e81f2433a5b9905de`: `MovesByRating.tsx`,
+`useMoveRecommendations.ts`, `useEngineAnalysis.ts`, `utils.ts`, and
+`constants/analysis.ts`. The candidate union, three quality palettes, ranked
+shades, raw probabilities, matched 600–2600 sweep, shared tooltip and adaptive
+60%/100% axis follow those sources. The native queue requests a genuine third
+Stockfish root only for this chart; existing review/classification calls retain
+their two-PV contract. See `docs/maia-rating-chart.md` for exact rules and retained
+compact/native adaptations.
+
+The selected local Maia model/history and bounded Stockfish evidence remain our
+inputs. Maia’s opening-book overlay and broader all-legal-root engine searches
+are not imported, so probabilities, evaluations and shade ranks may differ.
+Missing samples remain gaps, stale curves clear, and unscored moves stay neutral.
+The rendering does not change full-game labels, native accuracy or board arrows.
+
+Issue #148 aligns the analysis brilliant tree/badge color with Mobile Maia’s
+`#15aabf`, and separates summary symbols/names using En Croissant’s grid principle.
+This is presentation only: native board SVG geometry and glyph navigation remain
+unchanged. See `docs/analysis-presentation.md` for source pins and rebase checks.

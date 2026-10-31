@@ -8,8 +8,9 @@ below are presentation adapters, not replacement chess or review systems.
 The two Maia cards reserve their header, four candidate slots and Others footer
 during loading, terminal positions, errors and move changes. Explicit Others
 expansion scrolls inside the same card; each model's rating grid remains separate.
-The fixed-height rating chart retains the 600–2600 and 0–100% scales, keyboard
-selection and raw probabilities. Its move legend sits beside the heading. The
+The fixed-height rating chart retains the 600–2600 rating range, keyboard
+selection and raw probabilities. Issue #146 supersedes the fixed 0–100% scale
+with Maia’s adaptive 60%/100% scale; see [the source audit](maia-rating-chart.md). Its move legend sits beside the heading. The
 redundant Maia heading and expandable probability matrix are removed. The left
 column grows naturally rather than hiding game information behind an internal
 scrollbar. Native chart actions occupy a toolbar above its canvas.
@@ -145,3 +146,20 @@ This does not enable chess variants or alter the FEN parser, route or move rules
 When a FEN-to-PGN import replaces the native main view, Lila reuses its sidebar
 element. Maia mounting is idempotent for that host (#138), keeping a single live
 panel and the native sidebar contents rather than prepending a second panel.
+
+
+## Review spacing and brilliant color (#148)
+
+The summary gives glyphs their own fixed-width column and an explicit gap before
+left-aligned category names, following En Croissant’s separate symbol/name grid.
+Modest row padding retains the compact native panel. White/Black count buttons,
+glyph jumps, overall accuracy and ACPL keep their existing behavior.
+
+Mobile Maia’s brilliant color is cyan `#15aabf`. The native tree’s brilliant token
+and Chessground 10.5’s inline green brilliant-badge circle are overridden only
+inside the Mute Chess analysis surface. Badge paths, stacking and placement stay
+native. No classification thresholds, imported glyphs or award counts change.
+The fill selector is pinned to Chessground’s current `#168226` circle: recheck it
+when updating Chessground. En Croissant’s reference is `ReportPanel.tsx` at
+`6f2d2628f0fbe11cb62a7dd2f9c102bb52907d53`; Mobile Maia’s is
+`review_widgets.dart` at `8563954429c2fb53ce0fe0e16c73c5d8a73ccfe0`.

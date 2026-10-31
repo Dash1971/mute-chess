@@ -292,3 +292,13 @@ restart after failure; report partial/inconclusive evidence honestly. See
 `docs/strength-experiment.md`. This supersedes earlier planning-only/44-account
 limits only for the explicitly bounded experiment; no 10,000-account release
 or manufactured established ratings is authorized.
+
+
+## Bounded Moves by Rating and review polish (October 31, 2026)
+
+Issue #146 follows maiachess.com’s source for Moves by Rating only: complete
+candidate union, exact quality palettes and adaptive scale inside the existing
+compact native layout. Other analysis cards/panels remain unchanged. Discuss
+broader ideas before implementing them. Issue #148 separately requests the
+Mobile Maia cyan brilliant badge and En Croissant-inspired summary symbol/label
+spacing. Preserve classifications, counts, native metrics and navigation.
