@@ -136,3 +136,8 @@ spacing replace the compact custom button strip and explanatory furniture.
 The only local adapter is the clipboard/blob callback required by an unsaved
 line without a public game-export URL. There are no new colors or component
 styles; import padding is scoped to the new under-board import panel.
+
+The live FEN journey also uses native Lila's `fromPosition` key for a standard
+chess starting position (#135). Extension initialization accepts that key as well
+as `standard`, retaining Maia and all three tabs after native FEN navigation.
+This does not enable chess variants or alter the FEN parser, route or move rules.

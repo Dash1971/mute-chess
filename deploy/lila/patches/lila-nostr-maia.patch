@@ -2899,7 +2899,7 @@ index 83be1dd..31e1146 100644
  
  function hiliteVariations(ctrl: AnalyseCtrl, autoShapes: DrawShape[]) {
 diff --git a/ui/analyse/src/ctrl.ts b/ui/analyse/src/ctrl.ts
-index 643bb4a..b4fad1f 100644
+index 643bb4a..2a0a0bf 100644
 --- a/ui/analyse/src/ctrl.ts
 +++ b/ui/analyse/src/ctrl.ts
 @@ -55,6 +55,7 @@ import LiveAnnotate from './liveAnnotate';
@@ -2926,17 +2926,21 @@ index 643bb4a..b4fad1f 100644
      this.showGround();
      this.resetAutoShapes();
      this.explorer.setNode();
-@@ -195,6 +196,9 @@ export default class AnalyseCtrl implements CevalHandler {
+@@ -195,6 +196,13 @@ export default class AnalyseCtrl implements CevalHandler {
          ? new makeStudy(opts.study, this, (opts.tagTypes || '').split(','), opts.practice, opts.relay)
          : undefined;
  
-+    if (!opts.practice && this.isCevalAllowed() && this.data.game.variant.key === 'standard')
++    if (
++      !opts.practice &&
++      this.isCevalAllowed() &&
++      ['standard', 'fromPosition'].includes(this.data.game.variant.key)
++    )
 +      this.noSweat = new NoSweatAnalysis(this);
 +
      if (location.hash === '#practice' || this.study?.data.chapter.practice) this.togglePractice();
      else if (location.hash === '#menu') requestIdleCallbackSafe(this.actionMenu.toggle, 500);
      this.setCevalPracticeOpts();
-@@ -273,6 +277,7 @@ export default class AnalyseCtrl implements CevalHandler {
+@@ -273,6 +281,7 @@ export default class AnalyseCtrl implements CevalHandler {
    }
  
    get mainlineAnalysis() {
@@ -2944,7 +2948,7 @@ index 643bb4a..b4fad1f 100644
      return this.idbTree.localAnalysis ?? this.data.analysis;
    }
  
-@@ -320,6 +325,7 @@ export default class AnalyseCtrl implements CevalHandler {
+@@ -320,6 +329,7 @@ export default class AnalyseCtrl implements CevalHandler {
        this.retro = makeRetro(this, this.bottomColor());
      if (this.practice) this.startCevalIfEnabled();
      this.explorer.onFlip();
@@ -2952,7 +2956,7 @@ index 643bb4a..b4fad1f 100644
      this.onChange();
      this.redraw();
    };
-@@ -353,6 +359,7 @@ export default class AnalyseCtrl implements CevalHandler {
+@@ -353,6 +363,7 @@ export default class AnalyseCtrl implements CevalHandler {
    }
  
    private showGround(): void {
@@ -2960,7 +2964,7 @@ index 643bb4a..b4fad1f 100644
      if (this.node.pos().isErr || this.node.outcome()) this.ceval.reset();
      this.withCg(cg => {
        cg.set(this.makeCgOpts());
-@@ -507,7 +514,7 @@ export default class AnalyseCtrl implements CevalHandler {
+@@ -507,7 +518,7 @@ export default class AnalyseCtrl implements CevalHandler {
      this.pgnError = '';
      try {
        const data: AnalyseData = {
@@ -2969,7 +2973,7 @@ index 643bb4a..b4fad1f 100644
          orientation: this.bottomColor(),
          pref: this.data.pref,
          externalEngines: this.data.externalEngines,
-@@ -790,6 +797,7 @@ export default class AnalyseCtrl implements CevalHandler {
+@@ -790,6 +801,7 @@ export default class AnalyseCtrl implements CevalHandler {
        this.showCevalProp(enable);
        this.cevalEnabledProp(enable);
      }
@@ -2977,7 +2981,7 @@ index 643bb4a..b4fad1f 100644
      if (enable && this.ceval.wasUnloadedByAnotherWindow) this.ceval.reset();
      if (enable !== unforcedState) {
        if (enable) this.startCevalIfEnabled();
-@@ -1094,6 +1102,8 @@ export default class AnalyseCtrl implements CevalHandler {
+@@ -1094,6 +1106,8 @@ export default class AnalyseCtrl implements CevalHandler {
        : `/game/${this.data.game.id}/edit?fen=${this.node.fen}`;
  
    canAnalyseMainline(): boolean {
