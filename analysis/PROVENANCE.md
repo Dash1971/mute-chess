@@ -97,9 +97,12 @@ Mute Chess imports retain those headers and annotations; upstream-mode behavior
 is unchanged. These explicit exports do not persist the board review itself.
 
 The presentation follows pinned Lila `ReplayUi.scala`, `_round-underboard.scss`,
-and the shared `_copy-me.scss` component. Blank import drafts are distinct from
-read-only output. The default upstream `renderInputs` behavior is preserved;
-only the standalone Mute Chess board requests the explicit import mode. Local
+and the shared `_copy-me.scss` component. Blank PGN import drafts are distinct from
+read-only output; FEN starts with the current native position. The default upstream `renderInputs` behavior is preserved;
+only the standalone Mute Chess board requests the separate PGN draft mode.
+Issue #153 removes the permanent custom import buttons: FEN restores native
+validated change behavior, and PGN restores the native thin, focus-revealed
+bottom action and unchanged field geometry. Local
 clipboard/download callbacks replace a saved-game export URL for this unsaved
 context; the native panel and control styling are reused.
 
