@@ -17,6 +17,12 @@ and human/reference validation while retaining Lichess's native Glicko-2 system.
 Our initial bot ratings are estimates, and this alignment remains under
 validation. See the [bot rating methodology](docs/bot-population.md).
 
+The October 31 study recorded 2,623 rated games across 250 Maia configurations.
+Its frozen predictors missed the 100-point target against uncertain held-out
+rating estimates, so it did not validate a replacement seeding formula or an
+absolute Lichess rating scale. The [research report, data and reproduction tools](https://github.com/Dash1971/mobile-maia-research/tree/4800b4e6f5e68d55e64d8c15fa07efe4a4e3c7de/studies/bot-strength-seeding-2026-10-31)
+document the results, earned rating changes and measured capacity.
+
 ## The chess
 
 - **Lichess with our name and logo.** Familiar boards, clocks, game history,
