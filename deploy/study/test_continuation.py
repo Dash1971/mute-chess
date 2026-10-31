@@ -1,5 +1,7 @@
 import copy
 import json
+import os
+import stat
 from pathlib import Path
 import tempfile
 import unittest
@@ -7,7 +9,7 @@ import unittest
 from audit import audit_predecessor
 
 from continuation import (ADMISSION_END, DEADLINE, FILES, MODEL_VERSION, MODEL_SHA256, ORIGINAL_ADMISSION_END,
-                          ORIGINAL_MAIN, RUN, compact_json_bytes, digest, validate_predecessor, continuation_storage_usage, copy_verified_evidence)
+                          ORIGINAL_MAIN, RUN, compact_json_bytes, digest, validate_predecessor, continuation_storage_usage, copy_verified_evidence, create_protected_directory)
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -163,3 +165,24 @@ class ProtectedEvidenceCopyTests(unittest.TestCase):
             link=root/'link';link.symlink_to(source)
             with self.assertRaises(OSError): copy_verified_evidence(link,target,digest(b'changed'))
             self.assertFalse(target.exists())
+
+
+class ProtectedSnapshotDirectoryTests(unittest.TestCase):
+    def test_actual_directory_mode_ignores_restrictive_supervisor_umask(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory)/'predecessor'
+            previous_umask = os.umask(0o077)
+            try:
+                with patch('continuation.os.chown') as ownership:
+                    created = create_protected_directory(target, 1234)
+            finally:
+                os.umask(previous_umask)
+            self.assertEqual(created, target)
+            ownership.assert_called_once_with(target, 0, 1234)
+            actual = stat.S_IMODE(target.stat().st_mode)
+            self.assertEqual(actual, 0o750)
+            self.assertEqual(actual & 0o070, 0o050)  # Worker group can read/traverse.
+            self.assertEqual(actual & 0o022, 0)      # Worker/others cannot write.
+            self.assertEqual(actual & 0o007, 0)      # Other accounts have no access.
+            with self.assertRaises(FileExistsError): create_protected_directory(target, 1234)
