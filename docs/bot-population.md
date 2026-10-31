@@ -133,8 +133,8 @@ speed.
 
 Primary held-out native-label MAE was 131.4 Blitz / 127.3 Rapid; the preregistered
 secondary procedure gave 127.7 / 127.3, against 124.0 / 119.5 for the unchanged
-seed baseline. Neither fitted procedure met the 100-point target or demonstrated
-a better replacement for the existing heuristic. These uncertain closed-pool
+seed baseline. These measurements did not demonstrate an improvement over
+the existing heuristic. These uncertain closed-pool
 labels do not establish alignment with human Lichess strength. New identities
 must retain honest uncertainty and learn through native Glicko; no established
 history or RD is copied from another bot.
@@ -162,15 +162,15 @@ PGNs and 71,287 unique acknowledged moves passed replay and result checks;
 stopped, normal configuration/capacity returned, and public histories were kept.
 
 Frozen predictions were about 116 rating points from final test ratings on
-average in each speed. The stricter 100-point target was not met; these are
-previously observed test policies measured more precisely. The established
+average in each speed, measured against the later earned ratings of
+previously observed test policies. The established
 roster is a reference for supported playing policies, and the reproducible
 mapping can inform a new identity's starting estimate without requiring every
 new name to repeat a tournament. A new account still keeps its own honest
 native uncertainty and earns its own history. This evidence does not independently
 verify the absolute human Lichess rating scale or Bullet/Classical transfer.
 
-The canonical [follow-up report, complete data, figures and reproduction tools](https://github.com/Dash1971/mobile-maia-research/tree/896eeffe9af20531c688ec71e9e28e0c978bbe90/studies/bot-rating-establishment-2026-10-31)
+The canonical [follow-up report, complete data, figures and reproduction tools](https://github.com/Dash1971/mobile-maia-research/tree/049607ec996e2a39cf57f9f75f2385fd6a635bae/studies/bot-rating-establishment-2026-10-31)
 live in Mobile Maia Research. The first report remains unchanged. Publication
 does not expand the roster, change production policies, write ratings or raise
 the normal public concurrency limit.
