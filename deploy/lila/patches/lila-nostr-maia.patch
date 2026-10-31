@@ -1653,17 +1653,21 @@ index 468bba6..5360a09 100644
              else if !checked then div(iconTag(Icon.X))
              else
 diff --git a/modules/pref/src/main/ui/AccountUi.scala b/modules/pref/src/main/ui/AccountUi.scala
-index 6568e7b..ac9b4b3 100644
+index 6568e7b..2c8ab03 100644
 --- a/modules/pref/src/main/ui/AccountUi.scala
 +++ b/modules/pref/src/main/ui/AccountUi.scala
-@@ -84,50 +84,25 @@ final class AccountUi(helpers: Helpers):
+@@ -84,50 +84,29 @@ final class AccountUi(helpers: Helpers):
              a(activeCls(categ.slug), href := routes.Pref.form(categ.slug))(
                categName(categ)
              ),
 +          ctx.me
 +            .exists(_.nostrKey.isDefined)
 +            .option(
-+              a(cls := "nosweat-engine-settings-link", href := "#engine-analysis")("Engine Analysis")
++              a(
++                cls := "nosweat-engine-settings-link",
++                href := "#engine-analysis",
++                attr("aria-haspopup") := "dialog"
++              )("Engine Analysis")
 +            ),
            a(activeCls("notification"), href := routes.Pref.form("notification"))(
              trans.site.notifications()
