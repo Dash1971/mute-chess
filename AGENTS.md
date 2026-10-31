@@ -276,3 +276,19 @@ The owner subsequently requested separate Import and Export tabs on the analysis
 board (#133), using native Lichess field/copy/download styling. Keep import
 drafts separate from read-only exports and preserve native parser/serialization
 behavior. Do not reintroduce the combined transfer tab or compact custom strip.
+
+## Continuous strength experiment (owner authorization, October 31, 2026)
+
+Issue #137 authorizes a bounded experiment predicting rating from conditioning,
+fixed history, temperature and top-p. Temperature/top-p are 0–1 inclusive, with
+zero endpoints deterministic. Preserve existing 44 identities/earned perfs;
+expand to 200 training configurations plus 50 held out, with #92 sci-fi naming.
+The eight-hour budget includes preparation: absolute stop October 31,
+10:34:39 UTC /19:34:39 JST, at most 3,000 public games. Retain 22-game ceiling,
+two workers/400% logical CPU/2,000 MiB, no added study human waits, native
+Glicko/rules/clocks/safeguards and +/-200 eligibility. Resolve/qualify #101 first.
+Follow issue/PR/check/GitHub merge/verified-main deployment. No extension or
+restart after failure; report partial/inconclusive evidence honestly. See
+`docs/strength-experiment.md`. This supersedes earlier planning-only/44-account
+limits only for the explicitly bounded experiment; no 10,000-account release
+or manufactured established ratings is authorized.

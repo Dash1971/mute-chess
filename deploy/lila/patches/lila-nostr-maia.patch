@@ -6054,10 +6054,10 @@ index 18646b3..5eb1d07 100644
      // stick top bar
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..f2a4e3a
+index 0000000..68f3bba
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,696 @@
+@@ -0,0 +1,700 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -6084,7 +6084,10 @@ index 0000000..f2a4e3a
 +  private val records = env.mongo.mainDb(CollName("nosweat_game"))
 +  private val lastPoll = AtomicLong(System.currentTimeMillis())
 +  private val adapterInstance = AtomicReference("")
-+  private val connectedBots = java.util.concurrent.ConcurrentHashMap.newKeySet[GameId]()
++  private val connectedBots = new java.util.concurrent.ConcurrentHashMap[GameId, Color]()
++  private def disconnectBot(id: GameId): Unit =
++    Option(connectedBots.remove(id)).foreach: color =>
++      lila.common.Bus.pub(lila.core.round.Tell(id, lila.core.round.RoundBus.BotConnected(color, false)))
 +  private[app] val queue = scalalib.actor.AsyncActorSequencer(
 +    maxSize = Max(32),
 +    timeout = 20.seconds,
@@ -6345,6 +6348,7 @@ index 0000000..f2a4e3a
 +
 +  if enabled then
 +    lila.common.Bus.sub[lila.core.game.FinishGame]: finish =>
++      disconnectBot(finish.game.id)
 +      finish.game.userIds
 +        .filter(botIds)
 +        .foreach: id =>
@@ -6534,7 +6538,7 @@ index 0000000..f2a4e3a
 +              .flatMap:
 +                case Some(game) if game.playable => fuccess((doc -> game).some)
 +                case _ =>
-+                  connectedBots.remove(doc.getAsOpt[GameId]("_id").get)
++                  disconnectBot(doc.getAsOpt[GameId]("_id").get)
 +                  records.update
 +                    .one(bid(doc.getAsOpt[GameId]("_id").get), set("state" -> "finished"))
 +                    .map(_ => none)
@@ -6678,10 +6682,10 @@ index 0000000..f2a4e3a
 +              .gameState(WithInitialFen(game, None))
 +              .map: state =>
 +                val bot = doc.getAsOpt[UserId]("bot").get
-+                if connectedBots.add(game.id) then
-+                  env.round.roundApi.tell(
-+                    game.id,
-+                    lila.core.round.RoundBus.BotConnected(game.player(bot).get.color, true)
++                val color = game.player(bot).get.color
++                if Option(connectedBots.putIfAbsent(game.id, color)).isEmpty then
++                  lila.common.Bus.pub(
++                    lila.core.round.Tell(game.id, lila.core.round.RoundBus.BotConnected(color, true))
 +                  )
 +                Json.obj(
 +                  "id" -> game.id.value,
@@ -6735,10 +6739,10 @@ index 0000000..f2a4e3a
 +            .game(id)
 +            .flatMap:
 +              case Some(game) if !game.playable =>
-+                connectedBots.remove(id)
++                disconnectBot(id)
 +                records.update.one(bid(id), set("state" -> "finished")).void
 +              case _ =>
-+                connectedBots.remove(id)
++                disconnectBot(id)
 +                env.round.roundApi.tell(id, lila.core.round.RoundBus.AbortForce)
 +                records.update
 +                  .one(bid(id), set("state" -> "service_failure", "failure" -> reason.take(80)))
@@ -6756,10 +6760,10 @@ index 0000000..f2a4e3a
 +        )
 diff --git a/app/NoSweatStudy.scala b/app/NoSweatStudy.scala
 new file mode 100644
-index 0000000..c0ae834
+index 0000000..0ef01f4
 --- /dev/null
 +++ b/app/NoSweatStudy.scala
-@@ -0,0 +1,297 @@
+@@ -0,0 +1,300 @@
 +package lila.app
 +
 +import play.api.libs.json.*
@@ -6804,6 +6808,9 @@ index 0000000..c0ae834
 +  private def documents = records.find(bdoc("runId" -> run)).cursor[Bdoc]().list(plan.maximumAdmitted + 1)
 +  private def active(doc: Bdoc) = doc.getAsOpt[String]("state").exists(Set("reserved", "active").contains)
 +  private def id(doc: Bdoc) = doc.getAsOpt[GameId]("_id").get
++  private def presence(gameId: GameId, online: Boolean): Unit =
++    Color.all.foreach: color =>
++      lila.common.Bus.pub(lila.core.round.Tell(gameId, lila.core.round.RoundBus.BotConnected(color, online)))
 +
 +  private def ratings: Fu[JsValue] =
 +    env.user.perfsRepo
@@ -6830,6 +6837,7 @@ index 0000000..c0ae834
 +            .filter(active)
 +            .foreach: _ =>
 +              val game = finish.game
++              presence(game.id, false)
 +              val result = Json.obj(
 +                "status" -> game.status.name,
 +                "winner" -> game.winnerColor.map(_.name),
@@ -7018,9 +7026,7 @@ index 0000000..c0ae834
 +      _ <- env.game.gameRepo.insertDenormalized(game)
 +      _ <- env.round.onStart.exec(gameId)
 +      _ <- records.update.one(bid(gameId), set("state" -> "active"))
-+      _ = Color.all.foreach(c =>
-+        env.round.roundApi.tell(gameId, lila.core.round.RoundBus.BotConnected(c, true))
-+      )
++      _ = presence(gameId, true)
 +    yield Json.obj("id" -> gameId.value)
 +
 +  def move(gameId: GameId, ply: Int, uci: String): Funit =
@@ -7054,6 +7060,7 @@ index 0000000..c0ae834
 +      docs
 +        .filter(active)
 +        .traverse: doc =>
++          presence(id(doc), false)
 +          env.round.roundApi.tell(id(doc), lila.core.round.RoundBus.AbortForce)
 +          records.update.one(bid(id(doc)), set("state" -> "aborted", "failure" -> "bounded_study_stop")).void
 +        .void
