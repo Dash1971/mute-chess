@@ -20,7 +20,7 @@ validation. See the [bot rating methodology](docs/bot-population.md).
 We use a varied reference pool of 250 Maia bots to estimate starting ratings
 from playing settings, anchored in observed Lichess Maia ratings. The estimates
 averaged about 116 rating points of error in Blitz and Rapid. The illustrated
-[report explains the method, results and limits](https://github.com/Dash1971/mobile-maia-research/blob/ff92969acbc1df8fef97a40aa3bc3b564b7d8fa5/studies/bot-rating-establishment-2026-10-31/REPORT.md),
+[report explains the method, results and limits](https://github.com/Dash1971/mobile-maia-research/blob/049607ec996e2a39cf57f9f75f2385fd6a635bae/studies/bot-rating-establishment-2026-10-31/REPORT.md),
 with linked data and reproduction tools. Each new bot keeps its own provisional
 rating and earns its own history through Lichess's native rating system.
 
