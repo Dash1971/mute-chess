@@ -89,7 +89,7 @@ ratings, bot policy, identity or saved-note migration is part of this change.
 
 The free standard analysis board exposes the same Analyze game action, native
 local-review engine, evaluation chart, overall accuracy/ACPL, classifications and
-Learn from your mistakes used after games. Computer analysis and Share & export
+Learn from your mistakes used after games. Computer analysis and Import & export
 tabs retain the editable FEN/PGN inputs. Opening labels stay under the board.
 A line needs at least one move. A FEN-only position retains selected-position
 Stockfish/Maia analysis and asks the user to add moves for a sequence review.
@@ -101,3 +101,23 @@ keyed to the exact root/plies/FENs/moves. Edited/replaced mainlines cannot displ
 an old summary or receive a completed stale review. Clearing review preserves
 entered moves and user/imported glyphs. No public game, identity or rating is
 created or changed. Reloading an unsaved board does not persist its review.
+
+## Brilliant evidence and actual exports (#130/#131)
+
+Full-game classifications now retain Mobile Maia's complete current/earlier
+two-PV evidence in a fresh, forward, single-thread session. The native graph,
+accuracy and ACPL keep their original review scores. Every mode uses the full
+decision-window policy; stable awards need no additional search, while uncertain
+awards share the same six-search allowance as Mobile Maia PR #64. A tab switch
+does not silently cancel classification; stop, navigation and stale-line guards
+still release its workers. See `analysis/PROVENANCE.md` for source commits,
+independent reference coverage and actual SF19 browser-replay evidence. Counts
+are determined by evidence, not a named-game special case.
+
+Import & export offers explicit Copy PGN, Download PGN and Copy FEN actions,
+above a clearly labeled Import or edit section. The file/clipboard export uses
+Chessops' PGN serializer over the current tree, including variations, comments,
+judgment NAGs, evaluations, original headers and starting FEN. Draft import text
+is never mistaken for the exported game. Standard Mute Chess PGN imports retain
+their headers and imported annotations. Export remains an explicit local action;
+the unsaved board review still has no account/server persistence.

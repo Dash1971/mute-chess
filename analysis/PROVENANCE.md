@@ -41,14 +41,59 @@ clickable rating labels, and the six Mobile Maia/En Croissant categories in the
 native summary. This supersedes the earlier brilliant-only scope. Overall
 accuracy, ACPL, best lines, evaluation chart and Learn from your mistakes remain
 native Lichess. Existing imported quality glyphs take precedence. Ordinary
-classifications use complete two-PV native searches; `!`/`!!` require independent
+classifications require complete two-PV evidence; `!`/`!!` require
 whole-window corroboration. Fast defaults to depth 12 / 500 ms per position;
 Balanced uses 14 / 1000 ms and Thorough 16 / 1500 ms, following current Mobile
 Maia `stockfish.dart` at `8563954429c2fb53ce0fe0e16c73c5d8a73ccfe0`. Confirmation
-requests at least two additional depths with a larger time budget; incomplete,
-stale or vetoed standout results are withheld. No extra full-strength baseline
-search runs for every move. Scores and classifications are persisted in the native
-browser review; quality is separate from native accuracy.
+targets two additional depths with the selected mode's time budget; incomplete,
+stale or vetoed standout results are withheld. The October 31 audit below
+supersedes the original reuse of native baseline PVs. Saved-game scores and
+classifications use native browser-review persistence; standalone board review
+remains in memory. Quality is separate from native accuracy.
+
+## October 31 brilliant-classification audit (#130)
+
+The actual full-game integration discarded the earlier complete MultiPV
+iteration needed by Mobile Maia's confidence policy, reused backward native
+review searches with different session ownership, and independently rechecked
+every provisional award. Hiding the tab could cancel classification while the
+dialog reported Done. A passing single Opera-move fixture did not qualify that
+full pipeline.
+
+The corrected `mobile-maia-full-review-v2` path follows Mobile Maia PRs
+[#58](https://github.com/Dash1971/maia-chess-android-preview/pull/58),
+[#62](https://github.com/Dash1971/maia-chess-android-preview/pull/62), and
+[#64](https://github.com/Dash1971/maia-chess-android-preview/pull/64), including
+`0cdcefa`, `9f5c5dd`, and `13336ce`. It retains uncapped complete capture-root
+search, exact same-depth current/earlier iterations, an isolated one-thread
+forward evidence session, all-mode complete-decision corroboration, and separate
+confirmation windows. Stable decisions consume no additional searches;
+unsupported candidates share at most six searches targeting depth 14/16/18 with
+500/1000/1500 ms limits. Those are search budgets, not total wall-time promises.
+Explicit stop, page departure and stale-line changes discard unpublished
+results. Tab hiding does not cancel an explicitly started background-capable
+review. Cancellation is never reported as successful completed classification.
+
+Native evaluation scores, accuracy, ACPL, graph and learning remain unchanged;
+classification evidence is collected separately with the selected browser
+engine. PGN annotations remain authoritative. The unchanged additional Mobile
+Maia corpora cover both engines and all modes (821 moves, 838 positions, 17 runs),
+in addition to the 3,075 independent boundary vectors and Rust material oracle.
+The full Byrne–Fischer fixture checks Na4/Be6/Ne2+ and rejects Qa3 Brilliant.
+Real browser SF19 traces are independently replayed through the unmodified EC
+function and Rust material values as release evidence. Engine/search inputs can
+legitimately change awards: the current SF19 Fast run also corroborated 15...Nxc3;
+the independent EC replay agreed on all 82 moves. No rule forces a named game's
+brilliant count.
+
+## Standalone board transfer (#131)
+
+Import & export now has explicit PGN copy/download and FEN copying, with a
+separate Import or edit section. Chessops' native PGN model/serializer writes the
+actual tree, variations, quality NAGs, comments, evaluation tags, original import
+headers and a starting FEN. Unsubmitted import text is never exported. Standard
+Mute Chess imports retain those headers and annotations; upstream-mode behavior
+is unchanged. These explicit exports do not persist the board review itself.
 
 ## Maia candidate-quality colors (#65)
 
