@@ -145,32 +145,31 @@ limits of extrapolating them to human games or VPS hardware. This report
 introduces no new common rating adjustment or production capacity increase.
 
 
-### Overnight follow-up: all 250 reference bots established
+### Reference calibration and the planned expanded pool
 
-The separately authorized [overnight protocol](overnight-rating-establishment.md)
-continued the same 250 identities from their earned ratings, retaining fixed
-policies and the Lichess-derived starting anchor. It completed 826 additional
-native rated games (420 Blitz, 406 Rapid), then stopped early when all 250 bots
-had nonprovisional ratings in both speeds. No ratings were reseeded, no history
-was copied, and no provisional flags or rating deviations were forced.
+The same 250 reference identities now have established native Blitz and Rapid
+ratings, retaining their Lichess-derived starting anchor, persistent settings
+and earned game histories. The completed [overnight protocol](overnight-rating-establishment.md)
+and canonical research preserve the execution evidence; study services were
+cleaned up and normal public capacity restored.
 
-The original 200 training identities finished 349 games and drained before the
-unchanged V2 procedure froze its training snapshot and predictions. The 50 test
-identities then played 477 games against eligible training opponents. All 826
-PGNs and 71,287 unique acknowledged moves passed replay and result checks;
-1,652 native player-result count increments matched exactly. Study services
-stopped, normal configuration/capacity returned, and public histories were kept.
+The [illustrated report](https://github.com/Dash1971/mobile-maia-research/blob/d12f93536442c636d56ec23313e89807a2771467/studies/bot-rating-establishment-2026-10-31/REPORT.md)
+answers how ratings were obtained, how they relate to Lichess, and how settings
+change playing strength. It includes controlled sampling comparisons, a rough
+catalog-planning formula without a separate history term, and a proposed
+10,000-identity allocation informed by Lichess Blitz percentiles. History is
+omitted because it supplied no useful extra predictive adjustment in the checks,
+not because a zero causal effect was established.
 
-Frozen predictions were about 116 rating points from final test ratings on
-average in each speed, measured against the later earned ratings of
-previously observed test policies. The established
-roster is a reference for supported playing policies, and the reproducible
-mapping can inform a new identity's starting estimate without requiring every
-new name to repeat a tournament. A new account still keeps its own honest
-native uncertainty and earns its own history. This evidence does not independently
-verify the absolute human Lichess rating scale or Bullet/Classical transfer.
+The proposed expansion would assign calibrated policy ratings without a
+provisional catalog mark; this does not give each new name an earned calibration
+history or copy another account's games/RD. This product plan has not been
+implemented. Current native rating behavior is unchanged. The desired weakest
+rating band still needs calibration, and Rapid needs its own roster allocation.
 
-The canonical [follow-up report, complete data, figures and reproduction tools](https://github.com/Dash1971/mobile-maia-research/tree/049607ec996e2a39cf57f9f75f2385fd6a635bae/studies/bot-rating-establishment-2026-10-31)
-live in Mobile Maia Research. The first report remains unchanged. Publication
-does not expand the roster, change production policies, write ratings or raise
-the normal public concurrency limit.
+The canonical [data and reproduction guide](https://github.com/Dash1971/mobile-maia-research/tree/d12f93536442c636d56ec23313e89807a2771467/studies/bot-rating-establishment-2026-10-31)
+retains the original frozen procedures and all measured results separately from
+the proposed catalog approximation. Bot-only games refine relative standings;
+ongoing human/reference evidence is needed to monitor the inherited Lichess
+correspondence. No roster activation, rating writes, inference, deployment or
+capacity increase accompanies this summary.
