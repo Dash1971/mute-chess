@@ -379,3 +379,23 @@ dialog from Profile & settings. Both Maia inputs must always use that channel’
 selected rating, as in Mobile Maia review.dart; remove the opponent-input control
 and normalize old saved mismatches. Apply this to both analysis and puzzle review
 without replacing native account/settings behavior.
+
+
+## Calibrated 10,000-bot roster (owner approval, November1,2026, #172)
+
+The owner approved expanding to10,000 identities using measured Maia strength:
+approximately800–3000Blitz and800–2800Rapid, with Lichess-shaped per-speed
+allocation. The owner explicitly confirmed NEW bot ratings should be assigned
+nonprovisional, calibrated from measured policies. Initialize those new bot perfs
+with RD100, native volatility/default counts and truthful zero games; retain
+native Glicko/provisional thresholds and updates. This supersedes the earlier
+provisional-only initialization restriction for newcatalog identities. Preserve
+all250 existing perfs/history/settings and human rating semantics. Do not add
+calibration games, raise capacity, copy earned history, force permanent flags or
+change matching. Reference-derived Bullet/Classical priors and UltraBullet/
+Correspondence proxies must remain transparently identified. Use sci-fi and
+cyberpunk homages for strong bots; keep Wintermute and other earned identities.
+Only strong SignalTrain/Test placeholders receive public display-name aliases;
+canonical IDs/usernames/history remain unchanged. See docs/catalog-roster.md,
+source manifest and the exact-path departure register. Follow issue/PR/check/
+GitHubmerge/verified-main deployment and backup-preserving provisioning audit.

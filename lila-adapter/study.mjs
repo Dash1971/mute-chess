@@ -1,7 +1,7 @@
 import http from 'node:http';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { loadRoster } from './roster.mjs';
+import { loadReferenceRoster } from './roster.mjs';
 import { experimentStage, experimentPairing } from './experiment-schedule.mjs';
 import { readFile, writeFile, mkdir, appendFile, rename, stat } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
@@ -23,7 +23,7 @@ if (!/^[a-z][a-z0-9_]{2,31}$/.test(run ?? '') || origin !== (live ? 'http://127.
   throw Error('Study must target its explicit deployment scope');
 const token = process.env.ADAPTER_TOKEN;
 if (!token || token.length < 32) throw Error('Private adapter token required');
-const roster = await loadRoster();
+const roster = await loadReferenceRoster();
 const manifestBytes = await readFile(new URL('./experiment-manifest.json', import.meta.url));
 const manifest = JSON.parse(manifestBytes);
 const execute = promisify(execFile);

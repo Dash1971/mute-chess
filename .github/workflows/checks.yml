@@ -59,6 +59,10 @@ jobs:
           python deploy/study/design.py --output /tmp/strength-design
           cmp /tmp/strength-design/experiment-roster.json lila-adapter/experiment-roster.json
           cmp /tmp/strength-design/experiment-manifest.json lila-adapter/experiment-manifest.json
+      - name: Catalog data is reproducible
+        run: |
+          node lila-adapter/generate-catalog.mjs
+          git diff --exit-code -- lila-adapter/catalog-roster.json lila-adapter/catalog-aliases.json docs/data/catalog-2026-11-01/catalog-manifest.json
       - name: Documented upstream departures
         run: |
           python deploy/lila/check-upstream.py
@@ -85,6 +89,8 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24.22.1
+      - name: Native and adapter catalogs agree
+        run: node lila-adapter/validate-catalog.mjs /tmp/lila
       - name: Build and test the native board and analysis extensions
         working-directory: /tmp/lila
         run: |
@@ -117,7 +123,7 @@ jobs:
       - uses: sbt/setup-sbt@f9efdb0d6d5959d3e1510935d4ff64a65821a256 # v1
       - name: Check native Scala formatting, GIF parsing, study plan, forum permissions and user search
         working-directory: /tmp/lila
-        run: sbt -J-Xms128m -J-Xmx3g -J-Xss2m -J-XX:ActiveProcessorCount=2 -Dsbt.task.cpus=2 -Dsbt.supershell=false 'scalafmtCheckAll;game/testOnly lila.game.NoSweatAnalysisGifTest;compile;forum/testOnly lila.forum.ForumAccessTest;user/testOnly lila.user.NoSweatUserSearchTest;testOnly lila.app.NoSweatStudyPlanTest'
+        run: sbt -J-Xms128m -J-Xmx3g -J-Xss2m -J-XX:ActiveProcessorCount=2 -Dsbt.task.cpus=2 -Dsbt.supershell=false 'scalafmtCheckAll;game/testOnly lila.game.NoSweatAnalysisGifTest;compile;forum/testOnly lila.forum.ForumAccessTest;user/testOnly lila.user.NoSweatUserSearchTest;testOnly lila.app.NoSweatStudyPlanTest;testOnly lila.app.NoSweatBotCatalogTest;user/testOnly lila.user.NoSweatBotIdentityTest'
 
 
   native-gif:

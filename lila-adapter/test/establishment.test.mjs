@@ -2,13 +2,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { loadRoster } from '../roster.mjs';
+import { loadReferenceRoster } from '../roster.mjs';
 import { ESTABLISHMENT_PROFILE, ESTABLISHMENT_RUN, ESTABLISHMENT_PRIVATE_RUN,
   ESTABLISHMENT_START, ESTABLISHMENT_ADMISSION_END, ESTABLISHMENT_DEADLINE,
   establishmentManifest, validateEstablishmentScope, establishmentStatus,
   establishmentPairing, validateEstablishmentModel } from '../establishment-schedule.mjs';
 
-const roster = await loadRoster();
+const roster = await loadReferenceRoster();
 const bytes = readFileSync(new URL('../experiment-manifest.json', import.meta.url));
 const manifest = JSON.parse(bytes);
 const metadata = establishmentManifest(roster, manifest, bytes);

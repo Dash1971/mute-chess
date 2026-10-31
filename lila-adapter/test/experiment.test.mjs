@@ -2,10 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { loadRoster } from '../roster.mjs';
+import { loadReferenceRoster } from '../roster.mjs';
 import { experimentStage, experimentPairing } from '../experiment-schedule.mjs';
 const manifest = JSON.parse(readFileSync(new URL('../experiment-manifest.json', import.meta.url)));
-const roster = await loadRoster();
+const roster = await loadReferenceRoster();
 test('reproducible design keeps original44, disjoint heldout and approved ranges', () => {
   assert.equal(roster.length, 250);
   assert.equal(manifest.trainingIds.length, 200);

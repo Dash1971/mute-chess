@@ -1,0 +1,65 @@
+{
+  "retrievedAtUtc": "2026-10-30T04:46:15.711285+00:00",
+  "pools": {
+    "blitz": {
+      "source": "https://lichess.org/stat/rating/distribution/blitz",
+      "sample": "weekly rating distribution",
+      "players": 734903,
+      "bucketStart": 400,
+      "bucketStep": 25,
+      "buckets": 97,
+      "medianBucket": 1450,
+      "modeBucket": 1400,
+      "p10Bucket": 925,
+      "p90Bucket": 1975,
+      "htmlSha256": "32f3acb15b2bc9bf248ba02354e675d53e2b8b2b8191b86fcc7ff391ae46aeb3",
+      "shares": {
+        "400-999": 12.91,
+        "1000-1399": 31.05,
+        "1400-1799": 34.36,
+        "1800-2199": 18.47,
+        "2200-2800": 3.21
+      }
+    },
+    "rapid": {
+      "source": "https://lichess.org/stat/rating/distribution/rapid",
+      "sample": "weekly rating distribution",
+      "players": 543612,
+      "bucketStart": 400,
+      "bucketStep": 25,
+      "buckets": 97,
+      "medianBucket": 1350,
+      "modeBucket": 1400,
+      "p10Bucket": 850,
+      "p90Bucket": 1875,
+      "htmlSha256": "e112564f5296c8dd287babe28e8d0c4604a86d6d34e57c6fdaa8b24b421f1051",
+      "shares": {
+        "400-999": 18.19,
+        "1000-1399": 34.26,
+        "1400-1799": 32.24,
+        "1800-2199": 13.92,
+        "2200-2800": 1.39
+      }
+    },
+    "bullet": {
+      "source": "https://lichess.org/stat/rating/distribution/bullet",
+      "sample": "weekly rating distribution",
+      "players": 373232,
+      "bucketStart": 400,
+      "bucketStep": 25,
+      "buckets": 97,
+      "medianBucket": 1525,
+      "modeBucket": 1500,
+      "p10Bucket": 975,
+      "p90Bucket": 2150,
+      "htmlSha256": "7e9896697e8151835531583f46e367149a66a55d06dd57edd3c18f39968f4f1e",
+      "shares": {
+        "400-999": 11.02,
+        "1000-1399": 27.75,
+        "1400-1799": 30.29,
+        "1800-2199": 22.39,
+        "2200-2800": 8.55
+      }
+    }
+  }
+}

@@ -1,0 +1,203 @@
+{
+  "schema": 1,
+  "scope": "Character homages for upper-tier bot display names; no affiliation or endorsement",
+  "legacyAliases": {
+    "SignalTrain084": "Roy Batty",
+    "SignalTrain072": "Judge Dredd",
+    "SignalTest021": "Molly",
+    "SignalTest039": "Case",
+    "SignalTest043": "Rick Deckard",
+    "SignalTest032": "Judge Anderson",
+    "SignalTrain150": "Armitage",
+    "SignalTrain004": "Rachael",
+    "SignalTrain006": "Officer K",
+    "SignalTest004": "Judge Death",
+    "SignalTrain119": "Johnny Silverhand",
+    "SignalTrain106": "Hideo"
+  },
+  "newCandidates": [
+    {
+      "name": "Pris",
+      "franchise": "Blade Runner"
+    },
+    {
+      "name": "Gaff",
+      "franchise": "Blade Runner"
+    },
+    {
+      "name": "Eldon Tyrell",
+      "franchise": "Blade Runner"
+    },
+    {
+      "name": "Leon",
+      "franchise": "Blade Runner"
+    },
+    {
+      "name": "Judge Fear",
+      "franchise": "Judge Dredd / 2000 AD"
+    },
+    {
+      "name": "Judge Fire",
+      "franchise": "Judge Dredd / 2000 AD"
+    },
+    {
+      "name": "Judge Mortis",
+      "franchise": "Judge Dredd / 2000 AD"
+    },
+    {
+      "name": "John Ashpool",
+      "franchise": "Neuromancer"
+    },
+    {
+      "name": "Marie-France Tessier",
+      "franchise": "Neuromancer"
+    },
+    {
+      "name": "Alt Cunningham",
+      "franchise": "Cyberpunk"
+    },
+    {
+      "name": "Rogue Amendiares",
+      "franchise": "Cyberpunk"
+    },
+    {
+      "name": "Judy Alvarez",
+      "franchise": "Cyberpunk"
+    },
+    {
+      "name": "Panam Palmer",
+      "franchise": "Cyberpunk"
+    },
+    {
+      "name": "Goro Takemura",
+      "franchise": "Cyberpunk"
+    },
+    {
+      "name": "Jackie Welles",
+      "franchise": "Cyberpunk"
+    },
+    {
+      "name": "Viktor Vektor",
+      "franchise": "Cyberpunk"
+    },
+    {
+      "name": "Songbird",
+      "franchise": "Cyberpunk: Phantom Liberty"
+    },
+    {
+      "name": "Solomon Reed",
+      "franchise": "Cyberpunk: Phantom Liberty"
+    },
+    {
+      "name": "David Martinez",
+      "franchise": "Cyberpunk: Edgerunners"
+    },
+    {
+      "name": "Lucy",
+      "franchise": "Cyberpunk: Edgerunners"
+    }
+  ],
+  "credits": [
+    {
+      "id": "neuromancer-publisher",
+      "title": "Neuromancer \u2014 Penguin Random House Canada",
+      "url": "https://www.penguinrandomhouse.ca/books/293994/neuromancer-by-william-gibson/9780441007462",
+      "type": "official publisher synopsis",
+      "supports": [
+        "Case",
+        "Molly"
+      ],
+      "credit": "William Gibson, Neuromancer / Sprawl trilogy"
+    },
+    {
+      "id": "neuromancer-cast",
+      "title": "Neuromancer \u2014 Apple TV official cast and crew",
+      "url": "https://www.apple.com/uk/tv-pr/originals/neuromancer/cast-crew/",
+      "type": "official adaptation cast list",
+      "supports": [
+        "Case",
+        "Molly",
+        "Armitage",
+        "John Ashpool",
+        "Marie-France Tessier",
+        "Hideo"
+      ],
+      "credit": "William Gibson, Neuromancer; official adaptation character-name corroboration",
+      "note": "Used for character spellings only, not release timing or any claim of endorsement."
+    },
+    {
+      "id": "blade-runner-screenplay",
+      "title": "Blade Runner \u2014 Hampton Fancher screenplay, July 24 1980, Bournemouth University CEMP Scriptzone",
+      "url": "https://cemp.ac.uk/scriptzone/script.php?id=87&type=download",
+      "type": "primary screenplay text hosted by university",
+      "supports": [
+        "Roy Batty",
+        "Rachael",
+        "Gaff",
+        "Pris",
+        "Eldon Tyrell",
+        "Leon"
+      ],
+      "credit": "Blade Runner; screenplay by Hampton Fancher, based on Philip K. Dick's Do Androids Dream of Electric Sheep?",
+      "note": "An early screenplay, used to corroborate character names only; story details need not match the released film."
+    },
+    {
+      "id": "blade-runner-sony",
+      "title": "Blade Runner 2049 \u2014 Sony Pictures UK",
+      "url": "https://www.sonypictures.co.uk/movies/blade-runner-2049",
+      "type": "official distributor synopsis",
+      "supports": [
+        "Rick Deckard",
+        "Officer K"
+      ],
+      "credit": "Blade Runner / Blade Runner 2049; Alcon Entertainment / Sony Pictures / Warner Bros."
+    },
+    {
+      "id": "dredd-rebellion",
+      "title": "Judge Anderson \u2014 Rebellion / 2000 AD official character description",
+      "url": "https://shop.rebellion.com/products/2000ad-judge-anderson-t-shirt",
+      "type": "official publisher character description",
+      "supports": [
+        "Judge Dredd",
+        "Judge Anderson",
+        "Judge Death",
+        "Judge Fear",
+        "Judge Fire",
+        "Judge Mortis"
+      ],
+      "credit": "Judge Dredd / 2000 AD, Rebellion; Dredd created by John Wagner and Carlos Ezquerra, Anderson co-created by John Wagner and Brian Bolland"
+    },
+    {
+      "id": "dredd-primer",
+      "title": "2000 AD 40th Anniversary Primer",
+      "url": "https://2000ad.com/wp-content/uploads/2019/11/40th_insert.pdf",
+      "type": "official publisher primer",
+      "supports": [
+        "Judge Dredd"
+      ],
+      "credit": "Judge Dredd, created by John Wagner and Carlos Ezquerra"
+    },
+    {
+      "id": "cyberpunk-cdpr",
+      "title": "Cyberpunk official character cosplay guides",
+      "url": "https://www.cyberpunk.net/en/cosplay-guides",
+      "type": "official developer character-name list",
+      "supports": [
+        "Johnny Silverhand",
+        "Rogue Amendiares",
+        "Alt Cunningham",
+        "Judy Alvarez",
+        "Panam Palmer",
+        "Goro Takemura",
+        "Jackie Welles",
+        "Viktor Vektor",
+        "Songbird",
+        "Solomon Reed",
+        "David Martinez",
+        "Lucy"
+      ],
+      "credit": "Cyberpunk / Cyberpunk 2077 / Cyberpunk: Edgerunners; R. Talsorian Games, CD PROJEKT RED and respective creators",
+      "note": "Names only; no artwork or costume assets copied."
+    }
+  ]
+}

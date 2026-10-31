@@ -6,13 +6,13 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { generateSecretKey, getPublicKey, finalizeEvent } from 'nostr-tools/pure';
 import { digest } from '../nostr-auth.mjs';
-import { loadRoster } from '../roster.mjs';
+import { loadReferenceRoster } from '../roster.mjs';
 import { StudyWorkers } from '../study-workers.mjs';
 import { Maia } from '../maia.mjs';
 import { freezeStudy, studyPolicy } from '../study-policy.mjs';
 const origin = process.env.LILA_ORIGIN;
 if (origin !== 'http://127.0.0.1:19763') throw Error('Qualification origin only');
-const run = process.env.STUDY_QUAL_RUN_ID ?? 'q20261030a', roster = await loadRoster();
+const run = process.env.STUDY_QUAL_RUN_ID ?? 'q20261030a', roster = await loadReferenceRoster();
 const token = process.env.ADAPTER_TOKEN;
 const request = (path, body, auth = token) => new Promise((resolve, reject) => {
   const req = http.request(new URL(path, origin), { method: body === undefined ? 'GET' : 'POST',
