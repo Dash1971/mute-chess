@@ -1653,10 +1653,18 @@ index 468bba6..5360a09 100644
              else if !checked then div(iconTag(Icon.X))
              else
 diff --git a/modules/pref/src/main/ui/AccountUi.scala b/modules/pref/src/main/ui/AccountUi.scala
-index 6568e7b..773b29b 100644
+index 6568e7b..ac9b4b3 100644
 --- a/modules/pref/src/main/ui/AccountUi.scala
 +++ b/modules/pref/src/main/ui/AccountUi.scala
-@@ -87,47 +87,17 @@ final class AccountUi(helpers: Helpers):
+@@ -84,50 +84,25 @@ final class AccountUi(helpers: Helpers):
+             a(activeCls(categ.slug), href := routes.Pref.form(categ.slug))(
+               categName(categ)
+             ),
++          ctx.me
++            .exists(_.nostrKey.isDefined)
++            .option(
++              a(cls := "nosweat-engine-settings-link", href := "#engine-analysis")("Engine Analysis")
++            ),
            a(activeCls("notification"), href := routes.Pref.form("notification"))(
              trans.site.notifications()
            ),
@@ -4554,90 +4562,15 @@ index 3d9580e..9edd93e 100644
    ]);
  }
 diff --git a/ui/lib/css/ceval/_settings.scss b/ui/lib/css/ceval/_settings.scss
-index 9d823f0..d1fab13 100644
+index 9d823f0..f5e7b57 100644
 --- a/ui/lib/css/ceval/_settings.scss
 +++ b/ui/lib/css/ceval/_settings.scss
-@@ -138,3 +138,80 @@
+@@ -138,3 +138,5 @@
      list-style: decimal inside;
    }
  }
 +
-+// Shared Engine Analysis dialog in analysis and puzzle review.
-+.nosweat-maia-settings-dialog {
-+  max-width: 520px;
-+}
-+
-+.nosweat-maia-settings-view fieldset {
-+  margin: 1em 0;
-+  padding: 0;
-+  border: 0;
-+}
-+
-+.nosweat-maia-settings-view legend {
-+  font-size: 1.15em;
-+  margin-bottom: 0.5em;
-+}
-+
-+.nosweat-maia-settings-view .setting {
-+  display: flex;
-+  align-items: center;
-+  justify-content: space-between;
-+  gap: 1em;
-+  margin: 0.6em 0;
-+}
-+
-+.nosweat-maia-settings-view [hidden] {
-+  display: none;
-+}
-+
-+.nosweat-maia-settings-view p,
-+.nosweat-maia-settings-view small {
-+  color: var(--c-font-dim);
-+  line-height: 1.5;
-+}
-+
-+.nosweat-rating-heading .nosweat-maia-settings {
-+  order: 3;
-+  flex: 0 0 auto;
-+  padding: 0;
-+  font-size: 16px;
-+}
-+
-+.nosweat-arrow-palette {
-+  display: grid;
-+  grid-template-columns: repeat(2, minmax(0, 1fr));
-+  gap: 0 1em;
-+  text-align: left;
-+}
-+
-+.nosweat-arrow-palette .setting {
-+  gap: 0.5em;
-+  font-size: 12px;
-+}
-+
-+.nosweat-arrow-palette input[type='color'] {
-+  flex: 0 0 38px;
-+  width: 38px;
-+  height: 28px;
-+  padding: 2px;
-+  appearance: auto;
-+  cursor: pointer;
-+}
-+
-+.nosweat-arrow-palette input[type='color']::-webkit-color-swatch-wrapper {
-+  padding: 0;
-+}
-+
-+.nosweat-arrow-palette input[type='color']::-webkit-color-swatch {
-+  border: 0;
-+  border-radius: 2px;
-+}
-+
-+.nosweat-maia-settings-view details {
-+  text-align: left;
-+  color: var(--c-font-dim);
-+  margin: 0.6em 0;
-+}
++@import 'engine-settings';
 diff --git a/ui/lib/css/theme/board/_boards.scss b/ui/lib/css/theme/board/_boards.scss
 index 22f0a12..d64539e 100644
 --- a/ui/lib/css/theme/board/_boards.scss
@@ -6253,6 +6186,31 @@ index 18646b3..5eb1d07 100644
  
    {
      // stick top bar
+diff --git a/ui/user/src/user.account.ts b/ui/user/src/user.account.ts
+index 48a0e33..d06f1a1 100644
+--- a/ui/user/src/user.account.ts
++++ b/ui/user/src/user.account.ts
+@@ -2,11 +2,20 @@ import flairPickerLoader from 'bits/flairPicker';
+ import { createSelectSearch } from 'bits/selectSearch';
+ 
+ import { licon } from 'lib/licon';
++import { loadEnginePreferences, showEngineSettings } from 'lib/nosweat/engineSettings';
+ import { storage } from 'lib/storage';
+ import { addPasswordVisibilityToggleListener, confirm } from 'lib/view';
+ import * as xhr from 'lib/xhr';
+ 
+ site.load.then(() => {
++  document
++    .querySelector<HTMLAnchorElement>('.nosweat-engine-settings-link')
++    ?.addEventListener('click', async event => {
++      event.preventDefault();
++      await site.asset.loadCssPath('bits.engineSettings');
++      showEngineSettings(loadEnginePreferences(), () => {});
++    });
++
+   $('.emoji-details').each(function (this: HTMLElement) {
+     flairPickerLoader(this);
+   });
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
 index 0000000..68f3bba
@@ -21029,10 +20987,10 @@ index 0000000..ec4cc78
 +};
 diff --git a/ui/analyse/src/noSweatAnalysis.ts b/ui/analyse/src/noSweatAnalysis.ts
 new file mode 100644
-index 0000000..937b0e9
+index 0000000..f5b18da
 --- /dev/null
 +++ b/ui/analyse/src/noSweatAnalysis.ts
-@@ -0,0 +1,800 @@
+@@ -0,0 +1,789 @@
 +import type { DrawShape } from '@lichess-org/chessground/draw';
 +import { parseUci } from 'chessops/util';
 +import { attributesModule, classModule, init } from 'snabbdom';
@@ -21171,7 +21129,7 @@ index 0000000..937b0e9
 +    return {
 +      model: this.model === '79m' ? '79m' : '5m',
 +      selfElo: this.selfElo,
-+      opponentElo: this.opponentElo,
++      opponentElo: this.selfElo,
 +      secondMaiaEnabled: this.secondMaiaEnabled,
 +      secondMaiaElo: this.secondMaiaElo,
 +      history: this.history,
@@ -21191,7 +21149,7 @@ index 0000000..937b0e9
 +  }
 +  private applyEnginePreferences(next: EnginePreferences): void {
 +    const inferenceChanged = (
-+      ['model', 'selfElo', 'opponentElo', 'secondMaiaEnabled', 'secondMaiaElo', 'history'] as const
++      ['model', 'selfElo', 'secondMaiaEnabled', 'secondMaiaElo', 'history'] as const
 +    ).some(key => this[key] !== next[key]);
 +    if (next.model !== this.model) this.release();
 +    Object.assign(this, next);
@@ -21219,17 +21177,13 @@ index 0000000..937b0e9
 +    this.analysisAllowed() &&
 +    !document.hidden;
 +  private readonly historyFens = (): string[] => this.ctrl.nodeList.map(n => n.fen);
-+  private readonly key = (
-+    fens = this.historyFens(),
-+    rating = this.selfElo,
-+    opponent = this.opponentElo,
-+  ): string =>
++  private readonly key = (fens = this.historyFens(), rating = this.selfElo): string =>
 +    JSON.stringify([
 +      'maia3-policy-v1',
 +      this.model,
 +      this.config?.models[this.model].sha256,
 +      rating,
-+      opponent,
++      rating,
 +      this.history,
 +      this.history ? fens.slice(-8) : fens.slice(-1),
 +    ]);
@@ -21308,19 +21262,14 @@ index 0000000..937b0e9
 +    });
 +    return this.client!;
 +  }
-+  private predict(
-+    fens: string[],
-+    rating: number,
-+    generation: number,
-+    opponent = this.opponentElo,
-+  ): Promise<Prediction> {
++  private predict(fens: string[], rating: number, generation: number): Promise<Prediction> {
 +    const task = this.maiaTail
 +      .catch(() => {})
 +      .then(async () => {
 +        if (!this.valid(generation)) throw new Error('Cancelled');
 +        const client = await this.prepare();
 +        if (!this.valid(generation)) throw new Error('Cancelled');
-+        const key = this.key(fens, rating, opponent);
++        const key = this.key(fens, rating);
 +        const cached = this.cache.get(key);
 +        if (cached) return cached;
 +        this.progress = setInterval(() => {
@@ -21333,7 +21282,7 @@ index 0000000..937b0e9
 +          const logits = await client.predict({
 +            tokens: encodeHistory(fens, this.history),
 +            selfElo: rating,
-+            opponentElo: opponent,
++            opponentElo: rating,
 +            includeValue: true,
 +          });
 +          if (!this.valid(generation)) throw new Error('Cancelled');
@@ -21358,9 +21307,7 @@ index 0000000..937b0e9
 +    const fens = this.historyFens();
 +    const results = await Promise.allSettled([
 +      this.predict(fens, this.selfElo, generation),
-+      ...(this.secondMaiaEnabled
-+        ? [this.predict(fens, this.secondMaiaElo, generation, this.secondMaiaElo)]
-+        : []),
++      ...(this.secondMaiaEnabled ? [this.predict(fens, this.secondMaiaElo, generation)] : []),
 +    ]);
 +    if (!this.valid(generation)) return;
 +    this.candidates = results[0].status === 'fulfilled' ? results[0].value.candidates : [];
@@ -21524,7 +21471,7 @@ index 0000000..937b0e9
 +  }
 +
 +  private chartPrimaryCandidates(): Candidate[] {
-+    return this.byRating.get(this.selfElo) ?? (this.selfElo === this.opponentElo ? this.candidates : []);
++    return this.byRating.get(this.selfElo) ?? this.candidates;
 +  }
 +
 +  private chartSan(uci: string, fen = this.ctrl.node.fen): string {
@@ -21591,7 +21538,7 @@ index 0000000..937b0e9
 +        this.ctrl.redraw();
 +        // Maia's rating chart conditions BOTH players at the sampled rating.
 +        // The independently configurable card inputs are not changed by a sweep.
-+        const result = await this.predict(fens, rating, generation, rating);
++        const result = await this.predict(fens, rating, generation);
 +        if (!this.valid(generation)) return;
 +        this.byRating.set(rating, result.candidates);
 +        this.colorCandidates();
@@ -21812,11 +21759,11 @@ index 0000000..937b0e9
 +      ]),
 +    ]);
 +  }
-+  private chooseRating(rating: number, secondary = false, keepOpponent = false): void {
++  private chooseRating(rating: number, secondary = false): void {
 +    if (secondary) this.secondMaiaElo = rating;
 +    else {
 +      this.selfElo = rating;
-+      if (!keepOpponent) this.opponentElo = rating;
++      this.opponentElo = rating;
 +    }
 +    saveEnginePreferences(this.enginePreferences());
 +    this.positionChanged(true);
@@ -24459,10 +24406,10 @@ index 0000000..d6acaaf
 +});
 diff --git a/ui/analyse/tests/candidateColorLifecycle.test.ts b/ui/analyse/tests/candidateColorLifecycle.test.ts
 new file mode 100644
-index 0000000..f6d793a
+index 0000000..23534d2
 --- /dev/null
 +++ b/ui/analyse/tests/candidateColorLifecycle.test.ts
-@@ -0,0 +1,241 @@
+@@ -0,0 +1,265 @@
 +import assert from 'node:assert/strict';
 +import { mock, test } from 'node:test';
 +
@@ -24702,6 +24649,30 @@ index 0000000..f6d793a
 +  await new Promise(resolve => setTimeout(resolve, 0));
 +  assert.equal(model.scores.get('b2b3')?.depth, 12);
 +  assert.notEqual((model as any).chartOptions().color('b2b3'), 'var(--c-font-dim)');
++  model.release();
++});
++
++test('analysis card inference ignores a legacy opponent mismatch for both channels', async t => {
++  const { model } = chartModel();
++  await Promise.resolve();
++  model.enabled = true;
++  model.selfElo = 1600;
++  model.opponentElo = 600;
++  const inputs: [number, number][] = [];
++  t.mock.method(model as any, 'prepare', async () => ({
++    predict: async (input: { selfElo: number; opponentElo: number }) => {
++      inputs.push([input.selfElo, input.opponentElo]);
++      return { move_logits: new Float32Array(4352), value_logits: new Float32Array([0, 0, 0]) };
++    },
++    snapshot: () => ({ phase: 'ready' }),
++  }));
++  const generation = (model as any).generation;
++  await (model as any).predict([fen], 1600, generation);
++  await (model as any).predict([fen], 2600, generation);
++  assert.deepEqual(inputs, [
++    [1600, 1600],
++    [2600, 2600],
++  ]);
 +  model.release();
 +});
 diff --git a/ui/analyse/tests/candidateQuality.test.ts b/ui/analyse/tests/candidateQuality.test.ts
@@ -78430,7 +78401,7 @@ index 0000000..f786836
 +});
 diff --git a/ui/analyse/tests/noSweatFullReview.test.ts b/ui/analyse/tests/noSweatFullReview.test.ts
 new file mode 100644
-index 0000000..40d08e9
+index 0000000..d6baf70
 --- /dev/null
 +++ b/ui/analyse/tests/noSweatFullReview.test.ts
 @@ -0,0 +1,255 @@
@@ -78589,7 +78560,7 @@ index 0000000..40d08e9
 +      {
 +        model: '79m',
 +        selfElo: 2600,
-+        opponentElo: 600,
++        opponentElo: 2600,
 +        secondMaiaEnabled: true,
 +        secondMaiaElo: 2400,
 +        history: false,
@@ -79610,6 +79581,15 @@ index 0000000..d4c98d2
 +  assert.equal(redraw.mock.callCount(), 2);
 +  root.remove();
 +});
+diff --git a/ui/bits/css/build/bits.engineSettings.scss b/ui/bits/css/build/bits.engineSettings.scss
+new file mode 100644
+index 0000000..6cdffb4
+--- /dev/null
++++ b/ui/bits/css/build/bits.engineSettings.scss
+@@ -0,0 +1,3 @@
++@import '../../../lib/css/plugin';
++@import '../../../lib/css/form/check';
++@import '../../../lib/css/ceval/engine-settings';
 diff --git a/ui/bits/css/build/bits.patron.scss b/ui/bits/css/build/bits.patron.scss
 new file mode 100644
 index 0000000..ef5fea9
@@ -79951,6 +79931,88 @@ index 0000000..e82e519
 +    ],
 +  );
 +});
+diff --git a/ui/lib/css/ceval/_engine-settings.scss b/ui/lib/css/ceval/_engine-settings.scss
+new file mode 100644
+index 0000000..d607d68
+--- /dev/null
++++ b/ui/lib/css/ceval/_engine-settings.scss
+@@ -0,0 +1,76 @@
++// Shared Engine Analysis dialog in analysis and puzzle review.
++.nosweat-maia-settings-dialog {
++  max-width: 520px;
++}
++
++.nosweat-maia-settings-view fieldset {
++  margin: 1em 0;
++  padding: 0;
++  border: 0;
++}
++
++.nosweat-maia-settings-view legend {
++  font-size: 1.15em;
++  margin-bottom: 0.5em;
++}
++
++.nosweat-maia-settings-view .setting {
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  gap: 1em;
++  margin: 0.6em 0;
++}
++
++.nosweat-maia-settings-view [hidden] {
++  display: none;
++}
++
++.nosweat-maia-settings-view p,
++.nosweat-maia-settings-view small {
++  color: var(--c-font-dim);
++  line-height: 1.5;
++}
++
++.nosweat-rating-heading .nosweat-maia-settings {
++  order: 3;
++  flex: 0 0 auto;
++  padding: 0;
++  font-size: 16px;
++}
++
++.nosweat-arrow-palette {
++  display: grid;
++  grid-template-columns: repeat(2, minmax(0, 1fr));
++  gap: 0 1em;
++  text-align: left;
++}
++
++.nosweat-arrow-palette .setting {
++  gap: 0.5em;
++  font-size: 12px;
++}
++
++.nosweat-arrow-palette input[type='color'] {
++  flex: 0 0 38px;
++  width: 38px;
++  height: 28px;
++  padding: 2px;
++  appearance: auto;
++  cursor: pointer;
++}
++
++.nosweat-arrow-palette input[type='color']::-webkit-color-swatch-wrapper {
++  padding: 0;
++}
++
++.nosweat-arrow-palette input[type='color']::-webkit-color-swatch {
++  border: 0;
++  border-radius: 2px;
++}
++
++.nosweat-maia-settings-view details {
++  text-align: left;
++  color: var(--c-font-dim);
++  margin: 0.6em 0;
++}
 diff --git a/ui/lib/src/nosweat/arrows.ts b/ui/lib/src/nosweat/arrows.ts
 new file mode 100644
 index 0000000..413a380
@@ -80147,10 +80209,10 @@ index 0000000..4b6b4be
 +};
 diff --git a/ui/lib/src/nosweat/engineSettings.ts b/ui/lib/src/nosweat/engineSettings.ts
 new file mode 100644
-index 0000000..fb7fbdc
+index 0000000..a5ae238
 --- /dev/null
 +++ b/ui/lib/src/nosweat/engineSettings.ts
-@@ -0,0 +1,174 @@
+@@ -0,0 +1,168 @@
 +import { frag } from '../index';
 +import { storage } from '../storage';
 +import { domDialog } from '../view';
@@ -80218,7 +80280,6 @@ index 0000000..fb7fbdc
 +        ['5m', 'Maia3 5M · light'],
 +        ['79m', 'Maia3 79M'],
 +      ])}
-+      ${select('opponentElo', 'Primary opponent input', ratings)}
 +      ${toggle('history', 'Use move history')}
 +      <small>Maia downloads 36 MB for 5M or 331 MB for 79M on first use. Ratings are model inputs, not calibrated Elo. Settings are saved in this browser.</small>
 +    </fieldset></details>
@@ -80255,15 +80316,10 @@ index 0000000..fb7fbdc
 +      const value =
 +        input.tagName === 'INPUT'
 +          ? (input as HTMLInputElement).checked
-+          : key === 'selfElo' || key === 'opponentElo' || key === 'secondMaiaElo'
++          : key === 'selfElo' || key === 'secondMaiaElo'
 +            ? Number(input.value)
 +            : input.value;
-+      // A primary rating selection matches both inputs, just like the card's rating picker.
-+      const opponent = key === 'selfElo' ? { opponentElo: value } : {};
-+      prefs = readEnginePreferences(JSON.stringify({ ...prefs, ...opponent, [key]: value }));
-+      view.querySelector<HTMLSelectElement>('[data-engine-pref="opponentElo"]')!.value = String(
-+        prefs.opponentElo,
-+      );
++      prefs = readEnginePreferences(JSON.stringify({ ...prefs, [key]: value }));
 +      updateSecondary();
 +      saveEnginePreferences(prefs);
 +      changed(prefs);
@@ -80415,15 +80471,16 @@ index 0000000..44504e3
 +}
 diff --git a/ui/lib/src/nosweat/preferences.ts b/ui/lib/src/nosweat/preferences.ts
 new file mode 100644
-index 0000000..f726b1f
+index 0000000..a0a8385
 --- /dev/null
 +++ b/ui/lib/src/nosweat/preferences.ts
-@@ -0,0 +1,57 @@
+@@ -0,0 +1,58 @@
 +import { engineColors, type EngineColors } from './arrows';
 +
 +export interface EnginePreferences {
 +  model: '5m' | '79m';
 +  selfElo: number;
++  // Retained for old saved preferences; always normalized to the primary rating.
 +  opponentElo: number;
 +  secondMaiaEnabled: boolean;
 +  secondMaiaElo: number;
@@ -80462,7 +80519,7 @@ index 0000000..f726b1f
 +  return {
 +    model: input.model === '79m' ? '79m' : '5m',
 +    selfElo: rating(input.selfElo),
-+    opponentElo: rating(input.opponentElo),
++    opponentElo: rating(input.selfElo),
 +    secondMaiaEnabled: typeof input.secondMaiaEnabled === 'boolean' ? input.secondMaiaEnabled : true,
 +    secondMaiaElo: rating(input.secondMaiaElo, 2400),
 +    history: boolean('history'),
@@ -80478,7 +80535,7 @@ index 0000000..f726b1f
 +}
 diff --git a/ui/lib/src/nosweat/reviewMaia.ts b/ui/lib/src/nosweat/reviewMaia.ts
 new file mode 100644
-index 0000000..5f1fda7
+index 0000000..7032d64
 --- /dev/null
 +++ b/ui/lib/src/nosweat/reviewMaia.ts
 @@ -0,0 +1,121 @@
@@ -80523,7 +80580,7 @@ index 0000000..5f1fda7
 +          preferences: {
 +            model: context.preferences.model,
 +            selfElo: context.preferences.selfElo,
-+            opponentElo: context.preferences.opponentElo,
++            opponentElo: context.preferences.selfElo,
 +            secondMaiaEnabled: context.preferences.secondMaiaEnabled,
 +            secondMaiaElo: context.preferences.secondMaiaElo,
 +            history: context.preferences.history,
@@ -80564,7 +80621,7 @@ index 0000000..5f1fda7
 +              await this.client!.predict({
 +                tokens,
 +                selfElo,
-+                opponentElo: prefs.opponentElo,
++                opponentElo: selfElo,
 +                includeValue: false,
 +              }),
 +            );
@@ -80784,10 +80841,10 @@ index 0000000..b041dbc
 +});
 diff --git a/ui/lib/tests/maiaSettings.test.ts b/ui/lib/tests/maiaSettings.test.ts
 new file mode 100644
-index 0000000..544a637
+index 0000000..8997b4a
 --- /dev/null
 +++ b/ui/lib/tests/maiaSettings.test.ts
-@@ -0,0 +1,88 @@
+@@ -0,0 +1,100 @@
 +import assert from 'node:assert/strict';
 +import { test } from 'node:test';
 +
@@ -80833,6 +80890,7 @@ index 0000000..544a637
 +
 +test('primary rating selection matches opponent input while the second rating remains independent', () => {
 +  const view = engineSettingsView({ ...defaultEnginePreferences }, () => {});
++  assert.equal(view.querySelector('[data-engine-pref="opponentElo"]'), null);
 +  const primary = view.querySelector<HTMLSelectElement>('[data-engine-pref="selfElo"]')!;
 +  primary.value = '1800';
 +  change(primary);
@@ -80876,12 +80934,23 @@ index 0000000..544a637
 +  change(radios[2]);
 +  assert.equal(localStorage.getItem('nosweat.gameReview.quality'), 'Thorough');
 +});
++
++test('legacy mismatched opponent inputs always normalize to the selected Maia rating', () => {
++  localStorage.setItem(
++    'nosweat.enginePreferences.v2',
++    JSON.stringify({ selfElo: 1800, opponentElo: 600, secondMaiaElo: 2600 }),
++  );
++  const prefs = loadEnginePreferences();
++  assert.equal(prefs.selfElo, 1800);
++  assert.equal(prefs.opponentElo, 1800);
++  assert.equal(prefs.secondMaiaElo, 2600);
++});
 diff --git a/ui/lib/tests/noSweatReviewMaia.test.ts b/ui/lib/tests/noSweatReviewMaia.test.ts
 new file mode 100644
-index 0000000..dc50f84
+index 0000000..6fe5688
 --- /dev/null
 +++ b/ui/lib/tests/noSweatReviewMaia.test.ts
-@@ -0,0 +1,144 @@
+@@ -0,0 +1,169 @@
 +import { Chess } from 'chessops/chess';
 +import { makeFen } from 'chessops/fen';
 +import assert from 'node:assert/strict';
@@ -81024,6 +81093,31 @@ index 0000000..dc50f84
 +  await tick();
 +  assert.equal(predictions, 3);
 +  assert.deepEqual(engine.secondary, []);
++  engine.cancel();
++});
++
++test('each puzzle Maia conditions both rating inputs at its own selected rating', async () => {
++  const inputs: [number, number][] = [];
++  const engine = new ReviewMaia(
++    async () => ({
++      predict: async input => {
++        inputs.push([input.selfElo, input.opponentElo]);
++        return new Float32Array(4352);
++      },
++      release: () => {},
++    }),
++    () => {},
++  );
++  engine.set({
++    ...context,
++    preferences: { ...context.preferences, selfElo: 1600, opponentElo: 600, secondMaiaElo: 2600 },
++  });
++  await tick();
++  await tick();
++  assert.deepEqual(inputs, [
++    [1600, 1600],
++    [2600, 2600],
++  ]);
 +  engine.cancel();
 +});
 diff --git a/ui/lib/tests/publicNameSearch.test.ts b/ui/lib/tests/publicNameSearch.test.ts
