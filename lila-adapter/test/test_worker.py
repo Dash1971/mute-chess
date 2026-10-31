@@ -2,6 +2,21 @@ import json,os,pathlib,unittest
 import chess,numpy as np
 from maia_worker import Engine,encode,tokenize,MOVE_INDEX,mirror
 class WorkerTests(unittest.TestCase):
+    def test_deterministic_temperature_and_top_p_zero_endpoints(self):
+        class Session:
+            def run(self, _, feed):
+                logits=np.zeros((1,len(MOVE_INDEX)),np.float32)
+                logits[0,MOVE_INDEX['e2e4']]=10
+                return logits,np.zeros((1,1)),np.zeros((1,1))
+        engine=Engine.__new__(Engine);engine.session=Session()
+        for temp,p in ((0,1),(1,0),(0,0),(.3,0)):
+            result=engine.predict({'moves':[],'history':False,'selfElo':1600,'opponentElo':1600,
+                'temperature':temp,'topP':p,'seed':'001122'})
+            self.assertEqual(result['move'],'e2e4')
+        for temp,p in ((-1,.5),(.5,-1),(2,1.1)):
+            with self.assertRaises(ValueError):
+                engine.predict({'moves':[],'history':False,'selfElo':1600,'opponentElo':1600,
+                    'temperature':temp,'topP':p})
     def test_history_and_black_orientation(self):
         b,x=encode(['e2e4','e7e5','g1f3'],True)
         self.assertEqual(x.shape,(1,64,97))

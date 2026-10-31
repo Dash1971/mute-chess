@@ -51,8 +51,8 @@ class Engine:
         indices=[MOVE_INDEX[m.uci() if board.turn else mirror(m.uci())] for m in legal]
         logits=policy[0,indices].astype(np.float64)
         temp=r['temperature'];top_p=r['topP']
-        if not 0<=temp<=2 or not 0<top_p<=1:raise ValueError('Invalid sampling policy')
-        if temp==0:pick=int(np.argmax(logits))
+        if not 0<=temp<=2 or not 0<=top_p<=1:raise ValueError('Invalid sampling policy')
+        if temp==0 or top_p==0:pick=int(np.argmax(logits))
         else:
             logits/=temp;logits-=logits.max();prob=np.exp(logits);prob/=prob.sum()
             order=np.argsort(-prob);keep=np.cumsum(prob[order])-prob[order]<top_p

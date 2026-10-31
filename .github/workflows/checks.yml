@@ -40,7 +40,7 @@ jobs:
       - run: python -m pip install -r worker/requirements.txt
       - name: Encoder regression without external weights
         working-directory: lila-adapter
-        run: PYTHONPATH=.:test python -m unittest test_worker.WorkerTests.test_history_and_black_orientation
+        run: PYTHONPATH=.:test python -m unittest test_worker.WorkerTests.test_history_and_black_orientation test_worker.WorkerTests.test_deterministic_temperature_and_top_p_zero_endpoints test_strength_predictor
       - run: python -m unittest discover -s puzzles
       - run: python -m unittest discover -s learning
       - name: Parse deployment Python
@@ -54,6 +54,11 @@ jobs:
           PY
       - name: Service boundary contracts
         run: python -m unittest discover -s deploy/public -p 'test_*.py'
+      - name: Reproduce frozen continuous experiment design
+        run: |
+          python deploy/study/design.py --output /tmp/strength-design
+          cmp /tmp/strength-design/experiment-roster.json lila-adapter/experiment-roster.json
+          cmp /tmp/strength-design/experiment-manifest.json lila-adapter/experiment-manifest.json
       - name: Documented upstream departures
         run: |
           python deploy/lila/check-upstream.py

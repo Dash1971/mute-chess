@@ -14,6 +14,8 @@ from pathlib import Path
 import re
 import subprocess
 import time
+import datetime as dt
+import math
 
 
 def command(*args, check=True):
@@ -96,6 +98,11 @@ def main():
     token = env['ADAPTER_TOKEN']
     started = int(time.time() * 1000)
     deadline = started + 90 * 60000
+    if args.profile == 'strength-predictor-v1':
+        deadline = int(dt.datetime.fromisoformat('2026-10-31T10:34:39+00:00').timestamp()*1000)
+        if int(time.time()*1000) >= deadline - 30*60000:
+            raise SystemExit('Owner deadline leaves no admission window')
+    runtime_seconds = math.ceil((deadline-int(time.time()*1000))/1000)
     worker = 'nosweat-study-' + args.run
     metrics = output / 'resources.jsonl'
     reason = None
@@ -137,7 +144,7 @@ def main():
         else:
             raise RuntimeError('Native app did not become ready')
         command('systemd-run', '--unit', worker, '--uid=nosweat-adapter', '--gid=nosweat-adapter',
-                '--property=Restart=no', '--property=RuntimeMaxSec=5400', '--property=TimeoutStopSec=20',
+                '--property=Restart=no', '--property=RuntimeMaxSec='+str(runtime_seconds), '--property=TimeoutStopSec=20',
                 '--property=MemoryMax=' + plan['memory'], '--property=CPUQuota=' + plan['cpu'], '--property=NoNewPrivileges=yes',
                 '--property=ProtectSystem=strict', '--property=ProtectHome=yes',
                 '--property=ReadWritePaths=' + str(output), '--property=UMask=0077',

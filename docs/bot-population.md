@@ -1,6 +1,6 @@
 # Bot population and persistent personalities
 
-This is the infrastructure stage of [#69](https://github.com/Dash1971/mute-chess/issues/69), implemented in #72. It preserves the 44 existing identities and their earned native ratings. The planned population is 10,000; expansion follows the separately scoped rating/capacity work. The bounded public rating trial is documented in [native-bot-trial.md](native-bot-trial.md), with execution/results tracked in #73. Country personas and scheduled breaks are deferred in #71.
+This is the infrastructure stage of [#69](https://github.com/Dash1971/mute-chess/issues/69), implemented in #72. It preserves the 44 existing identities and their earned native ratings. The planned population is 10,000. The owner-approved #137 experiment adds 206 identities to the original 44: 200 training configurations and 50 held out, covering fixed history and continuous temperature/top-p 0–1. See [the frozen experimental design](strength-experiment.md). Large-scale generation follows validation, not individual calibration games for every name. The bounded public rating trial is documented in [native-bot-trial.md](native-bot-trial.md), with execution/results tracked in #73. Country personas and scheduled breaks are deferred in #71.
 
 ## Human rating goal
 
@@ -8,7 +8,7 @@ A human player's established Mute Chess rating should roughly translate to their
 
 ## Fixed settings
 
-The authoritative configuration is [`lila-adapter/roster.json`](../lila-adapter/roster.json). Each bot keeps its conditioning inputs, temperature, top-p, opening policy, move-history switch, human-timing switch and timing style across games and deployments. Native bot profiles expose the current settings. BOT identification remains visible.
+The original 44-entry configuration remains [`lila-adapter/roster.json`](../lila-adapter/roster.json), unchanged for historical policy/migration reproducibility. The additive population is [`experiment-roster.json`](../lila-adapter/experiment-roster.json); `roster.mjs` loads both, and the native public roster is their exact concatenation. `deploy/study/design.py` reproduces the explicit configuration/split manifest. New seed ratings have RD 300 and are unvalidated priors, never earned or forcibly established ratings. Their unplayed Bullet/Classical defaults are also provisional; this experiment measures Blitz/Rapid only. Each bot keeps its conditioning inputs, temperature, top-p, opening policy, move-history switch, human-timing switch and timing style across games and deployments. Native bot profiles expose the current settings. BOT identification remains visible.
 
 Existing sampling policies are unchanged: Full (temperature 1, top-p 1), Balanced (1, .95), Focused (.5, .9), and Argmax (0, 1). Non-Full policies use Full sampling through both colors' first five moves, then their fixed sampling settings. Conditioning inputs describe the network's input, not measured playing strength. Sampling and timing do not adapt to whether the human is winning.
 
@@ -101,3 +101,22 @@ corrected stored ratings; original seeds and past game/history ratings remain
 historical values. [Exact before/after table, reference data and verification
 receipt](data/rating-anchor-applied-2026-10-30/README.md). This operation started
 no new calibration games.
+
+## Continuous experiment and Easter egg identities (#137/#92)
+
+The exact approved ranges, endpoint aliasing, training-only model selection,
+prospective held-out tests and October31 hard stop are in
+[strength-experiment.md](strength-experiment.md). New configurations use full
+sampling for five full opening moves and then fixed temperature/top-p. Original
+policies, seeds and earned perfs are never overwritten. Repeated identities with
+the same effective configuration are not independent evidence about the mapping.
+
+Upper-input identities include Wintermute/Neuromancer (Neuromancer), HAL9000
+(2001: A Space Odyssey), SHODAN (System Shock), Durandal (Marathon), WalterWobot
+(Judge Dredd), Skynet (The Terminator), GLaDOS (Portal), Colossus
+(Colossus: The Forbin Project), DeepThought (The Hitchhiker's Guide to the Galaxy),
+Joshua (WarGames) and Mycroft (The Moon Is a Harsh Mistress), as included by the
+seeded generator. These are character references, not affiliations. Wintermute
+is fixed at conditioning2600/argmax/history-on/very-fast human timing; Neuromancer
+is the separate history-off comparison. Measured ratings determine the leader;
+no rating is manufactured to place a character first.
