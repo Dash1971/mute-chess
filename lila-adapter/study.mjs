@@ -1,4 +1,8 @@
 import http from 'node:http';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { loadRoster } from './roster.mjs';
+import { experimentStage, experimentPairing } from './experiment-schedule.mjs';
 import { readFile, writeFile, mkdir, appendFile, rename, stat } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -16,8 +20,10 @@ if (!/^[a-z][a-z0-9_]{2,31}$/.test(run ?? '') || origin !== (live ? 'http://127.
   throw Error('Study must target its explicit deployment scope');
 const token = process.env.ADAPTER_TOKEN;
 if (!token || token.length < 32) throw Error('Private adapter token required');
-const roster = JSON.parse(await readFile(new URL('./roster.json', import.meta.url)));
-if (roster.length !== 44) throw Error('This trial is limited to the existing 44 identities');
+const roster = await loadRoster();
+const manifest = JSON.parse(await readFile(new URL('./experiment-manifest.json', import.meta.url)));
+const execute = promisify(execFile);
+let experiment = false, frozenModel = null;
 const output = process.env.STUDY_OUTPUT;
 if (!output?.startsWith('/') || !(process.env.STUDY_MAIN_COMMIT ?? '').match(/^[0-9a-f]{40}$/))
   throw Error('Output directory and verified main revision required');
@@ -29,7 +35,7 @@ const progress = new StudyProgress();
 const pending = new Map(), completed = new Set(), timings = [];
 async function log(event) {
   await appendFile(events, JSON.stringify({ at: new Date().toISOString(), ...event }) + '\n');
-  if ((await stat(events)).size > 32 * 1024 * 1024) throw Error('Study event output limit');
+  if ((await stat(events)).size > 256 * 1024 * 1024) throw Error('Study event output limit');
 }
 function native(path, body) {
   return new Promise((resolve, reject) => {
@@ -84,15 +90,24 @@ async function requestStop() {
 for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => { stopping = true; });
 try {
   last = await native('/club/internal/study/ratings');
-  if (last.runId !== run || last.publicRatings !== live || last.admitted !== 0 || last.closed || last.workers !== workerCount || ![100, 200].includes(last.maximumAdmitted) ||
-      last.deadline - Date.now() > 90 * 60000 || Date.now() >= last.admissionEnd)
+  experiment = last.profile === 'strength-predictor-v1';
+  const expectedLimit = experiment ? 3000 : last.profile === 'calibration-200-v1' ? 200 : 100;
+  const deadlineValid = experiment ? last.deadline === Date.parse(manifest.hardStopUtc) &&
+    last.admissionEnd === Date.parse(manifest.admissionEndUtc) && roster.length === 250 :
+    last.deadline - Date.now() <= 90 * 60000;
+  if (last.runId !== run || last.publicRatings !== live || last.admitted !== 0 || last.closed || last.workers !== workerCount ||
+      last.maximumAdmitted !== expectedLimit || !deadlineValid || Date.now() >= last.admissionEnd)
     throw Error('Study scope/budget mismatch or existing run; use a reviewed checkpoint-resume procedure');
   initial = { started: Date.now(), deadline: last.deadline, admissionEnd: last.admissionEnd,
     ratings: last.ratings, modelSha256: MODEL_SHA256,
     rosterSha256: createHash('sha256').update(JSON.stringify(roster)).digest('hex'),
     policyVersion: 'native-no-wait-study-v1', maximumAdmitted: last.maximumAdmitted, maximumConcurrency: last.maximumConcurrency,
     profile: last.profile, workerCount, stages: last.stages, clocks: { blitz: '5+3', rapid: '10+5' } };
-  await log({ type: 'start', ...initial, publicRatings: live });
+  if (experiment && initial.rosterSha256 !== manifest.combinedRosterSha256)
+    throw Error('Experiment roster/hash mismatch');
+  await writeFile(`${output}/combined-roster.json`, JSON.stringify(roster, null, 2));
+  await writeFile(`${output}/experiment-manifest.json`, JSON.stringify(manifest, null, 2));
+  await log({ type: 'start', ...initial, publicRatings: live, experiment: experiment ? manifest : undefined });
   await save(last);
   maia = new StudyWorkers(workerCount, () => new Maia(process.env.MAIA_PYTHON,
     new URL('./maia_worker.py', import.meta.url).pathname, process.env.MAIA_MODEL));
@@ -121,13 +136,28 @@ try {
     if (last.admitted < initial.maximumAdmitted && last.games.length + last.publicGames < capacity && Date.now() < initial.admissionEnd) {
       // Fetch current native ratings before each admission; frozen policy inputs never follow Glicko.
       last = await native('/club/internal/study/ratings');
-      const match = pairing(roster, last.ratings, last.records);
+      if (experiment && experimentStage(last.admitted, manifest) === 'validation' && !frozenModel && !last.games.length) {
+        await Promise.allSettled([...pending.values()]);
+        await writeFile(`${output}/training-ratings.json`, JSON.stringify(last.ratings));
+        const modelPath = `${output}/frozen-predictor.json`;
+        await execute(process.env.MAIA_PYTHON, [new URL('./strength_predictor.py', import.meta.url).pathname,
+          '--roster', `${output}/combined-roster.json`, '--manifest', `${output}/experiment-manifest.json`,
+          '--ratings', `${output}/training-ratings.json`, '--output', modelPath],
+          { timeout: 60000, env: { ...process.env, OPENBLAS_NUM_THREADS: '1', OMP_NUM_THREADS: '1' } });
+        const bytes = await readFile(modelPath);
+        frozenModel = JSON.parse(bytes);
+        await log({ type: 'predictions-frozen', sha256: createHash('sha256').update(bytes).digest('hex'),
+          admitted: last.admitted, heldout: manifest.heldoutIds.length,
+          trainingCvMae: Object.fromEntries(Object.entries(frozenModel.speeds).map(([s,m]) => [s,m.configurationCvMae])) });
+      }
+      const match = experiment ? experimentPairing(roster, last.ratings, last.records, manifest, !!frozenModel) :
+        pairing(roster.filter(b => !b.experiment), last.ratings, last.records);
       if (match) {
         const policies = { white: freezeStudy(match.white, run), black: freezeStudy(match.black, run) };
         try {
           const created = await native('/club/internal/study', { white: match.white.id, black: match.black.id,
             speed: match.speed, policies });
-          await log({ type: 'admission', ...created, white: match.white.id, black: match.black.id, speed: match.speed, policies });
+          await log({ type: 'admission', ...created, stage: experiment ? experimentStage(last.admitted, manifest) : undefined, white: match.white.id, black: match.black.id, speed: match.speed, policies });
         } catch (e) { if (e.status !== 409) throw e; }
       }
     }
@@ -141,7 +171,19 @@ finally {
   await Promise.allSettled([...pending.values()]);
   if (initial) await requestStop();
   maia?.close();
-  try { last = await native('/club/internal/study/ratings'); if (initial) await save(last); }
+  try {
+    last = await native('/club/internal/study/ratings');
+    if (initial) await save(last);
+    if (experiment && frozenModel) {
+      await writeFile(`${output}/final-ratings.json`, JSON.stringify(last.ratings));
+      await writeFile(`${output}/final-records.json`, JSON.stringify(last.records));
+      await execute(process.env.MAIA_PYTHON, [new URL('./strength_predictor.py', import.meta.url).pathname,
+        '--roster', `${output}/combined-roster.json`, '--manifest', `${output}/experiment-manifest.json`,
+        '--ratings', `${output}/final-ratings.json`, '--model', `${output}/frozen-predictor.json`,
+        '--records', `${output}/final-records.json`, '--output', `${output}/heldout-evaluation.json`],
+        { timeout: 60000, env: { ...process.env, OPENBLAS_NUM_THREADS: '1', OMP_NUM_THREADS: '1' } });
+    }
+  }
   catch (e) { await log({ type: 'checkpoint-error', error: e.message }); }
   await log({ type: 'end', failure, completed: completed.size });
 }

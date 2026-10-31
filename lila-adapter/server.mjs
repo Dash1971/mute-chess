@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { loadRoster } from './roster.mjs';
 import { readFile } from 'node:fs/promises';
 import { timingSafeEqual, randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -13,7 +14,7 @@ const token = process.env.ADAPTER_TOKEN;
 const origin = process.env.LILA_ORIGIN ?? 'http://127.0.0.1:19663';
 const publicOrigin = process.env.PUBLIC_ORIGIN ?? origin;
 if (!token || token.length < 40 || new URL(origin).hostname !== '127.0.0.1') throw Error('Private adapter configuration required');
-const roster = JSON.parse(await readFile(new URL('./roster.json', import.meta.url), 'utf8'));
+const roster = await loadRoster();
 const botsById = new Map(roster.map(bot => {
   validatePersonality(bot.personality);
   return [bot.id, bot];

@@ -68,11 +68,16 @@ and an inconclusive result instead of silently reducing the evaluation standard.
 New public human games are tracked separately from study admissions and can
 change native perfs; never mistake them for training labels.
 
-Fit an interpretable regularized outcome model with nonlinear conditioning and
-temperature/top-p terms, history interactions and separate speed effects. Select
+Fit an interpretable weighted ridge model to native training rating estimates,
+with nonlinear conditioning and temperature/top-p terms, history interactions and
+separate speed fits. Weight uncertain labels by 1/(RD squared + 50 squared).
+The native game outcomes update those labels through unchanged Glicko; use fresh
+outcomes separately for prospective expected-score evaluation. Select
 regularization/complexity using configuration-grouped training-only validation;
 games from one configuration must not straddle a purported unseen-configuration
-split. Compare a reference-derived baseline and simpler additive model. Prefer
+split. Compare the published seed baseline and simpler additive model; choose among
+additive/interaction features and penalties 0.1, 1, 10, 100 using five
+configuration-grouped folds. Prefer additive within five points of the best CV MAE. Prefer
 the simplest model whose held-out predictions work; do not assume a linear Elo
 slider or impose unsupported monotonic effects. Keep the model artifact, feature
 definition, input domain, uncertainty method and reproducible fit/evaluation code.
@@ -95,7 +100,9 @@ uncertainty to propose priors; native Glicko then learns from each account's gam
 ## Names and #92
 
 Reserve **Wintermute**, conditioning 2600 with argmax, for the upper roster.
-Choose history from the comparison evidence and retain the fastest existing
+History-on is pre-registered for Wintermute, with a separate history-off argmax
+2600 counterpart (Neuromancer) for comparison. Preserve these fixed policies
+through calibration rather than changing a rated identity afterward. Retain the fastest existing
 human-like production timing style (not an invented fixed delay). Study waits
 remain off. Do not manufacture a highest rating if another policy beats it;
 publish that result and its uncertainty. Add recognizable sci-fi AI names from

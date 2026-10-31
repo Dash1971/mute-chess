@@ -352,12 +352,13 @@
         },
         {
           "id": "bounded-native-bot-trial",
-          "rationale": "Explicitly gated bot-versus-bot reservations for a bounded public rating/capacity study; retain native rules, clocks, completion, Glicko and safeguards. Share the existing admission queue and account busy checks; qualification uses an isolated namespace. Versioned 10/22-game plans expose fixed worker/concurrency and 100/200-admission metadata; no arbitrary public capacity setting or rating implementation is added. Study BOT connections use the same native Tell bus and paired disconnections, preserving native WebSocket room presence (#101).",
+          "rationale": "Explicitly gated bot-versus-bot reservations for a bounded public rating/capacity study; retain native rules, clocks, completion, Glicko and safeguards. Share the existing admission queue and account busy checks; qualification uses an isolated namespace. Versioned 10/22-game plans expose fixed worker/concurrency and 100/200-admission metadata; no arbitrary public capacity setting or rating implementation is added. Study BOT connections use the same native Tell bus and paired disconnections, preserving native WebSocket room presence (#101). Issue #137 adds one explicitly dated, bounded 3,000-game predictor study profile, additive 206 experimental identities and frozen held-out evaluation; existing policies and native ratings remain authoritative.",
           "verification": [
             "Native NoSweatStudyScopeTest/NoSweatStudyPlanTest and stage/format checks",
             "Study policy/scheduler regression tests",
             "Disposable native BOT-vs-BOT game and perf persistence qualification; public run checkpoints",
-            "Reproduce original headless rollback then replay >=145 seconds without rollback; fail closed on inconsistent state."
+            "Reproduce original headless rollback then replay >=145 seconds without rollback; fail closed on inconsistent state.",
+            "Original44 roster and perfs unchanged; reproducible disjoint 200/50 design; native 3000-admission boundary, fixed deadline and disabled/closed scope checks."
           ],
           "files": [
             "app/NoSweatStudy.scala",

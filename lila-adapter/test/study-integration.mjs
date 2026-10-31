@@ -6,12 +6,13 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { generateSecretKey, getPublicKey, finalizeEvent } from 'nostr-tools/pure';
 import { digest } from '../nostr-auth.mjs';
+import { loadRoster } from '../roster.mjs';
 import { StudyWorkers } from '../study-workers.mjs';
 import { Maia } from '../maia.mjs';
 import { freezeStudy, studyPolicy } from '../study-policy.mjs';
 const origin = process.env.LILA_ORIGIN;
 if (origin !== 'http://127.0.0.1:19763') throw Error('Qualification origin only');
-const run = process.env.STUDY_QUAL_RUN_ID ?? 'q20261030a', roster = JSON.parse(await readFile(new URL('../roster.json', import.meta.url)));
+const run = process.env.STUDY_QUAL_RUN_ID ?? 'q20261030a', roster = await loadRoster();
 const token = process.env.ADAPTER_TOKEN;
 const request = (path, body, auth = token) => new Promise((resolve, reject) => {
   const req = http.request(new URL(path, origin), { method: body === undefined ? 'GET' : 'POST',
@@ -28,9 +29,9 @@ for (let i = 0; i < 100; i++) {
   try { before = await api('/ratings'); break; } catch { await sleep(1000); }
 }
 assert.ok(before); assert.equal(before.publicRatings, false); assert.equal(before.runId, run);
-assert.equal(Object.keys(before.ratings).length, 44);
+assert.equal(Object.keys(before.ratings).length, roster.length);
 assert.equal(before.maximumConcurrency, before.workers === 2 ? 22 : 10);
-assert.equal(before.maximumAdmitted, before.profile === 'calibration-200-v1' ? 200 : 100); assert.equal(before.admitted, 0);
+assert.equal(before.maximumAdmitted, before.profile === 'strength-predictor-v1' ? 3000 : before.profile === 'calibration-200-v1' ? 200 : 100); assert.equal(before.admitted, 0);
 assert.equal((await request('/club/internal/study', undefined, 'invalid')).status, 403);
 // Rated human admission must still fall back to the normal reservation path while study mode is on.
 async function human(path, body, extra = {}) {
@@ -104,7 +105,7 @@ try {
 } finally { maia.close(); }
 assert.equal(workersUsed.size, before.workers);
 let admissionBoundary;
-if (before.maximumAdmitted === 200) {
+if (before.maximumAdmitted >= 200) {
   // Only the disposable namespace receives synthetic closed reservation documents.
   // They test native budget/cursor boundaries, not game outcomes or calibration.
   assert.ok(/^q[a-z0-9_]{2,31}$/.test(run));
@@ -112,22 +113,22 @@ if (before.maximumAdmitted === 200) {
   const count = (await api('')).admitted;
   const script = `const run=${JSON.stringify(run)}; const existing=db.nosweat_study_game.countDocuments({runId:run});
     if(existing!==${count}) throw Error("Fixture count changed");
-    const docs=Array.from({length:199-existing},(_,i)=>({_id:"f"+String(i).padStart(7,"0"),runId:run,state:"finished"}));
+    const docs=Array.from({length:${before.maximumAdmitted-1}-existing},(_,i)=>({_id:"f"+String(i).padStart(7,"0"),runId:run,state:"finished"}));
     if(docs.length) db.nosweat_study_game.insertMany(docs);`;
   execFileSync(process.execPath, [process.env.STUDY_QUAL_MONGOSH,
     `mongodb://127.0.0.1:27028/nosweat_calibration_${run}`, '--quiet', '--eval', script], { stdio: 'pipe' });
-  assert.equal((await api('')).admitted, 199);
+  assert.equal((await api('')).admitted, before.maximumAdmitted-1);
   const makeSetup = (index) => {
     const white=roster[index], black=roster[index+1];
     return { white:white.id, black:black.id, speed:'rapid', policies:{white:freezeStudy(white,run),black:freezeStudy(black,run)} };
   };
   const finalGame = await api('', makeSetup(20));
   fixtures.push({ ...finalGame, white:roster[20], black:roster[21] });
-  assert.equal((await api('')).admitted, 200);
+  assert.equal((await api('')).admitted, before.maximumAdmitted);
   // Distinct unused seats ensure the 201st rejection is the budget, not busy-account protection.
   assert.equal((await request('/club/internal/study', makeSetup(24))).status, 409);
-  assert.equal((await api('')).admitted, 200);
-  admissionBoundary=200;
+  assert.equal((await api('')).admitted, before.maximumAdmitted);
+  admissionBoundary=before.maximumAdmitted;
 }
 await api('/stop', { runId: run });
 state = await api('/ratings'); assert.equal(state.closed, true);
@@ -139,7 +140,7 @@ const report = { qualificationOnly: true, profile: before.profile, workersUsed: 
   nativePerfsBefore: before.ratings, nativePerfsAfter: state.ratings,
   maiaNativeMoves: pairCount * 12, admissionBoundary, abortedUnratedFixtures: fixtures.map(f => f.id),
   checks: ['unauthorized', 'rated-human-admission-with-study-enabled', 'busy/capacity', 'stale-ply',
-    'native-mate', 'native-glicko-persistence', 'maia-history-path', 'multiple-real-workers', ...(admissionBoundary ? ['native-200-admission-boundary'] : []), 'stop-no-rating', 'closed-admission'] };
+    'native-mate', 'native-glicko-persistence', 'maia-history-path', 'multiple-real-workers', ...(admissionBoundary ? [`native-${admissionBoundary}-admission-boundary`] : []), 'stop-no-rating', 'closed-admission'] };
 await writeFile(process.env.STUDY_QUAL_REPORT, JSON.stringify(report, null, 2));
 console.log(JSON.stringify({ qualificationOnly: true, nativeMateAndGlicko: true,
   maiaMoves: pairCount * 12, workers: workersUsed.size, stopped: true }));

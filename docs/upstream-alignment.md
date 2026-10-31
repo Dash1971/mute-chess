@@ -79,3 +79,17 @@ rules and all subsequent native rating updates. The fixed-cohort migration is
 manual, audited and guarded by a maintenance window, exact snapshot/plan, backup,
 compare-and-set recovery and normal native cache/index rebuild. It never runs as
 part of app startup or deployment, and draft authorization does not apply it.
+
+## Continuous strength study (#137)
+
+The owner authorized 250 total identities and a dated, bounded3000-game experiment
+on October31. Keep the original44 file and perfs unchanged; the namespaced adapter
+loads an additive configuration file and the native public roster is generated
+from that same concatenation. The only new native control is a study-plan entry
+and explicit absolute admission/deadline bounds in NoSweatStudy; normal play,
+matchmaking selection, rules, clocks, perfs and native Glicko/provisional semantics
+remain upstream. All model fitting/evaluation is separate Python research tooling
+and cannot write ratings. Rebase verification checks exact roster agreement,
+blocked held-out admission before prediction freeze, original-policy hashes,
+native3000th/3001st admission boundaries, deadline/heartbeat cleanup and existing
+human admission. See strength-experiment.md and the exact-path register.
