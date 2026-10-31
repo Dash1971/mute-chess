@@ -89,8 +89,8 @@ ratings, bot policy, identity or saved-note migration is part of this change.
 
 The free standard analysis board exposes the same Analyze game action, native
 local-review engine, evaluation chart, overall accuracy/ACPL, classifications and
-Learn from your mistakes used after games. Computer analysis and Import & export
-tabs retain the editable FEN/PGN inputs. Opening labels stay under the board.
+Learn from your mistakes used after games. Computer analysis, Import, and Export
+have separate tabs. Opening labels stay under the board.
 A line needs at least one move. A FEN-only position retains selected-position
 Stockfish/Maia analysis and asks the user to add moves for a sequence review.
 
@@ -114,10 +114,25 @@ still release its workers. See `analysis/PROVENANCE.md` for source commits,
 independent reference coverage and actual SF19 browser-replay evidence. Counts
 are determined by evidence, not a named-game special case.
 
-Import & export offers explicit Copy PGN, Download PGN and Copy FEN actions,
-above a clearly labeled Import or edit section. The file/clipboard export uses
+Export offers PGN download/copy and FEN copying. The file/clipboard export uses
 Chessops' PGN serializer over the current tree, including variations, comments,
 judgment NAGs, evaluations, original headers and starting FEN. Draft import text
 is never mistaken for the exported game. Standard Mute Chess PGN imports retain
 their headers and imported annotations. Export remains an explicit local action;
 the unsaved board review still has no account/server persistence.
+
+## Native Import and Export tabs (#133)
+
+Import and Export are separate tabs alongside Computer analysis. Import has blank
+native FEN/PGN fields and explicit submit controls. Drafts survive tab switches;
+switching to Export or blurring a field does not replace the board. Enter and the
+submit buttons invoke the existing native position/PGN controller paths. Other
+upstream analysis contexts keep their original editable input behavior.
+
+Export follows native Lichess `ReplayUi`'s `fen-pgn` layout and `copy-me`
+components: a read-only FEN row, PGN download/copy row, and selectable annotated
+PGN text. Native clipboard/checkmark feedback, metal buttons, field sizes and
+spacing replace the compact custom button strip and explanatory furniture.
+The only local adapter is the clipboard/blob callback required by an unsaved
+line without a public game-export URL. There are no new colors or component
+styles; import padding is scoped to the new under-board import panel.
