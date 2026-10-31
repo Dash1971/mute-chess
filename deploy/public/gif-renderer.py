@@ -80,8 +80,9 @@ def generate_moss(working):
         if importlib.metadata.version(package) != PIN['generation'][package]:
             raise ValueError('Renderer generation dependency differs: ' + package)
     resvg = subprocess.check_output(['resvg', '--version'], text=True).strip()
-    if resvg != 'resvg ' + PIN['generation']['resvg']:
-        raise ValueError('Renderer resvg version differs from the reviewed pin')
+    # resvg 0.45.1 prints only CARGO_PKG_VERSION (upstream main.rs).
+    if resvg != PIN['generation']['resvg']:
+        raise ValueError('Renderer resvg version differs from the reviewed pin: ' + repr(resvg))
     original = {path: digest(path) for path in (working / 'theme/sprites').glob('*.gif')}
     subprocess.run(['git', 'apply', '--check', str(MOSS_PATCH)], cwd=working, check=True)
     subprocess.run(['git', 'apply', str(MOSS_PATCH)], cwd=working, check=True)
