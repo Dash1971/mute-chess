@@ -12151,10 +12151,10 @@ index 0000000..ec4cc78
 +};
 diff --git a/ui/analyse/src/noSweatAnalysis.ts b/ui/analyse/src/noSweatAnalysis.ts
 new file mode 100644
-index 0000000..ec2a16b
+index 0000000..9c5a1d2
 --- /dev/null
 +++ b/ui/analyse/src/noSweatAnalysis.ts
-@@ -0,0 +1,715 @@
+@@ -0,0 +1,721 @@
 +import type { DrawShape } from '@lichess-org/chessground/draw';
 +import { parseUci } from 'chessops/util';
 +import { attributesModule, classModule, init } from 'snabbdom';
@@ -12212,6 +12212,7 @@ index 0000000..ec2a16b
 +  expectedScore?: number;
 +  secondaryExpectedScore?: number;
 +  private sideRedraw?: () => void;
++  private sideHost?: HTMLElement;
 +  private opening?: OpeningLabel;
 +  mountOpening(element: HTMLElement): void {
 +    this.opening?.destroy();
@@ -12513,6 +12514,11 @@ index 0000000..ec2a16b
 +    this.positionChanged(true);
 +  }
 +  mountSide(element: HTMLElement): void {
++    if (element === this.sideHost) {
++      this.sideRedraw?.();
++      return;
++    }
++    this.sideHost = element;
 +    const root = document.createElement('div');
 +    element.prepend(root);
 +    const patch = init([classModule, attributesModule]);
@@ -14929,10 +14935,10 @@ index 0000000..3016a35
 +});
 diff --git a/ui/analyse/tests/candidateColorLifecycle.test.ts b/ui/analyse/tests/candidateColorLifecycle.test.ts
 new file mode 100644
-index 0000000..39e18d3
+index 0000000..0bf1726
 --- /dev/null
 +++ b/ui/analyse/tests/candidateColorLifecycle.test.ts
-@@ -0,0 +1,44 @@
+@@ -0,0 +1,92 @@
 +import assert from 'node:assert/strict';
 +import { mock, test } from 'node:test';
 +
@@ -14976,6 +14982,54 @@ index 0000000..39e18d3
 +  assert.equal(model.scores.size, 0);
 +  assert.equal((model as any).moveQuality('e2e4'), undefined);
 +  model.release();
++});
++
++test('reusing the native sidebar after an import keeps one current Maia panel', async t => {
++  const resizeObserver = Object.getOwnPropertyDescriptor(globalThis, 'ResizeObserver');
++  Object.defineProperty(globalThis, 'ResizeObserver', {
++    configurable: true,
++    value: class {
++      observe() {}
++      disconnect() {}
++    },
++  });
++  t.after(() => {
++    if (resizeObserver) Object.defineProperty(globalThis, 'ResizeObserver', resizeObserver);
++    else Reflect.deleteProperty(globalThis, 'ResizeObserver');
++  });
++  const ctrl = {
++    cevalEnabled: () => false,
++    ceval: { storedPv: () => {} },
++    opts: {},
++    node: { fen, children: [] },
++    nodeList: [{ fen }],
++    path: '',
++    isCevalAllowed: () => true,
++    setAutoShapes: () => {},
++    redraw: () => {},
++    threatMode: () => false,
++  } as unknown as AnalyseCtrl;
++  const model = new NoSweatAnalysis(ctrl);
++  await Promise.resolve();
++  const side = document.createElement('aside');
++  const native = document.createElement('div');
++  native.textContent = 'Native sidebar';
++  side.append(native);
++  document.body.append(side);
++  model.mountSide(side);
++  const panel = side.querySelector('[aria-label="Maia analysis"]');
++  assert.ok(panel);
++  side.remove();
++  document.body.append(side);
++  model.selfElo = 1700;
++  model.mountSide(side);
++  model.redrawSide();
++  assert.equal(side.querySelectorAll('[aria-label="Maia analysis"]').length, 1);
++  assert.equal(side.querySelector('[aria-label="Maia analysis"]'), panel);
++  assert.ok(side.querySelector('[aria-label="Change primary Maia rating, 1700"]'));
++  assert.equal(native.parentElement, side);
++  model.release();
++  side.remove();
 +});
 diff --git a/ui/analyse/tests/candidateQuality.test.ts b/ui/analyse/tests/candidateQuality.test.ts
 new file mode 100644
