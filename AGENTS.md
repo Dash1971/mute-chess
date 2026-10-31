@@ -271,3 +271,8 @@ into an authenticated Nostr account section linked from the owner's profile and
 settings. Local nsec reveal/copy is explicitly requested, with matching-account
 checks, warnings and transient display; never transmit or publish private keys.
 Include optional Primal onboarding and the owner's existing official profile.
+
+The owner subsequently requested separate Import and Export tabs on the analysis
+board (#133), using native Lichess field/copy/download styling. Keep import
+drafts separate from read-only exports and preserve native parser/serialization
+behavior. Do not reintroduce the combined transfer tab or compact custom strip.

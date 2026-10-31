@@ -2634,7 +2634,7 @@ index 0c0ed10..0fd8c57 100644
  
    val logo = raw:
 diff --git a/modules/web/src/main/ui/layout.scala b/modules/web/src/main/ui/layout.scala
-index 1c7a30b..827a81c 100644
+index 1c7a30b..d282e0d 100644
 --- a/modules/web/src/main/ui/layout.scala
 +++ b/modules/web/src/main/ui/layout.scala
 @@ -17,8 +17,17 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
@@ -2698,7 +2698,7 @@ index 1c7a30b..827a81c 100644
 -    s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
 -      s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
 +    if isMuteChess then
-+      """<link rel="alternate icon" type="image/png" href="/assets/nosweat/favicon-32.png?v=quiet-signal1"><link id="favicon" rel="icon" type="image/svg+xml" href="/assets/nosweat/favicon.svg?v=quiet-signal1"><link rel="stylesheet" href="/assets/nosweat/brand.css?v=analysis10"><link rel="stylesheet" href="/assets/nosweat/quiet-signal.css?v=quiet-signal2">"""
++      """<link rel="alternate icon" type="image/png" href="/assets/nosweat/favicon-32.png?v=quiet-signal1"><link id="favicon" rel="icon" type="image/svg+xml" href="/assets/nosweat/favicon.svg?v=quiet-signal1"><link rel="stylesheet" href="/assets/nosweat/brand.css?v=analysis11"><link rel="stylesheet" href="/assets/nosweat/quiet-signal.css?v=quiet-signal2">"""
 +    else
 +      s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
 +        s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
@@ -2785,10 +2785,10 @@ index 818aaae..901eb6e 100644
    flair?: Flair;
    patron?: boolean; // BC
 diff --git a/ui/analyse/css/_analyse.free.scss b/ui/analyse/css/_analyse.free.scss
-index a5094c6..6a49474 100644
+index a5094c6..60daa09 100644
 --- a/ui/analyse/css/_analyse.free.scss
 +++ b/ui/analyse/css/_analyse.free.scss
-@@ -2,6 +2,7 @@
+@@ -2,9 +2,15 @@
  @import 'analyse.base';
  @import 'retro'; // now available via local analysis
  @import 'round-training';
@@ -2796,6 +2796,14 @@ index a5094c6..6a49474 100644
  
  $label-width: 5ch;
  
++.analyse__underboard__panels > .import {
++  padding: 1em;
++  overflow-y: auto;
++}
++
+ .copyables {
+   .pair {
+     @extend %flex-center;
 diff --git a/ui/analyse/css/_layout.scss b/ui/analyse/css/_layout.scss
 index 4f219ad..5ae45e9 100644
 --- a/ui/analyse/css/_layout.scss
@@ -3753,7 +3761,7 @@ index 92bfd1d..837cddb 100644
        (ctrl.idbTree.movesDirty || ctrl.idbTree.hasLocalAnalysis || ctrl.idbTree.hasLocalCeval) &&
          hl(
 diff --git a/ui/analyse/src/view/components.ts b/ui/analyse/src/view/components.ts
-index 1690fe3..9757e1a 100644
+index 1690fe3..3d89635 100644
 --- a/ui/analyse/src/view/components.ts
 +++ b/ui/analyse/src/view/components.ts
 @@ -104,6 +104,7 @@ export function renderMain(
@@ -3764,7 +3772,7 @@ index 1690fe3..9757e1a 100644
            if (old.data!.gaugeOn !== gaugeOn) dispatchChessgroundResize();
            vnode.data!.gaugeOn = gaugeOn;
          },
-@@ -155,14 +156,18 @@ export const renderBoard = ({ ctrl, study, playerBars, playerStrips }: ViewConte
+@@ -155,29 +156,43 @@ export const renderBoard = ({ ctrl, study, playerBars, playerStrips }: ViewConte
    );
  
  export const renderUnderboard = ({ ctrl, deps, study }: ViewContext): VNode =>
@@ -3777,7 +3785,7 @@ index 1690fe3..9757e1a 100644
 -    study ? deps?.studyView.underboard(ctrl) : [renderInputs(ctrl)],
 -  );
 +  ctrl.synthetic && ctrl.noSweat && !study && !ctrl.isEmbed
-+    ? ctrl.noSweat.boardReview.view(renderInputs(ctrl))
++    ? ctrl.noSweat.boardReview.view(renderInputs(ctrl, true))
 +    : hl(
 +        'div.analyse__underboard',
 +        {
@@ -3789,8 +3797,120 @@ index 1690fe3..9757e1a 100644
 +        study ? deps?.studyView.underboard(ctrl) : [renderInputs(ctrl)],
 +      );
  
- export function renderInputs(ctrl: AnalyseCtrl): VNode | undefined {
+-export function renderInputs(ctrl: AnalyseCtrl): VNode | undefined {
++export function renderInputs(ctrl: AnalyseCtrl, importing = false): VNode | undefined {
    if (ctrl.ongoing || !ctrl.data.userAnalysis) return undefined;
+   if (ctrl.redirecting) return spinner();
+   return hl('div.copyables', [
+     hl('div.pair', [
+       hl('label.name', 'FEN'),
+       hl('input.copyable', {
+-        attrs: { spellcheck: 'false', enterkeyhint: 'done' },
++        attrs: {
++          spellcheck: 'false',
++          enterkeyhint: 'done',
++          ...(importing && { 'aria-label': 'FEN to import', placeholder: 'FEN' }),
++        },
+         hook: {
+           ...onInsert<HTMLInputElement>(el => {
+-            el.value = defined(ctrl.fenInput) ? ctrl.fenInput : ctrl.node.fen;
++            el.value = defined(ctrl.fenInput) ? ctrl.fenInput : importing ? '' : ctrl.node.fen;
+             el.addEventListener('change', () => {
+-              if (el.value !== ctrl.node.fen && el.reportValidity()) ctrl.changeFen(el.value.trim());
++              if (!importing && el.value !== ctrl.node.fen && el.reportValidity())
++                ctrl.changeFen(el.value.trim());
+             });
++            if (importing)
++              el.addEventListener('keydown', event => {
++                if (event.key === 'Enter' && el.value.trim() && el.reportValidity())
++                  ctrl.changeFen(el.value.trim());
++              });
+             el.addEventListener('input', () => {
+               ctrl.fenInput = el.value;
+               el.setCustomValidity(parseFen(el.value.trim()).isOk ? '' : 'Invalid FEN');
+@@ -186,24 +201,48 @@ export function renderInputs(ctrl: AnalyseCtrl): VNode | undefined {
+           postpatch: (_, vnode) => {
+             const el = vnode.elm as HTMLInputElement;
+             if (!defined(ctrl.fenInput)) {
+-              el.value = ctrl.node.fen;
++              el.value = importing ? '' : ctrl.node.fen;
+               el.setCustomValidity('');
+             } else if (el.value !== ctrl.fenInput) el.value = ctrl.fenInput;
+           },
+         },
+       }),
++      importing &&
++        hl(
++          'button.button.text',
++          {
++            attrs: { type: 'button', 'data-icon': licon.PlayTriangle },
++            hook: bind('click', event => {
++              const input = (event.currentTarget as HTMLElement).parentElement!.querySelector('input')!;
++              if (input.value.trim() && input.reportValidity()) ctrl.changeFen(input.value.trim());
++            }),
++          },
++          'Import FEN',
++        ),
+     ]),
+     hl('div.pgn', [
+       hl('div.pair', [
+         hl('label.name', 'PGN'),
+         hl('textarea.copyable', {
+-          attrs: { spellcheck: 'false' },
++          attrs: {
++            spellcheck: 'false',
++            ...(importing && {
++              'aria-label': 'PGN to import',
++              placeholder: String(i18n.site.pasteThePgnStringHere),
++            }),
++          },
+           class: { 'is-error': !!ctrl.pgnError },
+           hook: {
+             ...onInsert<HTMLTextAreaElement>(el => {
+-              el.value = defined(ctrl.pgnInput) ? ctrl.pgnInput : pgnExport.renderFullTxt(ctrl);
++              el.value = defined(ctrl.pgnInput)
++                ? ctrl.pgnInput
++                : importing
++                  ? ''
++                  : pgnExport.renderFullTxt(ctrl);
+               const changePgnIfDifferent = () =>
+-                el.value !== pgnExport.renderFullTxt(ctrl) && ctrl.changePgn(el.value, true);
++                (!importing || el.value.trim()) &&
++                (importing || el.value !== pgnExport.renderFullTxt(ctrl)) &&
++                ctrl.changePgn(el.value, true);
+ 
+               el.addEventListener('input', () => (ctrl.pgnInput = el.value));
+ 
+@@ -218,18 +257,23 @@ export function renderInputs(ctrl: AnalyseCtrl): VNode | undefined {
+             postpatch: (_, vnode) => {
+               (vnode.elm as HTMLTextAreaElement).value = defined(ctrl.pgnInput)
+                 ? ctrl.pgnInput
+-                : pgnExport.renderFullTxt(ctrl);
++                : importing
++                  ? ''
++                  : pgnExport.renderFullTxt(ctrl);
+             },
+           },
+         }),
+         !isMobile() &&
+           hl(
+-            'button.button.button-thin.bottom-item.bottom-action.text',
++            importing ? 'button.button.text' : 'button.button.button-thin.bottom-item.bottom-action.text',
+             {
+-              attrs: dataIcon(licon.PlayTriangle),
+-              hook: bind('click', _ => {
+-                const pgn = $('.copyables .pgn textarea').val() as string;
+-                if (pgn !== pgnExport.renderFullTxt(ctrl)) ctrl.changePgn(pgn, true);
++              attrs: { ...dataIcon(licon.PlayTriangle), ...(importing && { type: 'button' }) },
++              hook: bind('click', event => {
++                const pgn = importing
++                  ? (event.currentTarget as HTMLElement).parentElement!.querySelector('textarea')!.value
++                  : ($('.copyables .pgn textarea').val() as string);
++                if ((!importing || pgn.trim()) && (importing || pgn !== pgnExport.renderFullTxt(ctrl)))
++                  ctrl.changePgn(pgn, true);
+               }),
+             },
+             i18n.site.importPgn,
 diff --git a/ui/analyse/src/view/main.ts b/ui/analyse/src/view/main.ts
 index 83a184c..1bec2ab 100644
 --- a/ui/analyse/src/view/main.ts
@@ -10842,10 +10962,10 @@ HcmV?d00001
 
 diff --git a/public/nosweat/brand.css b/public/nosweat/brand.css
 new file mode 100644
-index 0000000..04508ad
+index 0000000..d8a9cdf
 --- /dev/null
 +++ b/public/nosweat/brand.css
-@@ -0,0 +1,156 @@
+@@ -0,0 +1,152 @@
 +.site-title .nosweat-header-icon{width:38px;height:38px;margin-right:2px}.site-title .nosweat-wordmark{width:174px;height:50px;object-fit:contain}.nosweat-light{display:none}.light .nosweat-dark{display:none}.light .nosweat-light{display:block}.nosweat-login-wordmark{width:272px;max-width:100%;height:62px}.auth__brand{justify-content:center}@media(max-width:799px){.site-title .nosweat-wordmark{display:none!important}.site-title .nosweat-header-icon{width:36px;height:36px;margin:0}}
 +
 +main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-dark.svg")}.light main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-light.svg")}
@@ -10972,10 +11092,6 @@ index 0000000..04508ad
 +.nosweat-chart .analysis-chart-actions { position:static; inset:auto; flex:0 0 32px; height:32px; align-items:center; border-bottom:1px solid var(--c-border); padding:3px 7px; }
 +.analyse__underboard .nosweat-chart .analysis-chart-actions :is(i,button) { margin:0; padding:3px; border:0; background:none; }
 +.nosweat-chart .analysis-chart-plot { flex:1; min-height:0; position:relative; }
-+.analyse__underboard .fen-pgn > .nosweat-board-transfer { display:block; }
-+.nosweat-board-transfer p { margin:.5em 0; }
-+.nosweat-board-transfer h3 { margin:1em 0 .5em; }
-+.nosweat-board-export { display:flex; flex-wrap:wrap; gap:.5em; }
 +.nosweat-review-settings { margin-top:1.5em; }
 +.nosweat-review-quality { display:flex; gap:1em; flex-wrap:wrap; margin:1em 0; }
 +.nosweat-review-quality label { display:flex; align-items:center; gap:.4em; }
@@ -12752,10 +12868,10 @@ index 0000000..ddf9d0d
 +export * from 'lib/nosweat/arrows';
 diff --git a/ui/analyse/src/noSweatBoardReview.ts b/ui/analyse/src/noSweatBoardReview.ts
 new file mode 100644
-index 0000000..705914f
+index 0000000..8bbdc93
 --- /dev/null
 +++ b/ui/analyse/src/noSweatBoardReview.ts
-@@ -0,0 +1,219 @@
+@@ -0,0 +1,252 @@
 +import type { AcplChart, ChartGame } from 'chart';
 +
 +import { licon } from 'lib/licon';
@@ -12766,7 +12882,7 @@ index 0000000..705914f
 +import { boardPgn, downloadBoardPgn } from './noSweatPgn';
 +
 +// The free board uses the same local review, chart and summary as game replay.
-+// Only the under-board shell differs: editable FEN/PGN replaces game exports.
++// The unsaved board separates editable imports from native-styled local exports.
 +export class BoardReview {
 +  private selected = 'computer-analysis';
 +  private panel?: HTMLElement;
@@ -12776,7 +12892,9 @@ index 0000000..705914f
 +  private dirty = false;
 +  private failed = false;
 +  private button?: HTMLButtonElement;
-+  private copyStatus = '';
++  private copied?: 'pgn' | 'fen';
++  private copyError = '';
++  private copyTimer?: ReturnType<typeof setTimeout>;
 +
 +  constructor(private readonly ctrl: AnalyseCtrl) {}
 +
@@ -12800,12 +12918,16 @@ index 0000000..705914f
 +    return hl(
 +      'div.analyse__underboard',
 +      {
-+        hook: onInsert(elm => this.ctrl.noSweat?.mountOpening(elm)),
++        hook: {
++          ...onInsert(elm => this.ctrl.noSweat?.mountOpening(elm)),
++          destroy: () => clearTimeout(this.copyTimer),
++        },
 +      },
 +      [
 +        hl('div.analyse__underboard__menu', { attrs: { role: 'tablist' } }, [
 +          tab('computer-analysis', i18n.site.computerAnalysis),
-+          tab('fen-pgn', 'Import & export'),
++          tab('import', 'Import'),
++          tab('export', 'Export'),
 +        ]),
 +        hl('div.analyse__underboard__panels', [
 +          hl('div.computer-analysis', {
@@ -12823,47 +12945,74 @@ index 0000000..705914f
 +              },
 +            },
 +          }),
-+          hl('div.fen-pgn', { class: { active: this.selected === 'fen-pgn' } }, [
-+            hl('div.nosweat-board-transfer', [
-+              hl('div.nosweat-board-export', [
-+                hl(
-+                  'button.button.button-thin',
-+                  { attrs: { type: 'button' }, hook: bind('click', () => void this.copy('pgn')) },
-+                  'Copy PGN',
-+                ),
-+                hl(
-+                  'button.button.button-thin',
-+                  { attrs: { type: 'button' }, hook: bind('click', () => downloadBoardPgn(this.ctrl)) },
-+                  'Download PGN',
-+                ),
-+                hl(
-+                  'button.button.button-thin',
-+                  { attrs: { type: 'button' }, hook: bind('click', () => void this.copy('fen')) },
-+                  'Copy FEN',
-+                ),
-+              ]),
-+              hl(
-+                'p',
-+                'PGN includes the current moves, variations, comments, move judgments, and evaluations.',
-+              ),
-+              hl('p', { attrs: { role: 'status', 'aria-live': 'polite' } }, this.copyStatus),
-+              hl('h3', 'Import or edit'),
-+              hl('p', 'Paste PGN or FEN below to replace the board. Press Enter to import.'),
-+              inputs,
-+            ]),
-+          ]),
++          hl('div.import', { class: { active: this.selected === 'import' } }, [inputs]),
++          hl(
++            'div.fen-pgn',
++            { class: { active: this.selected === 'export' } },
++            this.selected === 'export' ? this.exportView() : [],
++          ),
 +        ]),
 +      ],
 +    );
 +  }
 +
++  private exportView(): VNode[] {
++    const copyButton = (kind: 'pgn' | 'fen') =>
++      hl('button.copy-me__button.button', {
++        class: { 'button-metal': this.copied !== kind },
++        attrs: {
++          type: 'button',
++          title: `Copy ${kind.toUpperCase()}`,
++          'aria-label': this.copied === kind ? `${kind.toUpperCase()} copied` : `Copy ${kind.toUpperCase()}`,
++          'data-icon': this.copied === kind ? licon.Checkmark : licon.Clipboard,
++        },
++        hook: bind('click', event => {
++          event.stopPropagation();
++          void this.copy(kind);
++        }),
++      });
++    return [
++      hl('div', [
++        hl('strong', 'FEN'),
++        hl('div.copy-me.analyse__underboard__fen', [
++          hl('input.copy-me__target', {
++            attrs: { readonly: true, spellcheck: 'false', 'aria-label': 'FEN export' },
++            props: { value: this.ctrl.node.fen },
++          }),
++          copyButton('fen'),
++        ]),
++      ]),
++      hl('div', [
++        hl('strong', 'PGN'),
++        hl('div.copy-me', [
++          hl(
++            'button.copy-me__target.text',
++            {
++              attrs: { type: 'button', 'data-icon': licon.Download },
++              hook: bind('click', () => downloadBoardPgn(this.ctrl)),
++            },
++            'Download PGN',
++          ),
++          copyButton('pgn'),
++        ]),
++      ]),
++      ...(this.copyError ? [hl('p', { attrs: { role: 'status' } }, this.copyError)] : []),
++      hl('div.pgn', { attrs: { 'aria-label': 'PGN export', tabindex: 0 } }, boardPgn(this.ctrl)),
++    ];
++  }
++
 +  private async copy(kind: 'pgn' | 'fen'): Promise<void> {
 +    try {
 +      await navigator.clipboard.writeText(kind === 'pgn' ? boardPgn(this.ctrl) : this.ctrl.node.fen);
-+      this.copyStatus = `${kind.toUpperCase()} copied.`;
++      this.copied = kind;
++      this.copyError = '';
++      clearTimeout(this.copyTimer);
++      this.copyTimer = setTimeout(() => {
++        this.copied = undefined;
++        this.ctrl.redraw();
++      }, 1000);
 +    } catch {
-+      this.copyStatus =
-+        'Clipboard access is unavailable. Download the PGN or select and copy the text below.';
++      this.copyError = 'Copy is unavailable. Select the FEN or PGN text, or download the PGN.';
 +    }
 +    this.ctrl.redraw();
 +  }
@@ -14505,13 +14654,13 @@ index 0000000..759163b
 +}
 diff --git a/ui/analyse/tests/boardReview.test.ts b/ui/analyse/tests/boardReview.test.ts
 new file mode 100644
-index 0000000..493d226
+index 0000000..3016a35
 --- /dev/null
 +++ b/ui/analyse/tests/boardReview.test.ts
-@@ -0,0 +1,172 @@
+@@ -0,0 +1,258 @@
 +import assert from 'node:assert/strict';
 +import { mock, test } from 'node:test';
-+import { attributesModule, classModule, init } from 'snabbdom';
++import { attributesModule, classModule, propsModule, init } from 'snabbdom';
 +
 +import { pubsub } from 'lib/pubsub';
 +import { hl } from 'lib/view';
@@ -14520,6 +14669,7 @@ index 0000000..493d226
 +import { IdbTree } from '../src/idbTree';
 +import { LocalAnalysisEngine, type LocalAnalysisResult } from '../src/local/localAnalysisEngine';
 +import { BoardReview } from '../src/noSweatBoardReview';
++import { after } from '../src/noSweatCore';
 +import { FullGameClassifier } from '../src/noSweatFullReview';
 +
 +const fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
@@ -14680,6 +14830,91 @@ index 0000000..493d226
 +  assert.equal(input.value, '1. e4 e5');
 +  patch(vnode, hl('div'));
 +  root.remove();
++});
++
++test('separate native Import and Export tabs preserve drafts and export only the actual board', async t => {
++  const { renderInputs } = await import('../src/view/components');
++  const child = { id: 'ab', ply: 1, fen: after(fen, 'e2e4'), san: 'e4', uci: 'e2e4', children: [] };
++  const tree = { id: '', ply: 0, fen, children: [child] };
++  const changePgn = mock.fn();
++  const changeFen = mock.fn();
++  const ctrl = {
++    noSweat: { mountOpening() {} },
++    data: { userAnalysis: true, game: { id: 'synthetic', variant: { key: 'standard' } } },
++    tree: { root: tree },
++    node: tree,
++    mainline: [tree, child],
++    settings: { set() {} },
++    canAnalyseMainline: () => true,
++    changePgn,
++    changeFen,
++  } as unknown as AnalyseCtrl;
++  const board = new BoardReview(ctrl);
++  const host = document.createElement('div');
++  document.body.append(host);
++  const patch = init([attributesModule, classModule, propsModule]);
++  let vnode = patch(host, board.view(renderInputs(ctrl, true)));
++  ctrl.redraw = () => {
++    vnode = patch(vnode, board.view(renderInputs(ctrl, true)));
++  };
++  const root = vnode.elm as HTMLElement;
++  const tab = (name: string) =>
++    Array.from(root.querySelectorAll<HTMLButtonElement>('[role="tab"]')).find(el => el.textContent === name)!;
++  assert.equal(root.querySelectorAll('[role="tab"]').length, 3);
++  assert.deepEqual(
++    Array.from(root.querySelectorAll('[role="tab"]'))
++      .slice(1)
++      .map(el => el.textContent),
++    ['Import', 'Export'],
++  );
++  tab('Import').click();
++  const input = root.querySelector<HTMLTextAreaElement>('[aria-label="PGN to import"]')!;
++  assert.equal(input.value, '');
++  input.value = '1. d4 d5';
++  input.dispatchEvent(new window.Event('input'));
++  const fenInput = root.querySelector<HTMLInputElement>('[aria-label="FEN to import"]')!;
++  fenInput.value = child.fen;
++  fenInput.dispatchEvent(new window.Event('input'));
++  fenInput.dispatchEvent(new window.Event('change'));
++  tab('Export').click();
++  const output = root.querySelector('.fen-pgn.active')!;
++  assert.equal(output.querySelector('textarea'), null);
++  assert.ok(output.querySelector('.pgn')!.textContent.includes('e4'));
++  assert.equal(output.querySelector('.pgn')!.textContent.includes('d4'), false);
++  assert.equal(output.querySelector<HTMLInputElement>('input')!.readOnly, true);
++  assert.equal(output.querySelector<HTMLInputElement>('input')!.value, fen);
++  assert.ok(output.querySelector('.copy-me__button.button-metal'));
++  let downloaded = '';
++  t.mock.method(window.HTMLAnchorElement.prototype, 'click', function (this: HTMLAnchorElement) {
++    downloaded = this.href;
++  });
++  output.querySelector<HTMLButtonElement>('button.copy-me__target')!.click();
++  const downloadedPgn = await (await fetch(downloaded)).text();
++  assert.ok(downloadedPgn.includes('e4'));
++  assert.equal(downloadedPgn.includes('d4'), false);
++  assert.equal(changePgn.mock.callCount(), 0);
++  assert.equal(changeFen.mock.callCount(), 0);
++  tab('Import').click();
++  assert.equal(root.querySelector('[aria-label="PGN to import"]'), input);
++  assert.equal(input.value, '1. d4 d5');
++  root.querySelector<HTMLButtonElement>('.import .pgn button')!.click();
++  assert.deepEqual(changePgn.mock.calls[0].arguments, ['1. d4 d5', true]);
++  Array.from(root.querySelectorAll<HTMLButtonElement>('.import button'))
++    .find(el => el.textContent === 'Import FEN')!
++    .click();
++  assert.deepEqual(changeFen.mock.calls[0].arguments, [child.fen]);
++  patch(vnode, hl('div'));
++  root.remove();
++  ctrl.pgnInput = ctrl.fenInput = undefined;
++  const nativeHost = document.createElement('div');
++  document.body.append(nativeHost);
++  const native = patch(nativeHost, renderInputs(ctrl)!);
++  const nativeRoot = native.elm as HTMLElement;
++  assert.equal(nativeRoot.querySelector('input')!.value, fen);
++  assert.ok(nativeRoot.querySelector('textarea')!.value.includes('e4'));
++  assert.ok(nativeRoot.querySelector('.bottom-action'), 'the upstream input UI retains its native behavior');
++  patch(native, hl('div'));
++  nativeRoot.remove();
 +});
 diff --git a/ui/analyse/tests/candidateColorLifecycle.test.ts b/ui/analyse/tests/candidateColorLifecycle.test.ts
 new file mode 100644

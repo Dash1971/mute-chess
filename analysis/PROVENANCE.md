@@ -88,12 +88,20 @@ brilliant count.
 
 ## Standalone board transfer (#131)
 
-Import & export now has explicit PGN copy/download and FEN copying, with a
-separate Import or edit section. Chessops' native PGN model/serializer writes the
+The separate Import and Export tabs (#133) use native Lichess under-board fields
+and `copy-me` controls, with explicit PGN copy/download and FEN copying.
+Chessops' native PGN model/serializer writes the
 actual tree, variations, quality NAGs, comments, evaluation tags, original import
 headers and a starting FEN. Unsubmitted import text is never exported. Standard
 Mute Chess imports retain those headers and annotations; upstream-mode behavior
 is unchanged. These explicit exports do not persist the board review itself.
+
+The presentation follows pinned Lila `ReplayUi.scala`, `_round-underboard.scss`,
+and the shared `_copy-me.scss` component. Blank import drafts are distinct from
+read-only output. The default upstream `renderInputs` behavior is preserved;
+only the standalone Mute Chess board requests the explicit import mode. Local
+clipboard/download callbacks replace a saved-game export URL for this unsaved
+context; the native panel and control styling are reused.
 
 ## Maia candidate-quality colors (#65)
 
