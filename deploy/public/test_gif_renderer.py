@@ -2,6 +2,7 @@ import hashlib
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import stat
 import tarfile
@@ -88,11 +89,16 @@ class GifRendererTests(unittest.TestCase):
             artifact, pin, receipt = self.fixture(root)
             destination = root / 'release-gif'
             with patch.object(renderer, 'PIN', pin), patch.object(renderer.os, 'chown') as chown:
-                self.assertEqual(renderer.stage(artifact, destination), receipt)
+                previous_umask = os.umask(0o077)
+                try:
+                    self.assertEqual(renderer.stage(artifact, destination), receipt)
+                finally:
+                    os.umask(previous_umask)
                 self.assertEqual(renderer.verify(destination), receipt)
                 self.assertEqual(chown.call_count, 5)
                 for call in chown.call_args_list:
                     self.assertEqual(call.args[1:], (0, 0))
+                self.assertEqual(stat.S_IMODE(destination.stat().st_mode), 0o755)
                 self.assertEqual(stat.S_IMODE((destination / 'lila-gif').stat().st_mode), 0o755)
                 for name in ('BUILD.json', 'lila-gif-upstream.tar', 'lila-gif-moss.tar'):
                     self.assertEqual(stat.S_IMODE((destination / name).stat().st_mode), 0o644)
@@ -214,6 +220,17 @@ class GifRendererTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'never root'):
                 renderer.prepare(Path('/source'), Path('/output'))
             run.assert_not_called()
+
+    def test_installed_renderer_rejects_inaccessible_directory_or_nonexecutable_binary(self):
+        artifact = Path('/installed/gif')
+        for inaccessible, mode, message in [(artifact, 0o700, 'traversable'),
+                                             (artifact / 'lila-gif', 0o744, 'executable')]:
+            def metadata(path):
+                return SimpleNamespace(st_uid=0, st_gid=0, st_mode=mode if path == inaccessible else 0o755)
+            with patch.object(renderer, 'verify', return_value={}), \
+                    patch.object(Path, 'stat', autospec=True, side_effect=metadata):
+                with self.assertRaisesRegex(ValueError, message):
+                    renderer.verify_installed(artifact)
 
 
 if __name__ == '__main__':

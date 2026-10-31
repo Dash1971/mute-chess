@@ -149,6 +149,7 @@ def stage(artifact, destination):
     """Copy a verified build into a new immutable root-owned release directory."""
     receipt = verify(artifact)
     destination.mkdir(mode=0o755)
+    destination.chmod(0o755)
     os.chown(destination, 0, 0)
     for name in FILES:
         path = destination / name
@@ -166,6 +167,10 @@ def verify_installed(artifact):
         metadata = path.stat()
         if metadata.st_uid != 0 or metadata.st_gid != 0 or metadata.st_mode & 0o022:
             raise ValueError('Installed renderer must be root-owned and not group/world writable: ' + str(path))
+    if not artifact.stat().st_mode & 0o001:
+        raise ValueError('Installed renderer directory must be traversable by its service identity')
+    if (artifact / 'lila-gif').stat().st_mode & 0o005 != 0o005:
+        raise ValueError('Installed renderer binary must be readable and executable by its service identity')
     return receipt
 
 

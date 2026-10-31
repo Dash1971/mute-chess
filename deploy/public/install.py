@@ -97,6 +97,7 @@ release = base / 'releases' / release_id
 if release.exists():
     raise SystemExit('This immutable release already exists; inspect it before reusing it')
 release.mkdir()
+release.chmod(0o755)
 if gif_renderer.stage(gif_artifact, release / 'gif') != gif_receipt:
     raise RuntimeError('Renderer artifact changed after release preflight')
 
