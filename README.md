@@ -17,12 +17,14 @@ and human/reference validation while retaining Lichess's native Glicko-2 system.
 Our initial bot ratings are estimates, and this alignment remains under
 validation. See the [bot rating methodology](docs/bot-population.md).
 
-We use a varied reference pool of 250 Maia bots to estimate starting ratings
-from playing settings, anchored in observed Lichess Maia ratings. The estimates
-averaged about 116 rating points of error in Blitz and Rapid. The illustrated
-[report explains the method, results and limits](https://github.com/Dash1971/mobile-maia-research/blob/049607ec996e2a39cf57f9f75f2385fd6a635bae/studies/bot-rating-establishment-2026-10-31/REPORT.md),
-with linked data and reproduction tools. Each new bot keeps its own provisional
-rating and earns its own history through Lichess's native rating system.
+We started from observed Lichess Maia ratings, then used rated games and native
+Glicko-2 to establish a varied reference roster. Our illustrated
+[bot-rating report](https://github.com/Dash1971/mobile-maia-research/blob/d12f93536442c636d56ec23313e89807a2771467/studies/bot-rating-establishment-2026-10-31/REPORT.md)
+explains that reference, the measured effects of engine settings, and a proposed
+formula and Lichess-shaped distribution for a 10,000-bot pool. Keeping playing
+ratings close to Lichess remains a goal we will monitor as people play. The
+expanded roster and assigned catalog-rating policy are plans, not activated by
+this documentation update.
 
 ## The chess
 
