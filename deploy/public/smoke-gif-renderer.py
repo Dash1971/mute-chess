@@ -39,7 +39,13 @@ try:
     request = urllib.request.Request(origin + '/game.gif', data=json.dumps(payload).encode(), headers={'Content-Type': 'application/json'})
     gif_data = urllib.request.urlopen(request, timeout=10).read()
     gif = Image.open(io.BytesIO(gif_data))
-    assert gif.n_frames == 2, 'animation must include the requested frames'
+    # Native render.rs adds a final black Twitter workaround frame (kork).
+    assert gif.n_frames == len(payload['frames']) + 1, 'native animation must retain both positions and its trailing frame'
+    gif.seek(0); first_frame = gif.convert('RGB').tobytes()
+    gif.seek(1); second_frame = gif.convert('RGB').tobytes()
+    assert first_frame != second_frame, 'the second requested position must be rendered'
+    gif.seek(gif.n_frames - 1)
+    assert len(set(gif.convert('RGB').getdata())) == 1, 'native trailing workaround frame must be solid'
     if len(sys.argv) > 2:
         evidence = Path(sys.argv[2]); evidence.mkdir(parents=True, exist_ok=True)
         (evidence / 'position.gif').write_bytes(data)
@@ -47,7 +53,7 @@ try:
         (evidence / 'flipped-position.gif').write_bytes(black)
         (evidence / 'animation.gif').write_bytes(gif_data)
         status = Path(f'/proc/{process.pid}/status')
-        (evidence / 'runtime.json').write_text(json.dumps({'nativeMossColors': ['#c7cfba', '#668478'], 'frames': gif.n_frames, 'memory': [line for line in status.read_text().splitlines() if line.startswith(('VmRSS:', 'VmHWM:'))]}, indent=2)+'\n')
+        (evidence / 'runtime.json').write_text(json.dumps({'nativeMossColors': ['#c7cfba', '#668478'], 'frames': gif.n_frames, 'logicalFrames': len(payload['frames']), 'memory': [line for line in status.read_text().splitlines() if line.startswith(('VmRSS:', 'VmHWM:'))]}, indent=2)+'\n')
     print('Native renderer image, exact moss colors, orientation and two-frame GIF passed')
 finally:
     process.terminate()
