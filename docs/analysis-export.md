@@ -32,9 +32,10 @@ variations. Unsubmitted import drafts never become export content.
 ## Unsaved GIF contract
 
 `GET /analysis/export.gif` accepts a decoded PGN of at most 5000 characters and
-600 plies, the existing native bounds. NoSweatAnalysisGif validates complete legal
+a nonempty mainline of at most 600 plies, retaining the native maximum. FEN-only
+positions use Position as image. NoSweatAnalysisGif validates complete legal
 replay and declared/resolved Standard/FromPosition variants; this includes
-rejecting Chess960 tags that native import might otherwise downgrade at a FEN.
+rejecting Chess960 and unknown declared variants at a FEN.
 It invokes **pure** importer.parseImport, never importAsGame or database insertion.
 The controller uses the existing native export-image limiter, GifExport.fromPov
 and streamed response. The synthetic in-memory game is never stored.

@@ -8473,10 +8473,10 @@ index 0000000..840c50a
 +      assertEquals(leader, true)
 diff --git a/modules/game/src/main/NoSweatAnalysisGif.scala b/modules/game/src/main/NoSweatAnalysisGif.scala
 new file mode 100644
-index 0000000..4a4ad99
+index 0000000..a4729c5
 --- /dev/null
 +++ b/modules/game/src/main/NoSweatAnalysisGif.scala
-@@ -0,0 +1,26 @@
+@@ -0,0 +1,27 @@
 +package lila.game
 +
 +import chess.ErrorStr
@@ -8496,11 +8496,12 @@ index 0000000..4a4ad99
 +        .full(pgn)
 +        .filterOrElse(
 +          parsed =>
-+            parsed.replayError.isEmpty && parsed.parsed.mainline.size <= Analysis.MAX_PLIES &&
++            parsed.replayError.isEmpty && parsed.parsed.mainline.nonEmpty &&
++              parsed.parsed.mainline.size <= Analysis.MAX_PLIES &&
 +              (parsed.parsed.tags(_.Variant).isEmpty || parsed.parsed.tags.variant
 +                .exists(v => v == Standard || v == FromPosition)) &&
 +              (parsed.game.variant == Standard || parsed.game.variant == FromPosition),
-+          ErrorStr("PGN must contain a legal standard chess mainline of at most 600 plies")
++          ErrorStr("PGN must contain a legal standard chess mainline of 1 to 600 plies")
 +        )
 +        .flatMap(_ => importer.parseImport(pgn, none))
 diff --git a/modules/game/src/main/NoSweatStudyScope.scala b/modules/game/src/main/NoSweatStudyScope.scala
@@ -8521,10 +8522,10 @@ index 0000000..b3ca768
 +    main.takeWhile(_ != '?') == expected && yolo.takeWhile(_ != '?') == expected
 diff --git a/modules/game/src/test/NoSweatAnalysisGifTest.scala b/modules/game/src/test/NoSweatAnalysisGifTest.scala
 new file mode 100644
-index 0000000..fdacecf
+index 0000000..efe2bb3
 --- /dev/null
 +++ b/modules/game/src/test/NoSweatAnalysisGifTest.scala
-@@ -0,0 +1,62 @@
+@@ -0,0 +1,61 @@
 +package lila.game
 +
 +import chess.Color
@@ -8542,7 +8543,7 @@ index 0000000..fdacecf
 +    assertEquals(game.initialFen, None)
 +
 +  test("rejects malformed PGN and illegal moves instead of exporting a legal prefix"):
-+    for pgn <- List("this is not PGN", "1. e5 *", "1. e4 e5 2. Bh6 *") do assert(parse(pgn).isLeft, pgn)
++    for pgn <- List("this is not PGN", "*", "1. e5 *", "1. e4 e5 2. Bh6 *") do assert(parse(pgn).isLeft, pgn)
 +
 +  test("enforces the decoded PGN length without truncating"):
 +    val legal = "1. e4 *"
@@ -8573,11 +8574,10 @@ index 0000000..fdacecf
 +
 +20... Kd7 21. Rh7+ *"""
 +
-+  test("rejects Chess960 declared from a middle-game FEN even when native replay downgrades it"):
++  test("rejects a declared Chess960 middle-game FEN regardless of native variant resolution"):
 +    val pgn = fromBlack("[Variant \"Chess960\"]\n")
 +    val native = ParseImport.full(PgnStr(pgn)).toOption.get
-+    assertEquals(native.game.variant, FromPosition)
-+    assert(native.parsed.tags.variant.exists(_ != FromPosition))
++    assert(native.parsed.tags.variant.contains(chess.variant.Chess960))
 +    assert(parse(pgn).isLeft)
 +
 +  test("preserves a legal nonzero Black-to-move FEN with or without From Position tag"):
@@ -21635,10 +21635,10 @@ index 0000000..ddf9d0d
 +export * from 'lib/nosweat/arrows';
 diff --git a/ui/analyse/src/noSweatBoardReview.ts b/ui/analyse/src/noSweatBoardReview.ts
 new file mode 100644
-index 0000000..1b58da2
+index 0000000..bbb4f5c
 --- /dev/null
 +++ b/ui/analyse/src/noSweatBoardReview.ts
-@@ -0,0 +1,346 @@
+@@ -0,0 +1,349 @@
 +import type { AcplChart, ChartGame } from 'chart';
 +
 +import { escapeHtml } from 'lib';
@@ -21788,7 +21788,10 @@ index 0000000..1b58da2
 +              ...dataIcon(licon.Download),
 +              'aria-disabled': String(!gifAvailable),
 +              ...(!gifAvailable && {
-+                title: 'This line is too long for GIF export. Download the PGN instead.',
++                title:
++                  this.ctrl.mainline.length < 2
++                    ? 'Add moves to export a GIF.'
++                    : 'This line is too long for GIF export. Download the PGN instead.',
 +              }),
 +            },
 +            hook: bind('click', event => {
@@ -22630,7 +22633,7 @@ index 0000000..01e3ca8
 +};
 diff --git a/ui/analyse/src/noSweatExport.ts b/ui/analyse/src/noSweatExport.ts
 new file mode 100644
-index 0000000..0a28f77
+index 0000000..496fe17
 --- /dev/null
 +++ b/ui/analyse/src/noSweatExport.ts
 @@ -0,0 +1,45 @@
@@ -22677,7 +22680,7 @@ index 0000000..0a28f77
 +}
 +
 +export function canExportAnalysisGif(ctrl: AnalyseCtrl): boolean {
-+  return ctrl.mainline.length <= 601 && boardPgn(ctrl, 'raw').length <= 5000;
++  return ctrl.mainline.length >= 2 && ctrl.mainline.length <= 601 && boardPgn(ctrl, 'raw').length <= 5000;
 +}
 diff --git a/ui/analyse/src/noSweatFish.ts b/ui/analyse/src/noSweatFish.ts
 new file mode 100644
@@ -77871,10 +77874,10 @@ index 0000000..e9340bd
 +});
 diff --git a/ui/analyse/tests/noSweatExport.test.ts b/ui/analyse/tests/noSweatExport.test.ts
 new file mode 100644
-index 0000000..a07ad92
+index 0000000..e5379b5
 --- /dev/null
 +++ b/ui/analyse/tests/noSweatExport.test.ts
-@@ -0,0 +1,51 @@
+@@ -0,0 +1,57 @@
 +import { INITIAL_FEN } from 'chessops/fen';
 +import assert from 'node:assert/strict';
 +import { test } from 'node:test';
@@ -77886,6 +77889,8 @@ index 0000000..a07ad92
 +  positionImageUrl,
 +  positionShareUrl,
 +} from '../src/noSweatExport';
++import pgnImport from '../src/pgnImport';
++import { treeReconstruct } from '../src/util';
 +
 +const ctrl = {
 +  data: {},
@@ -77914,16 +77919,20 @@ index 0000000..a07ad92
 +});
 +
 +test('unsaved GIF links contain the actual raw mainline and respect native bounds', () => {
++  const data = pgnImport('1. e4 *', true);
++  const root = treeReconstruct(data.treeParts!, 'standard', data.sidelines);
++  const line = { ...ctrl, data, tree: { root }, mainline: [root, root.children[0]] } as AnalyseCtrl;
 +  const gif = new URL(
-+    analysisGifUrl(ctrl, 'white', { players: false, ratings: true }),
++    analysisGifUrl(line, 'white', { players: false, ratings: true }),
 +    window.location.origin,
 +  );
 +  assert.equal(gif.pathname, '/analysis/export.gif');
 +  assert.equal(gif.searchParams.get('color'), 'white');
 +  assert.equal(gif.searchParams.get('players'), 'false');
 +  assert.equal(gif.searchParams.get('glyphs'), 'false');
-+  assert.ok(gif.searchParams.get('pgn')?.includes('[Event "Analysis"]'));
-+  assert.equal(canExportAnalysisGif(ctrl), true);
++  assert.ok(gif.searchParams.get('pgn')?.includes('1. e4'));
++  assert.equal(canExportAnalysisGif(ctrl), false, 'FEN-only positions use position-image export');
++  assert.equal(canExportAnalysisGif(line), true);
 +  assert.equal(canExportAnalysisGif({ ...ctrl, mainline: Array(602) } as AnalyseCtrl), false);
 +});
 diff --git a/ui/analyse/tests/noSweatFullGame.test.ts b/ui/analyse/tests/noSweatFullGame.test.ts
