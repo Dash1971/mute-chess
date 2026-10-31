@@ -302,3 +302,12 @@ compact native layout. Other analysis cards/panels remain unchanged. Discuss
 broader ideas before implementing them. Issue #148 separately requests the
 Mobile Maia cyan brilliant badge and En Croissant-inspired summary symbol/label
 spacing. Preserve classifications, counts, native metrics and navigation.
+
+
+## Native import controls correction (October 31, 2026)
+
+Issue #153: the owner explicitly rejects permanent Import FEN/PGN buttons.
+Restore pinned Lichess import markup/behavior: no FEN button, native validated
+FEN change flow, and the thin PGN bottom action revealed on focus. This
+supersedes earlier explicit-submit/blank-FEN adapters. Preserve separate tabs,
+PGN draft isolation, native parser/serialization and native export styling.

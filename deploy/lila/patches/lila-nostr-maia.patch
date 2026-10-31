@@ -3765,7 +3765,7 @@ index 92bfd1d..837cddb 100644
        (ctrl.idbTree.movesDirty || ctrl.idbTree.hasLocalAnalysis || ctrl.idbTree.hasLocalCeval) &&
          hl(
 diff --git a/ui/analyse/src/view/components.ts b/ui/analyse/src/view/components.ts
-index 1690fe3..3d89635 100644
+index 1690fe3..c5a3edf 100644
 --- a/ui/analyse/src/view/components.ts
 +++ b/ui/analyse/src/view/components.ts
 @@ -104,6 +104,7 @@ export function renderMain(
@@ -3776,7 +3776,7 @@ index 1690fe3..3d89635 100644
            if (old.data!.gaugeOn !== gaugeOn) dispatchChessgroundResize();
            vnode.data!.gaugeOn = gaugeOn;
          },
-@@ -155,29 +156,43 @@ export const renderBoard = ({ ctrl, study, playerBars, playerStrips }: ViewConte
+@@ -155,23 +156,31 @@ export const renderBoard = ({ ctrl, study, playerBars, playerStrips }: ViewConte
    );
  
  export const renderUnderboard = ({ ctrl, deps, study }: ViewContext): VNode =>
@@ -3817,46 +3817,8 @@ index 1690fe3..3d89635 100644
 +        },
          hook: {
            ...onInsert<HTMLInputElement>(el => {
--            el.value = defined(ctrl.fenInput) ? ctrl.fenInput : ctrl.node.fen;
-+            el.value = defined(ctrl.fenInput) ? ctrl.fenInput : importing ? '' : ctrl.node.fen;
-             el.addEventListener('change', () => {
--              if (el.value !== ctrl.node.fen && el.reportValidity()) ctrl.changeFen(el.value.trim());
-+              if (!importing && el.value !== ctrl.node.fen && el.reportValidity())
-+                ctrl.changeFen(el.value.trim());
-             });
-+            if (importing)
-+              el.addEventListener('keydown', event => {
-+                if (event.key === 'Enter' && el.value.trim() && el.reportValidity())
-+                  ctrl.changeFen(el.value.trim());
-+              });
-             el.addEventListener('input', () => {
-               ctrl.fenInput = el.value;
-               el.setCustomValidity(parseFen(el.value.trim()).isOk ? '' : 'Invalid FEN');
-@@ -186,24 +201,48 @@ export function renderInputs(ctrl: AnalyseCtrl): VNode | undefined {
-           postpatch: (_, vnode) => {
-             const el = vnode.elm as HTMLInputElement;
-             if (!defined(ctrl.fenInput)) {
--              el.value = ctrl.node.fen;
-+              el.value = importing ? '' : ctrl.node.fen;
-               el.setCustomValidity('');
-             } else if (el.value !== ctrl.fenInput) el.value = ctrl.fenInput;
-           },
-         },
-       }),
-+      importing &&
-+        hl(
-+          'button.button.text',
-+          {
-+            attrs: { type: 'button', 'data-icon': licon.PlayTriangle },
-+            hook: bind('click', event => {
-+              const input = (event.currentTarget as HTMLElement).parentElement!.querySelector('input')!;
-+              if (input.value.trim() && input.reportValidity()) ctrl.changeFen(input.value.trim());
-+            }),
-+          },
-+          'Import FEN',
-+        ),
-     ]),
-     hl('div.pgn', [
+             el.value = defined(ctrl.fenInput) ? ctrl.fenInput : ctrl.node.fen;
+@@ -197,13 +206,25 @@ export function renderInputs(ctrl: AnalyseCtrl): VNode | undefined {
        hl('div.pair', [
          hl('label.name', 'PGN'),
          hl('textarea.copyable', {
@@ -3885,7 +3847,7 @@ index 1690fe3..3d89635 100644
  
                el.addEventListener('input', () => (ctrl.pgnInput = el.value));
  
-@@ -218,18 +257,23 @@ export function renderInputs(ctrl: AnalyseCtrl): VNode | undefined {
+@@ -218,7 +239,9 @@ export function renderInputs(ctrl: AnalyseCtrl): VNode | undefined {
              postpatch: (_, vnode) => {
                (vnode.elm as HTMLTextAreaElement).value = defined(ctrl.pgnInput)
                  ? ctrl.pgnInput
@@ -3896,10 +3858,9 @@ index 1690fe3..3d89635 100644
              },
            },
          }),
-         !isMobile() &&
+@@ -226,10 +249,13 @@ export function renderInputs(ctrl: AnalyseCtrl): VNode | undefined {
            hl(
--            'button.button.button-thin.bottom-item.bottom-action.text',
-+            importing ? 'button.button.text' : 'button.button.button-thin.bottom-item.bottom-action.text',
+             'button.button.button-thin.bottom-item.bottom-action.text',
              {
 -              attrs: dataIcon(licon.PlayTriangle),
 -              hook: bind('click', _ => {
@@ -23631,10 +23592,10 @@ index 0000000..759163b
 +}
 diff --git a/ui/analyse/tests/boardReview.test.ts b/ui/analyse/tests/boardReview.test.ts
 new file mode 100644
-index 0000000..3016a35
+index 0000000..0e17c1c
 --- /dev/null
 +++ b/ui/analyse/tests/boardReview.test.ts
-@@ -0,0 +1,258 @@
+@@ -0,0 +1,263 @@
 +import assert from 'node:assert/strict';
 +import { mock, test } from 'node:test';
 +import { attributesModule, classModule, propsModule, init } from 'snabbdom';
@@ -23850,6 +23811,13 @@ index 0000000..3016a35
 +  input.value = '1. d4 d5';
 +  input.dispatchEvent(new window.Event('input'));
 +  const fenInput = root.querySelector<HTMLInputElement>('[aria-label="FEN to import"]')!;
++  assert.equal(fenInput.value, fen, 'FEN starts with the current native position');
++  assert.equal(root.querySelectorAll('.import button').length, 1, 'only native PGN action remains');
++  assert.ok(root.querySelector('.import .pgn .button-thin.bottom-item.bottom-action'));
++  fenInput.value = 'invalid';
++  fenInput.dispatchEvent(new window.Event('input'));
++  fenInput.dispatchEvent(new window.Event('change'));
++  assert.equal(changeFen.mock.callCount(), 0, 'invalid FEN must not navigate');
 +  fenInput.value = child.fen;
 +  fenInput.dispatchEvent(new window.Event('input'));
 +  fenInput.dispatchEvent(new window.Event('change'));
@@ -23870,16 +23838,14 @@ index 0000000..3016a35
 +  assert.ok(downloadedPgn.includes('e4'));
 +  assert.equal(downloadedPgn.includes('d4'), false);
 +  assert.equal(changePgn.mock.callCount(), 0);
-+  assert.equal(changeFen.mock.callCount(), 0);
++  assert.equal(changeFen.mock.callCount(), 1);
++  assert.deepEqual(changeFen.mock.calls[0].arguments, [child.fen]);
 +  tab('Import').click();
 +  assert.equal(root.querySelector('[aria-label="PGN to import"]'), input);
 +  assert.equal(input.value, '1. d4 d5');
 +  root.querySelector<HTMLButtonElement>('.import .pgn button')!.click();
 +  assert.deepEqual(changePgn.mock.calls[0].arguments, ['1. d4 d5', true]);
-+  Array.from(root.querySelectorAll<HTMLButtonElement>('.import button'))
-+    .find(el => el.textContent === 'Import FEN')!
-+    .click();
-+  assert.deepEqual(changeFen.mock.calls[0].arguments, [child.fen]);
++  assert.equal(changeFen.mock.callCount(), 1, 'tab switches must not re-import the draft');
 +  patch(vnode, hl('div'));
 +  root.remove();
 +  ctrl.pgnInput = ctrl.fenInput = undefined;

@@ -124,11 +124,13 @@ the unsaved board review still has no account/server persistence.
 
 ## Native Import and Export tabs (#133)
 
-Import and Export are separate tabs alongside Computer analysis. Import has blank
-native FEN/PGN fields and explicit submit controls. Drafts survive tab switches;
-switching to Export or blurring a field does not replace the board. Enter and the
-submit buttons invoke the existing native position/PGN controller paths. Other
-upstream analysis contexts keep their original editable input behavior.
+Import and Export are separate tabs alongside Computer analysis. Import uses native FEN/PGN fields. FEN starts with the current position and
+applies valid edits through the native change event (normally on blur), without
+a separate button. PGN starts blank and uses the native thin action below its
+textarea, visible on focus; desktop Enter also uses the native PGN path. Drafts
+survive tab switches, and Export serializes the actual board. Other upstream
+analysis contexts keep their original editable input behavior. Issue #153
+supersedes the earlier permanent explicit import buttons and blank FEN field.
 
 Export follows native Lichess `ReplayUi`'s `fen-pgn` layout and `copy-me`
 components: a read-only FEN row, PGN download/copy row, and selectable annotated
@@ -163,3 +165,34 @@ The fill selector is pinned to Chessground’s current `#168226` circle: recheck
 when updating Chessground. En Croissant’s reference is `ReportPanel.tsx` at
 `6f2d2628f0fbe11cb62a7dd2f9c102bb52907d53`; Mobile Maia’s is
 `review_widgets.dart` at `8563954429c2fb53ce0fe0e16c73c5d8a73ccfe0`.
+
+
+## Import control correction (#153)
+
+Compare pinned Lila `ui/analyse/src/view/components.ts::renderInputs` and
+`ui/analyse/css/_analyse.free.scss` at
+`b551752d2a0e7a63459d9812825d95a633a98737`. The FEN row has only its label and
+flexible input; PGN uses `button-thin bottom-item bottom-action text`, absolutely
+positioned below the textarea at the inline end. Native focus/active/focus-visible
+selectors control its visibility. Reuse those classes and layout unchanged;
+never add an adjacent full-sized import action. Existing import-panel padding
+and separate export `fen-pgn`/`copy-me` rows remain unchanged.
+
+FEN validation and navigation use the native parser/controller change path.
+Blank PGN drafts remain isolated from serialized exports. Actual-DOM regressions
+check valid/invalid FEN changes, preserved drafts and actual-tree exports;
+browser checks must verify equal input/textarea edges, no FEN button, and the
+thin PGN action hidden at rest and aligned below the textarea on focus. This is
+an explicit correction toward upstream, not a new component design.
+
+
+Local verification for #153: all 358 UI tests and the full UI build pass;
+targeted formatting/typed lint and all five departure-register tests pass.
+In the actual native browser, FEN and PGN share left/right edges and a 499.14px
+field width. The PGN action is hidden at rest, visible on focus, 18.24px high,
+and aligned exactly to the textarea’s right edge/bottom. Clicking it imports
+`1. d4 d5 2. c4` into the actual tree; Export then serializes that line and its
+correct FEN. Lichess’s live analysis page returned maintenance/502 during this
+check; comparison used the pinned source and owner screenshots. Evidence is
+retained locally in `native-import-controls-2026-10-31/`. Deployment remains held
+for the experiment’s verified final cleanup; no public data/configuration changed.
