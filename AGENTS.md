@@ -337,3 +337,25 @@ continuation release. Issue #158 makes Import initially visible on standalone
 boards, retaining existing post-game defaults. The owner reconsidered #156 and
 chose to retain the current side-to-move score percentage; no favored-side display
 conversion ships.
+
+## Overnight rating establishment (new owner approval, October 31, #163)
+
+After the completed first study, the owner explicitly approved more games using
+the SAME250 bots, policies, Lichess-derived anchor and earned native Glicko perfs.
+Do not shrink the roster or replace the methodology. New run `r20261031n163`,
+profile `rating-establishment-v1`, has at most3,000 ADDITIONAL public games and
+an eight-hour preparation-inclusive window from13:30 to21:30UTC October31;
+admissions stop21:00UTC (November1 06:00JST), games stop06:30JST. Stop admissions
+early when all250 have native nonprovisional Blitz AND Rapid ratings, then drain.
+No forced flags/RD/counts, reseeding or another baseline subtraction. Retain22
+total managed games including humans, two server workers/400%CPU/2,000MiB,
+native±200/rules/clocks/ratings, no added study waits and no inference on the Mac.
+Keep the200/50split and fixed training-only V2 method, freeze after training
+establishment before new held-out games, and never tune with test outcomes.
+This is a NEWauthorization, not a restart of the old run/failed fixture; preserve
+all old evidence and timestamps. Pre-public preparation faults may be diagnosed
+and repaired within this budget; public driver/integrity failure stops with no
+automatic public retry. Follow the normal issue/PR/check/GitHubmerge/verified-main
+release and actual private qualification/backup/off-host/cleanup safeguards.
+The owner has supplied all required input and is sleeping; continue autonomously.
+See `docs/overnight-rating-establishment.md`.

@@ -100,3 +100,12 @@ deadline branch retain the same native run records and aggregate admission cap;
 no upstream rating, round or matching behavior changes. Rebase verification must
 also reject failed/incomplete predecessors, changed frozen evidence and admission
 3,001 across segments. See [the dated amendment](strength-validation-continuation.md).
+
+Issue #163 separately authorizes an overnight establishment follow-up for the
+same250 bots and earned perfs. Its new namespaced profile only adds fixed
+13:30–21:30UTC scope/deadline guards and a3,000-new-admission/22-game plan; old
+profiles remain unchanged. Native provisional flags determine establishment;
+the external scheduler prioritizes unsettled bot/speed pairs without writing
+ratings. Rebase verification covers exact new public/private run IDs, fixed
+cutoffs, admission3000/3001 and unchanged native Glicko/shared human capacity.
+See [the bounded follow-up](overnight-rating-establishment.md).

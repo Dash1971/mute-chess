@@ -12,6 +12,8 @@ import { StudyWorkers } from './study-workers.mjs';
 import { pairing } from './study-schedule.mjs';
 import { StudyProgress } from './study-progress.mjs';
 import { CONTINUATION_PROFILE, loadContinuation } from './study-continuation.mjs';
+import { ESTABLISHMENT_PROFILE, establishmentManifest, validateEstablishmentScope,
+  establishmentStatus, establishmentPairing, validateEstablishmentModel } from './establishment-schedule.mjs';
 
 const workerCount = Number(process.env.STUDY_WORKERS ?? 1);
 if (![1, 2].includes(workerCount)) throw Error('Invalid study worker count');
@@ -22,15 +24,24 @@ if (!/^[a-z][a-z0-9_]{2,31}$/.test(run ?? '') || origin !== (live ? 'http://127.
 const token = process.env.ADAPTER_TOKEN;
 if (!token || token.length < 32) throw Error('Private adapter token required');
 const roster = await loadRoster();
-const manifest = JSON.parse(await readFile(new URL('./experiment-manifest.json', import.meta.url)));
+const manifestBytes = await readFile(new URL('./experiment-manifest.json', import.meta.url));
+const manifest = JSON.parse(manifestBytes);
 const execute = promisify(execFile);
-let experiment = false, frozenModel = null, continuation = null;
+let experiment = false, frozenModel = null, continuation = null, establishment = null;
 const output = process.env.STUDY_OUTPUT;
 if (!output?.startsWith('/') || !(process.env.STUDY_MAIN_COMMIT ?? '').match(/^[0-9a-f]{40}$/))
   throw Error('Output directory and verified main revision required');
 await mkdir(output, { recursive: true });
 const events = `${output}/events.jsonl`, checkpoint = `${output}/checkpoint.json`;
+// No profile supports driver restart. Refuse before even appending a failure
+// event, so an accidentally reused directory cannot overwrite old evidence.
+for (const name of ['events.jsonl', 'checkpoint.json', 'combined-roster.json']) {
+  try { await stat(`${output}/${name}`); }
+  catch (error) { if (error.code === 'ENOENT') continue; throw error; }
+  throw Error('Study evidence directory already contains a driver run; do not restart');
+}
 let maia, last, stopping = false, failure, initial;
+let establishmentRatings;
 const lastServed = new Map();
 const progress = new StudyProgress();
 const pending = new Map(), completed = new Set(), timings = [];
@@ -61,7 +72,8 @@ async function save(state) {
     initial, latest: state, failure, elapsedMs: Date.now() - initial.started,
     moveCount: timings.length, latency: percentiles(timings.map(t => t.totalMs)),
     inference: percentiles(timings.map(t => t.inferenceMs)),
-    turnToCommit: percentiles(timings.map(t => t.turnToCommitMs)) }, null, 2));
+    turnToCommit: percentiles(timings.map(t => t.turnToCommitMs)),
+    establishment: establishment ?? undefined }, null, 2));
   await rename(checkpoint + '.tmp', checkpoint);
 }
 function percentiles(values) {
@@ -92,6 +104,18 @@ for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => { stopping 
 try {
   last = await native('/club/internal/study/ratings');
   experiment = last.profile === 'strength-predictor-v1' || last.profile === CONTINUATION_PROFILE;
+  if (last.profile === ESTABLISHMENT_PROFILE) {
+    const metadata = establishmentManifest(roster, manifest, manifestBytes, run);
+    validateEstablishmentScope(last, metadata, live);
+    if (process.env.STUDY_PREDECESSOR) throw Error('Establishment is a new run, never an old-study resume');
+    establishment = { metadata, ...establishmentStatus(roster, last.ratings, manifest, false, last.records),
+      freeze: null, goalReachedAtUtc: null };
+    establishmentRatings = last.ratings;
+    // Old evidence paths cannot silently become a new checkpoint.
+    await writeFile(`${output}/establishment-manifest.json`, JSON.stringify(metadata, null, 2), { flag: 'wx' });
+    await writeFile(`${output}/initial-ratings.json`, JSON.stringify(last.ratings), { flag: 'wx' });
+    await writeFile(`${output}/original-experiment-manifest.json`, manifestBytes, { flag: 'wx' });
+  }
   if (last.profile === CONTINUATION_PROFILE) {
     continuation = await loadContinuation(output, process.env.STUDY_PREDECESSOR, last, roster, manifest, live);
     frozenModel = continuation.model;
@@ -99,8 +123,8 @@ try {
     for (const name of ['training-ratings.json', 'frozen-predictor.json'])
       await writeFile(`${output}/${name}`, continuation.files[name], { flag: 'wx' });
   } else if (process.env.STUDY_PREDECESSOR) throw Error('Predecessor supplied to non-continuation profile');
-  const expectedLimit = experiment ? 3000 : last.profile === 'calibration-200-v1' ? 200 : 100;
-  const deadlineValid = continuation ? true : experiment ? last.deadline === Date.parse(manifest.hardStopUtc) &&
+  const expectedLimit = experiment || establishment ? 3000 : last.profile === 'calibration-200-v1' ? 200 : 100;
+  const deadlineValid = continuation || establishment ? true : experiment ? last.deadline === Date.parse(manifest.hardStopUtc) &&
     last.admissionEnd === Date.parse(manifest.admissionEndUtc) && roster.length === 250 :
     last.deadline - Date.now() <= 90 * 60000;
   if (last.runId !== run || last.publicRatings !== live || (!continuation && last.admitted !== 0) || last.closed || last.workers !== workerCount ||
@@ -112,7 +136,10 @@ try {
     policyVersion: 'native-no-wait-study-v1', maximumAdmitted: last.maximumAdmitted, maximumConcurrency: last.maximumConcurrency,
     profile: last.profile, workerCount, stages: last.stages, clocks: { blitz: '5+3', rapid: '10+5' },
     admittedAtStart: last.admitted,
-    continuation: continuation ? { receiptSha256: continuation.receiptSha256, ...continuation.receipt } : undefined };
+    continuation: continuation ? { receiptSha256: continuation.receiptSha256, ...continuation.receipt } : undefined,
+    establishment: establishment?.metadata,
+    predictorSourceSha256: establishment ? createHash('sha256').update(await readFile(new URL('./strength_predictor.py', import.meta.url))).digest('hex') : undefined,
+    studyPolicySourceSha256: establishment ? createHash('sha256').update(await readFile(new URL('./study-policy.mjs', import.meta.url))).digest('hex') : undefined };
   if (experiment && initial.rosterSha256 !== manifest.combinedRosterSha256)
     throw Error('Experiment roster/hash mismatch');
   await writeFile(`${output}/combined-roster.json`, JSON.stringify(roster, null, 2));
@@ -127,6 +154,7 @@ try {
     last = await native('/club/internal/study');
     const finished = last.records.filter(r => r.state === 'finished');
     for (const r of finished) if (!completed.has(r.id)) {
+      if (establishment && r.result?.ratedUpdate !== true) throw Error('Establishment game finished without native rated update');
       completed.add(r.id); await log({ type: 'finish', ...r });
       const response = await fetch(`${origin}/game/export/${r.id}.pgn`, { headers: { Host: host }, signal: AbortSignal.timeout(10000) });
       if (!response.ok) throw Error(`PGN export failed: ${response.status}`);
@@ -137,15 +165,55 @@ try {
       await log({ type: 'ratings', completed: finished.length, ratings: last.ratings });
       previousFinished = finished.length; await save(last);
     }
+    if (establishment) {
+      // The lightweight status endpoint deliberately returns ratings:null.
+      establishmentRatings = last.ratings ?? establishmentRatings;
+      last.ratings = establishmentRatings;
+      if (last.records.some(r => r.state === 'aborted')) throw Error('Native abort observed; stop for investigation');
+      const status = establishmentStatus(roster, last.ratings, manifest, !!frozenModel, last.records);
+      if (status.epoch !== establishment.epoch) await log({ type: 'establishment-epoch', ...status });
+      Object.assign(establishment, status);
+      if (status.epoch === 'complete' && !establishment.goalReachedAtUtc) {
+        establishment.goalReachedAtUtc = new Date().toISOString();
+        await log({ type: 'establishment-goal-reached', ...status, admitted: last.admitted });
+      }
+    }
     for (const g of last.games.toSorted((a, b) => (lastServed.get(a.id) ?? 0) - (lastServed.get(b.id) ?? 0))) if (g.playable && !pending.has(g.id) && pending.size < maia.maxPending) {
       lastServed.set(g.id, Date.now());
       const task = play(g).catch(e => { failure = e.message; stopping = true; }).finally(() => pending.delete(g.id));
       pending.set(g.id, task);
     }
     const capacity = last.capacity;
-    if (last.admitted < initial.maximumAdmitted && last.games.length + last.publicGames < capacity && Date.now() < initial.admissionEnd) {
+    if (last.admitted < initial.maximumAdmitted && last.games.length + last.publicGames < capacity && Date.now() < initial.admissionEnd &&
+        !establishment?.goalReachedAtUtc) {
       // Fetch current native ratings before each admission; frozen policy inputs never follow Glicko.
       last = await native('/club/internal/study/ratings');
+      if (establishment) establishmentRatings = last.ratings;
+      if (establishment && !frozenModel &&
+          establishmentStatus(roster, last.ratings, manifest, false, last.records).epoch === 'freeze-ready' && !last.games.length) {
+        await Promise.allSettled([...pending.values()]);
+        if (failure) throw Error(failure);
+        const snapshot = JSON.stringify(last.ratings);
+        await writeFile(`${output}/training-ratings.json`, snapshot, { flag: 'wx' });
+        const modelPath = `${output}/frozen-predictor.json`;
+        await execute(process.env.MAIA_PYTHON, [new URL('./strength_predictor.py', import.meta.url).pathname,
+          '--roster', `${output}/combined-roster.json`, '--manifest', `${output}/experiment-manifest.json`,
+          '--ratings', `${output}/training-ratings.json`, '--output', modelPath],
+          { timeout: 60000, env: { ...process.env, OPENBLAS_NUM_THREADS: '1', OMP_NUM_THREADS: '1' } });
+        const bytes = await readFile(modelPath);
+        const model = validateEstablishmentModel(JSON.parse(bytes), roster, manifest, last.ratings, last.records);
+        establishment.freeze = { atUtc: new Date().toISOString(), admitted: last.admitted,
+          modelSha256: createHash('sha256').update(bytes).digest('hex'),
+          trainingSnapshotSha256: createHash('sha256').update(snapshot).digest('hex'),
+          predictorSourceSha256: initial.predictorSourceSha256, modelVersion: model.version };
+        frozenModel = model;
+        Object.assign(establishment, establishmentStatus(roster, last.ratings, manifest, true, last.records));
+        await writeFile(`${output}/establishment-freeze.json`, JSON.stringify(establishment.freeze, null, 2), { flag: 'wx' });
+        await log({ type: 'predictions-frozen', ...establishment.freeze,
+          modelFrozen: true, heldout: manifest.heldoutIds.length,
+          trainingCvMae: Object.fromEntries(Object.entries(model.speeds).map(([s,m]) => [s,m.configurationCvMae])) });
+        await save(last); // Durable frozen checkpoint precedes every held-out admission.
+      }
       if (experiment && !continuation && experimentStage(last.admitted, manifest) === 'validation' && !frozenModel && !last.games.length) {
         await Promise.allSettled([...pending.values()]);
         await writeFile(`${output}/training-ratings.json`, JSON.stringify(last.ratings));
@@ -160,18 +228,22 @@ try {
           admitted: last.admitted, heldout: manifest.heldoutIds.length,
           trainingCvMae: Object.fromEntries(Object.entries(frozenModel.speeds).map(([s,m]) => [s,m.configurationCvMae])) });
       }
-      const match = experiment ? experimentPairing(roster, last.ratings, last.records, manifest, !!frozenModel) :
+      const match = establishment ? establishmentPairing(roster, last.ratings, last.records, manifest, !!frozenModel) :
+        experiment ? experimentPairing(roster, last.ratings, last.records, manifest, !!frozenModel) :
         pairing(roster.filter(b => !b.experiment), last.ratings, last.records);
       if (match) {
+        if (establishment && (failure || stopping)) throw Error(failure ?? 'Establishment stopping before admission');
         const policies = { white: freezeStudy(match.white, run), black: freezeStudy(match.black, run) };
         try {
           const created = await native('/club/internal/study', { white: match.white.id, black: match.black.id,
             speed: match.speed, policies });
-          await log({ type: 'admission', ...created, stage: experiment ? experimentStage(last.admitted, manifest) : undefined, white: match.white.id, black: match.black.id, speed: match.speed, policies });
+          await log({ type: 'admission', ...created, stage: establishment ? match.epoch : experiment ? experimentStage(last.admitted, manifest) : undefined,
+            modelFrozen: establishment ? !!frozenModel : undefined,
+            white: match.white.id, black: match.black.id, speed: match.speed, policies });
         } catch (e) { if (e.status !== 409) throw e; }
       }
     }
-    if (!last.games.length && (last.admitted >= initial.maximumAdmitted || Date.now() >= initial.admissionEnd)) break;
+    if (!last.games.length && (last.admitted >= initial.maximumAdmitted || Date.now() >= initial.admissionEnd || establishment?.goalReachedAtUtc)) break;
     if (last.records.some(r => r.state === 'aborted')) throw Error('Native abort observed; stop for investigation');
     await sleep(100);
   }
@@ -184,7 +256,14 @@ finally {
   try {
     last = await native('/club/internal/study/ratings');
     if (initial) await save(last);
-    if (experiment && frozenModel) {
+    if (establishment) {
+      Object.assign(establishment, establishmentStatus(roster, last.ratings, manifest, !!frozenModel, last.records));
+      await writeFile(`${output}/final-ratings.json`, JSON.stringify(last.ratings));
+      await writeFile(`${output}/final-records.json`, JSON.stringify(last.records));
+      await writeFile(`${output}/establishment-final.json`, JSON.stringify(establishment, null, 2));
+      if (initial) await save(last);
+    }
+    if ((experiment || establishment) && frozenModel) {
       await writeFile(`${output}/final-ratings.json`, JSON.stringify(last.ratings));
       await writeFile(`${output}/final-records.json`, JSON.stringify(last.records));
       await execute(process.env.MAIA_PYTHON, [new URL('./strength_predictor.py', import.meta.url).pathname,
@@ -194,7 +273,7 @@ finally {
         { timeout: 60000, env: { ...process.env, OPENBLAS_NUM_THREADS: '1', OMP_NUM_THREADS: '1' } });
     }
   }
-  catch (e) { await log({ type: 'checkpoint-error', error: e.message }); }
+  catch (e) { if (establishment) failure ??= e.message; await log({ type: 'checkpoint-error', error: e.message }); }
   await log({ type: 'end', failure, completed: completed.size, completedInSegment: completed.size - (initial?.admittedAtStart ?? 0) });
 }
 if (failure) process.exitCode = 1;
