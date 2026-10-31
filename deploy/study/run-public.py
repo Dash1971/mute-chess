@@ -17,7 +17,7 @@ import subprocess
 import time
 import datetime as dt
 import math
-from continuation import PROFILE as CONTINUATION_PROFILE, DEADLINE as CONTINUATION_DEADLINE, ADMISSION_END as CONTINUATION_ADMISSION_END, FILES as PREDECESSOR_FILES, validate_predecessor, continuation_storage_usage, copy_verified_evidence
+from continuation import PROFILE as CONTINUATION_PROFILE, DEADLINE as CONTINUATION_DEADLINE, ADMISSION_END as CONTINUATION_ADMISSION_END, FILES as PREDECESSOR_FILES, validate_predecessor, continuation_storage_usage, copy_verified_evidence, create_protected_directory
 
 
 PROFILES = {
@@ -121,9 +121,7 @@ def main():
         # replace root-owned receipts or the protected predecessor directory.
         os.chown(output, 0, account.gr_gid)
         output.chmod(0o750)
-        protected_predecessor = output / 'predecessor'
-        protected_predecessor.mkdir(mode=0o750)
-        os.chown(protected_predecessor, 0, account.gr_gid)
+        protected_predecessor = create_protected_directory(output / 'predecessor', account.gr_gid)
         for name in (*PREDECESSOR_FILES, *(game_id+'.pgn' for game_id in continuation['predecessorPgnSha256'])):
             target = protected_predecessor / name
             expected = continuation['predecessorFiles'].get(name, continuation['predecessorPgnSha256'].get(name.removesuffix('.pgn')))

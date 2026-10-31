@@ -45,7 +45,10 @@ acknowledgment audit before continuation. It copies predecessor evidence into a
 protected snapshot inside the new output, including the original root-only
 resource and supervisor receipts. The adapter reads those copies rather than
 changing permissions on original evidence. Root-owned receipts and snapshots
-remain read-only to the worker; a sticky output directory permits new worker
+remain read-only to the worker. The snapshot directory explicitly applies `0750`
+after creation/chown, because the root supervisor's `0077` umask would otherwise
+remove group traversal (#160); group write and all other access stay disabled.
+A sticky output directory permits new worker
 logs without allowing replacement of protected root-owned entries. The storage
 guard conservatively counts the current database plus original evidence,
 protected copies and continuation output against the same one-GiB ceiling.

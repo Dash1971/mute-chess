@@ -192,3 +192,12 @@ def copy_verified_evidence(source, target, expected_sha256):
     require(digest(payload) == expected_sha256, 'Evidence changed before protected copy')
     with Path(target).open('xb') as stream:
         stream.write(payload)
+
+
+def create_protected_directory(directory, group_id):
+    """Grant worker traversal explicitly despite the root supervisor's 0077 umask."""
+    directory = Path(directory)
+    directory.mkdir(mode=0o750)
+    os.chown(directory, 0, group_id)
+    directory.chmod(0o750)
+    return directory
