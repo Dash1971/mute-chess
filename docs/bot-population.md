@@ -170,7 +170,7 @@ new name to repeat a tournament. A new account still keeps its own honest
 native uncertainty and earns its own history. This evidence does not independently
 verify the absolute human Lichess rating scale or Bullet/Classical transfer.
 
-The canonical [follow-up report, complete data, figures and reproduction tools](https://github.com/Dash1971/mobile-maia-research/tree/896eeffe9af20531c688ec71e9e28e0c978bbe90/studies/bot-rating-establishment-2026-10-31)
+The canonical [follow-up report, complete data, figures and reproduction tools](https://github.com/Dash1971/mobile-maia-research/tree/ff92969acbc1df8fef97a40aa3bc3b564b7d8fa5/studies/bot-rating-establishment-2026-10-31)
 live in Mobile Maia Research. The first report remains unchanged. Publication
 does not expand the roster, change production policies, write ratings or raise
 the normal public concurrency limit.
