@@ -48,6 +48,16 @@ class PredictorTests(unittest.TestCase):
         other={**sample,'temperature_after_opening':1,'top_p_after_opening':0}
         self.assertEqual(features(sample,'interaction'),features(other,'interaction'))
 
+    def test_primary_evaluation_keeps_frozen_model_version_under_secondary_code(self):
+        model = {'version': 'strength137-ridge-rbf-v1', 'speeds': {
+            speed: {'predictions': {'a': {'rating': 1500}, 'b': {'rating': 1500}}}
+            for speed in ('blitz', 'rapid')}}
+        ratings = {'a': {speed: {'rating': 1500, 'rd': 90, 'games': 1}
+                         for speed in ('blitz', 'rapid')}}
+        report = evaluate(model, {'heldoutIds': ['a']}, ratings, [])
+        self.assertEqual(report['version'], 'strength137-ridge-rbf-v1')
+        self.assertEqual(report['evaluatorVersion'], 'strength137-ridge-rbf-effective-cv-v2')
+
     def test_missing_training_coverage_fails_closed(self):
         roster = json.loads((ROOT/'roster.json').read_text()) + json.loads((ROOT/'experiment-roster.json').read_text())
         manifest = json.loads((ROOT/'experiment-manifest.json').read_text())

@@ -311,3 +311,15 @@ Restore pinned Lichess import markup/behavior: no FEN button, native validated
 FEN change flow, and the thin PGN bottom action revealed on focus. This
 supersedes earlier explicit-submit/blank-FEN adapters. Preserve separate tabs,
 PGN draft isolation, native parser/serialization and native export styling.
+
+## Explicit timing amendment (#147, October 31 at 07:04 UTC)
+
+The owner subsequently allowed finishing the intended 3,000 aggregate games by
+22:00 JST / 13:00 UTC October 31, with admissions ending 21:30 JST / 12:30 UTC.
+This supersedes only the overall eight-hour time limit above. Preserve the
+original live segment's immutable deadlines and evidence. A validation-only
+continuation requires normal predecessor completion, verified cleanup, no active
+games, reviewed/qualified merged-main source and the exact frozen primary
+snapshot/predictions. Never restart after failure, refit with held-out outcomes,
+increase the game cap or reset earned ratings. All other resource/scientific
+guards remain. See `docs/strength-validation-continuation.md`.

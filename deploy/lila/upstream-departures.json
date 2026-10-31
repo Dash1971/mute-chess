@@ -359,13 +359,14 @@
         },
         {
           "id": "bounded-native-bot-trial",
-          "rationale": "Explicitly gated bot-versus-bot reservations for a bounded public rating/capacity study; retain native rules, clocks, completion, Glicko and safeguards. Share the existing admission queue and account busy checks; qualification uses an isolated namespace. Versioned 10/22-game plans expose fixed worker/concurrency and 100/200-admission metadata; no arbitrary public capacity setting or rating implementation is added. Study BOT connections use the same native Tell bus and paired disconnections, preserving native WebSocket room presence (#101). Issue #137 adds one explicitly dated, bounded 3,000-game predictor study profile, additive 206 experimental identities and frozen held-out evaluation; existing policies and native ratings remain authoritative.",
+          "rationale": "Explicitly gated bot-versus-bot reservations for a bounded public rating/capacity study; retain native rules, clocks, completion, Glicko and safeguards. Share the existing admission queue and account busy checks; qualification uses an isolated namespace. Versioned 10/22-game plans expose fixed worker/concurrency and 100/200-admission metadata; no arbitrary public capacity setting or rating implementation is added. Study BOT connections use the same native Tell bus and paired disconnections, preserving native WebSocket room presence (#101). Issue #137 adds one explicitly dated, bounded 3,000-game predictor study profile, additive 206 experimental identities and frozen held-out evaluation; existing policies and native ratings remain authoritative. Issue #147 adds only an explicitly dated validation-only continuation after clean original shutdown: same run records and aggregate3000 budget, frozen predictions, no rating/history import, no failure restart; native admission/deadline guards remain fixed.",
           "verification": [
             "Native NoSweatStudyScopeTest/NoSweatStudyPlanTest and stage/format checks",
             "Study policy/scheduler regression tests",
             "Disposable native BOT-vs-BOT game and perf persistence qualification; public run checkpoints",
             "Reproduce original headless rollback then replay >=145 seconds without rollback; fail closed on inconsistent state.",
-            "Original44 roster and perfs unchanged; reproducible disjoint 200/50 design; native 3000-admission boundary, fixed deadline and disabled/closed scope checks."
+            "Original44 roster and perfs unchanged; reproducible disjoint 200/50 design; native 3000-admission boundary, fixed deadline and disabled/closed scope checks.",
+            "Continuation preflight refuses failed/aborted/active/mismatched predecessors, preserves original evidence and frozen V1 model, enforces aggregate3000 and final13:00UTC stop; qualify privately before any public continuation."
           ],
           "files": [
             "app/NoSweatStudy.scala",

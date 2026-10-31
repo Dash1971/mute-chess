@@ -116,7 +116,7 @@ def fit(roster, manifest, ratings):
 
 def evaluate(model, manifest, ratings, records):
     heldout = set(manifest['heldoutIds'])
-    report = {'version': MODEL_VERSION, 'targetMae': 100, 'speeds': {}, 'noisyLabelTargetMet': False}
+    report = {'version': model['version'], 'evaluatorVersion': MODEL_VERSION, 'targetMae': 100, 'speeds': {}, 'noisyLabelTargetMet': False}
     for speed in ('blitz', 'rapid'):
         predicted = model['speeds'][speed]['predictions']
         errors, details, scored = [], [], []
