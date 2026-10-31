@@ -11,6 +11,7 @@ import { freezeStudy, studyPolicy } from './study-policy.mjs';
 import { StudyWorkers } from './study-workers.mjs';
 import { pairing } from './study-schedule.mjs';
 import { StudyProgress } from './study-progress.mjs';
+import { CONTINUATION_PROFILE, loadContinuation } from './study-continuation.mjs';
 
 const workerCount = Number(process.env.STUDY_WORKERS ?? 1);
 if (![1, 2].includes(workerCount)) throw Error('Invalid study worker count');
@@ -23,7 +24,7 @@ if (!token || token.length < 32) throw Error('Private adapter token required');
 const roster = await loadRoster();
 const manifest = JSON.parse(await readFile(new URL('./experiment-manifest.json', import.meta.url)));
 const execute = promisify(execFile);
-let experiment = false, frozenModel = null;
+let experiment = false, frozenModel = null, continuation = null;
 const output = process.env.STUDY_OUTPUT;
 if (!output?.startsWith('/') || !(process.env.STUDY_MAIN_COMMIT ?? '').match(/^[0-9a-f]{40}$/))
   throw Error('Output directory and verified main revision required');
@@ -90,19 +91,28 @@ async function requestStop() {
 for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => { stopping = true; });
 try {
   last = await native('/club/internal/study/ratings');
-  experiment = last.profile === 'strength-predictor-v1';
+  experiment = last.profile === 'strength-predictor-v1' || last.profile === CONTINUATION_PROFILE;
+  if (last.profile === CONTINUATION_PROFILE) {
+    continuation = await loadContinuation(output, process.env.STUDY_PREDECESSOR, last, roster, manifest, live);
+    frozenModel = continuation.model;
+    for (const record of last.records) completed.add(record.id);
+    for (const name of ['training-ratings.json', 'frozen-predictor.json'])
+      await writeFile(`${output}/${name}`, continuation.files[name], { flag: 'wx' });
+  } else if (process.env.STUDY_PREDECESSOR) throw Error('Predecessor supplied to non-continuation profile');
   const expectedLimit = experiment ? 3000 : last.profile === 'calibration-200-v1' ? 200 : 100;
-  const deadlineValid = experiment ? last.deadline === Date.parse(manifest.hardStopUtc) &&
+  const deadlineValid = continuation ? true : experiment ? last.deadline === Date.parse(manifest.hardStopUtc) &&
     last.admissionEnd === Date.parse(manifest.admissionEndUtc) && roster.length === 250 :
     last.deadline - Date.now() <= 90 * 60000;
-  if (last.runId !== run || last.publicRatings !== live || last.admitted !== 0 || last.closed || last.workers !== workerCount ||
+  if (last.runId !== run || last.publicRatings !== live || (!continuation && last.admitted !== 0) || last.closed || last.workers !== workerCount ||
       last.maximumAdmitted !== expectedLimit || !deadlineValid || Date.now() >= last.admissionEnd)
     throw Error('Study scope/budget mismatch or existing run; use a reviewed checkpoint-resume procedure');
   initial = { started: Date.now(), deadline: last.deadline, admissionEnd: last.admissionEnd,
     ratings: last.ratings, modelSha256: MODEL_SHA256,
     rosterSha256: createHash('sha256').update(JSON.stringify(roster)).digest('hex'),
     policyVersion: 'native-no-wait-study-v1', maximumAdmitted: last.maximumAdmitted, maximumConcurrency: last.maximumConcurrency,
-    profile: last.profile, workerCount, stages: last.stages, clocks: { blitz: '5+3', rapid: '10+5' } };
+    profile: last.profile, workerCount, stages: last.stages, clocks: { blitz: '5+3', rapid: '10+5' },
+    admittedAtStart: last.admitted,
+    continuation: continuation ? { receiptSha256: continuation.receiptSha256, ...continuation.receipt } : undefined };
   if (experiment && initial.rosterSha256 !== manifest.combinedRosterSha256)
     throw Error('Experiment roster/hash mismatch');
   await writeFile(`${output}/combined-roster.json`, JSON.stringify(roster, null, 2));
@@ -136,7 +146,7 @@ try {
     if (last.admitted < initial.maximumAdmitted && last.games.length + last.publicGames < capacity && Date.now() < initial.admissionEnd) {
       // Fetch current native ratings before each admission; frozen policy inputs never follow Glicko.
       last = await native('/club/internal/study/ratings');
-      if (experiment && experimentStage(last.admitted, manifest) === 'validation' && !frozenModel && !last.games.length) {
+      if (experiment && !continuation && experimentStage(last.admitted, manifest) === 'validation' && !frozenModel && !last.games.length) {
         await Promise.allSettled([...pending.values()]);
         await writeFile(`${output}/training-ratings.json`, JSON.stringify(last.ratings));
         const modelPath = `${output}/frozen-predictor.json`;
@@ -185,6 +195,6 @@ finally {
     }
   }
   catch (e) { await log({ type: 'checkpoint-error', error: e.message }); }
-  await log({ type: 'end', failure, completed: completed.size });
+  await log({ type: 'end', failure, completed: completed.size, completedInSegment: completed.size - (initial?.admittedAtStart ?? 0) });
 }
 if (failure) process.exitCode = 1;

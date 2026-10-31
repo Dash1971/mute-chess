@@ -93,3 +93,10 @@ and cannot write ratings. Rebase verification checks exact roster agreement,
 blocked held-out admission before prediction freeze, original-policy hashes,
 native3000th/3001st admission boundaries, deadline/heartbeat cleanup and existing
 human admission. See strength-experiment.md and the exact-path register.
+
+The owner's later timing amendment (#147) permits a conditional validation-only
+continuation after normal predecessor cleanup. Its namespaced study profile and
+deadline branch retain the same native run records and aggregate admission cap;
+no upstream rating, round or matching behavior changes. Rebase verification must
+also reject failed/incomplete predecessors, changed frozen evidence and admission
+3,001 across segments. See [the dated amendment](strength-validation-continuation.md).

@@ -7,6 +7,14 @@ The predictor is research tooling; native Glicko remains the public rating autho
 
 ## Frozen scope and budget
 
+**Dated owner amendment:** at approximately 07:04 UTC on October 31 the owner
+allowed finishing the intended 3,000 games by 22:00 JST / 13:00 UTC, without
+increasing the game budget. The original running segment retains the limits
+below. Any validation-only continuation requires separate qualification, clean
+normal predecessor completion and the exact frozen primary predictions; see
+[the amendment and continuation safeguards](strength-validation-continuation.md).
+No restart after failure is authorized.
+
 - Preparation began 02:34:39 UTC / 11:34:39 JST. Absolute stop is **October 31,
   10:34:39 UTC / 19:34:39 JST**, including preparation and qualification.
 - At most **3,000 public admissions**, including the first 200 existing-bot games.

@@ -7,7 +7,11 @@ import unittest
 SOURCE = Path(__file__).resolve().parents[1]/'study/run-public.py'
 spec = importlib.util.spec_from_file_location('study_launcher', SOURCE)
 launcher = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(launcher)
+sys.path.insert(0, str(SOURCE.parent))
+try:
+    spec.loader.exec_module(launcher)
+finally:
+    sys.path.pop(0)
 
 
 class StudyLauncherTests(unittest.TestCase):
