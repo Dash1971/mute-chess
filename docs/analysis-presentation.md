@@ -141,3 +141,7 @@ The live FEN journey also uses native Lila's `fromPosition` key for a standard
 chess starting position (#135). Extension initialization accepts that key as well
 as `standard`, retaining Maia and all three tabs after native FEN navigation.
 This does not enable chess variants or alter the FEN parser, route or move rules.
+
+When a FEN-to-PGN import replaces the native main view, Lila reuses its sidebar
+element. Maia mounting is idempotent for that host (#138), keeping a single live
+panel and the native sidebar contents rather than prepending a second panel.
