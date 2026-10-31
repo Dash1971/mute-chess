@@ -121,14 +121,14 @@ is fixed at conditioning2600/argmax/history-on/very-fast human timing; Neuromanc
 is the separate history-off comparison. Measured ratings determine the leader;
 no rating is manufactured to place a character first.
 
-### October 31 results
+### October 31 first-phase results
 
 The completed study contains 2,623 native rated games: 200 original-roster
 warmup games, 1,800 additional training games and 623 held-out games. The
 remaining 377 were not admitted after isolated continuation qualification failed;
 the study workers were stopped and earned ratings retained. Of the original 44,
-43 now have nonprovisional Blitz ratings and all 44 have nonprovisional Rapid
-ratings. The 50 held-out configurations remain provisional after 6–7 games per
+43 had nonprovisional Blitz ratings and all 44 had nonprovisional Rapid
+ratings at that stage. The 50 held-out configurations remained provisional after 6–7 games per
 speed.
 
 Primary held-out native-label MAE was 131.4 Blitz / 127.3 Rapid; the preregistered
@@ -143,3 +143,34 @@ The canonical [methods, results, complete games and reproduction tools](https://
 live in Mobile Maia Research. They also document capacity measurements and the
 limits of extrapolating them to human games or VPS hardware. This report
 introduces no new common rating adjustment or production capacity increase.
+
+
+### Overnight follow-up: all 250 reference bots established
+
+The separately authorized [overnight protocol](overnight-rating-establishment.md)
+continued the same 250 identities from their earned ratings, retaining fixed
+policies and the Lichess-derived starting anchor. It completed 826 additional
+native rated games (420 Blitz, 406 Rapid), then stopped early when all 250 bots
+had nonprovisional ratings in both speeds. No ratings were reseeded, no history
+was copied, and no provisional flags or rating deviations were forced.
+
+The original 200 training identities finished 349 games and drained before the
+unchanged V2 procedure froze its training snapshot and predictions. The 50 test
+identities then played 477 games against eligible training opponents. All 826
+PGNs and 71,287 unique acknowledged moves passed replay and result checks;
+1,652 native player-result count increments matched exactly. Study services
+stopped, normal configuration/capacity returned, and public histories were kept.
+
+Frozen predictions were about 116 rating points from final test ratings on
+average in each speed. The stricter 100-point target was not met; these are
+previously observed test policies measured more precisely. The established
+roster is a reference for supported playing policies, and the reproducible
+mapping can inform a new identity's starting estimate without requiring every
+new name to repeat a tournament. A new account still keeps its own honest
+native uncertainty and earns its own history. This evidence does not independently
+verify the absolute human Lichess rating scale or Bullet/Classical transfer.
+
+The canonical [follow-up report, complete data, figures and reproduction tools](https://github.com/Dash1971/mobile-maia-research/tree/896eeffe9af20531c688ec71e9e28e0c978bbe90/studies/bot-rating-establishment-2026-10-31)
+live in Mobile Maia Research. The first report remains unchanged. Publication
+does not expand the roster, change production policies, write ratings or raise
+the normal public concurrency limit.
