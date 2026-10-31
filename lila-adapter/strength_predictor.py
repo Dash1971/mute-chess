@@ -7,7 +7,19 @@ from pathlib import Path
 
 import numpy as np
 
-MODEL_VERSION = 'strength137-ridge-rbf-v1'
+MODEL_VERSION = 'strength137-ridge-rbf-effective-cv-v2'
+
+
+def effective_configuration(bot):
+    """Known policy aliases share a CV group even when account names differ."""
+    t, p = float(bot['temperature_after_opening']), float(bot['top_p_after_opening'])
+    opening = int(bot['opening']['full_moves'] or 0)
+    if t == 0 or p == 0:
+        t, p = 0., 0.
+    elif t == 1 and p == 1:
+        opening = 0
+    return (int(bot['conditioning_self']), int(bot['conditioning_opponent']),
+        bool(bot['personality']['history']), t, p, opening)
 
 
 def features(bot, complexity):
@@ -38,8 +50,9 @@ def solve(x, y, weights, penalty):
     return np.linalg.solve(lhs, x.T @ (weights*y)), np.linalg.pinv(lhs)
 
 
-def group_fold(identity):
-    return int(hashlib.sha256(('strength137-cv:'+identity).encode()).hexdigest()[:8], 16) % 5
+def group_fold(bot):
+    key = json.dumps(effective_configuration(bot), separators=(',', ':'))
+    return int(hashlib.sha256(('strength137-cv-effective-v2:'+key).encode()).hexdigest()[:8], 16) % 5
 
 
 def fit(roster, manifest, ratings):
@@ -47,7 +60,7 @@ def fit(roster, manifest, ratings):
     assert len(training) == 200 and not set(manifest['heldoutIds']) & {b['id'] for b in training}
     result = {'version': MODEL_VERSION, 'rosterSha256': manifest['combinedRosterSha256'],
         'trainingIds': manifest['trainingIds'], 'heldoutIds': manifest['heldoutIds'],
-        'selection': 'five folds grouped by configuration; weighted native training-perf labels only',
+        'selection': 'five folds grouped by canonical effective configuration; weighted native training-perf labels only',
         'absoluteLichessAlignmentValidated': False, 'speeds': {}}
     for speed in ('blitz', 'rapid'):
         rows = [b for b in training if ratings[b['id']][speed]['games'] > 0]
@@ -57,7 +70,7 @@ def fit(roster, manifest, ratings):
         rd = np.array([ratings[b['id']][speed]['rd'] for b in rows])
         weights = 1/(rd*rd + 50**2)
         weights /= weights.mean()
-        folds = np.array([group_fold(b['id']) for b in rows])
+        folds = np.array([group_fold(b) for b in rows])
         candidates = []
         for complexity in ('additive', 'interaction'):
             x = np.array([features(b, complexity) for b in rows])
@@ -90,7 +103,9 @@ def fit(roster, manifest, ratings):
                 'approximatePredictiveSd': float(residual_scale*np.sqrt(1+v@cov@v)),
                 'split': 'heldout' if bot['id'] in manifest['heldoutIds'] else 'training'}
         result['speeds'][speed] = {**chosen, 'candidates': candidates, 'coefficients': beta.tolist(),
-            'trainingConfigurations': len(rows), 'trainingMedianRd': float(np.median(rd)),
+            'trainingIdentities': len(rows),
+            'trainingConfigurations': len({effective_configuration(b) for b in rows}),
+            'trainingMedianRd': float(np.median(rd)),
             'trainingResidualScale': residual_scale, 'predictions': predictions}
     result['limitations'] = ['Native rating labels remain uncertain and share the external anchor.',
         'Approximate predictive SD is not a demonstrated confidence bound; prospective coverage must be checked.',

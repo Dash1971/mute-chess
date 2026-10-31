@@ -93,6 +93,14 @@ individual results and the shared external Lichess anchor. Closed-pool evidence
 cannot remove an absolute scale error. If the goal is not demonstrated, report
 that and identify the next informative configurations/games within a future budget.
 
+Pre-held-out implementation audit (#144): V1 hashes account identity for CV;
+the200 training identities represent196 known effective configurations, and two
+alias groups span folds. Retain the running primary unchanged, qualify its CV
+description, and report the independently pre-registered
+[effective-configuration secondary analysis](strength-secondary-analysis.md).
+That correction uses exactly the same frozen training snapshot and fixed
+selection rules; never tune it with held-out results or deploy during this run.
+
 No 10,000-account creation or copying an established donor's RD/history follows
 automatically. A future generator uses the validated domain and predictive
 uncertainty to propose priors; native Glicko then learns from each account's games.
