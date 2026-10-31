@@ -186,7 +186,7 @@ class GifRendererTests(unittest.TestCase):
 
             with patch.object(renderer, 'PIN', pin), patch.object(renderer, 'MOSS_PATCH', moss_patch), \
                     patch.object(renderer.importlib.metadata, 'version', side_effect=lambda name: pin['generation'][name]), \
-                    patch.object(renderer.subprocess, 'check_output', return_value='resvg ' + pin['generation']['resvg']), \
+                    patch.object(renderer.subprocess, 'check_output', return_value=pin['generation']['resvg']), \
                     patch.object(renderer.subprocess, 'run', side_effect=run):
                 self.assertEqual(set(renderer.generate_moss(working)), set(pin['mossSprites']))
                 self.assertEqual(original.read_bytes(), b'original sprite')
