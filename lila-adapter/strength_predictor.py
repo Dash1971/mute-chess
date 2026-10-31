@@ -19,7 +19,10 @@ def features(bot, complexity):
     # values cannot imply a strength difference.
     if deterministic:
         t, p = 0., 0.
-    row = [1., e, t, p, h, deterministic, float(bot['opening']['full_moves'] or 0)/5]
+    opening = float(bot['opening']['full_moves'] or 0)/5
+    if t == 1 and p == 1:
+        opening = 0.  # Full sampling before/after the opening is one policy.
+    row = [1., e, t, p, h, deterministic, opening]
     if complexity == 'interaction':
         row += [e*e, e**3, t*t, p*p, t*p, e*t, e*p, h*e, h*t, h*p, h*t*p,
                 deterministic*e, deterministic*h]

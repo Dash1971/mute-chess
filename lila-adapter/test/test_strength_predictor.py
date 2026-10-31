@@ -9,6 +9,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class PredictorTests(unittest.TestCase):
+    def test_full_sampling_opening_alias_has_identical_features(self):
+        sample=json.loads((ROOT/'roster.json').read_text())[0]
+        self.assertEqual(sample['temperature_after_opening'],1)
+        self.assertEqual(sample['top_p_after_opening'],1)
+        other={**sample,'opening':{**sample['opening'],'full_moves':5}}
+        self.assertEqual(features(sample,'interaction'),features(other,'interaction'))
     def test_unseen_configurations_and_no_heldout_label_leakage(self):
         roster = json.loads((ROOT/'roster.json').read_text()) + json.loads((ROOT/'experiment-roster.json').read_text())
         manifest = json.loads((ROOT/'experiment-manifest.json').read_text())
