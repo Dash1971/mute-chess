@@ -5,6 +5,7 @@ import io
 import json
 import os
 from pathlib import Path
+import subprocess
 import time
 import urllib.error
 import urllib.request
@@ -19,6 +20,7 @@ def main():
     p.add_argument('--report', type=Path, required=True)
     p.add_argument('--expect-rollback', action='store_true')
     p.add_argument('--seconds', type=int, default=145)
+    p.add_argument('--delay-updates', action='store_true', help='Private Mongo fault injection widens the flush race')
     args = p.parse_args()
     env = dict(line.split('=', 1) for line in args.environment.read_text().splitlines() if '=' in line)
     origin = env['LILA_ORIGIN']
@@ -55,6 +57,15 @@ def main():
     started = time.monotonic()
     observed = []
     rollback = None
+    delayed = False
+    def failpoint(enabled):
+        command = {'configureFailPoint': 'failCommand', 'mode': 'alwaysOn' if enabled else 'off',
+            'data': {'failCommands': ['update'], 'blockConnection': True, 'blockTimeMS': 250}}
+        subprocess.run(['/opt/nosweatchess/tools/node',
+            '/home/dash/no-sweat-lila/tools/mongosh/node_modules/mongosh/bin/mongosh.js',
+            'mongodb://127.0.0.1:27028/admin', '--quiet', '--eval',
+            'const r=db.adminCommand('+json.dumps(command)+');if(r.ok!==1)throw Error("Failpoint unavailable");'],
+            check=True, capture_output=True)
     try:
         for ply, move in enumerate(moves):
             state = api()
@@ -68,11 +79,27 @@ def main():
             api('/' + created['id'] + '/move', {'ply': ply, 'move': move})
             if time.monotonic() - started >= args.seconds:
                 break
-            time.sleep(1.05)
+            until = time.monotonic() + 1.05
+            while time.monotonic() < until:
+                if args.delay_updates and not delayed and time.monotonic()-started >= 45:
+                    failpoint(True)
+                    delayed = True
+                state = api()
+                g = next(g for g in state['games'] if g['id'] == created['id'])
+                if g['ply'] != ply+1:
+                    rollback = {'expectedPly': ply+1, 'returnedPly': g['ply'],
+                        'seconds': time.monotonic()-started, 'faultInjectedUpdateDelayMs': 250 if delayed else 0}
+                    break
+                time.sleep(.025)
+            if rollback:
+                break
     finally:
+        if delayed:
+            failpoint(False)
         api('/stop', {'runId': run})
     report = {'qualificationOnly': True, 'run': run, 'game': created['id'],
-        'fixtureIsCalibrationEvidence': False, 'elapsedSeconds': time.monotonic() - started,
+        'fixtureIsCalibrationEvidence': False, 'faultInjectedUpdateDelayMs': 250 if delayed else 0,
+        'elapsedSeconds': time.monotonic() - started,
         'observed': observed, 'rollback': rollback, 'expectedRollback': args.expect_rollback}
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(report, indent=2) + '\n')
