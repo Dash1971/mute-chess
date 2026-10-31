@@ -52,6 +52,7 @@ try {
   assert.equal((await request('/.well-known/other.json')).status, 404);
   assert.equal((await request('/metrics')).status, 404);
   for (const [path, method] of [
+    ['/export/fen.gif?fen=test','GET'], ['/embed/analysis?fen=test','GET'], ['/embed/game/abcdefgh/white','HEAD'],
     ['/player/search/QuietProxy','GET'], ['/api/player/autocomplete?term=Alice%20Smith&publicName=1','GET'], ['/club/nostr','GET'],
     ['/challenge','GET'], ['/challenge/abcdefgh','GET'], ['/challenge/abcdefgh/accept','POST'],
     ['/challenge/abcdefgh/decline','POST'], ['/challenge/abcdefgh/cancel','POST'], ['/setup/friend?user=friend','POST'],
@@ -68,6 +69,7 @@ try {
     ['/run/captcha/00000000?solution=e2e4','GET'], ['/notify','GET'], ['/notify/clear','POST'],
   ]) assert.equal((await request(path, method)).status, 209, `${method} ${path}`);
   for (const [path, method] of [
+    ['/export/fen.gif','POST'], ['/export/other','GET'], ['/embed/analysis','POST'], ['/embed/other','GET'],
     ['/player/search/QuietProxy','POST'], ['/player/search/a/b','GET'],
     ['/setup/hook/abcdefgh','POST'], ['/setup/ai','POST'], ['/api/challenge/friend','POST'],
     ['/api/challenge/open','POST'], ['/challenge/abcdefgh/to-friend','POST'], ['/challenge/abcdefgh/accept','GET'],

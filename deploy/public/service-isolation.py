@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Configure Linux identities, filesystem access and local network boundaries.
 
-Run only from a verified main revision, with all six public services stopped.
+Run only from a verified main revision, with all public services stopped.
 This changes service configuration, not the selected application release.
 """
 import argparse
+import importlib.util
 import json
 import ipaddress
 import os
@@ -15,10 +16,10 @@ import socket
 import stat
 import subprocess
 
-ROLES = ('gateway', 'app', 'ws', 'adapter', 'mongo', 'redis')
+ROLES = ('gateway', 'app', 'ws', 'adapter', 'mongo', 'redis', 'gif')
 USERS = {role: 'nosweat-' + role for role in ROLES}
-PORTS = {'gateway': (29663, 29664), 'app': (27019, 16380, 29665),
-         'ws': (27019, 16380), 'adapter': (29663,), 'mongo': (), 'redis': ()}
+PORTS = {'gateway': (29663, 29664), 'app': (27019, 16380, 29665, 6175),
+         'ws': (27019, 16380), 'adapter': (29663,), 'mongo': (), 'redis': (), 'gif': ()}
 UNITS = ['nosweatchess-' + role + '.service' for role in ROLES]
 
 
@@ -73,7 +74,8 @@ def policy(uids, connector_uid, payment_ips=()):
     # including private development services. Root retains the administration path.
     for family, destination in [('ip', '127.0.0.1'), ('ip6', '::1')]:
         for ports, allowed in [((27019, 16380), (0, uids['app'], uids['ws'])),
-                               ((29665,), (0, uids['app']))]:
+                               ((29665,), (0, uids['app'])),
+                               ((6175,), (0, uids['app']))]:
             ps = ', '.join(map(str, ports))
             ids = ', '.join(map(str, allowed))
             lines.append(f'  {family} daddr {destination} tcp dport {{ {ps} }} meta skuid != {{ {ids} }} counter reject')
@@ -116,6 +118,7 @@ def unit(role, payment_ips=()):
         'ws': (f'{java} -Xms64m -Xmx384m -XX:ActiveProcessorCount=2 -Dlogback.configurationFile={etc}/logback.xml -Dconfig.file={etc}/ws.conf -cp {current}/ws/lib/* lila.ws.LilaWs', current + '/ws', '768M', ''),
         'adapter': (f'{base}/tools/node --max-old-space-size=256 {current}/lila-adapter/server.mjs', current + '/lila-adapter', '1536M', f'EnvironmentFile={etc}/adapter.env\n'),
         'gateway': (f'{base}/tools/node --max-old-space-size=96 {current}/gateway.mjs', current, '192M', ''),
+        'gif': (f'{current}/gif/lila-gif --bind 127.0.0.1:6175', current + '/gif', '768M', 'Environment=TOKIO_WORKER_THREADS=2\nCPUQuota=100%\n'),
     }
     command, working, memory, extra = commands[role]
     if role == 'adapter':
@@ -125,9 +128,11 @@ def unit(role, payment_ips=()):
         dependencies += 'After=nosweatchess-mongo.service nosweatchess-redis.service\nRequires=nosweatchess-mongo.service nosweatchess-redis.service\n'
     if role == 'gateway':
         dependencies += 'After=nosweatchess-app.service nosweatchess-ws.service\nRequires=nosweatchess-app.service nosweatchess-ws.service\n'
+    if role == 'app':
+        dependencies += 'After=nosweatchess-gif.service\nRequires=nosweatchess-gif.service\n'
     writable = f'ReadWritePaths={data}/{role}\n' if role in ('mongo', 'redis') else ''
     inaccessible = [data + '/' + item for item in ('mongo', 'redis', 'backups', 'restore-check') if item != role]
-    if role in ('gateway', 'adapter', 'mongo'):
+    if role in ('gateway', 'adapter', 'mongo', 'gif'):
         inaccessible.append(etc)
     else:
         inaccessible += [etc + '/backup.key', etc + '/adapter.env']
@@ -177,6 +182,11 @@ def secure(path, uid=0, gid=0, mode=0o600):
 
 
 def configure(root=Path('/')):
+    if root == Path('/'):
+        spec = importlib.util.spec_from_file_location('gif_renderer', Path(__file__).with_name('gif-renderer.py'))
+        renderer = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(renderer)
+        renderer.verify_installed(Path('/opt/nosweatchess/current/gif'))
     people = accounts()
     at = lambda path: root / path.lstrip('/')
     etc = at('/etc/nosweatchess')

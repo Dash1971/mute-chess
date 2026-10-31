@@ -164,3 +164,25 @@ Issue #148 aligns the analysis brilliant tree/badge color with Mobile Maia’s
 `#15aabf`, and separates summary symbols/names using En Croissant’s grid principle.
 This is presentation only: native board SVG geometry and glyph navigation remain
 unchanged. See `docs/analysis-presentation.md` for source pins and rebase checks.
+
+
+## Native standalone export parity (#155/#158)
+
+The owner’s reference is pinned Lila ReplayUi.scala/HtmlHelper.scala and
+_round-underboard.scss, not a new export design. The standalone adapter reuses
+FEN/Image/Share/PGN rows, native copy-me controls, dialogs and annotated/raw action
+labels. Raw follows native rebuilt mainline semantics without comments/NAGs,
+evaluations/clocks or sidelines; annotated preserves the actual tree and clocks.
+Native ParseImport/importer.parseImport remain pure and bounded before feeding
+GifExport; no public import or persistence occurs. Native GIF/image rate limits,
+renderer and saved-game behavior remain authoritative. Position-share/embed URLs
+represent the current position, since the board has no saved public game.
+
+The official lila-gif source at a92511ae3be69c0c0a4002c39fa6cf92f4c93768 receives
+only the documented moss-theme extension, preserving native #c7cfba/#668478 colors
+and original sprite bytes. Exact source/toolchain/generator pins, artifact receipt,
+licenses and runtime isolation are in deploy/public/gif-renderer.md. See
+[the adapter contract](../docs/analysis-export.md). Import opens by default only
+on standalone boards. After auditing Mobile Maia ae8fc4ab, the owner chose to keep
+our existing side-to-move expected-score display; that audit changes no model
+outputs, cache entries or score presentation.
