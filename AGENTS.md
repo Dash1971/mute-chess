@@ -359,3 +359,15 @@ automatic public retry. Follow the normal issue/PR/check/GitHubmerge/verified-ma
 release and actual private qualification/backup/off-host/cleanup safeguards.
 The owner has supplied all required input and is sleeping; continue autonomously.
 See `docs/overnight-rating-establishment.md`.
+
+## Engine Analysis settings and stable underboard (November 1, 2026)
+
+The owner authorized #150/#151: one shared Engine Analysis screen for Maia count,
+retained ratings, Maia/Stockfish arrow colors/reset and Mobile Maia’s existing
+Fast/Balanced/Thorough review choices. Default second Maia on; one-engine game
+analysis fills both columns with eight raw-policy moves, while puzzle review
+just omits its second row. Puzzle labels open the existing rating grid. Preserve
+probabilities, classification colors, expected-score perspective and native
+Stockfish/solving gates. This supersedes the earlier idea-only status. #168 fixes
+long opening articles pushing the underboard away; bound/scroll the sidebar
+without hiding opening text or changing tabs. See docs/analysis-presentation.md.
