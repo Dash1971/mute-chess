@@ -2634,7 +2634,7 @@ index 0c0ed10..0fd8c57 100644
  
    val logo = raw:
 diff --git a/modules/web/src/main/ui/layout.scala b/modules/web/src/main/ui/layout.scala
-index 1c7a30b..d282e0d 100644
+index 1c7a30b..691b973 100644
 --- a/modules/web/src/main/ui/layout.scala
 +++ b/modules/web/src/main/ui/layout.scala
 @@ -17,8 +17,17 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
@@ -2698,7 +2698,7 @@ index 1c7a30b..d282e0d 100644
 -    s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
 -      s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
 +    if isMuteChess then
-+      """<link rel="alternate icon" type="image/png" href="/assets/nosweat/favicon-32.png?v=quiet-signal1"><link id="favicon" rel="icon" type="image/svg+xml" href="/assets/nosweat/favicon.svg?v=quiet-signal1"><link rel="stylesheet" href="/assets/nosweat/brand.css?v=analysis11"><link rel="stylesheet" href="/assets/nosweat/quiet-signal.css?v=quiet-signal2">"""
++      """<link rel="alternate icon" type="image/png" href="/assets/nosweat/favicon-32.png?v=quiet-signal1"><link id="favicon" rel="icon" type="image/svg+xml" href="/assets/nosweat/favicon.svg?v=quiet-signal1"><link rel="stylesheet" href="/assets/nosweat/brand.css?v=analysis12"><link rel="stylesheet" href="/assets/nosweat/quiet-signal.css?v=quiet-signal2">"""
 +    else
 +      s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
 +        s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
@@ -3938,7 +3938,7 @@ index 83a184c..1bec2ab 100644
  }
  
 diff --git a/ui/analyse/src/view/roundTraining.ts b/ui/analyse/src/view/roundTraining.ts
-index 99a8328..6b8dcb9 100644
+index 99a8328..2ef2d47 100644
 --- a/ui/analyse/src/view/roundTraining.ts
 +++ b/ui/analyse/src/view/roundTraining.ts
 @@ -6,9 +6,10 @@ import { bind, dataIcon, onInsert } from 'lib/view';
@@ -3961,7 +3961,7 @@ index 99a8328..6b8dcb9 100644
          name ||
            (ai && 'Stockfish level ' + ai) ||
            (study && findTag(study.data.chapter.tags, color)) ||
-@@ -79,6 +81,70 @@ const error = (nb: number, color: Color, advice: Advice) =>
+@@ -79,6 +81,77 @@ const error = (nb: number, color: Color, advice: Advice) =>
    );
  
  const doRender = (ctrl: AnalyseCtrl): VNode => {
@@ -4001,7 +4001,14 @@ index 99a8328..6b8dcb9 100644
 +              );
 +            return h('tr', [
 +              count('white'),
-+              h('td', { attrs: { style: 'color:' + category.color } }, category.symbol + ' ' + category.name),
++              h(
++                'td',
++                { attrs: { style: 'color:' + category.color } },
++                h('span.nosweat-summary-label', [
++                  h('span.nosweat-summary-symbol', { attrs: { 'aria-hidden': 'true' } }, category.symbol),
++                  h('span', category.name),
++                ]),
++              ),
 +              count('black'),
 +            ]);
 +          }),
@@ -4032,7 +4039,7 @@ index 99a8328..6b8dcb9 100644
    return h(
      'div.advice-summary',
      {
-@@ -139,10 +205,17 @@ export function render(ctrl: AnalyseCtrl): VNode | undefined {
+@@ -139,10 +212,17 @@ export function render(ctrl: AnalyseCtrl): VNode | undefined {
    // don't cache until the analysis is complete!
    const buster = ctrl.mainlineAnalysis.partial ? Math.random() : '';
    let cacheKey = String(buster) + !!ctrl.retro + Boolean(ctrl.idbTree.hasLocalAnalysis);
@@ -19436,10 +19443,10 @@ HcmV?d00001
 
 diff --git a/public/nosweat/brand.css b/public/nosweat/brand.css
 new file mode 100644
-index 0000000..d8a9cdf
+index 0000000..7b51bd8
 --- /dev/null
 +++ b/public/nosweat/brand.css
-@@ -0,0 +1,152 @@
+@@ -0,0 +1,162 @@
 +.site-title .nosweat-header-icon{width:38px;height:38px;margin-right:2px}.site-title .nosweat-wordmark{width:174px;height:50px;object-fit:contain}.nosweat-light{display:none}.light .nosweat-dark{display:none}.light .nosweat-light{display:block}.nosweat-login-wordmark{width:272px;max-width:100%;height:62px}.auth__brand{justify-content:center}@media(max-width:799px){.site-title .nosweat-wordmark{display:none!important}.site-title .nosweat-header-icon{width:36px;height:36px;margin:0}}
 +
 +main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-dark.svg")}.light main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-light.svg")}
@@ -19486,6 +19493,9 @@ index 0000000..d8a9cdf
 +.nosweat-review-graph a:focus circle { stroke:var(--c-primary); stroke-width:3; }
 +.nosweat-computed-glyph { font-weight:bold; margin-left:.12em; }
 +.nosweat-computed-glyph.brilliant { color:#15aabf; }
++/* Chessground 10.5 paints this badge inline; match Mobile Maia without changing its geometry. */
++.analyse { --c-brilliant:#15aabf; }
++.analyse .cg-custom-svgs circle[fill="#168226"] { fill:#15aabf; }
 +.nosweat-computed-glyph.good { color:#12b886; }
 +.nosweat-computed-glyph.interesting { color:#82c91e; }
 +.nosweat-computed-glyph.dubious { color:#fab005; }
@@ -19533,10 +19543,15 @@ index 0000000..d8a9cdf
 +.nosweat-rating-explorer { background:var(--c-bg-box); padding:8px 10px; border-radius:5px; margin-top:8px; height:190px; display:grid; grid-template-rows:25px minmax(0,1fr); }
 +.nosweat-rating-heading { display:flex; align-items:baseline; gap:10px; min-width:0; }
 +.nosweat-rating-heading h3 { margin:0; font-size:13px; white-space:nowrap; }
-+.nosweat-chart-legend { display:flex; align-items:center; justify-content:start; gap:7px; min-width:0; }
-+.nosweat-chart-legend .fbt { padding:0; font-size:12px; text-transform:none; }
-+.nosweat-rating-chart { min-width:0; min-height:0; }
++.nosweat-chart-legend { display:flex; align-items:center; justify-content:start; gap:7px; min-width:0; flex:1; overflow-x:auto; overflow-y:hidden; padding:2px; scrollbar-width:thin; }
++.nosweat-chart-legend .fbt { flex:0 0 auto; padding:0; font-size:12px; text-transform:none; }
++.nosweat-rating-chart { min-width:0; min-height:0; position:relative; }
 +.nosweat-rating-chart svg { width:100%; height:100%; display:block; }
++.nosweat-rating-tooltip { position:absolute; top:5px; right:36px; min-width:118px; padding:7px 9px; background:var(--c-bg-box); border:1px solid var(--c-border); border-radius:4px; box-shadow:0 3px 12px #0006; font-size:11px; font-variant-numeric:tabular-nums; z-index:3; pointer-events:none; }
++.nosweat-rating-tooltip[hidden] { display:none; }
++.nosweat-rating-tooltip strong { display:block; margin-bottom:3px; color:var(--c-font); }
++.nosweat-rating-tooltip-row { display:flex; justify-content:space-between; gap:16px; line-height:17px; white-space:nowrap; }
++.nosweat-chart-legend button:focus-visible { outline:2px solid currentColor; outline-offset:1px; }
 +.nosweat-maia-feedback { height:22px; padding:2px 3px; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 +.nosweat-return { margin:0; padding:0; font-size:11px; }
 +.nosweat-rating-dialog { width:min(24em,90vw); padding:1.5em; }
@@ -19549,8 +19564,10 @@ index 0000000..d8a9cdf
 +.nosweat-summary th:nth-child(2) { width:50%; }
 +.nosweat-summary-player { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 +.nosweat-summary-player a { display:block; min-width:0; overflow:hidden; text-overflow:ellipsis; }
-+.nosweat-summary td { padding:.2em .15em; text-align:center; }
++.nosweat-summary td { padding:.3em .15em; text-align:center; line-height:1.5; }
 +.nosweat-summary td:nth-child(2) { white-space:nowrap; font-size:.95em; }
++.nosweat-summary-label { display:inline-grid; grid-template-columns:1.8em minmax(0,1fr); align-items:baseline; column-gap:.65em; width:10em; max-width:100%; text-align:left; }
++.nosweat-summary-symbol { text-align:center; font-weight:bold; }
 +.nosweat-summary td button { min-width:2em; padding:.15em; }
 +.nosweat-summary .accuracy td { border-top:1px solid var(--c-border); padding-top:.5em; font-weight:bold; }
 +.nosweat-summary > .button { margin-top:.7em; font-size:.85em; }
@@ -20614,10 +20631,10 @@ index 0000000..ec4cc78
 +};
 diff --git a/ui/analyse/src/noSweatAnalysis.ts b/ui/analyse/src/noSweatAnalysis.ts
 new file mode 100644
-index 0000000..9c5a1d2
+index 0000000..803e337
 --- /dev/null
 +++ b/ui/analyse/src/noSweatAnalysis.ts
-@@ -0,0 +1,721 @@
+@@ -0,0 +1,813 @@
 +import type { DrawShape } from '@lichess-org/chessground/draw';
 +import { parseUci } from 'chessops/util';
 +import { attributesModule, classModule, init } from 'snabbdom';
@@ -20638,7 +20655,14 @@ index 0000000..9c5a1d2
 +import { gameReviewQualities, gameReviewQuality } from './noSweatFullReview';
 +import { OpeningLabel } from './noSweatOpening';
 +import { readEnginePreferences, type EnginePreferences } from './noSweatPreferences';
-+import { ratingSamples as samples, ratingChart, ratingLegend } from './noSweatRatingChart';
++import {
++  ratingSamples as samples,
++  chartMoves,
++  ratingChart,
++  ratingLegend,
++  type RatingChartOptions,
++} from './noSweatRatingChart';
++import { ratingChartQualities } from './noSweatRatingChartQuality';
 +
 +interface MaiaClient {
 +  predict(input: {
@@ -20686,11 +20710,13 @@ index 0000000..9c5a1d2
 +  fishArrows = true;
 +  ratingTable = true;
 +  private ratingContext = '';
++  private chartHover?: { fen: string; uci: Uci };
++  private chartNotation = { fen: '', moves: new Map<string, string>() };
 +  private ratingKey(): string {
 +    return JSON.stringify([
 +      this.model,
 +      this.config?.models[this.model].sha256,
-+      this.opponentElo,
++      'matched-rating-sweep-v2',
 +      this.history,
 +      this.history ? this.historyFens().slice(-8) : this.historyFens().slice(-1),
 +      this.ctrl.path,
@@ -20827,6 +20853,7 @@ index 0000000..9c5a1d2
 +      this.history ? fens.slice(-8) : fens.slice(-1),
 +    ]);
 +  private cancel(): void {
++    this.hoverChartMove();
 +    this.generation++;
 +    this.abort.abort();
 +    this.abort = new AbortController();
@@ -21011,11 +21038,17 @@ index 0000000..9c5a1d2
 +    this.ctrl.playUci(uci);
 +    this.ctrl.redraw();
 +  };
-+  private async review(fen: string, generation: number, moves: string[] = [], time = 1200): Promise<Review> {
-+    const key = JSON.stringify(['sf19-candidate-depth12-v1', fen, moves, time]);
++  private async review(
++    fen: string,
++    generation: number,
++    moves: string[] = [],
++    time = 1200,
++    multiPv = 2,
++  ): Promise<Review> {
++    const key = JSON.stringify(['sf19-candidate-depth12-v2', fen, moves, time, multiPv]);
 +    const cached = this.reviewCache.get(key);
 +    if (cached) return cached;
-+    const result = await this.fish.search(fen, moves, this.abort.signal, 12, time);
++    const result = await this.fish.search(fen, moves, this.abort.signal, 12, time, undefined, multiPv);
 +    if (!this.valid(generation)) throw new Error('Cancelled');
 +    this.reviewCache.set(key, result);
 +    if (this.reviewCache.size > 400) this.reviewCache.delete(this.reviewCache.keys().next().value!);
@@ -21027,7 +21060,13 @@ index 0000000..9c5a1d2
 +        [
 +          ...this.candidates.slice(0, this.expanded[0] ? undefined : 4),
 +          ...this.secondaryCandidates.slice(0, this.expanded[1] ? undefined : 4),
-+        ].map(c => c.uci),
++        ]
++          .map(c => c.uci)
++          .concat(
++            this.ratingTable
++              ? chartMoves(this.byRating, this.chartPrimaryCandidates(), this.chartStockfishMoves())
++              : [],
++          ),
 +      ),
 +    ];
 +  }
@@ -21038,7 +21077,9 @@ index 0000000..9c5a1d2
 +    (async () => {
 +      const fen = this.ctrl.node.fen;
 +      if (!this.qualityRoot) {
-+        const root = await this.review(fen, generation, [], 500);
++        // Chart candidates include the actual third SF root. Other ReviewFish
++        // callers and the native full-game/classifier engines keep two PVs.
++        const root = await this.review(fen, generation, [], 500, this.ratingTable ? 3 : 2);
 +        if (!this.valid(generation)) return;
 +        if (root.current.depth < 8) return;
 +        this.qualityRoot = root;
@@ -21073,6 +21114,13 @@ index 0000000..9c5a1d2
 +          this.qualityBusy = false;
 +          if (this.status === 'Loading Stockfish review…') this.status = '';
 +          this.ctrl.redraw();
++          // The last rating sample can arrive between queue completion and this
++          // continuation. Drain that new leader without retrying shallow roots.
++          if (
++            this.qualityRoot &&
++            this.visibleCandidates().some(move => !this.scores.has(move) && !this.qualityFailed.has(move))
++          )
++            this.colorCandidates();
 +        }
 +      });
 +  }
@@ -21087,6 +21135,62 @@ index 0000000..9c5a1d2
 +    );
 +    return candidateQuality(best, this.scores.get(uci)?.score, white);
 +  }
++
++  private chartStockfishMoves(): string[] {
++    if (!this.enabled || !this.analysisAllowed() || this.ctrl.threatMode()) return [];
++    const lines = this.qualityRoot?.current.lines ?? this.ctrl.node.ceval?.pvs ?? [];
++    return [...new Set(lines.slice(0, 3).flatMap(line => this.normalUci(line.moves[0]) ?? []))];
++  }
++
++  private chartPrimaryCandidates(): Candidate[] {
++    return this.byRating.get(this.selfElo) ?? (this.selfElo === this.opponentElo ? this.candidates : []);
++  }
++
++  private chartSan(uci: string, fen = this.ctrl.node.fen): string {
++    if (this.chartNotation.fen !== fen) this.chartNotation = { fen, moves: new Map() };
++    const cached = this.chartNotation.moves.get(uci);
++    if (cached) return cached;
++    const value = san(fen, uci);
++    this.chartNotation.moves.set(uci, value);
++    return value;
++  }
++
++  private readonly hoverChartMove = (uci?: string): void => {
++    if (uci) {
++      if (!this.enabled || !this.analysisAllowed() || this.ctrl.threatMode()) return;
++      this.chartHover = { fen: this.ctrl.node.fen, uci };
++      this.ctrl.ceval.hovering(this.chartHover);
++      this.ctrl.setAutoShapes();
++    } else if (this.chartHover) {
++      const active = this.ctrl.ceval.hovering();
++      if (active === this.chartHover) {
++        this.ctrl.ceval.hovering(null);
++        this.ctrl.setAutoShapes();
++      }
++      this.chartHover = undefined;
++    }
++  };
++
++  private chartOptions(): RatingChartOptions {
++    const fen = this.ctrl.node.fen;
++    const qualities = ratingChartQualities(
++      new Map([...this.scores].flatMap(([uci, result]) => (result ? [[uci, result.score] as const] : []))),
++      position(fen).turn === 'white',
++    );
++    return {
++      primary: this.chartPrimaryCandidates(),
++      stockfish: this.chartStockfishMoves(),
++      color: uci => qualities.get(uci)?.color ?? 'var(--c-font-dim)',
++      describe: (uci, rating, probability) => {
++        const quality = qualities.get(uci);
++        return `${this.chartSan(uci, fen)} · Maia ${rating} · ${(probability * 100).toFixed(1)}% · ${quality ? qualityLabels[quality.quality] + ' (Stockfish estimate)' : 'Stockfish quality not yet available'}`;
++      },
++      hover: uci => {
++        if (this.ctrl.node.fen === fen) this.hoverChartMove(uci);
++      },
++    };
++  }
++
 +  sampleRatings = (): void => {
 +    if (this.compareBusy || !this.enabled || !this.analysisAllowed()) return;
 +    const context = this.ratingKey();
@@ -21104,9 +21208,12 @@ index 0000000..9c5a1d2
 +        if (this.byRating.has(rating)) continue;
 +        this.status = 'Loading rating chart…';
 +        this.ctrl.redraw();
-+        const result = await this.predict(fens, rating, generation);
++        // Maia's rating chart conditions BOTH players at the sampled rating.
++        // The independently configurable card inputs are not changed by a sweep.
++        const result = await this.predict(fens, rating, generation, rating);
 +        if (!this.valid(generation)) return;
 +        this.byRating.set(rating, result.candidates);
++        this.colorCandidates();
 +        this.ctrl.redraw();
 +      }
 +      if (!this.valid(generation)) return;
@@ -21289,8 +21396,9 @@ index 0000000..9c5a1d2
 +          hl('h3', 'Moves by Rating'),
 +          ratingLegend(
 +            this.byRating,
-+            uci => san(this.ctrl.node.fen, uci),
++            uci => this.chartSan(uci),
 +            uci => this.preview(uci),
++            this.chartOptions(),
 +          ),
 +        ]),
 +        this.renderRatingChart(),
@@ -21332,10 +21440,11 @@ index 0000000..9c5a1d2
 +  private renderRatingChart(): VNode {
 +    return ratingChart(
 +      this.byRating,
-+      uci => san(this.ctrl.node.fen, uci),
-+      rating => this.chooseRating(rating, false, true),
++      uci => this.chartSan(uci),
++      rating => this.chooseRating(rating),
 +      uci => this.preview(uci),
 +      () => this.sideRedraw?.(),
++      this.chartOptions(),
 +    );
 +  }
 +}
@@ -22210,10 +22319,10 @@ index 0000000..079746f
 +export * from 'lib/nosweat/core';
 diff --git a/ui/analyse/src/noSweatEvents.ts b/ui/analyse/src/noSweatEvents.ts
 new file mode 100644
-index 0000000..8c1ab43
+index 0000000..01e3ca8
 --- /dev/null
 +++ b/ui/analyse/src/noSweatEvents.ts
-@@ -0,0 +1,9 @@
+@@ -0,0 +1,33 @@
 +import { type Hooks, type VNode } from 'lib/view/snabbdom';
 +
 +// Native bind() installs only once. Candidate actions change as the report progresses.
@@ -22223,12 +22332,36 @@ index 0000000..8c1ab43
 +  };
 +  return { insert: attach, update: (_, vnode) => attach(vnode) };
 +};
++
++// Use the native analysis hover for pointer and keyboard exploration without
++// playing a move. Reattach after redraw so callbacks never retain an old report.
++export const reviewMove = (action: (event: MouseEvent) => void, hover?: (active: boolean) => void): Hooks => {
++  const attach = (vnode: VNode) => {
++    const el = vnode.elm as HTMLElement | SVGElement;
++    el.onclick = action;
++    el.onmouseenter = el.onfocus = () => hover?.(true);
++    el.onmouseleave = () => {
++      if (document.activeElement !== el) hover?.(false);
++    };
++    el.onblur = () => {
++      if (!el.matches(':hover')) hover?.(false);
++    };
++  };
++  return {
++    insert: attach,
++    update: (_, vnode) => attach(vnode),
++    destroy: vnode => {
++      const el = vnode.elm as HTMLElement | SVGElement;
++      if (document.activeElement === el || el.matches(':hover')) hover?.(false);
++    },
++  };
++};
 diff --git a/ui/analyse/src/noSweatFish.ts b/ui/analyse/src/noSweatFish.ts
 new file mode 100644
-index 0000000..8633bc3
+index 0000000..b703dec
 --- /dev/null
 +++ b/ui/analyse/src/noSweatFish.ts
-@@ -0,0 +1,222 @@
+@@ -0,0 +1,228 @@
 +import type { BrowserEngineInfo } from 'lib/ceval';
 +// Use Lila's native Stockfish loader/assets with a separate bounded review queue.
 +import { StockfishWebEngine } from 'lib/ceval/engines/stockfishWebEngine';
@@ -22336,6 +22469,7 @@ index 0000000..8633bc3
 +    time: number,
 +    signal: AbortSignal,
 +    session?: symbol,
++    multiPv = 2,
 +  ): Promise<Review> {
 +    let deadline: ReturnType<typeof setTimeout> | undefined;
 +    try {
@@ -22352,6 +22486,10 @@ index 0000000..8633bc3
 +    const terminal = terminalScore(fen);
 +    if (terminal) return { current: { depth: 99, lines: [{ ...terminal, moves: [] }] }, terminal: true };
 +    const legal = new Set(moves.length ? moves : legalUcis(fen));
++    const count = Math.min(
++      legal.size,
++      Number.isFinite(multiPv) ? Math.max(1, Math.min(3, Math.floor(multiPv))) : 2,
++    );
 +    return new Promise((resolve, reject) => {
 +      if (this.task) {
 +        reject(new Error('Review queue busy'));
@@ -22366,7 +22504,7 @@ index 0000000..8633bc3
 +        reject,
 +        signal,
 +        started: false,
-+        snapshots: new SearchSnapshots(legal, Math.min(2, legal.size), position(fen).turn === 'white'),
++        snapshots: new SearchSnapshots(legal, count, position(fen).turn === 'white'),
 +        timer: setTimeout(() => this.fail(new Error('Stockfish review timed out')), time + 15000),
 +      });
 +      signal.addEventListener(
@@ -22388,7 +22526,7 @@ index 0000000..8633bc3
 +        this.output?.('setoption name Clear Hash');
 +      }
 +      this.session = session;
-+      this.output?.('setoption name MultiPV value ' + Math.min(2, legal.size));
++      this.output?.('setoption name MultiPV value ' + count);
 +      this.output?.('isready');
 +    });
 +  }
@@ -22421,6 +22559,7 @@ index 0000000..8633bc3
 +    depth = 14,
 +    time = 1200,
 +    session?: symbol,
++    multiPv = 2,
 +  ): Promise<Review> {
 +    const generation = this.generation;
 +    const job = this.tail
@@ -22438,7 +22577,7 @@ index 0000000..8633bc3
 +            protocol,
 +          );
 +        }
-+        return this.protocol.search(fen, moves, depth, time, signal, session);
++        return this.protocol.search(fen, moves, depth, time, signal, session, multiPv);
 +      });
 +    this.tail = job;
 +    return job;
@@ -22829,40 +22968,67 @@ index 0000000..987d947
 +export * from 'lib/nosweat/preferences';
 diff --git a/ui/analyse/src/noSweatRatingChart.ts b/ui/analyse/src/noSweatRatingChart.ts
 new file mode 100644
-index 0000000..55592e7
+index 0000000..0a8874e
 --- /dev/null
 +++ b/ui/analyse/src/noSweatRatingChart.ts
-@@ -0,0 +1,226 @@
-+import { hl, type VNode } from 'lib/view';
+@@ -0,0 +1,533 @@
++import { hl, type Hooks, type VNode } from 'lib/view';
 +
 +import type { Candidate } from './noSweatCore';
-+import { reviewClick } from './noSweatEvents';
++import { reviewMove } from './noSweatEvents';
 +
++// Maia platform a6e52f5: useMoveRecommendations.ts and MovesByRating.tsx.
++// Preserve the raw policy and candidate union; adapt only the compact/native view.
 +export const ratingSamples = Array.from({ length: 21 }, (_, i) => 600 + i * 100);
 +export const chartX = (rating: number) => 48 + ((rating - 600) / 2000) * 300;
 +export const chartY = (probability: number) => 200 - Math.max(0, Math.min(1, probability)) * 165;
-+const colors = ['#45b86b', '#9bdc96', '#2b9853'];
 +
-+export function chartMoves(data: Map<number, Candidate[]>): string[] {
-+  const totals = new Map<string, number>();
-+  for (const values of data.values())
-+    for (const move of values) totals.set(move.uci, (totals.get(move.uci) ?? 0) + move.probability);
-+  return [...totals]
-+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-+    .slice(0, 3)
-+    .map(([uci]) => uci);
++export interface RatingChartOptions {
++  primary?: Candidate[];
++  stockfish?: string[];
++  color?: (uci: string) => string;
++  describe?: (uci: string, rating: number, probability: number) => string;
++  hover?: (uci?: string) => void;
++}
++
++export function chartMoves(
++  data: Map<number, Candidate[]>,
++  primary: Candidate[] = [],
++  stockfish: string[] = [],
++): string[] {
++  const moves = new Set<string>();
++  primary.slice(0, 3).forEach(move => moves.add(move.uci));
++  stockfish.slice(0, 3).forEach(move => moves.add(move));
++  for (const rating of ratingSamples) {
++    const leader = data.get(rating)?.[0]?.uci;
++    if (leader) moves.add(leader);
++  }
++  return [...moves];
++}
++
++function probabilityAt(data: Map<number, Candidate[]>, rating: number, uci: string): number | undefined {
++  const sample = data.get(rating);
++  if (!sample) return undefined;
++  const probability = sample.find(move => move.uci === uci)?.probability ?? 0;
++  return Number.isFinite(probability) && probability >= 0 && probability <= 1 ? probability : undefined;
++}
++
++export function chartDomain(data: Map<number, Candidate[]>, moves: string[]): 0.6 | 1 {
++  if (!ratingSamples.some(rating => data.has(rating))) return 1;
++  return ratingSamples.some(rating => moves.some(uci => (probabilityAt(data, rating, uci) ?? 0) > 0.6))
++    ? 1
++    : 0.6;
 +}
 +
 +export function chartPath(data: Map<number, Candidate[]>, uci: string, x = chartX, y = chartY): string {
 +  let connected = false;
 +  return ratingSamples
 +    .map(rating => {
-+      const values = data.get(rating);
-+      if (!values) {
++      const probability = probabilityAt(data, rating, uci);
++      if (probability === undefined) {
 +        connected = false;
 +        return '';
 +      }
-+      const probability = values.find(move => move.uci === uci)?.probability ?? 0;
 +      const segment = `${connected ? 'L' : 'M'}${x(rating)},${y(probability)}`;
 +      connected = true;
 +      return segment;
@@ -22870,20 +23036,67 @@ index 0000000..55592e7
 +    .join(' ');
 +}
 +
++function chartArea(
++  data: Map<number, Candidate[]>,
++  uci: string,
++  x: (rating: number) => number,
++  y: (probability: number) => number,
++): string {
++  const segments: { rating: number; probability: number }[][] = [];
++  let segment: { rating: number; probability: number }[] = [];
++  for (const rating of ratingSamples) {
++    const probability = probabilityAt(data, rating, uci);
++    if (probability === undefined) {
++      if (segment.length) segments.push(segment);
++      segment = [];
++    } else segment.push({ rating, probability });
++  }
++  if (segment.length) segments.push(segment);
++  return segments
++    .map(points => {
++      const first = points[0];
++      const last = points[points.length - 1];
++      return `M${x(first.rating)},${y(0)} ${points
++        .map(point => `L${x(point.rating)},${y(point.probability)}`)
++        .join(' ')} L${x(last.rating)},${y(0)} Z`;
++    })
++    .join(' ');
++}
++
++const moveColor = (uci: string, options: RatingChartOptions) => options.color?.(uci) ?? 'var(--c-font-dim)';
++const describe = (
++  uci: string,
++  rating: number,
++  probability: number,
++  name: (uci: string) => string,
++  options: RatingChartOptions,
++) =>
++  options.describe?.(uci, rating, probability) ??
++  `${name(uci)} · Maia ${rating} · ${(probability * 100).toFixed(1)}% · Stockfish quality unavailable`;
++
 +export function ratingLegend(
 +  data: Map<number, Candidate[]>,
 +  name: (uci: string) => string,
 +  preview: (uci: string) => void,
++  options: RatingChartOptions = {},
 +): VNode {
-+  const moves = chartMoves(data);
 +  return hl(
 +    'div.nosweat-chart-legend',
-+    moves.map((uci, i) =>
++    chartMoves(data, options.primary, options.stockfish).map(uci =>
 +      hl(
 +        'button.fbt',
 +        {
-+          attrs: { type: 'button', style: `color:${colors[i]}` },
-+          hook: reviewClick(() => preview(uci)),
++          key: uci,
++          attrs: {
++            type: 'button',
++            style: `color:${moveColor(uci, options)}`,
++            'data-move': uci,
++            title: `Preview ${name(uci)}`,
++          },
++          hook: reviewMove(
++            () => preview(uci),
++            active => options.hover?.(active ? uci : undefined),
++          ),
 +        },
 +        name(uci),
 +      ),
@@ -22892,31 +23105,188 @@ index 0000000..55592e7
 +}
 +
 +const chartObservers = new WeakMap<Element, ResizeObserver>();
++const tooltipRatings = new WeakMap<Element, number>();
++let chartSerial = 0;
++
++function hideTooltip(host: Element): void {
++  tooltipRatings.delete(host);
++  const tooltip = host.querySelector<HTMLElement>('.nosweat-rating-tooltip');
++  if (tooltip) {
++    tooltip.hidden = true;
++    tooltip.replaceChildren();
++  }
++}
++
++function showTooltip(
++  host: Element,
++  rating: number,
++  data: Map<number, Candidate[]>,
++  moves: string[],
++  name: (uci: string) => string,
++  options: RatingChartOptions,
++): void {
++  const tooltip = host.querySelector<HTMLElement>('.nosweat-rating-tooltip');
++  if (!tooltip) return;
++  if (!data.has(rating)) {
++    hideTooltip(host);
++    return;
++  }
++  tooltipRatings.set(host, rating);
++  const heading = document.createElement('strong');
++  heading.textContent = `Maia ${rating}`;
++  const rows = moves.flatMap(uci => {
++    const probability = probabilityAt(data, rating, uci);
++    if (probability === undefined) return [];
++    const row = document.createElement('div');
++    row.className = 'nosweat-rating-tooltip-row';
++    row.style.color = moveColor(uci, options);
++    row.title = describe(uci, rating, probability, name, options);
++    const label = document.createElement('span');
++    label.textContent = name(uci);
++    const value = document.createElement('span');
++    value.textContent = `${(probability * 100).toFixed(1)}%`;
++    row.append(label, value);
++    return [row];
++  });
++  tooltip.replaceChildren(heading, ...rows);
++  tooltip.hidden = false;
++}
++
++function pointHooks(
++  action: (event: MouseEvent) => void,
++  uci: string,
++  rating: number,
++  data: Map<number, Candidate[]>,
++  moves: string[],
++  name: (uci: string) => string,
++  options: RatingChartOptions,
++): Hooks {
++  let element: Element | undefined;
++  const hooks = reviewMove(action, active => {
++    options.hover?.(active ? uci : undefined);
++    const host = element?.closest('.nosweat-rating-chart');
++    if (host) {
++      if (active) showTooltip(host, rating, data, moves, name, options);
++      else hideTooltip(host);
++    }
++  });
++  const attachKeyboard = (vnode: VNode) => {
++    element = vnode.elm as SVGElement;
++    const point = element as SVGElement;
++    point.onkeydown = event => {
++      if (event.altKey || event.ctrlKey || event.metaKey) return;
++      const navigation = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
++      if (!navigation.includes(event.key) && event.key !== 'Enter' && event.key !== ' ') return;
++      // These keys explore the chart, never Lichess's board/move shortcuts.
++      event.preventDefault();
++      event.stopPropagation();
++      if (event.key === 'Enter' || event.key === ' ') {
++        if (!event.repeat)
++          point.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
++        return;
++      }
++      const ratings = ratingSamples.filter(sample => probabilityAt(data, sample, uci) !== undefined);
++      const series = moves.filter(move => probabilityAt(data, rating, move) !== undefined);
++      let targetRating = rating;
++      let targetMove = uci;
++      if (event.key === 'ArrowLeft') targetRating = ratings[Math.max(0, ratings.indexOf(rating) - 1)];
++      if (event.key === 'ArrowRight')
++        targetRating = ratings[Math.min(ratings.length - 1, ratings.indexOf(rating) + 1)];
++      if (event.key === 'Home') targetRating = ratings[0];
++      if (event.key === 'End') targetRating = ratings[ratings.length - 1];
++      if (event.key === 'ArrowUp') targetMove = series[Math.max(0, series.indexOf(uci) - 1)];
++      if (event.key === 'ArrowDown')
++        targetMove = series[Math.min(series.length - 1, series.indexOf(uci) + 1)];
++      const host = point.closest('.nosweat-rating-chart');
++      const targetSeries = [...(host?.querySelectorAll('.nosweat-rating-series') ?? [])].find(
++        group => group.getAttribute('data-move') === targetMove,
++      );
++      const target = targetSeries?.querySelector<SVGElement>(`a[data-rating="${targetRating}"]`);
++      if (host && target) {
++        host
++          .querySelectorAll('.nosweat-rating-point[tabindex="0"]')
++          .forEach(el => el.setAttribute('tabindex', '-1'));
++        target.setAttribute('tabindex', '0');
++        target.focus();
++      }
++    };
++  };
++  return {
++    ...hooks,
++    insert: vnode => {
++      hooks.insert?.(vnode);
++      attachKeyboard(vnode);
++    },
++    update: (old, vnode) => {
++      hooks.update?.(old, vnode);
++      attachKeyboard(vnode);
++    },
++  };
++}
++
 +export function ratingChart(
 +  data: Map<number, Candidate[]>,
 +  name: (uci: string) => string,
 +  select: (rating: number) => void,
 +  _preview: (uci: string) => void,
 +  redraw: Redraw = () => {},
++  options: RatingChartOptions = {},
 +): VNode {
-+  const moves = chartMoves(data);
++  const moves = chartMoves(data, options.primary, options.stockfish);
 +  const width = document.querySelector<HTMLElement>('.nosweat-rating-chart')?.clientWidth || 300;
 +  const height = 149;
 +  const left = 41;
-+  const right = 38;
++  const right = Math.min(68, Math.max(38, ...moves.map(uci => name(uci).length * 6 + 9)));
 +  const top = 7;
 +  const bottom = 23;
++  const domain = chartDomain(data, moves);
++  const gradientPrefix = `nosweat-rating-${chartSerial++}`;
++  const firstRating = ratingSamples.find(rating =>
++    moves.some(uci => probabilityAt(data, rating, uci) !== undefined),
++  );
++  const firstMove =
++    firstRating === undefined
++      ? undefined
++      : moves.find(uci => probabilityAt(data, firstRating, uci) !== undefined);
 +  const x = (rating: number) => left + ((rating - 600) / 2000) * (width - left - right);
-+  const y = (p: number) => height - bottom - Math.max(0, Math.min(1, p)) * (height - top - bottom);
++  const y = (p: number) =>
++    height - bottom - (Math.max(0, Math.min(domain, p)) / domain) * (height - top - bottom);
++  // Every series remains in the plot/legend. Only endpoint labels are bounded by
++  // the available height; dense cases remain fully named in the shared tooltip.
 +  const endpoints = moves
-+    .map((uci, i) => ({ uci, i, y: y(data.get(2600)?.find(m => m.uci === uci)?.probability ?? 0) }))
++    .flatMap(uci => {
++      const probability = probabilityAt(data, 2600, uci);
++      return probability === undefined ? [] : [{ uci, y: y(probability) }];
++    })
++    .slice(0, Math.floor((height - bottom - top) / 12) + 1)
 +    .sort((a, b) => a.y - b.y);
 +  for (let i = 1; i < endpoints.length; i++)
 +    endpoints[i].y = Math.max(endpoints[i].y, endpoints[i - 1].y + 12);
 +  if (endpoints.length) {
-+    const overflow = Math.max(0, endpoints[endpoints.length - 1].y - (height - bottom));
-+    endpoints.forEach(e => (e.y -= overflow));
++    endpoints[endpoints.length - 1].y = Math.min(endpoints[endpoints.length - 1].y, height - bottom);
++    for (let i = endpoints.length - 2; i >= 0; i--)
++      endpoints[i].y = Math.min(endpoints[i].y, endpoints[i + 1].y - 12);
 +  }
++  const attachSurface = (vnode: VNode) => {
++    const svg = vnode.elm as SVGSVGElement;
++    svg.onmousemove = event => {
++      const rect = svg.getBoundingClientRect();
++      if (!rect.width) return;
++      const mouseX = ((event.clientX - rect.left) / rect.width) * width;
++      if (mouseX < left || mouseX > width - right) {
++        const host = svg.closest('.nosweat-rating-chart');
++        if (host) hideTooltip(host);
++        return;
++      }
++      const rating = 600 + Math.round(((mouseX - left) / (width - left - right)) * 20) * 100;
++      const host = svg.closest('.nosweat-rating-chart');
++      if (host) showTooltip(host, rating, data, moves, name, options);
++    };
++    svg.onmouseleave = () => {
++      const host = svg.closest('.nosweat-rating-chart');
++      if (host && !svg.contains(document.activeElement)) hideTooltip(host);
++    };
++  };
 +  return hl(
 +    'div.nosweat-rating-chart',
 +    {
@@ -22934,7 +23304,22 @@ index 0000000..55592e7
 +          chartObservers.set(el, observer);
 +          observer.observe(el);
 +        },
-+        destroy: vnode => chartObservers.get(vnode.elm as Element)?.disconnect(),
++        postpatch: (_, vnode) => {
++          const host = vnode.elm as Element;
++          const rating = tooltipRatings.get(host);
++          if (rating !== undefined) showTooltip(host, rating, data, moves, name, options);
++          const active = document.activeElement;
++          if (active?.matches('.nosweat-rating-point') && active.closest('.nosweat-rating-chart') === host) {
++            host
++              .querySelectorAll('.nosweat-rating-point[tabindex="0"]')
++              .forEach(el => el.setAttribute('tabindex', '-1'));
++            active.setAttribute('tabindex', '0');
++          }
++        },
++        destroy: vnode => {
++          chartObservers.get(vnode.elm as Element)?.disconnect();
++          tooltipRatings.delete(vnode.elm as Element);
++        },
 +      },
 +    },
 +    [
@@ -22943,37 +23328,43 @@ index 0000000..55592e7
 +        {
 +          attrs: {
 +            viewBox: `0 0 ${width} ${height}`,
-+            role: 'img',
-+            'aria-label': 'Moves by rating: Maia probability from 600 to 2600',
++            role: 'group',
++            'aria-label':
++              'Moves by rating: Maia probability from 600 to 2600. Arrow keys explore; Enter selects a rating.',
++            'data-domain': domain,
 +          },
++          hook: { insert: attachSurface, update: (_, vnode) => attachSurface(vnode) },
 +        },
 +        [
-+          ...[0, 0.25, 0.5, 0.75, 1].flatMap(p => [
-+            hl('line', {
-+              attrs: {
-+                x1: left,
-+                x2: width - right,
-+                y1: y(p),
-+                y2: y(p),
-+                stroke: 'currentColor',
-+                opacity: 0.18,
-+                'stroke-dasharray': '3 3',
-+              },
-+            }),
-+            hl(
-+              'text',
-+              {
++          ...[0, 0.25, 0.5, 0.75, 1].flatMap(fraction => {
++            const p = fraction * domain;
++            return [
++              hl('line', {
 +                attrs: {
-+                  x: left - 6,
-+                  y: y(p) + 4,
-+                  'text-anchor': 'end',
-+                  fill: 'currentColor',
-+                  'font-size': 11,
++                  x1: left,
++                  x2: width - right,
++                  y1: y(p),
++                  y2: y(p),
++                  stroke: 'currentColor',
++                  opacity: 0.18,
++                  'stroke-dasharray': '3 3',
 +                },
-+              },
-+              `${p * 100}%`,
-+            ),
-+          ]),
++              }),
++              hl(
++                'text',
++                {
++                  attrs: {
++                    x: left - 6,
++                    y: y(p) + 4,
++                    'text-anchor': 'end',
++                    fill: 'currentColor',
++                    'font-size': 11,
++                  },
++                },
++                `${Math.round(p * 100)}%`,
++              ),
++            ];
++          }),
 +          ...(width < 360 ? [600, 1600, 2600] : [600, 1000, 1400, 1800, 2200, 2600]).flatMap(rating => [
 +            hl('line', {
 +              attrs: {
@@ -23012,51 +23403,157 @@ index 0000000..55592e7
 +            },
 +            'Maia probability',
 +          ),
-+          ...moves.flatMap((uci, index) => [
-+            hl('path', {
-+              attrs: {
-+                d: chartPath(data, uci, x, y),
-+                fill: 'none',
-+                stroke: colors[index],
-+                'stroke-width': 2,
-+                'stroke-linejoin': 'round',
++          hl(
++            'defs',
++            moves.map(uci =>
++              hl(
++                'linearGradient',
++                {
++                  key: uci,
++                  attrs: { id: `${gradientPrefix}-${uci}`, x1: '0', y1: '0', x2: '0', y2: '1' },
++                },
++                [
++                  hl('stop', {
++                    attrs: { offset: '5%', 'stop-color': moveColor(uci, options), 'stop-opacity': 0.5 },
++                  }),
++                  hl('stop', {
++                    attrs: { offset: '95%', 'stop-color': moveColor(uci, options), 'stop-opacity': 0 },
++                  }),
++                ],
++              ),
++            ),
++          ),
++          ...moves.map(uci => {
++            const color = moveColor(uci, options);
++            return hl('g.nosweat-rating-series', { key: uci, attrs: { 'data-move': uci } }, [
++              hl('path.nosweat-rating-area', {
++                attrs: {
++                  d: chartArea(data, uci, x, y),
++                  fill: `url(#${gradientPrefix}-${uci})`,
++                  'pointer-events': 'none',
++                },
++              }),
++              hl('path.nosweat-rating-line', {
++                attrs: {
++                  d: chartPath(data, uci, x, y),
++                  fill: 'none',
++                  stroke: color,
++                  'stroke-width': 2,
++                  'stroke-linejoin': 'round',
++                  'pointer-events': 'none',
++                },
++              }),
++              ...ratingSamples.flatMap(rating => {
++                const p = probabilityAt(data, rating, uci);
++                if (p === undefined) return [];
++                const title = describe(uci, rating, p, name, options);
++                return [
++                  hl(
++                    'a.nosweat-rating-point',
++                    {
++                      key: rating,
++                      attrs: {
++                        href: '#',
++                        role: 'button',
++                        'aria-label': `${title} · Select Maia ${rating}`,
++                        'data-rating': rating,
++                        tabindex: uci === firstMove && rating === firstRating ? 0 : -1,
++                      },
++                      hook: pointHooks(
++                        event => {
++                          event.preventDefault();
++                          select(rating);
++                        },
++                        uci,
++                        rating,
++                        data,
++                        moves,
++                        name,
++                        options,
++                      ),
++                    },
++                    [
++                      hl('title', title),
++                      hl('circle', { attrs: { cx: x(rating), cy: y(p), r: 2.5, fill: color } }),
++                    ],
++                  ),
++                ];
++              }),
++            ]);
++          }),
++          ...endpoints.map(point =>
++            hl(
++              'text.nosweat-rating-endpoint',
++              {
++                key: point.uci,
++                attrs: {
++                  x: width - right + 5,
++                  y: point.y + 4,
++                  fill: moveColor(point.uci, options),
++                  'font-size': 11,
++                  'data-move': point.uci,
++                },
 +              },
-+            }),
-+            ...ratingSamples.flatMap(rating => {
-+              const values = data.get(rating);
-+              if (!values) return [];
-+              const p = values.find(move => move.uci === uci)?.probability ?? 0;
-+              const title = `${name(uci)} · ${rating} · ${(p * 100).toFixed(1)}%`;
-+              return [
-+                hl(
-+                  'a',
-+                  {
-+                    attrs: { href: '#', role: 'button', 'aria-label': title },
-+                    hook: reviewClick(event => {
-+                      event.preventDefault();
-+                      select(rating);
-+                    }),
-+                  },
-+                  [
-+                    hl('title', title),
-+                    hl('circle', { attrs: { cx: x(rating), cy: y(p), r: 2.5, fill: colors[index] } }),
-+                  ],
-+                ),
-+              ];
-+            }),
-+          ]),
-+          ...(data.has(2600)
-+            ? endpoints.map(e =>
-+                hl(
-+                  'text',
-+                  { attrs: { x: width - right + 5, y: e.y + 4, fill: colors[e.i], 'font-size': 11 } },
-+                  name(e.uci),
-+                ),
-+              )
-+            : []),
++              name(point.uci),
++            ),
++          ),
 +        ],
 +      ),
++      // This small tooltip owns its DOM children so pointer/focus updates do not
++      // redraw the board or mutate the native analysis tree.
++      hl('div.nosweat-rating-tooltip', { attrs: { role: 'tooltip', hidden: true } }),
 +    ],
++  );
++}
+diff --git a/ui/analyse/src/noSweatRatingChartQuality.ts b/ui/analyse/src/noSweatRatingChartQuality.ts
+new file mode 100644
+index 0000000..a984c3a
+--- /dev/null
++++ b/ui/analyse/src/noSweatRatingChartQuality.ts
+@@ -0,0 +1,45 @@
++// Maia platform (GPL-3.0), revision a6e52f5c811ee18863cb2f0e81f2433a5b9905de.
++// Chart-only adaptation of useAnalysisController/utils.ts and constants/analysis.ts.
++import { qualityFromLoss, stockfishWinrate, type CandidateQuality } from './noSweatCandidateQuality';
++
++const colors: Record<CandidateQuality, string[]> = {
++  good: ['#238b45', '#41ab5d', '#74c476', '#90D289', '#AEDFA4'],
++  ok: ['#ffffcc', '#ffeda0', '#fed976', '#feb24c', '#ec7014'],
++  blunder: ['#fcbba1', '#fc9272', '#fb6a4a', '#ef3b2c', '#cb181d'],
++};
++
++export interface RatingChartQuality {
++  quality: CandidateQuality;
++  color: string;
++  loss: number;
++}
++
++export function ratingChartQualities(
++  scores: ReadonlyMap<string, EvalScore>,
++  white: boolean,
++): Map<string, RatingChartQuality> {
++  const known = [...scores].flatMap(([uci, score]) => {
++    // Reject malformed mate evidence too: stockfishWinrate's normal callers only
++    // receive finite engine values, while this map may be populated incrementally.
++    if (score.mate !== undefined && !Number.isFinite(score.mate)) return [];
++    const value = stockfishWinrate(score, white);
++    return value === undefined ? [] : [{ uci, score, value }];
++  });
++  const best = Math.max(...known.map(move => move.value));
++  const ranks = { good: 0, ok: 0, blunder: 0 };
++  return new Map(
++    known
++      .sort(
++        (a, b) =>
++          b.value - a.value ||
++          (white ? 1 : -1) * ((b.score.cp ?? 0) - (a.score.cp ?? 0)) ||
++          a.uci.localeCompare(b.uci),
++      )
++      .map(({ uci, value }) => {
++        const loss = Math.max(0, best - value);
++        const quality = qualityFromLoss(loss);
++        const rank = Math.min(ranks[quality]++, 4);
++        return [uci, { quality, color: colors[quality][rank], loss }];
++      }),
 +  );
 +}
 diff --git a/ui/analyse/src/noSweatSnapshots.ts b/ui/analyse/src/noSweatSnapshots.ts
@@ -23398,10 +23895,10 @@ index 0000000..3016a35
 +});
 diff --git a/ui/analyse/tests/candidateColorLifecycle.test.ts b/ui/analyse/tests/candidateColorLifecycle.test.ts
 new file mode 100644
-index 0000000..0bf1726
+index 0000000..f6d793a
 --- /dev/null
 +++ b/ui/analyse/tests/candidateColorLifecycle.test.ts
-@@ -0,0 +1,92 @@
+@@ -0,0 +1,241 @@
 +import assert from 'node:assert/strict';
 +import { mock, test } from 'node:test';
 +
@@ -23418,6 +23915,30 @@ index 0000000..0bf1726
 +mock.module('../src/noSweatFish.ts', { namedExports: { ReviewFish: FakeFish } });
 +const { NoSweatAnalysis } = await import('../src/noSweatAnalysis');
 +const fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
++
++function chartModel() {
++  let hovering: { fen: string; uci: string } | null = null;
++  const ctrl = {
++    cevalEnabled: () => false,
++    ceval: {
++      storedPv: () => {},
++      hovering: (value?: typeof hovering) => {
++        if (value !== undefined) hovering = value;
++        return hovering;
++      },
++    },
++    opts: {},
++    node: { fen, children: [] },
++    nodeList: [{ fen }],
++    path: '',
++    isCevalAllowed: () => true,
++    setAutoShapes: mock.fn(),
++    redraw: () => {},
++    playUci: mock.fn(),
++    threatMode: () => false,
++  } as unknown as AnalyseCtrl;
++  return { ctrl, model: new NoSweatAnalysis(ctrl) };
++}
 +
 +test('turning analysis off invalidates an in-flight candidate color result', async () => {
 +  const ctrl = {
@@ -23493,6 +24014,131 @@ index 0000000..0bf1726
 +  assert.equal(native.parentElement, side);
 +  model.release();
 +  side.remove();
++});
++
++test('rating sweep matches both Maia inputs without changing card settings or resampling for card opponent changes', async t => {
++  const { ctrl, model } = chartModel();
++  await Promise.resolve();
++  model.enabled = true;
++  model.selfElo = 1600;
++  model.opponentElo = 2300;
++  const inputs: { selfElo: number; opponentElo: number }[] = [];
++  t.mock.method(model as any, 'prepare', async () => ({
++    predict: async (input: { selfElo: number; opponentElo: number }) => {
++      inputs.push({ selfElo: input.selfElo, opponentElo: input.opponentElo });
++      return { move_logits: new Float32Array(4352), value_logits: new Float32Array([0, 0, 0]) };
++    },
++    snapshot: () => ({ phase: 'ready' }),
++  }));
++  t.mock.method(model as any, 'colorCandidates', () => {});
++  model.sampleRatings();
++  await new Promise(resolve => setTimeout(resolve, 0));
++  assert.deepEqual(
++    inputs,
++    Array.from({ length: 21 }, (_, i) => ({ selfElo: 600 + i * 100, opponentElo: 600 + i * 100 })),
++  );
++  assert.equal(model.byRating.size, 21);
++  assert.equal(model.selfElo, 1600);
++  assert.equal(model.opponentElo, 2300);
++  model.opponentElo = 2400;
++  model.sampleRatings();
++  await Promise.resolve();
++  assert.equal(inputs.length, 21, 'the matched-rating sweep is independent of the card opponent input');
++  const nextFen = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1';
++  ctrl.node = { ...ctrl.node, fen: nextFen };
++  ctrl.nodeList = [ctrl.node];
++  ctrl.path = 'ab';
++  model.positionChanged(true);
++  assert.equal(model.byRating.size, 0, 'a different position cannot retain the old chart');
++  model.release();
++});
++
++test('chart uses its matched sample and native hover without playing or clearing another native hover', async () => {
++  const { ctrl, model } = chartModel();
++  await Promise.resolve();
++  model.enabled = true;
++  model.selfElo = 1600;
++  model.opponentElo = 2300;
++  model.candidates = [{ uci: 'a2a3', probability: 0.9 }];
++  const matched = [{ uci: 'e2e4', probability: 0.4 }];
++  model.byRating.set(1600, matched);
++  model.scores.set('e2e4', { score: { cp: 50 }, depth: 12 });
++  const options = (model as any).chartOptions();
++  assert.equal(options.primary, matched);
++  assert.equal(options.color('e2e4'), '#238b45');
++  assert.equal(options.color('a2a3'), 'var(--c-font-dim)');
++  options.hover('e2e4');
++  assert.deepEqual(ctrl.ceval.hovering(), { fen, uci: 'e2e4' });
++  assert.equal((ctrl.playUci as any).mock.callCount(), 0);
++  assert.equal(model.selfElo, 1600);
++  assert.equal(ctrl.path, '');
++  ctrl.ceval.hovering({ fen, uci: 'd2d4' });
++  options.hover();
++  assert.deepEqual(ctrl.ceval.hovering(), { fen, uci: 'd2d4' }, 'native PV hover keeps its ownership');
++  options.hover('e2e4');
++  const sameMove = { fen, uci: 'e2e4' };
++  ctrl.ceval.hovering(sameMove);
++  options.hover();
++  assert.equal(ctrl.ceval.hovering(), sameMove, 'a newer native hover owns even the same move');
++  options.hover('e2e4');
++  model.setEnabled(false);
++  assert.equal(ctrl.ceval.hovering(), null, 'disabling analysis clears the chart-owned hover');
++  model.release();
++});
++
++test('late rating inference is discarded when analysis is disabled', async t => {
++  const { model } = chartModel();
++  await Promise.resolve();
++  model.enabled = true;
++  let resolveInference!: (result: { move_logits: Float32Array; value_logits: Float32Array }) => void;
++  let started!: () => void;
++  const pending = new Promise(resolve => (started = () => resolve(undefined)));
++  t.mock.method(model as any, 'prepare', async () => ({
++    predict: () => {
++      started();
++      return new Promise(resolve => (resolveInference = resolve));
++    },
++    snapshot: () => ({ phase: 'ready' }),
++  }));
++  t.mock.method(model as any, 'colorCandidates', () => {});
++  model.sampleRatings();
++  await pending;
++  model.setEnabled(false);
++  resolveInference({ move_logits: new Float32Array(4352), value_logits: new Float32Array([0, 0, 0]) });
++  await new Promise(resolve => setTimeout(resolve, 0));
++  assert.equal(model.byRating.size, 0);
++  assert.equal(model.error, '');
++  model.release();
++});
++
++test('a rating leader arriving at quality-queue completion is still evaluated', async () => {
++  const { ctrl, model } = chartModel();
++  await Promise.resolve();
++  model.enabled = true;
++  model.candidates = [{ uci: 'a2a3', probability: 1 }];
++  const roots = ['e2e4', 'd2d4', 'g1f3'].map(uci => ({ cp: 0, moves: [uci] }));
++  (model as any).qualityRoot = { current: { depth: 12, lines: roots } };
++  roots.forEach(line => model.scores.set(line.moves[0], { score: line, depth: 12 }));
++  let inject = true;
++  ctrl.redraw = () => {
++    if (inject && model.scores.has('a2a3')) {
++      inject = false;
++      queueMicrotask(() => {
++        model.byRating.set(2600, [{ uci: 'b2b3', probability: 0.5 }]);
++        (model as any).colorCandidates();
++      });
++    }
++  };
++  const start = jobs.length;
++  (model as any).colorCandidates();
++  jobs[start].resolve({ current: { depth: 12, lines: [{ cp: -500, moves: ['a2a3'] }] } });
++  await new Promise(resolve => setTimeout(resolve, 0));
++  assert.equal(jobs.length, start + 2, 'the final sample must wake the completed queue');
++  jobs[start + 1].resolve({ current: { depth: 12, lines: [{ cp: -100, moves: ['b2b3'] }] } });
++  await new Promise(resolve => setTimeout(resolve, 0));
++  assert.equal(model.scores.get('b2b3')?.depth, 12);
++  assert.notEqual((model as any).chartOptions().color('b2b3'), 'var(--c-font-dim)');
++  model.release();
 +});
 diff --git a/ui/analyse/tests/candidateQuality.test.ts b/ui/analyse/tests/candidateQuality.test.ts
 new file mode 100644
@@ -77393,49 +78039,336 @@ index 0000000..7cb2b3d
 +});
 diff --git a/ui/analyse/tests/noSweatRatingChart.test.ts b/ui/analyse/tests/noSweatRatingChart.test.ts
 new file mode 100644
-index 0000000..db87c38
+index 0000000..e10a06d
 --- /dev/null
 +++ b/ui/analyse/tests/noSweatRatingChart.test.ts
-@@ -0,0 +1,40 @@
+@@ -0,0 +1,327 @@
 +import assert from 'node:assert/strict';
-+import { test } from 'node:test';
++import { test, type TestContext } from 'node:test';
++import { attributesModule, classModule, init } from 'snabbdom';
 +
-+import { chartMoves, chartPath, chartX, chartY, ratingSamples } from '../src/noSweatRatingChart';
++import { hl } from 'lib/view';
 +
-+test('fixed probability/rating axes cover the complete 600–2600 range', () => {
++import type { Candidate } from '../src/noSweatCore';
++import {
++  chartDomain,
++  chartMoves,
++  chartPath,
++  chartX,
++  chartY,
++  ratingChart,
++  ratingLegend,
++  ratingSamples,
++  type RatingChartOptions,
++} from '../src/noSweatRatingChart';
++
++const move = (uci: string, probability: number): Candidate => ({ uci, probability });
++const names: Record<string, string> = {
++  e2e4: 'e4',
++  d2d4: 'd4',
++  c2c4: 'c4',
++  g2g3: 'g3',
++  g1f3: 'Nf3',
++};
++const name = (uci: string) => names[uci] ?? uci;
++
++function mount(t: TestContext) {
++  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'ResizeObserver');
++  let disconnected = false;
++  Object.defineProperty(globalThis, 'ResizeObserver', {
++    configurable: true,
++    value: class {
++      observe() {}
++      disconnect() {
++        disconnected = true;
++      }
++    },
++  });
++  const host = document.createElement('div');
++  document.body.append(host);
++  const patch = init([attributesModule, classModule]);
++  let vnode = patch(host, hl('section'));
++  const root = vnode.elm as HTMLElement;
++  t.after(() => {
++    patch(vnode, hl('div'));
++    root.remove();
++    assert.equal(disconnected, true, 'the chart observer is released with the native view');
++    if (descriptor) Object.defineProperty(globalThis, 'ResizeObserver', descriptor);
++    else Reflect.deleteProperty(globalThis, 'ResizeObserver');
++  });
++  return {
++    root,
++    render(
++      data: Map<number, Candidate[]>,
++      options: RatingChartOptions,
++      select = (_rating: number) => {},
++      preview = (_uci: string) => {},
++    ) {
++      vnode = patch(
++        vnode,
++        hl('section', [
++          ratingLegend(data, name, preview, options),
++          ratingChart(data, name, select, preview, () => {}, options),
++        ]),
++      );
++    },
++  };
++}
++
++test('the complete 600–2600 rating range retains raw probabilities and real gaps', () => {
 +  assert.equal(ratingSamples.length, 21);
 +  assert.equal(chartX(600), 48);
 +  assert.equal(chartX(2600), 348);
 +  assert.equal(chartY(0), 200);
 +  assert.equal(chartY(1), 35);
-+  assert.equal(chartY(0.5), 117.5);
-+});
-+test('missing samples break lines and legal zero probabilities remain explicit', () => {
 +  const values = new Map([
-+    [600, [{ uci: 'e2e4', probability: 0.5 }]],
++    [600, [move('e2e4', 0.5), move('d2d4', 0.1)]],
 +    [800, []],
++    [900, [move('e2e4', NaN)]],
++    [1000, [move('e2e4', 0.2)]],
 +  ]);
-+  assert.equal(chartPath(values, 'e2e4').trim(), 'M48,117.5  M78,200');
++  assert.equal(chartPath(values, 'e2e4').trim(), 'M48,117.5  M78,200  M108,167');
++  assert.equal(chartDomain(values, ['e2e4']), 0.6);
 +});
-+test('the three leading moves reflect all sampled ratings', () => {
++
++test('Maia candidate union retains human leaders, rare engine choices and low-rating-only moves', () => {
++  const primary = [move('e2e4', 0.5), move('d2d4', 0.3), move('c2c4', 0.1), move('ignored', 0.1)];
++  // Insertion order is deliberately reversed; rating leaders follow the actual rating axis.
 +  const values = new Map([
-+    [
-+      600,
-+      [
-+        { uci: 'e2e4', probability: 0.6 },
-+        { uci: 'd2d4', probability: 0.3 },
-+        { uci: 'a2a3', probability: 0.1 },
-+      ],
-+    ],
-+    [
-+      2600,
-+      [
-+        { uci: 'g1f3', probability: 0.8 },
-+        { uci: 'd2d4', probability: 0.2 },
-+      ],
-+    ],
++    [2600, [move('expert', 0.6), move('e2e4', 0.2)]],
++    [600, [move('tempting', 0.4), move('e2e4', 0.3)]],
++    [700, [move('e2e4', 0.5)]],
 +  ]);
-+  assert.deepEqual(chartMoves(values), ['g1f3', 'e2e4', 'd2d4']);
++  assert.deepEqual(chartMoves(values, primary, ['d2d4', 'rare-engine', 'third-engine', 'ignored-sf']), [
++    'e2e4',
++    'd2d4',
++    'c2c4',
++    'rare-engine',
++    'third-engine',
++    'tempting',
++    'expert',
++  ]);
++});
++
++test('adaptive scale matches Maia at the exact 60% boundary without considering unplotted moves', () => {
++  assert.equal(chartDomain(new Map(), ['a']), 1);
++  assert.equal(chartDomain(new Map([[600, [move('a', 0.6), move('not-plotted', 0.9)]]]), ['a']), 0.6);
++  assert.equal(chartDomain(new Map([[600, [move('a', 0.60001)]]]), ['a']), 1);
++  assert.equal(chartDomain(new Map([[600, [move('a', 1)]]]), ['a']), 1);
++});
++
++test('compact chart keeps every series and shared quality colors, without invented endpoints', t => {
++  const chart = mount(t);
++  const primary = [move('e2e4', 0.35), move('d2d4', 0.25), move('c2c4', 0.15)];
++  const palette: Record<string, string> = { e2e4: '#238b45', d2d4: '#ffffcc', c2c4: '#ef3b2c' };
++  const options: RatingChartOptions = {
++    primary,
++    stockfish: ['g2g3', 'g1f3', 'e2e4'],
++    color: uci => palette[uci] ?? 'var(--c-font-dim)',
++  };
++  const values = new Map([[600, [...primary, move('g2g3', 0.05), move('g1f3', 0.05)]]]);
++  chart.render(values, options);
++  assert.equal(chart.root.querySelectorAll('.nosweat-chart-legend button').length, 5);
++  assert.equal(chart.root.querySelectorAll('.nosweat-rating-series').length, 5);
++  assert.equal(chart.root.querySelector('svg')!.getAttribute('viewBox'), '0 0 300 149');
++  assert.equal(chart.root.querySelector('svg')!.getAttribute('data-domain'), '0.6');
++  assert.ok(chart.root.querySelector('svg')!.textContent.includes('60%'));
++  assert.equal(chart.root.querySelectorAll('.nosweat-rating-endpoint').length, 0);
++  for (const uci of chartMoves(values, primary, options.stockfish)) {
++    const color = options.color!(uci);
++    const series = chart.root.querySelector(`.nosweat-rating-series[data-move="${uci}"]`)!;
++    assert.equal(series.querySelector('.nosweat-rating-line')!.getAttribute('stroke'), color);
++    const fill = series.querySelector('.nosweat-rating-area')!.getAttribute('fill')!;
++    const gradient = chart.root.querySelector(`[id="${fill.slice(5, -1)}"]`)!;
++    assert.equal(gradient.querySelector('stop')!.getAttribute('stop-color'), color);
++    assert.equal(series.querySelector('circle')!.getAttribute('fill'), color);
++    assert.ok(chart.root.querySelector(`button[data-move="${uci}"]`)!.getAttribute('style')!.includes(color));
++  }
++  values.set(2600, [move('g1f3', 0.65), ...primary]);
++  chart.render(values, options);
++  assert.equal(chart.root.querySelector('svg')!.getAttribute('data-domain'), '1');
++  assert.equal(chart.root.querySelectorAll('.nosweat-rating-endpoint').length, 5);
++});
++
++test('hover and keyboard focus explain one rating without playing, with fresh native actions after redraw', t => {
++  const chart = mount(t);
++  let values = new Map([[600, [move('e2e4', 0.35), move('d2d4', 0.25)]]]);
++  const primary = [move('e2e4', 0.35), move('d2d4', 0.25)];
++  const hovers: (string | undefined)[] = [];
++  const oldSelections: number[] = [];
++  const newSelections: number[] = [];
++  const oldPreviews: string[] = [];
++  const newPreviews: string[] = [];
++  const options: RatingChartOptions = {
++    primary,
++    hover: uci => hovers.push(uci),
++    describe: (uci, rating, p) => `${name(uci)} · Maia ${rating} · ${(p * 100).toFixed(1)}% · Good move`,
++  };
++  chart.render(
++    values,
++    options,
++    rating => oldSelections.push(rating),
++    uci => oldPreviews.push(uci),
++  );
++  const legend = chart.root.querySelector<HTMLButtonElement>('button[data-move="e2e4"]')!;
++  legend.focus();
++  assert.equal(hovers[hovers.length - 1], 'e2e4');
++  assert.equal(oldSelections.length + oldPreviews.length, 0);
++  legend.blur();
++  assert.equal(hovers[hovers.length - 1], undefined);
++  const point = chart.root.querySelector<SVGElement>('.nosweat-rating-series[data-move="e2e4"] a')!;
++  point.dispatchEvent(new window.FocusEvent('focus'));
++  const tooltip = chart.root.querySelector<HTMLElement>('.nosweat-rating-tooltip')!;
++  assert.equal(tooltip.hidden, false);
++  assert.equal(tooltip.querySelector('strong')!.textContent, 'Maia 600');
++  assert.deepEqual(
++    [...tooltip.querySelectorAll('.nosweat-rating-tooltip-row')].map(row => row.textContent),
++    ['e435.0%', 'd425.0%'],
++  );
++  assert.ok(point.getAttribute('aria-label')!.includes('Good move'));
++  assert.equal(oldSelections.length + oldPreviews.length, 0);
++  values = new Map([[600, [move('e2e4', 0.19), move('d2d4', 0.25)]]]);
++  chart.render(
++    values,
++    { ...options, color: () => '#ef3b2c' },
++    rating => newSelections.push(rating),
++    uci => newPreviews.push(uci),
++  );
++  assert.equal(chart.root.querySelector('button[data-move="e2e4"]'), legend);
++  assert.equal(chart.root.querySelector('.nosweat-rating-series[data-move="e2e4"] a'), point);
++  assert.ok(tooltip.textContent.includes('19.0%'));
++  legend.click();
++  point.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
++  assert.deepEqual(newSelections, [600]);
++  assert.deepEqual(newPreviews, ['e2e4']);
++  assert.equal(oldSelections.length + oldPreviews.length, 0);
++  values = new Map();
++  chart.render(values, options);
++  assert.equal(tooltip.hidden, true);
++  assert.equal(tooltip.textContent, '');
++});
++
++test('dense endpoint labels stay inside the compact plot while every series remains available', t => {
++  const chart = mount(t);
++  const values = new Map<number, Candidate[]>();
++  for (let i = 0; i < 15; i++) values.set(600 + i * 100, [move(`move${i}`, 0.4)]);
++  values.set(
++    2600,
++    Array.from({ length: 15 }, (_, i) => move(`move${i}`, 0.01)),
++  );
++  chart.render(values, {});
++  const count = chartMoves(values).length;
++  assert.equal(count, 15);
++  assert.equal(chart.root.querySelectorAll('.nosweat-rating-series').length, count);
++  assert.equal(chart.root.querySelectorAll('.nosweat-chart-legend button').length, count);
++  const ys = [...chart.root.querySelectorAll('.nosweat-rating-endpoint')].map(
++    el => Number(el.getAttribute('y')) - 4,
++  );
++  assert.ok(ys.length < count);
++  assert.ok(ys.every(y => y >= 7 && y <= 126));
++  assert.ok(ys.every((y, i) => i === 0 || y - ys[i - 1] >= 12));
++});
++
++test('shared tooltip follows rating columns with raw probabilities and no invented missing sample', t => {
++  const chart = mount(t);
++  const primary = [move('e2e4', 0.35), move('d2d4', 0.25)];
++  const values = new Map([
++    [600, primary],
++    [1600, [move('e2e4', 0.25), move('d2d4', 0.1)]],
++  ]);
++  const selections: number[] = [];
++  const previews: string[] = [];
++  const hovers: (string | undefined)[] = [];
++  chart.render(
++    values,
++    { primary, stockfish: ['g2g3'], hover: uci => hovers.push(uci) },
++    rating => selections.push(rating),
++    uci => previews.push(uci),
++  );
++  const svg = chart.root.querySelector<SVGSVGElement>('svg')!;
++  t.mock.method(svg, 'getBoundingClientRect', () => new window.DOMRect(0, 0, 300, 149));
++  const tooltip = chart.root.querySelector<HTMLElement>('.nosweat-rating-tooltip')!;
++  svg.dispatchEvent(new window.MouseEvent('mousemove', { clientX: 151, clientY: 40 }));
++  assert.equal(tooltip.hidden, false);
++  assert.equal(tooltip.querySelector('strong')!.textContent, 'Maia 1600');
++  assert.deepEqual(
++    [...tooltip.querySelectorAll('.nosweat-rating-tooltip-row')].map(row => row.textContent),
++    ['e425.0%', 'd410.0%', 'g30.0%'],
++  );
++  svg.dispatchEvent(new window.MouseEvent('mousemove', { clientX: 52, clientY: 40 }));
++  assert.equal(tooltip.hidden, true, 'an unfinished 700 sample must not be displayed as zero');
++  svg.dispatchEvent(new window.MouseEvent('mousemove', { clientX: 41, clientY: 40 }));
++  assert.equal(tooltip.hidden, false);
++  svg.dispatchEvent(new window.MouseEvent('mousemove', { clientX: 1, clientY: 40 }));
++  assert.equal(tooltip.hidden, true, 'axis/margin hover clears the previous rating');
++  assert.deepEqual(selections, []);
++  assert.deepEqual(previews, []);
++  assert.deepEqual(hovers, [], 'a shared column does not invent a selected move');
++});
++
++test('one keyboard entry explores series and available ratings without triggering board shortcuts or selecting', t => {
++  const chart = mount(t);
++  const primary = [move('e2e4', 0.35), move('d2d4', 0.25)];
++  const values = new Map([
++    [600, primary],
++    [800, primary],
++    [2600, primary],
++  ]);
++  const selections: number[] = [];
++  const previews: string[] = [];
++  chart.render(
++    values,
++    { primary },
++    rating => selections.push(rating),
++    uci => previews.push(uci),
++  );
++  const points = () => chart.root.querySelectorAll('.nosweat-rating-point[tabindex="0"]');
++  assert.equal(points().length, 1);
++  const entry = points()[0] as SVGElement;
++  entry.focus();
++  assert.equal(document.activeElement, entry);
++  let boardShortcuts = 0;
++  const boardKeydown = () => boardShortcuts++;
++  document.addEventListener('keydown', boardKeydown);
++  t.after(() => document.removeEventListener('keydown', boardKeydown));
++  const press = (key: string) => {
++    const event = new window.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
++    document.activeElement!.dispatchEvent(event);
++    assert.equal(event.defaultPrevented, true);
++    assert.equal(points().length, 1);
++    return document.activeElement!;
++  };
++  let current = press('ArrowRight');
++  assert.equal(current.getAttribute('data-rating'), '800', 'skip the unfinished 700 sample');
++  assert.equal(current.closest('.nosweat-rating-series')!.getAttribute('data-move'), 'e2e4');
++  current = press('ArrowDown');
++  assert.equal(current.getAttribute('data-rating'), '800');
++  assert.equal(current.closest('.nosweat-rating-series')!.getAttribute('data-move'), 'd2d4');
++  current = press('End');
++  assert.equal(current.getAttribute('data-rating'), '2600');
++  current = press('ArrowUp');
++  assert.equal(current.closest('.nosweat-rating-series')!.getAttribute('data-move'), 'e2e4');
++  current = press('Home');
++  assert.equal(current.getAttribute('data-rating'), '600');
++  assert.deepEqual(selections, []);
++  assert.deepEqual(previews, []);
++  press('Enter');
++  assert.deepEqual(selections, [600]);
++  press(' ');
++  assert.deepEqual(selections, [600, 600]);
++  assert.deepEqual(previews, [], 'point activation chooses the rating, not a variation');
++  assert.equal(boardShortcuts, 0);
++  const beforeBrowserShortcut = document.activeElement;
++  const browserShortcut = new window.KeyboardEvent('keydown', {
++    key: 'ArrowLeft',
++    altKey: true,
++    bubbles: true,
++    cancelable: true,
++  });
++  assert.ok(beforeBrowserShortcut);
++  beforeBrowserShortcut.dispatchEvent(browserShortcut);
++  assert.equal(browserShortcut.defaultPrevented, false, 'browser navigation modifiers remain available');
++  assert.equal(document.activeElement, beforeBrowserShortcut);
 +});
 diff --git a/ui/analyse/tests/openingLabel.test.ts b/ui/analyse/tests/openingLabel.test.ts
 new file mode 100644
@@ -77582,12 +78515,211 @@ index 0000000..cc2de6d
 +  assert.equal(identifyOpening([initial, e4], labels), 'B00 · First');
 +  assert.equal(identifyOpening([e5.replace('0 2', '17 42')], labels), 'C20 · Later');
 +});
+diff --git a/ui/analyse/tests/ratingChartEvidence.test.ts b/ui/analyse/tests/ratingChartEvidence.test.ts
+new file mode 100644
+index 0000000..27f6eea
+--- /dev/null
++++ b/ui/analyse/tests/ratingChartEvidence.test.ts
+@@ -0,0 +1,100 @@
++import assert from 'node:assert/strict';
++import { mock, test } from 'node:test';
++
++import type { BrowserEngineInfo, EngineNotifier } from 'lib/ceval';
++import type { Protocol } from 'lib/ceval/protocol';
++
++const engines: FakeEngine[] = [];
++class FakeEngine {
++  readonly commands: string[] = [];
++  module?: { uci: (command: string) => void };
++  constructor(
++    _info: BrowserEngineInfo,
++    _status: EngineNotifier,
++    readonly protocol: Protocol,
++  ) {
++    engines.push(this);
++    void this.boot();
++  }
++  async boot(): Promise<void> {
++    this.module = { uci: command => this.commands.push(command) };
++    this.protocol.connected(command => this.commands.push(command));
++    this.protocol.received('uciok');
++    this.protocol.received('readyok');
++  }
++}
++mock.module('../../lib/src/ceval/engines/stockfishWebEngine.ts', {
++  namedExports: { StockfishWebEngine: FakeEngine },
++});
++const { ReviewFish } = await import('../src/noSweatFish');
++const fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
++const start = async (multiPv?: number, moves: string[] = []) => {
++  const fish = new ReviewFish(() => {});
++  const result = fish.search(fen, moves, new AbortController().signal, 12, 500, undefined, multiPv);
++  await new Promise(resolve => setImmediate(resolve));
++  const engine = engines.at(-1)!;
++  engine.protocol.received('readyok');
++  return { fish, engine, result };
++};
++const line = (rank: number, move: string, depth = 12) =>
++  `info depth ${depth} multipv ${rank} score cp ${40 - rank * 10} pv ${move}`;
++
++test('chart root requests three genuine SF PVs and rejects an incomplete three-PV window', async () => {
++  const { fish, engine, result } = await start(3);
++  assert.ok(engine.commands.includes('setoption name MultiPV value 3'));
++  assert.ok(engine.commands.includes('go depth 12 movetime 500'));
++  engine.protocol.received(line(1, 'e2e4'));
++  engine.protocol.received(line(2, 'd2d4'));
++  engine.protocol.received('bestmove e2e4');
++  await assert.rejects(result, /complete MultiPV iteration/);
++  fish.destroy();
++});
++
++test('chart three-PV evidence retains only complete depths and three distinct roots', async () => {
++  const { fish, engine, result } = await start(3);
++  for (const [rank, move] of ['e2e4', 'd2d4', 'g1f3'].entries())
++    engine.protocol.received(line(rank + 1, move));
++  engine.protocol.received(line(1, 'e2e4', 13));
++  engine.protocol.received(line(2, 'd2d4', 13));
++  engine.protocol.received('bestmove e2e4');
++  const review = await result;
++  assert.equal(review.current.depth, 12);
++  assert.deepEqual(
++    review.current.lines.map(value => value.moves[0]),
++    ['e2e4', 'd2d4', 'g1f3'],
++  );
++  fish.destroy();
++});
++
++test('default remains two PVs and a one-move candidate cannot request extra PVs', async () => {
++  const standard = await start();
++  assert.ok(standard.engine.commands.includes('setoption name MultiPV value 2'));
++  standard.engine.protocol.received(line(1, 'e2e4'));
++  standard.engine.protocol.received(line(2, 'd2d4'));
++  standard.engine.protocol.received('bestmove e2e4');
++  assert.equal((await standard.result).current.lines.length, 2);
++  standard.fish.destroy();
++  const candidate = await start(3, ['e2e4']);
++  assert.ok(candidate.engine.commands.includes('setoption name MultiPV value 1'));
++  assert.ok(candidate.engine.commands.includes('go depth 12 movetime 500 searchmoves e2e4'));
++  candidate.engine.protocol.received(line(1, 'e2e4'));
++  candidate.engine.protocol.received('bestmove e2e4');
++  assert.equal((await candidate.result).current.lines.length, 1);
++  candidate.fish.destroy();
++});
++
++test('candidate root PV requests stay bounded even with malformed caller values', async () => {
++  for (const [requested, expected] of [
++    [20, 3],
++    [0, 1],
++    [NaN, 2],
++  ]) {
++    const { fish, engine, result } = await start(requested);
++    assert.ok(engine.commands.includes('setoption name MultiPV value ' + expected));
++    for (const [rank, move] of ['e2e4', 'd2d4', 'g1f3'].slice(0, expected).entries())
++      engine.protocol.received(line(rank + 1, move));
++    engine.protocol.received('bestmove e2e4');
++    assert.equal((await result).current.lines.length, expected);
++    fish.destroy();
++  }
++});
+diff --git a/ui/analyse/tests/ratingChartQuality.test.ts b/ui/analyse/tests/ratingChartQuality.test.ts
+new file mode 100644
+index 0000000..bb86b79
+--- /dev/null
++++ b/ui/analyse/tests/ratingChartQuality.test.ts
+@@ -0,0 +1,87 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++
++import { ratingChartQualities } from '../src/noSweatRatingChartQuality';
++
++test('chart colors use Stockfish quality groups and ranks across all evaluated moves', () => {
++  const scores = new Map<string, EvalScore>([
++    ['blunder', { cp: -500 }],
++    ['good', { cp: -30 }],
++    ['best', { cp: 0 }],
++    ['ok', { cp: -100 }],
++    ['worse', { cp: -700 }],
++  ]);
++  const colors = ratingChartQualities(scores, true);
++  assert.equal(colors.get('best')?.color, '#238b45');
++  assert.equal(colors.get('good')?.color, '#41ab5d');
++  assert.equal(colors.get('ok')?.color, '#ffffcc');
++  assert.equal(colors.get('blunder')?.color, '#fcbba1');
++  assert.equal(colors.get('worse')?.color, '#fc9272');
++  assert.deepEqual(
++    ['best', 'good', 'ok', 'blunder', 'worse'].map(move => colors.get(move)?.quality),
++    ['good', 'good', 'ok', 'blunder', 'blunder'],
++  );
++  assert.ok(colors.get('ok')!.loss > 0.05 && colors.get('ok')!.loss <= 0.1);
++  assert.ok(colors.get('blunder')!.loss > 0.1);
++
++  // An evaluated move outside a plotted subset still participates in shade rank.
++  const subset = ratingChartQualities(
++    new Map([
++      ['best', scores.get('best')!],
++      ['good', scores.get('good')!],
++    ]),
++    true,
++  );
++  scores.set('unplotted', { cp: -10 });
++  assert.equal(subset.get('good')?.color, '#41ab5d');
++  assert.equal(ratingChartQualities(scores, true).get('good')?.color, '#74c476');
++});
++
++test('chart shade caps and exact ties are deterministic, independent of input order', () => {
++  const rows = ['f', 'd', 'b', 'e', 'a', 'c'].map(uci => [uci, { cp: 0 }] as const);
++  const forward = ratingChartQualities(new Map(rows), true);
++  const reverse = ratingChartQualities(new Map(rows.toReversed()), true);
++  assert.deepEqual([...forward], [...reverse]);
++  assert.deepEqual(
++    [...forward.values()].map(value => value.color),
++    ['#238b45', '#41ab5d', '#74c476', '#90D289', '#AEDFA4', '#AEDFA4'],
++  );
++});
++
++test('chart quality and CP tie ordering retain the mover perspective for Black', () => {
++  const white = new Map<string, EvalScore>([
++    ['best', { cp: 0 }],
++    ['good', { cp: -30 }],
++    ['ok', { cp: -100 }],
++    ['blunder', { cp: -500 }],
++  ]);
++  const black = new Map([...white].map(([uci, score]) => [uci, { cp: -score.cp! }]));
++  assert.deepEqual([...ratingChartQualities(white, true)], [...ratingChartQualities(black, false)]);
++  const ties = ratingChartQualities(
++    new Map([
++      ['less', { cp: -1300 }],
++      ['more', { cp: -1500 }],
++    ]),
++    false,
++  );
++  assert.deepEqual([...ties.keys()], ['more', 'less']);
++});
++
++test('mate evidence remains valid while unknown or malformed evidence stays unmapped', () => {
++  const quality = ratingChartQualities(
++    new Map<string, EvalScore>([
++      ['winning', { mate: 2 }],
++      ['also-winning', { mate: 4 }],
++      ['losing', { mate: -2 }],
++      ['unknown', {}],
++      ['nan-cp', { cp: NaN }],
++      ['nan-mate', { mate: NaN }],
++    ]),
++    true,
++  );
++  assert.equal(quality.get('winning')?.quality, 'good');
++  assert.equal(quality.get('also-winning')?.quality, 'good');
++  assert.equal(quality.get('losing')?.quality, 'blunder');
++  assert.equal(quality.size, 3);
++  assert.equal(ratingChartQualities(new Map(), true).size, 0);
++});
 diff --git a/ui/analyse/tests/summaryLayout.test.ts b/ui/analyse/tests/summaryLayout.test.ts
 new file mode 100644
-index 0000000..1931365
+index 0000000..d4c98d2
 --- /dev/null
 +++ b/ui/analyse/tests/summaryLayout.test.ts
-@@ -0,0 +1,57 @@
+@@ -0,0 +1,107 @@
 +import assert from 'node:assert/strict';
 +import { mock, test } from 'node:test';
 +import { init, attributesModule, classModule } from 'snabbdom';
@@ -77643,6 +78775,56 @@ index 0000000..1931365
 +  const cells = [...root.querySelectorAll('.accuracy td')];
 +  assert.deepEqual([cells[0].textContent, cells[2].textContent], ['—', '—']);
 +  assert.equal(root.querySelector('tbody tr:last-child td:last-child')?.textContent, '0');
++  root.remove();
++});
++
++test('separate summary glyphs keep category names and native count navigation', () => {
++  const jumpToGlyphSymbol = mock.fn();
++  const redraw = mock.fn();
++  const ctrl = {
++    noSweat: {},
++    mainline: [
++      { ply: 1, uci: 'e2e4', glyphs: [{ id: 3 }] },
++      { ply: 2, uci: 'e7e5', glyphs: [{ id: 6 }] },
++    ],
++    mainlineAnalysis: { white: { accuracy: 80, acpl: 20 }, black: { accuracy: 70, acpl: 30 } },
++    settings: { showMainlineAnalysis: true },
++    idbTree: { hasLocalAnalysis: true },
++    data: { player: { color: 'white' }, opponent: { color: 'black' } },
++    jumpToGlyphSymbol,
++    redraw,
++  } as unknown as AnalyseCtrl;
++  const host = document.createElement('div');
++  document.body.append(host);
++  const vnode = init([attributesModule, classModule])(host, render(ctrl));
++  const root = vnode.elm as HTMLElement;
++  const labels = [...root.querySelectorAll('.nosweat-summary-label')];
++  assert.deepEqual(
++    labels.map(label => label.lastElementChild?.textContent),
++    ['Brilliant', 'Good', 'Interesting', 'Dubious', 'Mistake', 'Blunder'],
++  );
++  for (const label of labels) {
++    assert.equal(label.querySelector('.nosweat-summary-symbol')?.getAttribute('aria-hidden'), 'true');
++    assert.equal(label.closest('tr')?.children.length, 3, 'the two count columns retain their center label');
++  }
++  const white = root.querySelector<HTMLButtonElement>('button[aria-label="Brilliant: 1 for white"]')!;
++  const black = root.querySelector<HTMLButtonElement>('button[aria-label="Dubious: 1 for black"]')!;
++  assert.equal(white.disabled, false);
++  assert.equal(black.disabled, false);
++  assert.equal(
++    root.querySelector<HTMLButtonElement>('button[aria-label="Brilliant: 0 for black"]')?.disabled,
++    true,
++  );
++  white.click();
++  black.click();
++  assert.deepEqual(
++    jumpToGlyphSymbol.mock.calls.map(call => call.arguments),
++    [
++      ['white', '!!'],
++      ['black', '?!'],
++    ],
++  );
++  assert.equal(redraw.mock.callCount(), 2);
 +  root.remove();
 +});
 diff --git a/ui/bits/css/build/bits.patron.scss b/ui/bits/css/build/bits.patron.scss
