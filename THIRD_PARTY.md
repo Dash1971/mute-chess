@@ -2,6 +2,13 @@
 
 Mute Chess is AGPL-3.0-only. Upstream works retain their licenses and notices; the application supplies a source archive from its footer.
 
+Native board-image and game-GIF exports require the official
+[lila-gif](https://github.com/lichess-org/lila-gif) renderer at
+`a92511ae3be69c0c0a4002c39fa6cf92f4c93768`, AGPL-3.0-or-later. Exact source and
+asset licenses and the bounded Quiet Signal theme patch accompany each release;
+see [renderer provenance](third-party/lila-gif/README.md)
+and [the pinned build/runtime dependency](deploy/public/gif-renderer.md).
+
 | Component                                                 | Pinned version/source                                                                                                        | Reuse                                                                                                           | License                                                                      |
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | [Chessops](https://github.com/niklasf/chessops)           | npm 0.15.1, lockfile integrity                                                                                               | Server/client rules, legal moves, SAN, FEN, game endings, Chessground destinations                              | GPL-3.0-or-later; `third-party/CHESSOPS-LICENSE`                             |

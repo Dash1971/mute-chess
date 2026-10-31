@@ -323,3 +323,17 @@ games, reviewed/qualified merged-main source and the exact frozen primary
 snapshot/predictions. Never restart after failure, refit with held-out outcomes,
 increase the game cap or reset earned ratings. All other resource/scientific
 guards remain. See `docs/strength-validation-continuation.md`.
+
+## Native analysis-board export and initial Import (October 31, 2026)
+
+Issue #155: match existing post-game ReplayUi FEN/Image/Share/PGN layout and native
+copy controls on the standalone analysis board, including annotated/raw exports.
+Reuse native rendering, dialogs, serializers and pure PGN parsing; never create a
+public game to export an unsaved line. The owner selected the existing moss
+colors for image/GIF exports; preserve them through the documented native renderer
+theme extension. Keep public runtime/merge changes held until the experiment’s
+verified FINAL cleanup handoff; the extra renderer role must not enter #157’s
+continuation release. Issue #158 makes Import initially visible on standalone
+boards, retaining existing post-game defaults. The owner reconsidered #156 and
+chose to retain the current side-to-move score percentage; no favored-side display
+conversion ships.

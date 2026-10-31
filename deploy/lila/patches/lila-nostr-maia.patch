@@ -121,6 +121,49 @@ index 05db4e0..481749e 100644
  
    def data = Auth: _ ?=>
      Ok(views.boardEditor.jsData())
+diff --git a/app/controllers/Export.scala b/app/controllers/Export.scala
+index e1bd4a5..ce70211 100644
+--- a/app/controllers/Export.scala
++++ b/app/controllers/Export.scala
+@@ -1,6 +1,7 @@
+ package controllers
+ 
+ import chess.format.{ Fen, Uci }
++import chess.format.pgn.PgnStr
+ import chess.variant.Variant
+ import org.apache.pekko.stream.scaladsl.*
+ import org.apache.pekko.util.ByteString
+@@ -39,6 +40,30 @@ final class Export(env: Env) extends LilaController(env):
+             )
+           yield source
+ 
++  def analysisGif(pgn: String, color: Color, theme: Option[String], piece: Option[String]) = Anon:
++    NoCrawlersUnlessPreview:
++      lila.game.NoSweatAnalysisGif
++        .parse(PgnStr(pgn))
++        .fold(
++          _ => fuccess(BadRequest("Invalid PGN")),
++          game =>
++            exportImageOf(fuccess(game.some)): g =>
++              val requested = lila.game.GifExport.Options.fromReq
++              // Local PGN glyphs are not persisted server analysis and cannot use its glyph map.
++              val options =
++                lila.game.GifExport.Options(requested.players, requested.ratings, requested.clocks, false)
++              env.game.gifExport
++                .fromPov(
++                  Pov(g.withId(lila.game.Game.syntheticId), color),
++                  g.initialFen,
++                  Theme(theme).name,
++                  PieceSet.get(piece).name,
++                  none,
++                  options
++                )
++                .pipe(stream("mutechess-analysis.gif", cache = 0.seconds))
++        )
++
+   def legacyGameThumbnail(id: GameId, theme: Option[String], piece: Option[String]) = Anon:
+     MovedPermanently(routes.Export.gameThumbnail(id, theme, piece).url).publicCache(1.day)
+ 
 diff --git a/app/controllers/Importer.scala b/app/controllers/Importer.scala
 index ede74af..51e2daa 100644
 --- a/app/controllers/Importer.scala
@@ -926,7 +969,7 @@ index 885adb4..06960ae 100644
  
  lazy val forumSearch = module("forumSearch",
 diff --git a/conf/routes b/conf/routes
-index f2a7ab2..a2d2e3b 100644
+index f2a7ab2..40e1493 100644
 --- a/conf/routes
 +++ b/conf/routes
 @@ -1,6 +1,27 @@
@@ -957,7 +1000,15 @@ index f2a7ab2..a2d2e3b 100644
  GET   /                                controllers.Lobby.home
  GET   /lobby/seeks                     controllers.Lobby.seeks
  
-@@ -333,6 +354,10 @@ GET   /$lang<\w\w\w?>/learn            controllers.Learn.indexLang(lang: Languag
+@@ -220,6 +241,7 @@ GET   /$lang<\w\w\w?>/racer             controllers.Racer.homeLang(lang: Languag
+ 
+ # User Analysis
+ GET   /analysis/help                   controllers.UserAnalysis.help
++GET   /analysis/export.gif             controllers.Export.analysisGif(pgn: String, color: Color = Color.white, theme: Option[String], piece: Option[String])
+ GET   /analysis/pgn/*pgn               controllers.UserAnalysis.pgn(pgn)
+ GET   /analysis/*something             controllers.UserAnalysis.parseArg(something)
+ GET   /analysis                        controllers.UserAnalysis.index
+@@ -333,6 +355,10 @@ GET   /$lang<\w\w\w?>/learn            controllers.Learn.indexLang(lang: Languag
  
  # Patron
  GET   /patron                          controllers.Plan.index(page: Int ?= 1)
@@ -2875,6 +2926,50 @@ index 4f219ad..5ae45e9 100644
 +
      @include crosstable-large;
    }
+ }
+diff --git a/ui/analyse/src/analyse.gifDialog.ts b/ui/analyse/src/analyse.gifDialog.ts
+index 014dafe..d41a7d8 100644
+--- a/ui/analyse/src/analyse.gifDialog.ts
++++ b/ui/analyse/src/analyse.gifDialog.ts
+@@ -6,6 +6,7 @@ import { domDialog, type Dialog } from 'lib/view';
+ import { url as xhrUrl } from 'lib/xhr';
+ 
+ import type AnalyseCtrl from './ctrl';
++import { analysisGifUrl } from './noSweatExport';
+ 
+ export function initModule(ctrl: AnalyseCtrl): void {
+   let gifOrientation: Color = ctrl.bottomColor();
+@@ -29,7 +30,13 @@ export function initModule(ctrl: AnalyseCtrl): void {
+     },
+   };
+ 
++  const keys = (Object.keys(gifPrefs) as Array<keyof typeof gifPrefs>).filter(
++    key => !ctrl.synthetic || (key !== 'glyphs' && key !== 'clocks'),
++  );
++
+   const buildGifUrl = () => {
++    if (ctrl.synthetic)
++      return analysisGifUrl(ctrl, gifOrientation, Object.fromEntries(keys.map(k => [k, gifPrefs[k].prop()])));
+     const ds = document.body.dataset;
+     return xhrUrl(`${ds.assetUrl}/game/export/gif/${gifOrientation}/${ctrl.data.game.id}.gif`, {
+       theme: ds.board,
+@@ -71,7 +78,7 @@ export function initModule(ctrl: AnalyseCtrl): void {
+           <button class="button button-empty text gif-flip" data-icon="${licon.ChasingArrows}">
+             ${i18n.site[gifOrientation]}
+           </button>
+-          ${Object.keys(gifPrefs).map(makeToggle).join('')}
++          ${keys.map(makeToggle).join('')}
+         </div>
+         <div class="gif-actions">
+           <button class="button button-metal text gif-copy" data-icon="${licon.Clipboard}">
+@@ -110,7 +117,7 @@ export function initModule(ctrl: AnalyseCtrl): void {
+         selector: '.gif-download',
+         listener: (_, dlg) => dlg.close(),
+       },
+-      ...Object.keys(gifPrefs).map(toggleAction),
++      ...keys.map(toggleAction),
+     ],
+   });
  }
 diff --git a/ui/analyse/src/autoShape.ts b/ui/analyse/src/autoShape.ts
 index 83be1dd..31e1146 100644
@@ -8376,6 +8471,38 @@ index 0000000..840c50a
 +      assertEquals(member, true)
 +      assertEquals(notLeader, false)
 +      assertEquals(leader, true)
+diff --git a/modules/game/src/main/NoSweatAnalysisGif.scala b/modules/game/src/main/NoSweatAnalysisGif.scala
+new file mode 100644
+index 0000000..4a4ad99
+--- /dev/null
++++ b/modules/game/src/main/NoSweatAnalysisGif.scala
+@@ -0,0 +1,26 @@
++package lila.game
++
++import chess.ErrorStr
++import chess.format.pgn.PgnStr
++import chess.variant.{ FromPosition, Standard }
++
++import lila.game.importer.ImportedGame
++import lila.tree.{ Analysis, ParseImport }
++
++/** Parse an ephemeral export without inserting an imported game. */
++object NoSweatAnalysisGif:
++  def parse(pgn: PgnStr): Either[ErrorStr, ImportedGame] =
++    if pgn.value.trim.isEmpty || pgn.value.length > 5000 then
++      Left(ErrorStr("PGN must contain 1 to 5000 characters"))
++    else
++      ParseImport
++        .full(pgn)
++        .filterOrElse(
++          parsed =>
++            parsed.replayError.isEmpty && parsed.parsed.mainline.size <= Analysis.MAX_PLIES &&
++              (parsed.parsed.tags(_.Variant).isEmpty || parsed.parsed.tags.variant
++                .exists(v => v == Standard || v == FromPosition)) &&
++              (parsed.game.variant == Standard || parsed.game.variant == FromPosition),
++          ErrorStr("PGN must contain a legal standard chess mainline of at most 600 plies")
++        )
++        .flatMap(_ => importer.parseImport(pgn, none))
 diff --git a/modules/game/src/main/NoSweatStudyScope.scala b/modules/game/src/main/NoSweatStudyScope.scala
 new file mode 100644
 index 0000000..b3ca768
@@ -8392,6 +8519,74 @@ index 0000000..b3ca768
 +    val host = if publicRatings then "mutechess.org" else "127.0.0.1:19763"
 +    run.matches("[a-z][a-z0-9_]{2,31}") && domain == host &&
 +    main.takeWhile(_ != '?') == expected && yolo.takeWhile(_ != '?') == expected
+diff --git a/modules/game/src/test/NoSweatAnalysisGifTest.scala b/modules/game/src/test/NoSweatAnalysisGifTest.scala
+new file mode 100644
+index 0000000..fdacecf
+--- /dev/null
++++ b/modules/game/src/test/NoSweatAnalysisGifTest.scala
+@@ -0,0 +1,62 @@
++package lila.game
++
++import chess.Color
++import chess.format.pgn.PgnStr
++import chess.variant.FromPosition
++
++import lila.tree.ParseImport
++
++class NoSweatAnalysisGifTest extends munit.FunSuite:
++  private def parse(pgn: String) = NoSweatAnalysisGif.parse(PgnStr(pgn))
++
++  test("exports the entire legal mainline through native pure import"):
++    val game = parse("1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 *").toOption.get
++    assertEquals(game.sloppy.sans.map(_.value).toList, List("e4", "e5", "Nf3", "Nc6", "Bb5", "a6"))
++    assertEquals(game.initialFen, None)
++
++  test("rejects malformed PGN and illegal moves instead of exporting a legal prefix"):
++    for pgn <- List("this is not PGN", "1. e5 *", "1. e4 e5 2. Bh6 *") do assert(parse(pgn).isLeft, pgn)
++
++  test("enforces the decoded PGN length without truncating"):
++    val legal = "1. e4 *"
++    assert(parse(legal.padTo(5000, ' ')).isRight)
++    assert(parse(legal.padTo(5001, ' ')).isLeft)
++    assert(parse("").isLeft)
++    assert(parse(" \n\t ").isLeft)
++
++  test("accepts 600 legal plies and rejects a 601st ply instead of silently cutting it"):
++    val cycle = "Nf3 Nf6 Ng1 Ng8 "
++    val mainline = cycle * 150
++    val accepted = parse(mainline + "*").toOption.get
++    assertEquals(accepted.sloppy.sans.size, 600)
++    assert(parse(mainline + "Nf3 *").isLeft)
++
++  test("rejects unsupported and unrecognized declared variants"):
++    for variant <- List("Atomic", "Crazyhouse", "Chess960", "Antichess", "unsupported") do
++      assert(
++        parse(s"""[Variant "$variant"]
++
++1. e4 *""").isLeft,
++        variant
++      )
++
++  private val blackFen = "4k3/8/8/8/8/8/8/4K2R b - - 0 20"
++  private def fromBlack(variantTag: String = "") = s"""$variantTag[SetUp "1"]
++[FEN "$blackFen"]
++
++20... Kd7 21. Rh7+ *"""
++
++  test("rejects Chess960 declared from a middle-game FEN even when native replay downgrades it"):
++    val pgn = fromBlack("[Variant \"Chess960\"]\n")
++    val native = ParseImport.full(PgnStr(pgn)).toOption.get
++    assertEquals(native.game.variant, FromPosition)
++    assert(native.parsed.tags.variant.exists(_ != FromPosition))
++    assert(parse(pgn).isLeft)
++
++  test("preserves a legal nonzero Black-to-move FEN with or without From Position tag"):
++    for tag <- List("", s"[Variant \"${FromPosition.name}\"]\n") do
++      val game = parse(fromBlack(tag)).toOption.get
++      assertEquals(game.initialFen.map(_.value), Some(blackFen))
++      assertEquals(game.sloppy.startedAtPly.value, 39)
++      assertEquals(game.sloppy.sans.map(_.value).toList, List("Kd7", "Rh7+"))
++      assertEquals(game.sloppy.turnColor, Color.Black)
 diff --git a/modules/game/src/test/NoSweatStudyScopeTest.scala b/modules/game/src/test/NoSweatStudyScopeTest.scala
 new file mode 100644
 index 0000000..376f9b7
@@ -21440,23 +21635,27 @@ index 0000000..ddf9d0d
 +export * from 'lib/nosweat/arrows';
 diff --git a/ui/analyse/src/noSweatBoardReview.ts b/ui/analyse/src/noSweatBoardReview.ts
 new file mode 100644
-index 0000000..8bbdc93
+index 0000000..1b58da2
 --- /dev/null
 +++ b/ui/analyse/src/noSweatBoardReview.ts
-@@ -0,0 +1,252 @@
+@@ -0,0 +1,346 @@
 +import type { AcplChart, ChartGame } from 'chart';
 +
++import { escapeHtml } from 'lib';
 +import { licon } from 'lib/licon';
 +import { pubsub } from 'lib/pubsub';
-+import { bind, confirm, hl, onInsert, type VNode } from 'lib/view';
++import { bind, confirm, dataIcon, domDialog, hl, onInsert, type VNode } from 'lib/view';
 +
 +import type AnalyseCtrl from './ctrl';
-+import { boardPgn, downloadBoardPgn } from './noSweatPgn';
++import { canExportAnalysisGif, positionImageUrl, positionShareUrl } from './noSweatExport';
++import { boardPgn, downloadBoardPgn, type PgnExportMode } from './noSweatPgn';
++
++type ExportCopy = 'fen' | 'image' | 'share' | PgnExportMode;
 +
 +// The free board uses the same local review, chart and summary as game replay.
 +// The unsaved board separates editable imports from native-styled local exports.
 +export class BoardReview {
-+  private selected = 'computer-analysis';
++  private selected = 'import';
 +  private panel?: HTMLElement;
 +  private chart?: AcplChart;
 +  private pending = false;
@@ -21464,7 +21663,7 @@ index 0000000..8bbdc93
 +  private dirty = false;
 +  private failed = false;
 +  private button?: HTMLButtonElement;
-+  private copied?: 'pgn' | 'fen';
++  private copied?: ExportCopy;
 +  private copyError = '';
 +  private copyTimer?: ReturnType<typeof setTimeout>;
 +
@@ -21529,53 +21728,143 @@ index 0000000..8bbdc93
 +  }
 +
 +  private exportView(): VNode[] {
-+    const copyButton = (kind: 'pgn' | 'fen') =>
-+      hl('button.copy-me__button.button', {
-+        class: { 'button-metal': this.copied !== kind },
-+        attrs: {
-+          type: 'button',
-+          title: `Copy ${kind.toUpperCase()}`,
-+          'aria-label': this.copied === kind ? `${kind.toUpperCase()} copied` : `Copy ${kind.toUpperCase()}`,
-+          'data-icon': this.copied === kind ? licon.Checkmark : licon.Clipboard,
-+        },
-+        hook: bind('click', event => {
-+          event.stopPropagation();
-+          void this.copy(kind);
++    const names: Record<ExportCopy, string> = {
++      fen: 'FEN',
++      image: String(i18n.site.positionAsImage),
++      share: 'position link',
++      annotated: 'annotated PGN',
++      raw: 'raw PGN',
++    };
++    const copyMe = (target: VNode, kind: ExportCopy, cls = '') =>
++      hl('div.copy-me' + cls, [
++        target,
++        hl('button.copy-me__button.button', {
++          class: { 'button-metal': this.copied !== kind },
++          attrs: {
++            type: 'button',
++            title: `Copy ${names[kind]}`,
++            'aria-label': this.copied === kind ? `${names[kind]} copied` : `Copy ${names[kind]}`,
++            'data-icon': this.copied === kind ? licon.Checkmark : licon.Clipboard,
++          },
++          hook: bind('click', event => {
++            event.stopPropagation();
++            void this.copy(kind);
++          }),
 +        }),
++      ]);
++    const input = (value: string, label: string) =>
++      hl('input.copy-me__target', {
++        attrs: { readonly: true, spellcheck: 'false', 'aria-label': label },
++        props: { value },
 +      });
++    const pgn = (mode: PgnExportMode) =>
++      copyMe(
++        hl(
++          'a.copy-me__target',
++          {
++            attrs: { href: '#', role: 'button' },
++            hook: bind('click', event => {
++              event.preventDefault();
++              downloadBoardPgn(this.ctrl, mode);
++            }),
++          },
++          mode === 'raw' ? i18n.site.downloadRaw : i18n.site.downloadAnnotated,
++        ),
++        mode,
++      );
++    const gifAvailable = canExportAnalysisGif(this.ctrl);
 +    return [
 +      hl('div', [
 +        hl('strong', 'FEN'),
-+        hl('div.copy-me.analyse__underboard__fen', [
-+          hl('input.copy-me__target', {
-+            attrs: { readonly: true, spellcheck: 'false', 'aria-label': 'FEN export' },
-+            props: { value: this.ctrl.node.fen },
-+          }),
-+          copyButton('fen'),
-+        ]),
++        copyMe(input(this.ctrl.node.fen, 'FEN export'), 'fen', '.analyse__underboard__fen'),
 +      ]),
 +      hl('div', [
-+        hl('strong', 'PGN'),
-+        hl('div.copy-me', [
-+          hl(
-+            'button.copy-me__target.text',
-+            {
-+              attrs: { type: 'button', 'data-icon': licon.Download },
-+              hook: bind('click', () => downloadBoardPgn(this.ctrl)),
++        hl('strong', 'Image'),
++        hl(
++          'a.text.game-gif',
++          {
++            attrs: {
++              href: '#',
++              ...dataIcon(licon.Download),
++              'aria-disabled': String(!gifAvailable),
++              ...(!gifAvailable && {
++                title: 'This line is too long for GIF export. Download the PGN instead.',
++              }),
 +            },
-+            'Download PGN',
++            hook: bind('click', event => {
++              event.preventDefault();
++              if (gifAvailable) void site.asset.loadEsm('analyse.gifDialog', { init: this.ctrl });
++            }),
++          },
++          i18n.site.gameAsGIF,
++        ),
++        copyMe(
++          hl(
++            'a.copy-me__target',
++            { attrs: { href: positionImageUrl(this.ctrl), target: '_blank', rel: 'noopener' } },
++            i18n.site.positionAsImage,
 +          ),
-+          copyButton('pgn'),
-+        ]),
++          'image',
++          '.position-gif',
++        ),
 +      ]),
++      hl('div', [
++        hl('strong', 'Share'),
++        hl(
++          'a.text.embed-howto',
++          {
++            attrs: { href: '#', ...dataIcon(licon.Expand), title: 'Embed this position' },
++            hook: bind('click', event => {
++              event.preventDefault();
++              this.embedPosition();
++            }),
++          },
++          i18n.site.embedInYourWebsite,
++        ),
++        copyMe(input(positionShareUrl(this.ctrl), 'Share current position'), 'share'),
++      ]),
++      hl('div', [hl('strong', 'PGN'), pgn('annotated'), pgn('raw')]),
 +      ...(this.copyError ? [hl('p', { attrs: { role: 'status' } }, this.copyError)] : []),
-+      hl('div.pgn', { attrs: { 'aria-label': 'PGN export', tabindex: 0 } }, boardPgn(this.ctrl)),
++      hl(
++        'div.pgn',
++        {
++          attrs: { 'aria-label': 'PGN export', tabindex: 0 },
++          hook: bind('click', event => {
++            const selection = window.getSelection();
++            const range = document.createRange();
++            range.selectNodeContents(event.currentTarget as HTMLElement);
++            const unselected = selection?.isCollapsed;
++            selection?.removeAllRanges();
++            if (unselected) selection?.addRange(range);
++          }),
++        },
++        boardPgn(this.ctrl),
++      ),
 +    ];
 +  }
 +
-+  private async copy(kind: 'pgn' | 'fen'): Promise<void> {
++  private embedPosition(): void {
++    const iframe = `<iframe src="${positionShareUrl(this.ctrl, true)}"
++width=600 height=397 frameborder=0></iframe>`;
++    void domDialog({
++      modal: true,
++      show: true,
++      easyClose: 'clickOutside',
++      htmlText: `<div><strong style="font-size:1.5em">${escapeHtml(String(i18n.site.embedInYourWebsite))}</strong><br /><br /><pre>${escapeHtml(iframe)}</pre><br />${iframe}</div>`,
++    });
++  }
++
++  private async copy(kind: ExportCopy): Promise<void> {
 +    try {
-+      await navigator.clipboard.writeText(kind === 'pgn' ? boardPgn(this.ctrl) : this.ctrl.node.fen);
++      const value =
++        kind === 'fen'
++          ? this.ctrl.node.fen
++          : kind === 'image'
++            ? positionImageUrl(this.ctrl)
++            : kind === 'share'
++              ? positionShareUrl(this.ctrl)
++              : boardPgn(this.ctrl, kind);
++      await navigator.clipboard.writeText(value);
 +      this.copied = kind;
 +      this.copyError = '';
 +      clearTimeout(this.copyTimer);
@@ -21584,7 +21873,7 @@ index 0000000..8bbdc93
 +        this.ctrl.redraw();
 +      }, 1000);
 +    } catch {
-+      this.copyError = 'Copy is unavailable. Select the FEN or PGN text, or download the PGN.';
++      this.copyError = 'Copy is unavailable. Select the FEN, link or PGN text, or download the PGN.';
 +    }
 +    this.ctrl.redraw();
 +  }
@@ -22339,6 +22628,57 @@ index 0000000..01e3ca8
 +    },
 +  };
 +};
+diff --git a/ui/analyse/src/noSweatExport.ts b/ui/analyse/src/noSweatExport.ts
+new file mode 100644
+index 0000000..0a28f77
+--- /dev/null
++++ b/ui/analyse/src/noSweatExport.ts
+@@ -0,0 +1,45 @@
++import { url } from 'lib/xhr';
++
++import type AnalyseCtrl from './ctrl';
++import { boardPgn } from './noSweatPgn';
++
++// Unsaved lines have no game ID. Reuse native position routes and pure-PGN GIF
++// rendering instead of inventing a saved-game URL or persisting an import.
++export function positionImageUrl(ctrl: AnalyseCtrl): string {
++  const ds = document.body.dataset;
++  return url(`${window.location.origin}/export/fen.gif`, {
++    fen: ctrl.node.fen,
++    color: ctrl.bottomColor(),
++    lastMove: ctrl.node.uci,
++    variant: 'standard',
++    theme: ds.board,
++    piece: ds.pieceSet,
++  });
++}
++
++export function positionShareUrl(ctrl: AnalyseCtrl, embed = false): string {
++  return url(`${window.location.origin}/${embed ? 'embed/analysis' : 'analysis/standard'}`, {
++    fen: ctrl.node.fen,
++    color: ctrl.bottomColor(),
++    ...(embed && { theme: 'auto', bg: 'auto' }),
++  });
++}
++
++export function analysisGifUrl(
++  ctrl: AnalyseCtrl,
++  orientation: Color,
++  prefs: Record<string, boolean>,
++): string {
++  return url('/analysis/export.gif', {
++    pgn: boardPgn(ctrl, 'raw'),
++    color: orientation,
++    theme: document.body.dataset.board,
++    piece: document.body.dataset.pieceSet,
++    ...prefs,
++    glyphs: false,
++  });
++}
++
++export function canExportAnalysisGif(ctrl: AnalyseCtrl): boolean {
++  return ctrl.mainline.length <= 601 && boardPgn(ctrl, 'raw').length <= 5000;
++}
 diff --git a/ui/analyse/src/noSweatFish.ts b/ui/analyse/src/noSweatFish.ts
 new file mode 100644
 index 0000000..b703dec
@@ -22866,10 +23206,10 @@ index 0000000..a619492
 +}
 diff --git a/ui/analyse/src/noSweatPgn.ts b/ui/analyse/src/noSweatPgn.ts
 new file mode 100644
-index 0000000..9198d47
+index 0000000..a908da3
 --- /dev/null
 +++ b/ui/analyse/src/noSweatPgn.ts
-@@ -0,0 +1,72 @@
+@@ -0,0 +1,85 @@
 +import { INITIAL_FEN } from 'chessops/fen';
 +import { ChildNode, Node, makeComment, makeOutcome, makePgn, type PgnNodeData } from 'chessops/pgn';
 +
@@ -22878,9 +23218,15 @@ index 0000000..9198d47
 +import type AnalyseCtrl from './ctrl';
 +import { position } from './noSweatCore';
 +
++export type PgnExportMode = 'annotated' | 'raw';
++
 +// Use the same Chessops PGN model as native import. Export the actual tree,
 +// including annotations and variations, rather than an unsubmitted import draft.
-+export function boardPgn(ctrl: AnalyseCtrl): string {
++// Native postgame raw export rebuilds SAN without any comments or NAGs, even
++// imported ones (game/PgnDump.scala; api/PgnDump.scala). Raw follows that mainline
++// behavior; annotated includes all variations. Both use current board headers.
++export function boardPgn(ctrl: AnalyseCtrl, mode: PgnExportMode = 'annotated'): string {
++  const annotated = mode === 'annotated';
 +  const root = ctrl.tree.root;
 +  let end: TreeNodeLite = root;
 +  while (end.children[0]) end = end.children[0];
@@ -22906,22 +23252,29 @@ index 0000000..9198d47
 +  }
 +  const moves = new Node<PgnNodeData>();
 +  const append = (into: Node<PgnNodeData>, from: TreeNodeLite) => {
-+    for (const child of from.children) {
++    for (const child of annotated ? from.children : from.children.slice(0, 1)) {
 +      if (!child.san) continue;
-+      const comments = child.comments?.map(c => c.text) ?? [];
-+      const score = child.eval ?? child.ceval;
-+      if (score?.mate !== undefined || score?.cp !== undefined)
++      const comments = annotated ? (child.comments?.map(c => c.text) ?? []) : [];
++      const score = annotated ? (child.eval ?? child.ceval) : undefined;
++      const clock =
++        annotated && child.clock !== undefined && Number.isFinite(child.clock) && child.clock >= 0
++          ? child.clock / 100
++          : undefined;
++      if (score?.mate !== undefined || score?.cp !== undefined || clock !== undefined)
 +        comments.push(
 +          makeComment({
 +            evaluation:
-+              score.mate !== undefined
++              score?.mate !== undefined
 +                ? { mate: score.mate, depth: score.depth }
-+                : { pawns: score.cp! / 100, depth: score.depth },
++                : score?.cp !== undefined
++                  ? { pawns: score.cp / 100, depth: score.depth }
++                  : undefined,
++            clock,
 +          }),
 +        );
 +      const node = new ChildNode<PgnNodeData>({
 +        san: child.san,
-+        nags: [...new Set(child.glyphs?.map(g => g.id))],
++        nags: annotated ? [...new Set(child.glyphs?.map(g => g.id))] : undefined,
 +        comments,
 +      });
 +      into.children.push(node);
@@ -22929,16 +23282,16 @@ index 0000000..9198d47
 +    }
 +  };
 +  append(moves, root);
-+  return makePgn({ headers, moves, comments: root.comments?.map(c => c.text) });
++  return makePgn({ headers, moves, comments: annotated ? root.comments?.map(c => c.text) : undefined });
 +}
 +
-+export function downloadBoardPgn(ctrl: AnalyseCtrl): void {
++export function downloadBoardPgn(ctrl: AnalyseCtrl, mode: PgnExportMode = 'annotated'): void {
 +  const url = URL.createObjectURL(
-+    new Blob([boardPgn(ctrl)], { type: 'application/x-chess-pgn;charset=utf-8' }),
++    new Blob([boardPgn(ctrl, mode)], { type: 'application/x-chess-pgn;charset=utf-8' }),
 +  );
 +  const link = document.createElement('a');
 +  link.href = url;
-+  link.download = 'mutechess-analysis.pgn';
++  link.download = mode === 'raw' ? 'mutechess-analysis-raw.pgn' : 'mutechess-analysis.pgn';
 +  link.click();
 +  setTimeout(() => URL.revokeObjectURL(url), 1000);
 +}
@@ -23614,10 +23967,10 @@ index 0000000..759163b
 +}
 diff --git a/ui/analyse/tests/boardReview.test.ts b/ui/analyse/tests/boardReview.test.ts
 new file mode 100644
-index 0000000..0e17c1c
+index 0000000..d6acaaf
 --- /dev/null
 +++ b/ui/analyse/tests/boardReview.test.ts
-@@ -0,0 +1,263 @@
+@@ -0,0 +1,281 @@
 +import assert from 'node:assert/strict';
 +import { mock, test } from 'node:test';
 +import { attributesModule, classModule, propsModule, init } from 'snabbdom';
@@ -23808,6 +24161,7 @@ index 0000000..0e17c1c
 +    canAnalyseMainline: () => true,
 +    changePgn,
 +    changeFen,
++    bottomColor: () => 'white',
 +  } as unknown as AnalyseCtrl;
 +  const board = new BoardReview(ctrl);
 +  const host = document.createElement('div');
@@ -23821,6 +24175,12 @@ index 0000000..0e17c1c
 +  const tab = (name: string) =>
 +    Array.from(root.querySelectorAll<HTMLButtonElement>('[role="tab"]')).find(el => el.textContent === name)!;
 +  assert.equal(root.querySelectorAll('[role="tab"]').length, 3);
++  assert.equal(
++    tab('Import').getAttribute('aria-selected'),
++    'true',
++    'a fresh standalone board opens its native import fields',
++  );
++  assert.equal(root.querySelector('[role=tab]')!.getAttribute('aria-selected'), 'false');
 +  assert.deepEqual(
 +    Array.from(root.querySelectorAll('[role="tab"]'))
 +      .slice(1)
@@ -23851,11 +24211,22 @@ index 0000000..0e17c1c
 +  assert.equal(output.querySelector<HTMLInputElement>('input')!.readOnly, true);
 +  assert.equal(output.querySelector<HTMLInputElement>('input')!.value, fen);
 +  assert.ok(output.querySelector('.copy-me__button.button-metal'));
++  assert.deepEqual(
++    [...output.querySelectorAll(':scope > div > strong')].map(el => el.textContent),
++    ['FEN', 'Image', 'Share', 'PGN'],
++  );
++  assert.equal(
++    output.querySelectorAll('a[role=button]').length,
++    2,
++    'annotated and raw downloads have separate native targets',
++  );
 +  let downloaded = '';
 +  t.mock.method(window.HTMLAnchorElement.prototype, 'click', function (this: HTMLAnchorElement) {
 +    downloaded = this.href;
 +  });
-+  output.querySelector<HTMLButtonElement>('button.copy-me__target')!.click();
++  output
++    .querySelector<HTMLAnchorElement>('a.copy-me__target[role=button]')!
++    .dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
 +  const downloadedPgn = await (await fetch(downloaded)).text();
 +  assert.ok(downloadedPgn.includes('e4'));
 +  assert.equal(downloadedPgn.includes('d4'), false);
@@ -77498,6 +77869,63 @@ index 0000000..e9340bd
 +  mergeReviewData(clean, from);
 +  assert.equal(clean.glyphs?.[0].source, 'mobile-maia-brilliant-v1');
 +});
+diff --git a/ui/analyse/tests/noSweatExport.test.ts b/ui/analyse/tests/noSweatExport.test.ts
+new file mode 100644
+index 0000000..a07ad92
+--- /dev/null
++++ b/ui/analyse/tests/noSweatExport.test.ts
+@@ -0,0 +1,51 @@
++import { INITIAL_FEN } from 'chessops/fen';
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++
++import type AnalyseCtrl from '../src/ctrl';
++import {
++  analysisGifUrl,
++  canExportAnalysisGif,
++  positionImageUrl,
++  positionShareUrl,
++} from '../src/noSweatExport';
++
++const ctrl = {
++  data: {},
++  tree: { root: { fen: INITIAL_FEN, children: [] } },
++  node: { fen: INITIAL_FEN, uci: 'e2e4' },
++  mainline: [{}],
++  bottomColor: () => 'black',
++} as unknown as AnalyseCtrl;
++
++test('native image/share/embed links encode current position and orientation without a saved game', () => {
++  document.body.dataset.board = 'brown';
++  document.body.dataset.pieceSet = 'cburnett';
++  const image = new URL(positionImageUrl(ctrl));
++  assert.equal(image.pathname, '/export/fen.gif');
++  assert.equal(image.searchParams.get('fen'), INITIAL_FEN);
++  assert.equal(image.searchParams.get('lastMove'), 'e2e4');
++  assert.equal(image.searchParams.get('color'), 'black');
++  assert.equal(image.searchParams.get('theme'), 'brown');
++  const share = new URL(positionShareUrl(ctrl));
++  assert.equal(share.pathname, '/analysis/standard');
++  assert.equal(share.searchParams.get('fen'), INITIAL_FEN);
++  const embed = new URL(positionShareUrl(ctrl, true));
++  assert.equal(embed.pathname, '/embed/analysis');
++  assert.equal(embed.searchParams.get('color'), 'black');
++  assert.equal(embed.searchParams.get('bg'), 'auto');
++});
++
++test('unsaved GIF links contain the actual raw mainline and respect native bounds', () => {
++  const gif = new URL(
++    analysisGifUrl(ctrl, 'white', { players: false, ratings: true }),
++    window.location.origin,
++  );
++  assert.equal(gif.pathname, '/analysis/export.gif');
++  assert.equal(gif.searchParams.get('color'), 'white');
++  assert.equal(gif.searchParams.get('players'), 'false');
++  assert.equal(gif.searchParams.get('glyphs'), 'false');
++  assert.ok(gif.searchParams.get('pgn')?.includes('[Event "Analysis"]'));
++  assert.equal(canExportAnalysisGif(ctrl), true);
++  assert.equal(canExportAnalysisGif({ ...ctrl, mainline: Array(602) } as AnalyseCtrl), false);
++});
 diff --git a/ui/analyse/tests/noSweatFullGame.test.ts b/ui/analyse/tests/noSweatFullGame.test.ts
 new file mode 100644
 index 0000000..f786836
@@ -77957,10 +78385,10 @@ index 0000000..0a1dd6a
 +});
 diff --git a/ui/analyse/tests/noSweatPgn.test.ts b/ui/analyse/tests/noSweatPgn.test.ts
 new file mode 100644
-index 0000000..7cb2b3d
+index 0000000..6cecc28
 --- /dev/null
 +++ b/ui/analyse/tests/noSweatPgn.test.ts
-@@ -0,0 +1,64 @@
+@@ -0,0 +1,125 @@
 +import { parseComment, parsePgn } from 'chessops/pgn';
 +import assert from 'node:assert/strict';
 +import { test } from 'node:test';
@@ -78006,11 +78434,69 @@ index 0000000..7cb2b3d
 +
 +test('PGN export preserves a nonzero black-to-move FEN and the actual checkmate result', () => {
 +  const fen = '6k1/5ppp/8/8/8/5q2/5PPP/6K1 b - - 0 35';
-+  const exported = parsePgn(boardPgn(board(`[SetUp "1"]\n[FEN "${fen}"]\n\n35... Qd1# *`)))[0];
-+  assert.equal(exported.headers.get('FEN'), fen);
-+  assert.equal(exported.headers.get('SetUp'), '1');
-+  assert.equal(exported.headers.get('Result'), '0-1');
-+  assert.equal(exported.moves.children[0].data.san, 'Qd1#');
++  const ctrl = board(`[SetUp "1"]\n[FEN "${fen}"]\n\n35... Qd1# *`);
++  for (const mode of ['annotated', 'raw'] as const) {
++    const exported = parsePgn(boardPgn(ctrl, mode))[0];
++    assert.equal(exported.headers.get('FEN'), fen);
++    assert.equal(exported.headers.get('SetUp'), '1');
++    assert.equal(exported.headers.get('Result'), '0-1');
++    assert.equal(exported.moves.children[0].data.san, 'Qd1#');
++  }
++});
++
++test('raw matches native postgame SAN export, omitting imported and computed annotations and all sidelines', () => {
++  const ctrl = board(
++    '[White "Byrne"]\n[Black "Fischer"]\n[Result "1/2-1/2"]\n\n' +
++      '1. e4 $1 { Original note [%eval 0.20] [%clk 0:05:00] } ' +
++      '(1. d4 $2 { Sideline note } d5) e5 (1... c5) 2. Nf3 1/2-1/2',
++  );
++  ctrl.tree.root.comments = [{ id: 'r', by: 'PGN', text: 'Before the game' }];
++  const first = ctrl.tree.root.children[0];
++  first.comments!.push({ id: 'c', by: 'lichess', text: 'Generated review', comp: true });
++  first.glyphs!.push({ id: 3, name: 'Brilliant', symbol: '!!', comp: true });
++  first.eval = { cp: 43, depth: 14, fen: first.fen, knodes: 10, pvs: [] };
++  first.clock = 12345;
++  const annotated = boardPgn(ctrl);
++  assert.equal(annotated, boardPgn(ctrl, 'annotated'), 'default stays annotated');
++  const full = parsePgn(annotated)[0];
++  assert.deepEqual(full.comments, ['Before the game']);
++  assert.deepEqual(full.moves.children[0].data.nags, [1, 3]);
++  assert.equal(full.moves.children.length, 2);
++  assert.ok(full.moves.children[0].data.comments?.some(c => c.includes('Original note')));
++  assert.ok(full.moves.children[0].data.comments?.some(c => c.includes('Generated review')));
++  const rawText = boardPgn(ctrl, 'raw');
++  const raw = parsePgn(rawText)[0];
++  assert.deepEqual(raw.headers, full.headers);
++  assert.equal(raw.headers.get('Result'), '1/2-1/2');
++  assert.equal(raw.comments?.length ?? 0, 0);
++  const sans: string[] = [];
++  let node = raw.moves;
++  while (node.children.length) {
++    assert.equal(node.children.length, 1, 'raw contains only the current mainline');
++    const child = node.children[0];
++    sans.push(child.data.san);
++    assert.equal(child.data.nags?.length ?? 0, 0);
++    assert.equal(child.data.comments?.length ?? 0, 0);
++    node = child;
++  }
++  assert.deepEqual(sans, ['e4', 'e5', 'Nf3']);
++  assert.equal(rawText.includes('[%'), false);
++  assert.equal(rawText.includes('unsubmitted draft'), false);
++  assert.equal(boardPgn(ctrl), annotated, 'raw export must not mutate the annotated tree or headers');
++});
++
++test('annotated exports native centisecond clocks including zero and mate evaluations on variations', () => {
++  const ctrl = board('1. e4 (1. d4 d5) e5 *');
++  const [first, variation] = ctrl.tree.root.children;
++  first.clock = 12345;
++  variation.clock = 0;
++  variation.eval = { mate: -3, depth: 20, fen: variation.fen, knodes: 10, pvs: [] };
++  const exported = parsePgn(boardPgn(ctrl))[0];
++  const comment = (index: number) =>
++    exported.moves.children[index].data.comments?.map(parseComment).find(c => c.clock !== undefined);
++  assert.equal(comment(0)?.clock, 123.45);
++  assert.equal(comment(1)?.clock, 0);
++  assert.deepEqual(comment(1)?.evaluation, { mate: -3, depth: 20 });
 +});
 +
 +test('download creates a real PGN file with the current board content', async t => {
@@ -78024,6 +78510,9 @@ index 0000000..7cb2b3d
 +  downloadBoardPgn(ctrl);
 +  assert.equal(filename, 'mutechess-analysis.pgn');
 +  assert.equal(await (await fetch(href)).text(), boardPgn(ctrl));
++  downloadBoardPgn(ctrl, 'raw');
++  assert.equal(filename, 'mutechess-analysis-raw.pgn');
++  assert.equal(await (await fetch(href)).text(), boardPgn(ctrl, 'raw'));
 +});
 diff --git a/ui/analyse/tests/noSweatRatingChart.test.ts b/ui/analyse/tests/noSweatRatingChart.test.ts
 new file mode 100644

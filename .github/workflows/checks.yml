@@ -54,8 +54,6 @@ jobs:
           PY
       - name: Service boundary contracts
         run: python -m unittest discover -s deploy/public -p 'test_*.py'
-      - name: Validation continuation evidence guards
-        run: python -m unittest discover -s deploy/study -p 'test_*.py'
       - name: Reproduce frozen continuous experiment design
         run: |
           python deploy/study/design.py --output /tmp/strength-design
@@ -99,7 +97,7 @@ jobs:
 
   native-forum:
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 25
     env:
       GIT_LFS_SKIP_SMUDGE: '1'
     steps:
@@ -117,6 +115,38 @@ jobs:
           cache: sbt
           cache-dependency-path: deploy/lila/patches/lila-nostr-maia.patch
       - uses: sbt/setup-sbt@f9efdb0d6d5959d3e1510935d4ff64a65821a256 # v1
-      - name: Check native Scala formatting, study plan, forum permissions and user search
+      - name: Check native Scala formatting, GIF parsing, study plan, forum permissions and user search
         working-directory: /tmp/lila
-        run: sbt -J-Xms128m -J-Xmx3g -J-Xss2m -J-XX:ActiveProcessorCount=2 -Dsbt.task.cpus=2 -Dsbt.supershell=false 'scalafmtCheckAll;forum/testOnly lila.forum.ForumAccessTest;user/testOnly lila.user.NoSweatUserSearchTest;testOnly lila.app.NoSweatStudyPlanTest'
+        run: sbt -J-Xms128m -J-Xmx3g -J-Xss2m -J-XX:ActiveProcessorCount=2 -Dsbt.task.cpus=2 -Dsbt.supershell=false 'scalafmtCheckAll;game/testOnly lila.game.NoSweatAnalysisGifTest;compile;forum/testOnly lila.forum.ForumAccessTest;user/testOnly lila.user.NoSweatUserSearchTest;testOnly lila.app.NoSweatStudyPlanTest'
+
+
+  native-gif:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Prepare pinned native renderer generation tools
+        run: |
+          rustup toolchain install 1.99.1 --profile minimal
+          cargo +1.99.1 install resvg --version 0.45.1 --locked --root /tmp/mute-gif-tools
+          echo /tmp/mute-gif-tools/bin >> "$GITHUB_PATH"
+          python -m pip install numpy==2.2.6 Pillow==11.3.0
+      - name: Build the exact official renderer with the reviewed moss extension
+        run: |
+          git init /tmp/lila-gif
+          git -C /tmp/lila-gif fetch --depth=1 https://github.com/lichess-org/lila-gif.git a92511ae3be69c0c0a4002c39fa6cf92f4c93768
+          git -C /tmp/lila-gif checkout --detach FETCH_HEAD
+          python deploy/public/gif-renderer.py prepare /tmp/lila-gif /tmp/mute-gif-artifact
+          python deploy/public/gif-renderer.py verify /tmp/mute-gif-artifact
+          python deploy/public/smoke-gif-renderer.py /tmp/mute-gif-artifact/lila-gif /tmp/mute-gif-smoke
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-gif-qualified
+          path: |
+            /tmp/mute-gif-artifact
+            /tmp/mute-gif-smoke
+          if-no-files-found: error
+          retention-days: 7

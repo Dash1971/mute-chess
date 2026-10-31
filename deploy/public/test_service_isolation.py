@@ -56,7 +56,30 @@ class ServiceBoundaryTests(unittest.TestCase):
             self.assertNotIn('ReadWritePaths=', unit)
             self.assertIn('/etc/nosweatchess', unit.split('InaccessiblePaths=')[1].splitlines()[0])
             self.assertIn('Requires=nosweatchess-isolation.service', unit)
-        self.assertEqual(len(set(isolation.USERS.values())), 6)
+        self.assertEqual(len(set(isolation.USERS.values())), 7)
+
+    def test_renderer_has_no_outbound_or_secret_access_and_only_app_can_connect(self):
+        uids = {role: i + 900 for i, role in enumerate(isolation.ROLES)}
+        rules = isolation.policy(uids, 910)
+        for destination in ('ip daddr 127.0.0.1', 'ip6 daddr ::1'):
+            self.assertIn(destination + ' tcp dport { 6175 } meta skuid != { 0, 901 } counter reject', rules)
+        for role in isolation.ROLES:
+            self.assertEqual(6175 in isolation.PORTS[role], role == 'app')
+        renderer = isolation.unit('gif')
+        self.assertEqual(isolation.PORTS['gif'], ())
+        self.assertIn(f'meta skuid {uids["gif"]} counter reject', rules)
+        self.assertNotIn(f'meta skuid {uids["gif"]} ip daddr', rules)
+        self.assertIn('--bind 127.0.0.1:6175', renderer)
+        self.assertIn('MemoryMax=768M', renderer)
+        self.assertIn('CPUQuota=100%', renderer)
+        self.assertIn('Environment=TOKIO_WORKER_THREADS=2', renderer)
+        self.assertIn('/etc/nosweatchess', renderer.split('InaccessiblePaths=')[1].splitlines()[0])
+        self.assertIn('ProtectSystem=strict', renderer)
+        self.assertNotIn('EnvironmentFile=', renderer)
+        self.assertNotIn('ReadWritePaths=', renderer)
+        self.assertNotIn('nosweatchess-mongo.service', renderer)
+        self.assertIn('Requires=nosweatchess-gif.service', isolation.unit('app'))
+        self.assertIn('After=nosweatchess-gif.service', isolation.unit('app'))
 
     def test_only_databases_can_write_their_respective_state_directories(self):
         for role in isolation.ROLES:

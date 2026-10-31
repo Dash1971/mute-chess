@@ -1,0 +1,251 @@
+diff --git a/src/assets.rs b/src/assets.rs
+index 067a8a2..906d577 100644
+--- a/src/assets.rs
++++ b/src/assets.rs
+@@ -29,10 +29,12 @@ pub enum BoardTheme {
+     Pink,
+     #[serde(alias = "purple-diag")]
+     Purple,
++    #[serde(rename = "quiet-signal")]
++    QuietSignal,
+ }
+ 
+ pub struct ByBoardTheme<T> {
+-    inner: [T; 6],
++    inner: [T; 7],
+ }
+ 
+ impl<T> ByBoardTheme<T> {
+@@ -42,7 +44,7 @@ impl<T> ByBoardTheme<T> {
+     {
+         use BoardTheme::*;
+         ByBoardTheme {
+-            inner: [Blue, Brown, Green, Ic, Pink, Purple].map(f),
++            inner: [Blue, Brown, Green, Ic, Pink, Purple, QuietSignal].map(f),
+         }
+     }
+ 
+@@ -420,6 +422,49 @@ pub fn sprite_data(board: BoardTheme, pieces: PieceSet) -> &'static [u8] {
+             Totoy => include_bytes!("../theme/sprites/purple-totoy.gif"),
+             Xkcd => include_bytes!("../theme/sprites/purple-xkcd.gif"),
+         },
++
++        BoardTheme::QuietSignal => match pieces {
++            Alpha => include_bytes!("../theme/sprites/quiet-signal-alpha.gif"),
++            Anarcandy => include_bytes!("../theme/sprites/quiet-signal-anarcandy.gif"),
++            Caliente => include_bytes!("../theme/sprites/quiet-signal-caliente.gif"),
++            California => include_bytes!("../theme/sprites/quiet-signal-california.gif"),
++            Cardinal => include_bytes!("../theme/sprites/quiet-signal-cardinal.gif"),
++            Cburnett => include_bytes!("../theme/sprites/quiet-signal-cburnett.gif"),
++            Celtic => include_bytes!("../theme/sprites/quiet-signal-celtic.gif"),
++            Chess7 => include_bytes!("../theme/sprites/quiet-signal-chess7.gif"),
++            Chessnut => include_bytes!("../theme/sprites/quiet-signal-chessnut.gif"),
++            Companion => include_bytes!("../theme/sprites/quiet-signal-companion.gif"),
++            Cooke => include_bytes!("../theme/sprites/quiet-signal-cooke.gif"),
++            Disguised => include_bytes!("../theme/sprites/quiet-signal-disguised.gif"),
++            Dubrovny => include_bytes!("../theme/sprites/quiet-signal-dubrovny.gif"),
++            Fantasy => include_bytes!("../theme/sprites/quiet-signal-fantasy.gif"),
++            Firi => include_bytes!("../theme/sprites/quiet-signal-firi.gif"),
++            Fresca => include_bytes!("../theme/sprites/quiet-signal-fresca.gif"),
++            Gioco => include_bytes!("../theme/sprites/quiet-signal-gioco.gif"),
++            Governor => include_bytes!("../theme/sprites/quiet-signal-governor.gif"),
++            Horsey => include_bytes!("../theme/sprites/quiet-signal-horsey.gif"),
++            Icpieces => include_bytes!("../theme/sprites/quiet-signal-icpieces.gif"),
++            KiwenSuwi => include_bytes!("../theme/sprites/quiet-signal-kiwen-suwi.gif"),
++            Kosal => include_bytes!("../theme/sprites/quiet-signal-kosal.gif"),
++            Leipzig => include_bytes!("../theme/sprites/quiet-signal-leipzig.gif"),
++            Letter => include_bytes!("../theme/sprites/quiet-signal-letter.gif"),
++            Maestro => include_bytes!("../theme/sprites/quiet-signal-maestro.gif"),
++            Merida => include_bytes!("../theme/sprites/quiet-signal-merida.gif"),
++            Monarchy => include_bytes!("../theme/sprites/quiet-signal-monarchy.gif"),
++            Mpchess => include_bytes!("../theme/sprites/quiet-signal-mpchess.gif"),
++            Papercut => include_bytes!("../theme/sprites/quiet-signal-papercut.gif"),
++            Pirouetti => include_bytes!("../theme/sprites/quiet-signal-pirouetti.gif"),
++            Pixel => include_bytes!("../theme/sprites/quiet-signal-pixel.gif"),
++            Reillycraig => include_bytes!("../theme/sprites/quiet-signal-reillycraig.gif"),
++            Rhosgfx => include_bytes!("../theme/sprites/quiet-signal-rhosgfx.gif"),
++            Riohacha => include_bytes!("../theme/sprites/quiet-signal-riohacha.gif"),
++            Shapes => include_bytes!("../theme/sprites/quiet-signal-shapes.gif"),
++            Spatial => include_bytes!("../theme/sprites/quiet-signal-spatial.gif"),
++            Staunty => include_bytes!("../theme/sprites/quiet-signal-staunty.gif"),
++            Tatiana => include_bytes!("../theme/sprites/quiet-signal-tatiana.gif"),
++            Totoy => include_bytes!("../theme/sprites/quiet-signal-totoy.gif"),
++            Xkcd => include_bytes!("../theme/sprites/quiet-signal-xkcd.gif"),
++        },
+     }
+ }
+ 
+@@ -429,6 +474,24 @@ mod tests {
+ 
+     use super::*;
+ 
++    #[test]
++    fn quiet_signal_is_a_separate_theme_with_every_piece_set() {
++        let theme = BoardTheme::deserialize(
++            serde::de::value::StrDeserializer::<serde::de::value::Error>::new("quiet-signal"),
++        )
++        .expect("decode native moss theme");
++        assert!(matches!(theme, BoardTheme::QuietSignal));
++        let themes = ByBoardTheme::new(|board| board as usize);
++        assert_eq!(themes.inner.len(), 7);
++        assert_eq!(*themes.by_board_theme(theme), 6);
++        assert_eq!(*themes.by_board_theme(BoardTheme::Brown), 1);
++        let sprites = ByPieceSet::new(|pieces| sprite_data(theme, pieces));
++        assert_eq!(sprites.inner.len(), 40);
++        for sprite in sprites.inner {
++            assert!(sprite.starts_with(b"GIF89a") || sprite.starts_with(b"GIF87a"));
++        }
++    }
++
+     #[test]
+     fn test_by_piece_set() {
+         assert_eq!(
+diff --git a/theme/make-sprites.py b/theme/make-sprites.py
+index 9c657fb..7490694 100755
+--- a/theme/make-sprites.py
++++ b/theme/make-sprites.py
+@@ -3,6 +3,7 @@
+ import os
+ import subprocess
+ import io
++import argparse
+ 
+ import numpy as np
+ 
+@@ -26,6 +27,7 @@ BOARD_THEMES = {
+     "ic":     ("#ececec", "#c1c18e"),
+     "pink":   ("#f1f1c9", "#f07272"),
+     "purple": ("#9f90b0", "#7d4a8d"),
++    "quiet-signal": ("#c7cfba", "#668478"),
+ }
+ 
+ NONTHEME_COLORS = [
+@@ -48,6 +50,7 @@ def resvg(path):
+     res = subprocess.run(
+         ["resvg", path, "-c", "-w", "90"],
+         stdout=subprocess.PIPE,
++        check=True,
+     )
+ 
+     return Image.open(io.BytesIO(res.stdout), formats=["PNG"])
+@@ -65,7 +68,7 @@ def blend(bottom, top):
+     return f"#{r:02x}{g:02x}{b:02x}"
+ 
+ 
+-def make_sprite(light, dark, pieces, check_gradient):
++def make_sprite(light, dark, pieces, check_gradient, exact_square_colors=False):
+     gradients = [(light, dark), (blend(light, HIGHLIGHT), blend(dark, HIGHLIGHT))] + NONTHEME_COLORS
+ 
+     image = Image.new("RGB", (8 * SQUARE_SIZE, (7 + len(gradients)) * SQUARE_SIZE))
+@@ -100,18 +103,35 @@ def make_sprite(light, dark, pieces, check_gradient):
+         rectangle = Image.fromarray(np.broadcast_to(line, (SQUARE_SIZE, 8 * SQUARE_SIZE, 4)), "RGBA")
+         image.paste(rectangle, (0, (7 + i) * SQUARE_SIZE))
+ 
+-    return image.quantize(255, dither=0)
+-
+-def main():
++    image = image.quantize(255, dither=0)
++    if exact_square_colors:
++        # Quantization can shift a flat square by one RGB unit. Anchor the two
++        # endpoint palette entries to the native board, without regenerating or
++        # changing the existing upstream themes.
++        palette = image.getpalette()
++        for x, color in [(0, light), (8 * SQUARE_SIZE - 1, dark)]:
++            index = image.getpixel((x, 7 * SQUARE_SIZE)) * 3
++            palette[index:index + 3] = ImageColor.getrgb(color)
++        image.putpalette(palette)
++    return image
++
++def main(argv=None):
++    parser = argparse.ArgumentParser(description="Generate the official board/piece sprites")
++    parser.add_argument("--theme", action="append", choices=BOARD_THEMES,
++                        help="Generate only this theme; repeat to select several")
++    args = parser.parse_args(argv)
+     check_gradient = resvg("check-gradient.svg")
+ 
+-    piece_dirs = [ os.path.basename(f.path) for f in os.scandir("piece") if f.is_dir() ]
++    piece_dirs = sorted(os.path.basename(f.path) for f in os.scandir("piece") if f.is_dir())
+     piece_sets = {piece_set: resvg_pieces(piece_set) for piece_set in piece_dirs}
+ 
+     for board_theme, (light, dark) in BOARD_THEMES.items():
++        if args.theme and board_theme not in args.theme:
++            continue
+         print(f"Generating sprites for {board_theme}...")
+         for piece_set, pieces in piece_sets.items():
+-            image = make_sprite(light=light, dark=dark, pieces=pieces, check_gradient=check_gradient)
++            image = make_sprite(light=light, dark=dark, pieces=pieces, check_gradient=check_gradient,
++                                exact_square_colors=board_theme == "quiet-signal")
+             image.save(f"sprites/{board_theme}-{piece_set}.gif", optimize=True, interlace=False, transparency=image.getpixel((0, SQUARE_SIZE * 9)))
+ 
+     rust_code_updates(piece_dirs)
+@@ -143,10 +163,10 @@ def rust_code_updates(piece_dirs):
+     print(inner_data)
+ 
+     print("#" * 80)
+-    colors = ["blue", "brown", "green", "ic", "pink", "purple"]
++    colors = BOARD_THEMES
+     sprite_data = "match board {"
+     for color in colors:
+-        sprite_data += f"\n    BoardTheme::{color.capitalize()} => match pieces {{\n"
++        sprite_data += f"\n    BoardTheme::{to_pascal_case(color)} => match pieces {{\n"
+         for piece_set in sorted(piece_dirs):
+             sprite_data += f"        {to_pascal_case(piece_set)} => include_bytes!(\"../theme/sprites/{color}-{piece_set}.gif\"),\n"
+         sprite_data += "    },\n"
+diff --git a/theme/requirements-sprites.txt b/theme/requirements-sprites.txt
+new file mode 100644
+index 0000000..f03088b
+--- /dev/null
++++ b/theme/requirements-sprites.txt
+@@ -0,0 +1,3 @@
++# Official resvg CLI 0.45.1 is also required on PATH.
++numpy==2.2.6
++Pillow==11.3.0
+diff --git a/theme/test_make_sprites.py b/theme/test_make_sprites.py
+new file mode 100644
+index 0000000..143a23f
+--- /dev/null
++++ b/theme/test_make_sprites.py
+@@ -0,0 +1,43 @@
++import importlib.util
++import io
++from pathlib import Path
++import unittest
++from unittest.mock import patch, MagicMock
++
++from PIL import Image
++
++
++spec = importlib.util.spec_from_file_location("make_sprites", Path(__file__).with_name("make-sprites.py"))
++sprites = importlib.util.module_from_spec(spec)
++spec.loader.exec_module(sprites)
++
++
++class MossSpritesTest(unittest.TestCase):
++    def test_native_moss_colors_survive_official_palette_quantization(self):
++        empty = Image.new("RGBA", (90, 90))
++        pieces = {f"{color}{piece}": empty for color in "wb" for piece in "PNBRQK"}
++        light, dark = sprites.BOARD_THEMES["quiet-signal"]
++        image = sprites.make_sprite(light, dark, pieces, empty, exact_square_colors=True).convert("RGB")
++        self.assertEqual(image.getpixel((0, 0)), (199, 207, 186))
++        self.assertEqual(image.getpixel((90, 0)), (102, 132, 120))
++
++    def test_theme_filter_only_writes_moss_and_keeps_all_piece_sets(self):
++        piece_dirs = [p.name for p in (Path(__file__).parent / "piece").iterdir() if p.is_dir()]
++        self.assertEqual(len(piece_dirs), 40)
++        entries = [MagicMock(path=name, is_dir=lambda: True) for name in piece_dirs]
++        image = MagicMock()
++        with patch.object(sprites.os, "scandir", return_value=entries), \
++                patch.object(sprites, "resvg"), \
++                patch.object(sprites, "resvg_pieces"), \
++                patch.object(sprites, "make_sprite", return_value=image), \
++                patch.object(sprites, "rust_code_updates"), \
++                patch("sys.stdout", new_callable=io.StringIO):
++            sprites.main(["--theme", "quiet-signal"])
++        self.assertEqual(
++            [call.args[0] for call in image.save.call_args_list],
++            [f"sprites/quiet-signal-{name}.gif" for name in sorted(piece_dirs)],
++        )
++
++
++if __name__ == "__main__":
++    unittest.main()

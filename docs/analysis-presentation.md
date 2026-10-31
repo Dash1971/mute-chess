@@ -133,8 +133,8 @@ analysis contexts keep their original editable input behavior. Issue #153
 supersedes the earlier permanent explicit import buttons and blank FEN field.
 
 Export follows native Lichess `ReplayUi`'s `fen-pgn` layout and `copy-me`
-components: a read-only FEN row, PGN download/copy row, and selectable annotated
-PGN text. Native clipboard/checkmark feedback, metal buttons, field sizes and
+components: a read-only FEN row, native Image and Share rows, separate annotated/raw
+PGN download/copy controls, and selectable annotated PGN text (#155). Native clipboard/checkmark feedback, metal buttons, field sizes and
 spacing replace the compact custom button strip and explanatory furniture.
 The only local adapter is the clipboard/blob callback required by an unsaved
 line without a public game-export URL. There are no new colors or component
@@ -196,3 +196,13 @@ correct FEN. Lichess’s live analysis page returned maintenance/502 during this
 check; comparison used the pinned source and owner screenshots. Evidence is
 retained locally in `native-import-controls-2026-10-31/`. Deployment remains held
 for the experiment’s verified final cleanup; no public data/configuration changed.
+
+
+## Native export parity and initial tab (#155/#158)
+
+See [the exact-source export adapter](analysis-export.md). The standalone board
+uses the native post-game rows and components, while its local data stays
+unsaved. Import is the initial tab so visitors can immediately paste a position
+or game. Explicit tab switching, draft isolation and post-game defaults remain.
+The existing expected-score header remains side-to-move after the owner
+reconsidered the proposed Mobile Maia favored-side conversion (#156 canceled).

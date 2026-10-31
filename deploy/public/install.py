@@ -22,7 +22,7 @@ maintenance_lock = open('/run/lock/nosweatchess-maintenance.lock', 'a')
 fcntl.flock(maintenance_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
 payload = Path(sys.argv[1]).resolve()
 dev = Path('/home/dash/no-sweat-lila')
-for role in ('gateway', 'app', 'ws', 'adapter', 'mongo', 'redis'):
+for role in ('gateway', 'app', 'ws', 'adapter', 'mongo', 'redis', 'gif'):
     if subprocess.run(['systemctl', 'is-active', '--quiet', 'nosweatchess-' + role]).returncode == 0:
         raise SystemExit('Stop the public stack in a checked maintenance window before installation')
 base = Path('/opt/nosweatchess')
@@ -58,6 +58,11 @@ lesson_spec = importlib.util.spec_from_file_location('learning_import', payload 
 lesson_checker = importlib.util.module_from_spec(lesson_spec)
 lesson_spec.loader.exec_module(lesson_checker)
 lesson_checker.verify()
+gif_spec = importlib.util.spec_from_file_location('gif_renderer', payload / 'deployment/public/gif-renderer.py')
+gif_renderer = importlib.util.module_from_spec(gif_spec)
+gif_spec.loader.exec_module(gif_renderer)
+gif_artifact = payload / 'gif-renderer'
+gif_receipt = gif_renderer.verify(gif_artifact)
 # Reject parse failures before creating a release or changing the active symlink.
 checker = base / 'tools/node'
 if not checker.exists():
@@ -86,11 +91,14 @@ os.chown(etc, 0, 0)
 digest = hashlib.sha256()
 for name in ('lila-nostr-maia.patch', 'gateway.mjs', 'install.py', 'lila-adapter/server.mjs', 'RELEASE.json'):
     digest.update((payload / name).read_bytes())
+digest.update(json.dumps(gif_receipt, sort_keys=True).encode())
 release_id = 'main-' + release_info['gitCommit'][:12] + '-' + digest.hexdigest()[:8]
 release = base / 'releases' / release_id
 if release.exists():
     raise SystemExit('This immutable release already exists; inspect it before reusing it')
 release.mkdir()
+if gif_renderer.stage(gif_artifact, release / 'gif') != gif_receipt:
+    raise RuntimeError('Renderer artifact changed after release preflight')
 
 def ignore(directory, names):
     result = {x for x in names if x in {'.git', 'node_modules', 'target', 'logs', '.bloop', '.bsp', '.metals', '.devenv', 'RUNNING_PID', 'instance.lock'} or x.startswith('._')}
@@ -147,6 +155,7 @@ play.server.http.address = "127.0.0.1"
 play.server.http.port = 29663
 mongodb.uri = "mongodb://127.0.0.1:27019/nosweat?appName=nosweatchess"
 redis.uri = "redis://127.0.0.1:16380"
+game.gifUrl = "http://127.0.0.1:6175"
 net.domain = "mutechess.org"
 net.prodDomain = "mutechess.org"
 net.socket.domains = ["mutechess.org"]
@@ -203,6 +212,9 @@ for name in ('adapter.env', 'backup.key'):
 
 source_dir = release / 'corresponding-source'
 source_dir.mkdir()
+shutil.copy(release / 'gif/lila-gif-upstream.tar', source_dir / 'lila-gif-upstream.tar')
+shutil.copy(release / 'gif/lila-gif-moss.tar', source_dir / 'lila-gif-moss.tar')
+shutil.copy(release / 'gif/BUILD.json', source_dir / 'lila-gif-BUILD.json')
 for repository in ('lila', 'lila-ws'):
     with (source_dir / f'{repository}-upstream.tar').open('wb') as output:
         subprocess.run(['git', '-c', f'safe.directory={dev}/sources/{repository}', '-C', str(dev / 'sources' / repository), 'archive', 'HEAD'], stdout=output, check=True)
@@ -238,7 +250,7 @@ isolation_info.chmod(0o600)
 subprocess.run(['nft', '-c', '-f', '/etc/nosweatchess/isolation.nft'], check=True)
 subprocess.run(['systemd-analyze', 'verify', *[
     '/etc/systemd/system/nosweatchess-' + role + '.service'
-    for role in ('isolation', 'gateway', 'app', 'ws', 'adapter', 'mongo', 'redis')
+    for role in ('isolation', *isolation.ROLES)
 ]], check=True)
 subprocess.run(['systemctl', 'daemon-reload'], check=True)
 isolation.activate_policy()

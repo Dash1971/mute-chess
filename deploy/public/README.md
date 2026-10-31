@@ -14,13 +14,17 @@ Node prototype. Codex assisted implementation and automated verification; no
 human manual acceptance or upstream contribution is claimed.
 
 `install.py PAYLOAD` runs as root on the dedicated Ubuntu host. It creates the
-separate `nosweat-{gateway,app,ws,adapter,mongo,redis}` service accounts,
+separate `nosweat-{gateway,app,ws,adapter,mongo,redis,gif}` service accounts,
 root-owned releases under `/opt/nosweatchess`,
 separate secrets under `/etc/nosweatchess`, and data under `/srv/nosweatchess`.
 Prepare/build the pinned sources using `../lila/README.md`. The payload includes
 both patches, adapter code with `npm ci --omit=dev`, the public club assets,
 gateway, installer, pinned Python requirements, BUILD.md, LICENSE,
 THIRD_PARTY.md, the complete `third-party` directory and deployment scripts.
+Include the pinned renderer artifact at `PAYLOAD/gif-renderer`, with official
+source, exact moss-theme overlay and verified build receipt described in
+[gif-renderer.md](gif-renderer.md). Its build and installation remain **HELD**
+during the active study; source integration is not evidence of live availability.
 Include `design/quiet-signal` and `design/logo-explorations/final` (excluding
 `node_modules` and Python environments). The installer checks for the brand sources
 before preparing a release and includes them with the corresponding-source archive.
@@ -31,7 +35,7 @@ the payload and source archive.
 The fresh Mongo database is `nosweat` on loopback port 27019. Apply upstream
 `lila/bin/mongodb/indexes.js` and this directory's guarded `indexes.js` before
 accepting logins. Redis is on 16380. Native HTTP/WS/adapter ports are
-29663/29664/29665; the gateway is 29660. All listeners bind loopback. Six
+29663/29664/29665; the gateway is 29660 and renderer is 6175. All listeners bind loopback. Seven
 `nosweatchess-*` system services use restart-on-failure, memory limits, a read-only
 release, restricted writes and loopback-only network access. Enable them for boot.
 The existing Cloudflare connector is a separate service and owns tunnel credentials.
@@ -53,22 +57,23 @@ and WebSocket services receive separate configuration, and the latter gets only
 its own signing configuration. Backup key/storage remain root-only.
 
 The `nosweatchess-isolation` unit atomically loads only its own nftables table;
-it does not replace UFW rules. It is required by the six services and by the
+it does not replace UFW rules. It is required by the seven services and by the
 Cloudflare connector at boot. Established connections/replies are allowed.
 New connections from each identity are limited as follows:
 
 | Identity | New outbound connections |
 | --- | --- |
 | Gateway | Loopback native HTTP 29663 and WebSockets 29664 |
-| Application | Loopback Mongo 27019, Redis 16380 and adapter 29665 |
+| Application | Loopback Mongo 27019, Redis 16380, adapter 29665 and renderer 6175 |
 | WebSockets | Loopback Mongo 27019 and Redis 16380 |
 | Adapter | Loopback native HTTP 29663; HTTPS only to the installer-resolved Wallet of Satoshi/Living Room of Satoshi addresses; local stub DNS |
 | Mongo / Redis | None; replies to clients remain allowed |
+| GIF renderer | None; replies to application clients remain allowed |
 | Cloudflare connector | Loopback gateway 29660, local stub DNS, Cloudflare tunnel endpoints on 7844 |
 
 New connections to the public databases are rejected from other local identities,
 including private development processes; root keeps an administration path. The
-private adapter accepts new connections only from the app or root. This phase
+private adapter and GIF renderer accept new connections only from the app or root. This phase
 enforces the local database boundary through Linux UIDs/network policy; it does
 not add database passwords or per-collection database roles. App and WebSocket
 services retain the database access required by native Lichess, including seen-at
