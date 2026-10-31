@@ -18,6 +18,13 @@ import datetime as dt
 import math
 
 
+PROFILES = {
+    'pilot-10-v1': {'workers': 1, 'cpu': '200%', 'memory': '1400M'},
+    'ramp-22-v1': {'workers': 2, 'cpu': '400%', 'memory': '2000M'},
+    'calibration-200-v1': {'workers': 2, 'cpu': '400%', 'memory': '2000M'},
+    'strength-predictor-v1': {'workers': 2, 'cpu': '400%', 'memory': '2000M'},
+}
+
 def command(*args, check=True):
     return subprocess.run(args, text=True, capture_output=True, check=check).stdout.strip()
 
@@ -45,12 +52,9 @@ def main():
     parser.add_argument('--public-ratings', action='store_true', required=True)
     parser.add_argument('--run', required=True)
     parser.add_argument('--commit', required=True)
-    parser.add_argument('--profile', choices=('pilot-10-v1', 'ramp-22-v1', 'calibration-200-v1'), default='pilot-10-v1')
+    parser.add_argument('--profile', choices=tuple(PROFILES), default='pilot-10-v1')
     args = parser.parse_args()
-    plans = {'pilot-10-v1': {'workers': 1, 'cpu': '200%', 'memory': '1400M'},
-             'ramp-22-v1': {'workers': 2, 'cpu': '400%', 'memory': '2000M'},
-             'calibration-200-v1': {'workers': 2, 'cpu': '400%', 'memory': '2000M'}}
-    plan = plans[args.profile]
+    plan = PROFILES[args.profile]
     if os.geteuid() != 0 or not re.fullmatch(r'[a-z][a-z0-9_]{2,31}', args.run):
         raise SystemExit('Root and a safe run ID are required')
     if not re.fullmatch(r'[0-9a-f]{40}', args.commit):
