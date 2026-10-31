@@ -9,10 +9,11 @@
       "areas": [
         {
           "id": "application-wiring",
-          "rationale": "Connect the bounded Maia, Nostr, patron and focused-page adapters to native routing and dependency wiring; do not replace native domain services.",
+          "rationale": "Connect the bounded Maia, Nostr, patron and focused-page adapters to native routing and dependency wiring; do not replace native domain services. Issue #101 publishes managed BOT connection transitions through the native Tell bus so WebSocket room presence retains active rounds; disconnection is paired on finish/failure. Native lifecycle/flush/TTL remain unchanged.",
           "verification": [
             "Native stage/format checks",
-            "Private login, pool, account and source/provenance checks"
+            "Private login, pool, account and source/provenance checks",
+            "Private slow legal replay across two native idle windows; monotonic plies, paired presence and no native lifecycle patch (#101)."
           ],
           "files": [
             "app/Env.scala",
@@ -350,11 +351,12 @@
         },
         {
           "id": "bounded-native-bot-trial",
-          "rationale": "Explicitly gated bot-versus-bot reservations for a bounded public rating/capacity study; retain native rules, clocks, completion, Glicko and safeguards. Share the existing admission queue and account busy checks; qualification uses an isolated namespace. Versioned 10/22-game plans expose fixed worker/concurrency and 100/200-admission metadata; no arbitrary public capacity setting or rating implementation is added.",
+          "rationale": "Explicitly gated bot-versus-bot reservations for a bounded public rating/capacity study; retain native rules, clocks, completion, Glicko and safeguards. Share the existing admission queue and account busy checks; qualification uses an isolated namespace. Versioned 10/22-game plans expose fixed worker/concurrency and 100/200-admission metadata; no arbitrary public capacity setting or rating implementation is added. Study BOT connections use the same native Tell bus and paired disconnections, preserving native WebSocket room presence (#101).",
           "verification": [
             "Native NoSweatStudyScopeTest/NoSweatStudyPlanTest and stage/format checks",
             "Study policy/scheduler regression tests",
-            "Disposable native BOT-vs-BOT game and perf persistence qualification; public run checkpoints"
+            "Disposable native BOT-vs-BOT game and perf persistence qualification; public run checkpoints",
+            "Reproduce original headless rollback then replay >=145 seconds without rollback; fail closed on inconsistent state."
           ],
           "files": [
             "app/NoSweatStudy.scala",

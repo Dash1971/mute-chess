@@ -6,6 +6,7 @@ import { Maia, MODEL_SHA256 } from './maia.mjs';
 import { freezeStudy, studyPolicy } from './study-policy.mjs';
 import { StudyWorkers } from './study-workers.mjs';
 import { pairing } from './study-schedule.mjs';
+import { StudyProgress } from './study-progress.mjs';
 
 const workerCount = Number(process.env.STUDY_WORKERS ?? 1);
 if (![1, 2].includes(workerCount)) throw Error('Invalid study worker count');
@@ -24,6 +25,7 @@ await mkdir(output, { recursive: true });
 const events = `${output}/events.jsonl`, checkpoint = `${output}/checkpoint.json`;
 let maia, last, stopping = false, failure, initial;
 const lastServed = new Map();
+const progress = new StudyProgress();
 const pending = new Map(), completed = new Set(), timings = [];
 async function log(event) {
   await appendFile(events, JSON.stringify({ at: new Date().toISOString(), ...event }) + '\n');
@@ -62,13 +64,14 @@ function percentiles(values) {
 }
 async function play(game) {
   const started = performance.now();
-  const moves = game.state.moves ? game.state.moves.split(' ') : [];
-  if (moves.length !== game.ply) throw Error('Native move history/ply disagreement');
+  const moves = progress.observe(game);
+  if (!progress.maySubmit(game)) return;
   const frozen = game.policies[game.turn];
   const result = await maia.predict(moves, studyPolicy(frozen, run, game.ply, roster));
   const returned = performance.now();
   try { await native(`/club/internal/study/${game.id}/move`, { ply: game.ply, move: result.move }); }
   catch (e) { if (e.status === 409) return; throw e; }
+  progress.acknowledge(game, result.move);
   const timing = { type: 'move', id: game.id, ply: game.ply, move: result.move,
     bot: frozen.production.bot, worker: result.studyWorker, inferenceMs: result.inferenceMs, totalMs: performance.now() - started,
     beforeCommitMs: returned - started, turnToCommitMs: Date.now() - game.lastMoveAt, addedWaitMs: 0, concurrency: last.games.length };
