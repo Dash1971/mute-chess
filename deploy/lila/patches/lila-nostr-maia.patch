@@ -2856,7 +2856,7 @@ index a5094c6..60daa09 100644
    .pair {
      @extend %flex-center;
 diff --git a/ui/analyse/css/_layout.scss b/ui/analyse/css/_layout.scss
-index 4f219ad..5ae45e9 100644
+index 4f219ad..1cbce53 100644
 --- a/ui/analyse/css/_layout.scss
 +++ b/ui/analyse/css/_layout.scss
 @@ -113,6 +113,12 @@ $analyse-gauge-gap: 4px;
@@ -2895,20 +2895,26 @@ index 4f219ad..5ae45e9 100644
      &__side {
        margin-top: 0;
      }
-@@ -174,6 +189,31 @@ $analyse-gauge-gap: 4px;
+@@ -174,6 +189,37 @@ $analyse-gauge-gap: 4px;
        min-height: 10em;
      }
  
-+    // The optional explorer scrolls in the side column, without changing the
-+    // board row or pushing native move controls below an expanded table.
++    // Keep Maia cards and opening text inside the board-height sidebar so a
++    // long WikiBook article cannot push the native underboard below the page.
 +    &:has(.nosweat-candidate-panel) {
 +      ---col3-uniboard-side-min: 320px;
 +
 +      .analyse__side {
 +        grid-row: 1 / 3;
-+        height: auto;
-+        overflow: visible;
-+        display: block;
++        height: var(---cg-height, auto);
++        min-height: 0;
++        overflow-y: auto;
++        display: flex;
++        flex-direction: column;
++      }
++
++      .analyse__wiki {
++        min-height: 0;
 +      }
 +
 +      .nosweat-candidate-panel {
@@ -5120,10 +5126,10 @@ index bfe17e8..c95e1c7 100644
        ? tab(ctrl, 'now_playing', active, [
            ...i18n.site.nbGamesInPlay.asArray(nbPlaying, nbPlaying >= 100 ? '99+' : nbPlaying.toString()),
 diff --git a/ui/puzzle/css/_tools.scss b/ui/puzzle/css/_tools.scss
-index ca31d49..8c73ff6 100644
+index ca31d49..62e9371 100644
 --- a/ui/puzzle/css/_tools.scss
 +++ b/ui/puzzle/css/_tools.scss
-@@ -164,3 +164,108 @@
+@@ -164,3 +164,134 @@
      color: $c-font-clearer;
    }
  }
@@ -5230,6 +5236,32 @@ index ca31d49..8c73ff6 100644
 +  button {
 +    padding: 0.1em 0.2em;
 +    text-transform: none;
++  }
++}
++
++.nosweat-puzzle-maia-heading {
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  color: $c-font-dim;
++  font-size: 0.8em;
++
++  button {
++    padding: 0 2px;
++    font-size: 16px;
++  }
++}
++
++button.nosweat-maia-label {
++  padding: 0;
++  text-align: left;
++  font: inherit;
++  font-weight: bold;
++
++  &:hover,
++  &:focus-visible {
++    text-decoration: underline;
++    text-underline-offset: 0.2em;
 +  }
 +}
 diff --git a/ui/puzzle/src/autoShape.ts b/ui/puzzle/src/autoShape.ts
@@ -19639,10 +19671,10 @@ HcmV?d00001
 
 diff --git a/public/nosweat/brand.css b/public/nosweat/brand.css
 new file mode 100644
-index 0000000..7b51bd8
+index 0000000..7ed0480
 --- /dev/null
 +++ b/public/nosweat/brand.css
-@@ -0,0 +1,162 @@
+@@ -0,0 +1,181 @@
 +.site-title .nosweat-header-icon{width:38px;height:38px;margin-right:2px}.site-title .nosweat-wordmark{width:174px;height:50px;object-fit:contain}.nosweat-light{display:none}.light .nosweat-dark{display:none}.light .nosweat-light{display:block}.nosweat-login-wordmark{width:272px;max-width:100%;height:62px}.auth__brand{justify-content:center}@media(max-width:799px){.site-title .nosweat-wordmark{display:none!important}.site-title .nosweat-header-icon{width:36px;height:36px;margin:0}}
 +
 +main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-dark.svg")}.light main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-light.svg")}
@@ -19805,6 +19837,25 @@ index 0000000..7b51bd8
 +
 +
 +.analyse .game__meta__players .player { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
++
++/* One Maia uses the same compact frame for two columns of four leading moves. */
++.nosweat-policy-columns { display:flex; min-width:0; align-items:start; }
++.nosweat-policy-columns > table { flex:1; min-width:0; table-layout:fixed; }
++.nosweat-policy-columns > table + table { border-left:1px solid var(--c-border); }
++.nosweat-maia-settings-dialog { max-width:520px; }
++.nosweat-maia-settings-view fieldset { margin:1em 0; padding:0; border:0; }
++.nosweat-maia-settings-view legend { font-size:1.15em; margin-bottom:.5em; }
++.nosweat-maia-settings-view .setting { display:flex; align-items:center; justify-content:space-between; gap:1em; margin:.6em 0; }
++.nosweat-maia-settings-view [hidden] { display:none; }
++.nosweat-maia-settings-view p,.nosweat-maia-settings-view small { color:var(--c-font-dim); line-height:1.5; }
++.nosweat-rating-heading .nosweat-maia-settings { order:3; flex:0 0 auto; padding:0; font-size:16px; }
++
++.nosweat-arrow-palette { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 1em; text-align:left; }
++.nosweat-arrow-palette .setting { gap:.5em; font-size:12px; }
++.nosweat-arrow-palette input[type=color] { flex:0 0 38px; width:38px; height:28px; padding:2px; appearance:auto; cursor:pointer; }
++.nosweat-arrow-palette input[type=color]::-webkit-color-swatch-wrapper { padding:0; }
++.nosweat-arrow-palette input[type=color]::-webkit-color-swatch { border:0; border-radius:2px; }
++.nosweat-maia-settings-view details { text-align:left; color:var(--c-font-dim); margin:.6em 0; }
 diff --git a/public/nosweat/favicon-32.png b/public/nosweat/favicon-32.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..4261e6d916997479521a76cde8d32c2f0eee3236
@@ -20891,28 +20942,29 @@ index 0000000..ec4cc78
 +};
 diff --git a/ui/analyse/src/noSweatAnalysis.ts b/ui/analyse/src/noSweatAnalysis.ts
 new file mode 100644
-index 0000000..803e337
+index 0000000..937b0e9
 --- /dev/null
 +++ b/ui/analyse/src/noSweatAnalysis.ts
-@@ -0,0 +1,813 @@
+@@ -0,0 +1,800 @@
 +import type { DrawShape } from '@lichess-org/chessground/draw';
 +import { parseUci } from 'chessops/util';
 +import { attributesModule, classModule, init } from 'snabbdom';
 +
 +import { frag } from 'lib';
 +import { winningChances } from 'lib/ceval';
++import { licon } from 'lib/licon';
++import { saveEnginePreferences, showMaiaRating, showEngineSettings } from 'lib/nosweat/engineSettings';
 +import { maiaExpectedScore } from 'lib/nosweat/expectedScore';
 +import { storage } from 'lib/storage';
-+import { domDialog, hl, type VNode } from 'lib/view';
++import { hl, type VNode } from 'lib/view';
 +
 +import type AnalyseCtrl from './ctrl';
-+import { engineArrows, engineShapes, engineColors } from './noSweatArrows';
++import { engineArrows, engineShapes, engineColors, type EngineColors } from './noSweatArrows';
 +import { BoardReview } from './noSweatBoardReview';
 +import { candidateQuality, qualityLabels, stockfishWinrate, blunderRanks } from './noSweatCandidateQuality';
 +import { encodeHistory, policy, san, position, standardUci, type Candidate } from './noSweatCore';
 +import { reviewClick } from './noSweatEvents';
 +import { ReviewFish, type Review } from './noSweatFish';
-+import { gameReviewQualities, gameReviewQuality } from './noSweatFullReview';
 +import { OpeningLabel } from './noSweatOpening';
 +import { readEnginePreferences, type EnginePreferences } from './noSweatPreferences';
 +import {
@@ -20946,7 +20998,6 @@ index 0000000..803e337
 +  score: EvalScore;
 +  depth: number;
 +}
-+const ratings = Array.from({ length: 21 }, (_, i) => 600 + i * 100);
 +export class NoSweatAnalysis {
 +  readonly boardReview: BoardReview;
 +  enabled = false;
@@ -20968,6 +21019,7 @@ index 0000000..803e337
 +  history = true;
 +  maiaArrows = true;
 +  fishArrows = true;
++  arrowColors: EngineColors = { ...engineColors };
 +  ratingTable = true;
 +  private ratingContext = '';
 +  private chartHover?: { fen: string; uci: Uci };
@@ -21038,55 +21090,37 @@ index 0000000..803e337
 +      history: this.history,
 +      maiaArrows: this.maiaArrows,
 +      fishArrows: this.fishArrows,
++      arrowColors: this.arrowColors,
 +    };
 +  }
 +  engineSettings(): HTMLElement {
-+    const select = (key: keyof EnginePreferences, name: string, options: [string, string][]) =>
-+      `<label class="setting"><span>${name}</span><select data-engine-pref="${key}" aria-label="${name}">${options
-+        .map(
-+          ([value, text]) =>
-+            `<option value="${value}" ${String(this[key]) === value ? 'selected' : ''}>${text}</option>`,
-+        )
-+        .join('')}</select></label>`;
-+    const toggle = (key: 'history' | 'maiaArrows' | 'fishArrows' | 'secondMaiaEnabled', name: string) =>
-+      `<label class="setting"><span>${name}</span><input type="checkbox" data-engine-pref="${key}" ${this[key] ? 'checked' : ''}></label>`;
-+    const options: [string, string][] = ratings.map(n => [String(n), String(n)]);
-+    const view = frag<HTMLElement>(`<div><fieldset class="nosweat-engine-settings"><legend>Engines</legend>
-+      ${select('model', 'Maia model', [
-+        ['5m', 'Maia3 5M · light'],
-+        ['79m', 'Maia3 79M'],
-+      ])}
-+      ${select('selfElo', 'Primary Maia rating', options)}${select('opponentElo', 'Primary opponent input', options)}
-+      ${toggle('secondMaiaEnabled', 'Second Maia')}${select('secondMaiaElo', 'Second Maia rating', options)}
-+      ${toggle('history', 'Use move history')}${toggle('maiaArrows', 'Show Maia arrows')}${toggle('fishArrows', 'Show Stockfish arrows')}
-+      <small>Maia downloads 36 MB for 5M or 331 MB for 79M on first use. Ratings are model inputs, not calibrated Elo.</small>
-+      </fieldset><fieldset class="nosweat-review-settings"><legend>Whole-game analysis</legend>
-+      <div class="nosweat-review-quality">${gameReviewQualities.map(q => `<label><input type="radio" name="nosweat-review-quality" value="${q.name}" ${q.name === gameReviewQuality(storage.get('nosweat.gameReview.quality')).name ? 'checked' : ''}><span>${q.name}</span></label>`).join('')}</div>
-+      <button type="button" class="button button-empty nosweat-review-engine">Engine settings</button></fieldset></div>`);
-+    view.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-engine-pref]').forEach(input => {
-+      input.addEventListener('change', () => {
-+        const key = input.dataset.enginePref as keyof EnginePreferences;
-+        const value =
-+          input instanceof HTMLInputElement
-+            ? input.checked
-+            : key === 'selfElo' || key === 'opponentElo' || key === 'secondMaiaElo'
-+              ? Number(input.value)
-+              : input.value;
-+        const next = readEnginePreferences(JSON.stringify({ ...this.enginePreferences(), [key]: value }));
-+        if (next.model !== this.model) this.release();
-+        Object.assign(this, next);
-+        storage.make('nosweat.enginePreferences.v2').set(JSON.stringify(next));
-+        this.positionChanged(true);
-+        this.ctrl.setAutoShapes();
-+        this.refreshReview();
-+      });
-+    });
-+    view.querySelectorAll<HTMLInputElement>('input[name="nosweat-review-quality"]').forEach(input => {
-+      input.onchange = () => storage.set('nosweat.gameReview.quality', input.value);
-+    });
++    const view = frag<HTMLElement>(`<fieldset class="nosweat-engine-settings"><legend>Engines</legend>
++      <button type="button" class="button button-empty nosweat-maia-settings">Engine Analysis settings</button>
++      <button type="button" class="button button-empty nosweat-review-engine">Advanced Stockfish settings</button></fieldset>`);
++    view.querySelector<HTMLButtonElement>('.nosweat-maia-settings')!.onclick = () => this.openMaiaSettings();
 +    view.querySelector<HTMLButtonElement>('.nosweat-review-engine')!.onclick = () =>
 +      site.asset.loadEsm('analyse.local', { init: this.ctrl });
 +    return view;
++  }
++  private applyEnginePreferences(next: EnginePreferences): void {
++    const inferenceChanged = (
++      ['model', 'selfElo', 'opponentElo', 'secondMaiaEnabled', 'secondMaiaElo', 'history'] as const
++    ).some(key => this[key] !== next[key]);
++    if (next.model !== this.model) this.release();
++    Object.assign(this, next);
++    saveEnginePreferences(next);
++    if (inferenceChanged) this.positionChanged(true);
++    this.refreshReview();
++  }
++  private openMaiaSettings(): void {
++    showEngineSettings(
++      this.enginePreferences(),
++      next => this.applyEnginePreferences(next),
++      () => site.asset.loadEsm('analyse.local', { init: this.ctrl }),
++    );
++  }
++  private get leadingMoveCount(): number {
++    return this.secondMaiaEnabled ? 4 : 8;
 +  }
 +  private readonly analysisAllowed = (): boolean =>
 +    this.ctrl.isCevalAllowed() && !this.ctrl.opts.practice && !this.ctrl.study?.data.chapter.practice;
@@ -21318,7 +21352,7 @@ index 0000000..803e337
 +    return [
 +      ...new Set(
 +        [
-+          ...this.candidates.slice(0, this.expanded[0] ? undefined : 4),
++          ...this.candidates.slice(0, this.expanded[0] ? undefined : this.leadingMoveCount),
 +          ...this.secondaryCandidates.slice(0, this.expanded[1] ? undefined : 4),
 +        ]
 +          .map(c => c.uci)
@@ -21506,6 +21540,7 @@ index 0000000..803e337
 +        stockfish,
 +        this.maiaArrows ? this.candidates[0]?.uci : undefined,
 +        this.maiaArrows && this.secondMaiaEnabled ? this.secondaryCandidates[0]?.uci : undefined,
++        this.arrowColors,
 +      ),
 +      this.ctrl.bottomColor(),
 +    );
@@ -21513,46 +21548,30 @@ index 0000000..803e337
 +  private readonly expanded = [false, false];
 +
 +  private openRating(secondary: boolean): void {
-+    const value = secondary ? this.secondMaiaElo : this.selfElo;
-+    domDialog({
-+      class: 'nosweat-rating-dialog',
-+      modal: true,
-+      show: true,
-+      easyClose: 'clickOutside',
-+      focus: '[aria-pressed="true"]',
-+      htmlText: `<h2>Maia rating</h2><div class="nosweat-rating-grid">${ratings
-+        .map(
-+          n =>
-+            `<button type="button" class="fbt" data-rating="${n}" aria-pressed="${n === value}">${n}</button>`,
-+        )
-+        .join('')}</div>`,
-+      actions: [
-+        {
-+          selector: '[data-rating]',
-+          listener: (event, dialog) => {
-+            this.chooseRating(Number((event.currentTarget as HTMLElement).dataset.rating), secondary);
-+            dialog.close();
-+          },
-+        },
-+      ],
-+    });
++    showMaiaRating(secondary ? this.secondMaiaElo : this.selfElo, rating =>
++      this.chooseRating(rating, secondary),
++    );
 +  }
 +
 +  private maiaCard(secondary: boolean): VNode {
 +    const rating = secondary ? this.secondMaiaElo : this.selfElo;
 +    const candidates = secondary ? this.secondaryCandidates : this.candidates;
 +    const score = secondary ? this.secondaryExpectedScore : this.expectedScore;
-+    const color = secondary ? engineColors.maiaSecond : engineColors.maia;
++    const color = secondary ? this.arrowColors.maiaSecond : this.arrowColors.maia;
 +    const white = position(this.ctrl.node.fen).turn === 'white';
 +    const side = white ? 'White' : 'Black';
 +    const expanded = this.expanded[Number(secondary)];
-+    const rest = candidates.slice(4).reduce((sum, c) => sum + c.probability, 0);
++    const leading = this.leadingMoveCount;
++    const rest = candidates.slice(leading).reduce((sum, c) => sum + c.probability, 0);
 +    const grades = blunderRanks(
 +      new Map([...this.scores].flatMap(([uci, result]) => (result ? [[uci, result.score] as const] : []))),
 +      white,
 +    );
-+    const moves: (Candidate | undefined)[] = candidates.slice(0, expanded ? undefined : 4);
-+    while (moves.length < 4) moves.push(undefined);
++    const moves: (Candidate | undefined)[] = candidates.slice(0, expanded ? undefined : leading);
++    while (moves.length < leading) moves.push(undefined);
++    const groups = this.secondMaiaEnabled
++      ? [moves]
++      : [moves.slice(0, Math.ceil(moves.length / 2)), moves.slice(Math.ceil(moves.length / 2))];
 +    const status = !this.enabled
 +      ? 'Analysis off'
 +      : position(this.ctrl.node.fen).isEnd()
@@ -21590,50 +21609,59 @@ index 0000000..803e337
 +        ),
 +      ]),
 +      hl('div.nosweat-policy-scroll', [
-+        hl('table.nosweat-policy', [
-+          hl('thead', hl('tr', [hl('th', 'Move'), hl('th', 'Probability')])),
-+          hl(
-+            'tbody',
-+            moves.map((c, index) => {
-+              if (!c)
-+                return hl('tr.nosweat-policy-placeholder', { key: 'empty-' + index }, [
-+                  hl('td', !candidates.length && index === 0 ? status : '—'),
-+                  hl('td', '—'),
-+                ]);
-+              const quality = this.moveQuality(c.uci);
-+              return hl('tr', { key: this.ctrl.node.fen + c.uci }, [
-+                hl(
-+                  'td',
-+                  hl(
-+                    'button.fbt',
-+                    {
-+                      attrs: {
-+                        type: 'button',
-+                        'data-quality': quality ?? 'pending',
-+                        'data-blunder-rank': quality === 'blunder' ? (grades.get(c.uci) ?? 0) : false,
-+                        title: quality
-+                          ? qualityLabels[quality] + ' · Stockfish estimate'
-+                          : 'Move quality not yet available',
-+                        'aria-label':
-+                          san(this.ctrl.node.fen, c.uci) +
-+                          ': ' +
-+                          (quality ? qualityLabels[quality] : 'quality not yet available'),
-+                      },
-+                      hook: reviewClick(() => this.preview(c.uci)),
-+                    },
-+                    san(this.ctrl.node.fen, c.uci),
-+                  ),
-+                ),
-+                hl('td', (c.probability * 100).toFixed(1) + '%'),
-+              ]);
-+            }),
++        hl(
++          'div.nosweat-policy-columns',
++          groups.map((group, column) =>
++            hl('table.nosweat-policy', { key: column }, [
++              hl('thead', hl('tr', [hl('th', 'Move'), hl('th', 'Probability')])),
++              hl(
++                'tbody',
++                group.map((c, index) => {
++                  if (!c)
++                    return hl('tr.nosweat-policy-placeholder', { key: 'empty-' + index }, [
++                      hl('td', !candidates.length && index === 0 && column === 0 ? status : '—'),
++                      hl('td', '—'),
++                    ]);
++                  const quality = this.moveQuality(c.uci);
++                  return hl('tr', { key: this.ctrl.node.fen + c.uci }, [
++                    hl(
++                      'td',
++                      hl(
++                        'button.fbt',
++                        {
++                          attrs: {
++                            type: 'button',
++                            'data-quality': quality ?? 'pending',
++                            'data-blunder-rank': quality === 'blunder' ? (grades.get(c.uci) ?? 0) : false,
++                            title: quality
++                              ? qualityLabels[quality] + ' · Stockfish estimate'
++                              : 'Move quality not yet available',
++                            'aria-label':
++                              san(this.ctrl.node.fen, c.uci) +
++                              ': ' +
++                              (quality ? qualityLabels[quality] : 'quality not yet available'),
++                          },
++                          hook: reviewClick(() => this.preview(c.uci)),
++                        },
++                        san(this.ctrl.node.fen, c.uci),
++                      ),
++                    ),
++                    hl('td', (c.probability * 100).toFixed(1) + '%'),
++                  ]);
++                }),
++              ),
++            ]),
 +          ),
-+        ]),
++        ),
 +      ]),
 +      hl(
 +        'button.nosweat-others',
 +        {
-+          attrs: { type: 'button', 'aria-expanded': String(expanded), disabled: candidates.length <= 4 },
++          attrs: {
++            type: 'button',
++            'aria-expanded': String(expanded),
++            disabled: candidates.length <= leading,
++          },
 +          hook: reviewClick(() => {
 +            this.expanded[Number(secondary)] = !expanded;
 +            this.colorCandidates();
@@ -21654,6 +21682,16 @@ index 0000000..803e337
 +      hl('section.nosweat-rating-explorer', [
 +        hl('header.nosweat-rating-heading', [
 +          hl('h3', 'Moves by Rating'),
++          hl('button.fbt.nosweat-maia-settings', {
++            attrs: {
++              type: 'button',
++              'aria-label': 'Engine Analysis settings',
++              title: 'Engine Analysis settings',
++              'data-icon': licon.Gear,
++              'aria-haspopup': 'dialog',
++            },
++            hook: reviewClick(() => this.openMaiaSettings()),
++          }),
 +          ratingLegend(
 +            this.byRating,
 +            uci => this.chartSan(uci),
@@ -21693,7 +21731,7 @@ index 0000000..803e337
 +      this.selfElo = rating;
 +      if (!keepOpponent) this.opponentElo = rating;
 +    }
-+    storage.make('nosweat.enginePreferences.v2').set(JSON.stringify(this.enginePreferences()));
++    saveEnginePreferences(this.enginePreferences());
 +    this.positionChanged(true);
 +    this.ctrl.redraw();
 +  }
@@ -23000,14 +23038,15 @@ index 0000000..b703dec
 +}
 diff --git a/ui/analyse/src/noSweatFullReview.ts b/ui/analyse/src/noSweatFullReview.ts
 new file mode 100644
-index 0000000..f1f6fe5
+index 0000000..18c2480
 --- /dev/null
 +++ b/ui/analyse/src/noSweatFullReview.ts
-@@ -0,0 +1,149 @@
+@@ -0,0 +1,144 @@
 +// Mobile Maia / En Croissant annotations over native Lichess analysis.
 +// Accuracy, ACPL, best lines and Learn from your mistakes stay native.
 +import { parseUci } from 'chessops/util';
 +
++import { gameReviewQualities } from 'lib/nosweat/reviewQuality';
 +import type { Glyph, TreeNodeBase } from 'lib/tree/types';
 +
 +import { type Annotation, type ClassificationInput, type ClassificationResult } from './noSweatClassify';
@@ -23028,13 +23067,7 @@ index 0000000..f1f6fe5
 +  return c && { id: c.id, name: c.name, symbol, comp: true, source: reviewSource };
 +};
 +
-+export const gameReviewQualities = [
-+  { name: 'Fast', depth: 12, movetime: 500 },
-+  { name: 'Balanced', depth: 14, movetime: 1000 },
-+  { name: 'Thorough', depth: 16, movetime: 1500 },
-+] as const;
-+export const gameReviewQuality = (name: string | null) =>
-+  gameReviewQualities.find(q => q.name === name) ?? gameReviewQualities[0];
++export { gameReviewQualities, gameReviewQuality } from 'lib/nosweat/reviewQuality';
 +
 +export function nativeReview(node: TreeNodeBase): Review | undefined {
 +  const terminal = terminalScore(node.fen);
@@ -77586,6 +77619,87 @@ index 0000000..3c938d9
 +  await pending;
 +  assert.equal(searches, 0);
 +});
+diff --git a/ui/analyse/tests/maiaSingleEngine.test.ts b/ui/analyse/tests/maiaSingleEngine.test.ts
+new file mode 100644
+index 0000000..1318fce
+--- /dev/null
++++ b/ui/analyse/tests/maiaSingleEngine.test.ts
+@@ -0,0 +1,75 @@
++import assert from 'node:assert/strict';
++import { mock, test } from 'node:test';
++import { attributesModule, init } from 'snabbdom';
++
++import { policy } from 'lib/nosweat/core';
++import { saveEnginePreferences } from 'lib/nosweat/engineSettings';
++import { defaultEnginePreferences } from 'lib/nosweat/preferences';
++
++import type AnalyseCtrl from '../src/ctrl';
++
++mock.module('../src/noSweatFish.ts', {
++  namedExports: {
++    ReviewFish: class {
++      destroy() {}
++    },
++  },
++});
++const { NoSweatAnalysis } = await import('../src/noSweatAnalysis');
++const fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
++
++test('one Maia fills both card columns with eight raw moves and Others retains the full policy', async t => {
++  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'ResizeObserver');
++  Object.defineProperty(globalThis, 'ResizeObserver', {
++    configurable: true,
++    value: class {
++      observe() {}
++      disconnect() {}
++    },
++  });
++  t.after(() => {
++    if (descriptor) Object.defineProperty(globalThis, 'ResizeObserver', descriptor);
++    else Reflect.deleteProperty(globalThis, 'ResizeObserver');
++  });
++  saveEnginePreferences({ ...defaultEnginePreferences });
++  const ctrl = {
++    cevalEnabled: () => false,
++    ceval: { storedPv: () => {} },
++    opts: {},
++    node: { fen, children: [] },
++    nodeList: [{ fen }],
++    path: '',
++    isCevalAllowed: () => true,
++    setAutoShapes: () => {},
++    redraw: () => {},
++    threatMode: () => false,
++  } as unknown as AnalyseCtrl;
++  const model = new NoSweatAnalysis(ctrl);
++  await Promise.resolve();
++  model.candidates = policy(fen, new Float32Array(4352));
++  model.secondaryCandidates = model.candidates;
++  const host = document.createElement('div');
++  document.body.append(host);
++  const patch = init([attributesModule]);
++  let vnode = patch(host, (model as any).candidateView());
++  let root = vnode.elm as HTMLElement;
++  assert.equal(root.querySelectorAll('.nosweat-maia-card').length, 2);
++  assert.equal(root.querySelectorAll('.nosweat-policy tbody button').length, 8);
++  model.secondMaiaEnabled = false;
++  vnode = patch(vnode, (model as any).candidateView());
++  root = vnode.elm as HTMLElement;
++  assert.equal(root.querySelectorAll('.nosweat-maia-card').length, 1);
++  assert.equal(root.querySelectorAll('.nosweat-policy').length, 2);
++  assert.equal(root.querySelectorAll('.nosweat-policy tbody button').length, 8);
++  assert.equal(root.querySelector('.nosweat-others span:last-child')!.textContent, '60.0% +');
++  assert.equal(
++    new Set([...root.querySelectorAll('.nosweat-policy tbody button')].map(b => b.textContent)).size,
++    8,
++  );
++  root.querySelector<HTMLButtonElement>('.nosweat-others')!.click();
++  vnode = patch(vnode, (model as any).candidateView());
++  assert.equal((vnode.elm as HTMLElement).querySelectorAll('.nosweat-policy tbody button').length, 20);
++  assert.equal((model as any).visibleCandidates().length, 20);
++  model.release();
++  root.remove();
++});
 diff --git a/ui/analyse/tests/noSweat.test.ts b/ui/analyse/tests/noSweat.test.ts
 new file mode 100644
 index 0000000..e4aceed
@@ -78229,10 +78343,10 @@ index 0000000..f786836
 +});
 diff --git a/ui/analyse/tests/noSweatFullReview.test.ts b/ui/analyse/tests/noSweatFullReview.test.ts
 new file mode 100644
-index 0000000..0a1dd6a
+index 0000000..40d08e9
 --- /dev/null
 +++ b/ui/analyse/tests/noSweatFullReview.test.ts
-@@ -0,0 +1,241 @@
+@@ -0,0 +1,255 @@
 +import assert from 'node:assert/strict';
 +import { describe, test } from 'node:test';
 +
@@ -78394,6 +78508,7 @@ index 0000000..0a1dd6a
 +        history: false,
 +        maiaArrows: false,
 +        fishArrows: true,
++        arrowColors: { ...engineColors },
 +      },
 +    );
 +    const invalid = readEnginePreferences(
@@ -78473,6 +78588,19 @@ index 0000000..0a1dd6a
 +    assert.equal(workers.length, 2);
 +    client.release();
 +  });
++});
++
++test('custom arrow palettes retain split agreement and native move geometry', () => {
++  const colors = { stockfish: '#112233', stockfishSecond: '#445566', maia: '#778899', maiaSecond: '#aabbcc' };
++  const arrows = engineArrows([{ uci: 'e2e4' }, { uci: 'd2d4' }], 'e2e4', 'e2e4', colors);
++  assert.deepEqual(arrows[0].tail, [colors.stockfish]);
++  assert.deepEqual(arrows[0].head, [colors.maia, colors.maiaSecond]);
++  assert.deepEqual(arrows[1].head, [colors.stockfishSecond]);
++  const shapes = engineShapes(arrows, 'white');
++  assert.equal(shapes[0].orig, 'e2');
++  assert.equal(shapes[0].dest, 'e4');
++  assert.ok(shapes[0].customSvg!.html.includes('#778899'));
++  assert.ok(shapes[0].customSvg!.html.includes('#aabbcc'));
 +});
 diff --git a/ui/analyse/tests/noSweatPgn.test.ts b/ui/analyse/tests/noSweatPgn.test.ts
 new file mode 100644
@@ -79738,10 +79866,10 @@ index 0000000..e82e519
 +});
 diff --git a/ui/lib/src/nosweat/arrows.ts b/ui/lib/src/nosweat/arrows.ts
 new file mode 100644
-index 0000000..595739d
+index 0000000..413a380
 --- /dev/null
 +++ b/ui/lib/src/nosweat/arrows.ts
-@@ -0,0 +1,82 @@
+@@ -0,0 +1,84 @@
 +// Mobile Maia review.dart / ReviewBoardOverlayPainter, AGPL-3.0.
 +import type { DrawShape } from '@lichess-org/chessground/draw';
 +export const engineColors = {
@@ -79750,6 +79878,7 @@ index 0000000..595739d
 +  maia: '#e89b3c',
 +  maiaSecond: '#e85d68',
 +};
++export type EngineColors = typeof engineColors;
 +export interface EngineArrow {
 +  uci: string;
 +  tail: string[];
@@ -79762,6 +79891,7 @@ index 0000000..595739d
 +  stockfish: { uci: string; width?: number }[],
 +  primary?: string,
 +  secondary?: string,
++  colors: EngineColors = engineColors,
 +): EngineArrow[] {
 +  const sf = [
 +    ...new Map(
@@ -79773,13 +79903,13 @@ index 0000000..595739d
 +  ];
 +  const maia = new Map<string, string[]>();
 +  for (const [move, color] of [
-+    [primary, engineColors.maia],
-+    [secondary, engineColors.maiaSecond],
++    [primary, colors.maia],
++    [secondary, colors.maiaSecond],
 +  ] as const)
 +    if (valid(move)) maia.set(move, [...(maia.get(move) ?? []), color]);
 +  const result: EngineArrow[] = [];
 +  sf.forEach((s, i) => {
-+    const color = i ? engineColors.stockfishSecond : engineColors.stockfish;
++    const color = i ? colors.stockfishSecond : colors.stockfish;
 +    const agreed = maia.get(s.uci);
 +    result.push({ uci: s.uci, tail: [color], head: agreed ?? [color], width: agreed ? 25 : (s.width ?? 25) });
 +    maia.delete(s.uci);
@@ -79928,6 +80058,186 @@ index 0000000..4b6b4be
 +  if (!pos.isEnd()) return undefined;
 +  return pos.isCheckmate() ? { mate: pos.turn === 'white' ? -1 : 1 } : { cp: 0 };
 +};
+diff --git a/ui/lib/src/nosweat/engineSettings.ts b/ui/lib/src/nosweat/engineSettings.ts
+new file mode 100644
+index 0000000..fb7fbdc
+--- /dev/null
++++ b/ui/lib/src/nosweat/engineSettings.ts
+@@ -0,0 +1,174 @@
++import { frag } from '../index';
++import { storage } from '../storage';
++import { domDialog } from '../view';
++import { engineColors, type EngineColors } from './arrows';
++import { readEnginePreferences, type EnginePreferences } from './preferences';
++import { gameReviewQualities, gameReviewQuality } from './reviewQuality';
++
++const preferenceKey = 'nosweat.enginePreferences.v2';
++export const maiaRatings: number[] = Array.from({ length: 21 }, (_, i) => 600 + i * 100);
++export const loadEnginePreferences = (): EnginePreferences =>
++  readEnginePreferences(storage.make(preferenceKey).get());
++export const saveEnginePreferences = (prefs: EnginePreferences): void =>
++  storage.make(preferenceKey).set(JSON.stringify(prefs));
++
++export function showMaiaRating(rating: number, choose: (rating: number) => void): void {
++  domDialog({
++    class: 'nosweat-rating-dialog',
++    modal: true,
++    show: true,
++    easyClose: 'clickOutside',
++    focus: '[aria-pressed="true"]',
++    htmlText: `<h2>Maia rating</h2><div class="nosweat-rating-grid">${maiaRatings
++      .map(
++        n =>
++          `<button type="button" class="fbt" data-rating="${n}" aria-pressed="${n === rating}">${n}</button>`,
++      )
++      .join('')}</div>`,
++    actions: [
++      {
++        selector: '[data-rating]',
++        listener: (event, dialog) => {
++          choose(Number((event.currentTarget as HTMLElement).dataset.rating));
++          dialog.close();
++        },
++      },
++    ],
++  });
++}
++
++// Shared by game analysis and puzzle review; this never changes puzzle solving permissions.
++export function engineSettingsView(
++  initial: EnginePreferences,
++  changed: (prefs: EnginePreferences) => void,
++): HTMLElement {
++  let prefs = initial;
++  const select = (key: keyof EnginePreferences, name: string, options: [string, string][]) =>
++    `<label class="setting" data-maia-setting="${key}"><span>${name}</span><select data-engine-pref="${key}" aria-label="${name}">${options
++      .map(
++        ([value, text]) =>
++          `<option value="${value}" ${String(prefs[key]) === value ? 'selected' : ''}>${text}</option>`,
++      )
++      .join('')}</select></label>`;
++  const toggle = (key: 'history' | 'maiaArrows' | 'fishArrows' | 'secondMaiaEnabled', name: string) =>
++    `<span class="setting"><span>${name}</span><span class="form-check__input"><input id="maia-${key}" type="checkbox" aria-label="${name}" data-engine-pref="${key}" ${prefs[key] ? 'checked' : ''}><label class="form-check__label" for="maia-${key}"></label></span></span>`;
++  const ratings: [string, string][] = maiaRatings.map(n => [String(n), String(n)]);
++  const view = frag<HTMLElement>(`<div class="nosweat-maia-settings-view">
++    <fieldset><legend>Analysis engines</legend>
++      ${toggle('secondMaiaEnabled', 'Enable a second Maia for analysis')}
++      <p>Compare two ratings, or turn this off to show more moves from one Maia. Puzzle review shows one row when this is off.</p>
++      ${select('selfElo', 'Primary Maia rating', ratings)}
++      ${select('secondMaiaElo', 'Second Maia rating', ratings)}
++    </fieldset>
++    <details><summary>Advanced Maia settings</summary><fieldset><legend>Maia preferences</legend>
++      ${select('model', 'Maia model', [
++        ['5m', 'Maia3 5M · light'],
++        ['79m', 'Maia3 79M'],
++      ])}
++      ${select('opponentElo', 'Primary opponent input', ratings)}
++      ${toggle('history', 'Use move history')}
++      <small>Maia downloads 36 MB for 5M or 331 MB for 79M on first use. Ratings are model inputs, not calibrated Elo. Settings are saved in this browser.</small>
++    </fieldset></details>
++    <fieldset><legend>Board arrows</legend>
++      ${toggle('maiaArrows', 'Show Maia arrows')}${toggle('fishArrows', 'Show Stockfish arrows')}
++      <div class="nosweat-arrow-palette">${(Object.keys(engineColors) as (keyof EngineColors)[])
++        .map(key => {
++          const name = {
++            maia: 'Primary Maia',
++            maiaSecond: 'Second Maia',
++            stockfish: 'Stockfish best move',
++            stockfishSecond: 'Stockfish second move',
++          }[key];
++          return `<label class="setting" ${key === 'maiaSecond' ? 'data-second-maia' : ''}><span>${name}</span><input type="color" data-arrow-color="${key}" value="${prefs.arrowColors[key]}" aria-label="${name} arrow color"></label>`;
++        })
++        .join('')}</div>
++      <button type="button" class="button button-empty nosweat-reset-arrow-colors">Reset arrow colors</button>
++    </fieldset>
++    <fieldset><legend>Computer analysis</legend>
++      <div class="nosweat-review-quality">${gameReviewQualities.map(q => `<label><input type="radio" name="nosweat-review-quality" value="${q.name}" ${q.name === gameReviewQuality(storage.get('nosweat.gameReview.quality')).name ? 'checked' : ''}><span>${q.name}</span></label>`).join('')}</div>
++      <p>Choose faster review or deeper analysis. Applies the next time you analyze a game or line.</p><details><summary>About analysis quality</summary><p>Fast: depth 12, up to 0.5 seconds per position.<br>Balanced: depth 14, up to 1 second per position.<br>Thorough: depth 16, up to 1.5 seconds per position.</p></details>
++    </fieldset>
++  </div>`);
++  const secondary = view.querySelector<HTMLElement>('[data-maia-setting="secondMaiaElo"]')!;
++  const updateSecondary = () => {
++    secondary.hidden = !prefs.secondMaiaEnabled;
++    secondary.querySelector('select')!.disabled = !prefs.secondMaiaEnabled;
++    view.querySelector<HTMLElement>('[data-second-maia]')!.hidden = !prefs.secondMaiaEnabled;
++  };
++  updateSecondary();
++  view.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-engine-pref]').forEach(input => {
++    input.addEventListener('change', () => {
++      const key = input.dataset.enginePref as keyof EnginePreferences;
++      const value =
++        input.tagName === 'INPUT'
++          ? (input as HTMLInputElement).checked
++          : key === 'selfElo' || key === 'opponentElo' || key === 'secondMaiaElo'
++            ? Number(input.value)
++            : input.value;
++      // A primary rating selection matches both inputs, just like the card's rating picker.
++      const opponent = key === 'selfElo' ? { opponentElo: value } : {};
++      prefs = readEnginePreferences(JSON.stringify({ ...prefs, ...opponent, [key]: value }));
++      view.querySelector<HTMLSelectElement>('[data-engine-pref="opponentElo"]')!.value = String(
++        prefs.opponentElo,
++      );
++      updateSecondary();
++      saveEnginePreferences(prefs);
++      changed(prefs);
++    });
++  });
++  view.querySelectorAll<HTMLInputElement>('[data-arrow-color]').forEach(input => {
++    input.addEventListener('change', () => {
++      const key = input.dataset.arrowColor as keyof EngineColors;
++      prefs = readEnginePreferences(
++        JSON.stringify({ ...prefs, arrowColors: { ...prefs.arrowColors, [key]: input.value } }),
++      );
++      saveEnginePreferences(prefs);
++      changed(prefs);
++    });
++  });
++  view.querySelector<HTMLButtonElement>('.nosweat-reset-arrow-colors')!.onclick = () => {
++    prefs = { ...prefs, arrowColors: { ...engineColors } };
++    view
++      .querySelectorAll<HTMLInputElement>('[data-arrow-color]')
++      .forEach(input => (input.value = prefs.arrowColors[input.dataset.arrowColor as keyof EngineColors]));
++    saveEnginePreferences(prefs);
++    changed(prefs);
++  };
++  view.querySelectorAll<HTMLInputElement>('input[name="nosweat-review-quality"]').forEach(input => {
++    input.onchange = () => storage.set('nosweat.gameReview.quality', gameReviewQuality(input.value).name);
++  });
++  return view;
++}
++
++export function showEngineSettings(
++  prefs: EnginePreferences,
++  changed: (prefs: EnginePreferences) => void,
++  advanced?: () => void,
++): void {
++  const view = engineSettingsView(prefs, changed);
++  if (advanced)
++    view.append(
++      frag(
++        '<button type="button" class="button button-empty nosweat-advanced-stockfish">Advanced Stockfish settings</button>',
++      ),
++    );
++  domDialog({
++    class: 'nosweat-maia-settings-dialog',
++    modal: true,
++    show: true,
++    easyClose: 'clickOutside',
++    htmlText: '<h2>Engine Analysis</h2>',
++    insert: [{ nodes: view }],
++    actions: advanced
++      ? [
++          {
++            selector: '.nosweat-advanced-stockfish',
++            listener: (_event, dialog) => {
++              dialog.close();
++              advanced();
++            },
++          },
++        ]
++      : [],
++  });
++}
 diff --git a/ui/lib/src/nosweat/expectedScore.ts b/ui/lib/src/nosweat/expectedScore.ts
 new file mode 100644
 index 0000000..7a07f41
@@ -80018,10 +80328,12 @@ index 0000000..44504e3
 +}
 diff --git a/ui/lib/src/nosweat/preferences.ts b/ui/lib/src/nosweat/preferences.ts
 new file mode 100644
-index 0000000..2cdb291
+index 0000000..f726b1f
 --- /dev/null
 +++ b/ui/lib/src/nosweat/preferences.ts
-@@ -0,0 +1,42 @@
+@@ -0,0 +1,57 @@
++import { engineColors, type EngineColors } from './arrows';
++
 +export interface EnginePreferences {
 +  model: '5m' | '79m';
 +  selfElo: number;
@@ -80031,6 +80343,7 @@ index 0000000..2cdb291
 +  history: boolean;
 +  maiaArrows: boolean;
 +  fishArrows: boolean;
++  arrowColors: EngineColors;
 +}
 +export const defaultEnginePreferences: EnginePreferences = {
 +  model: '5m',
@@ -80041,6 +80354,7 @@ index 0000000..2cdb291
 +  history: true,
 +  maiaArrows: true,
 +  fishArrows: true,
++  arrowColors: { ...engineColors },
 +};
 +export function readEnginePreferences(raw: string | null): EnginePreferences {
 +  let input: Partial<EnginePreferences> = {};
@@ -80053,6 +80367,11 @@ index 0000000..2cdb291
 +    typeof n === 'number' && Number.isInteger(n) && n >= 600 && n <= 2600 && n % 100 === 0 ? n : fallback;
 +  const boolean = (key: 'history' | 'maiaArrows' | 'fishArrows') =>
 +    typeof input[key] === 'boolean' ? input[key] : true;
++  const colors = input.arrowColors;
++  const color = (key: keyof EngineColors) =>
++    colors && typeof colors[key] === 'string' && /^#[0-9a-f]{6}$/i.test(colors[key])
++      ? colors[key].toLowerCase()
++      : engineColors[key];
 +  return {
 +    model: input.model === '79m' ? '79m' : '5m',
 +    selfElo: rating(input.selfElo),
@@ -80062,14 +80381,20 @@ index 0000000..2cdb291
 +    history: boolean('history'),
 +    maiaArrows: boolean('maiaArrows'),
 +    fishArrows: boolean('fishArrows'),
++    arrowColors: {
++      stockfish: color('stockfish'),
++      stockfishSecond: color('stockfishSecond'),
++      maia: color('maia'),
++      maiaSecond: color('maiaSecond'),
++    },
 +  };
 +}
 diff --git a/ui/lib/src/nosweat/reviewMaia.ts b/ui/lib/src/nosweat/reviewMaia.ts
 new file mode 100644
-index 0000000..77aca04
+index 0000000..5f1fda7
 --- /dev/null
 +++ b/ui/lib/src/nosweat/reviewMaia.ts
-@@ -0,0 +1,109 @@
+@@ -0,0 +1,121 @@
 +import { encodeHistory, policy, type Candidate } from './core';
 +import type { EnginePreferences } from './preferences';
 +
@@ -80105,7 +80430,19 @@ index 0000000..77aca04
 +    private readonly changed: () => void,
 +  ) {}
 +  set(context?: ReviewContext): void {
-+    const key = context ? JSON.stringify(context) : '';
++    const key = context
++      ? JSON.stringify({
++          ...context,
++          preferences: {
++            model: context.preferences.model,
++            selfElo: context.preferences.selfElo,
++            opponentElo: context.preferences.opponentElo,
++            secondMaiaEnabled: context.preferences.secondMaiaEnabled,
++            secondMaiaElo: context.preferences.secondMaiaElo,
++            history: context.preferences.history,
++          },
++        })
++      : '';
 +    if (key === this.key) return;
 +    const previousModel = this.key && (JSON.parse(this.key) as ReviewContext).preferences.model;
 +    this.key = key;
@@ -80179,6 +80516,20 @@ index 0000000..77aca04
 +    worker: () => new Worker('/assets/nosweat/analysis/maia-worker.js?v=analysis1', { type: 'module' }),
 +  });
 +}
+diff --git a/ui/lib/src/nosweat/reviewQuality.ts b/ui/lib/src/nosweat/reviewQuality.ts
+new file mode 100644
+index 0000000..eb5f930
+--- /dev/null
++++ b/ui/lib/src/nosweat/reviewQuality.ts
+@@ -0,0 +1,8 @@
++// Mobile Maia dev-260-alpha2 dd4e041, lib/src/stockfish.dart (AGPL-3.0).
++export const gameReviewQualities = [
++  { name: 'Fast', depth: 12, movetime: 500 },
++  { name: 'Balanced', depth: 14, movetime: 1000 },
++  { name: 'Thorough', depth: 16, movetime: 1500 },
++] as const;
++export const gameReviewQuality = (name: string | null): (typeof gameReviewQualities)[number] =>
++  gameReviewQualities.find(q => q.name === name) ?? gameReviewQualities[0];
 diff --git a/ui/lib/tests/cevalProtocol.test.ts b/ui/lib/tests/cevalProtocol.test.ts
 new file mode 100644
 index 0000000..547bb63
@@ -80344,12 +80695,106 @@ index 0000000..b041dbc
 +  for (const invalid of [[], [1, 2], [1, 2, NaN], [Infinity, 0, 0]])
 +    assert.throws(() => maiaExpectedScore(invalid));
 +});
+diff --git a/ui/lib/tests/maiaSettings.test.ts b/ui/lib/tests/maiaSettings.test.ts
+new file mode 100644
+index 0000000..544a637
+--- /dev/null
++++ b/ui/lib/tests/maiaSettings.test.ts
+@@ -0,0 +1,88 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++
++import {
++  loadEnginePreferences,
++  engineSettingsView,
++  saveEnginePreferences,
++} from '../src/nosweat/engineSettings';
++import { defaultEnginePreferences } from '../src/nosweat/preferences';
++
++const change = (input: HTMLInputElement | HTMLSelectElement) =>
++  input.dispatchEvent(new window.Event('change', { bubbles: true }));
++
++test('shared Maia settings default to two engines and retain the second rating across disabling and reload', () => {
++  localStorage.clear();
++  assert.equal(loadEnginePreferences().secondMaiaEnabled, true);
++  const updates: boolean[] = [];
++  const prefs = { ...defaultEnginePreferences, secondMaiaElo: 2600, fishArrows: false };
++  saveEnginePreferences(prefs);
++  const view = engineSettingsView(loadEnginePreferences(), next => updates.push(next.secondMaiaEnabled));
++  const second = view.querySelector<HTMLInputElement>('[data-engine-pref="secondMaiaEnabled"]')!;
++  const rating = view.querySelector<HTMLElement>('[data-maia-setting="secondMaiaElo"]')!;
++  assert.equal(second.checked, true);
++  assert.equal(rating.hidden, false);
++  second.checked = false;
++  change(second);
++  assert.equal(rating.hidden, true);
++  assert.equal(rating.querySelector('select')!.disabled, true);
++  assert.equal(loadEnginePreferences().secondMaiaEnabled, false);
++  assert.equal(loadEnginePreferences().secondMaiaElo, 2600);
++  assert.equal(loadEnginePreferences().fishArrows, false);
++  const reopened = engineSettingsView(loadEnginePreferences(), () => {});
++  const toggle = reopened.querySelector<HTMLInputElement>('[data-engine-pref="secondMaiaEnabled"]')!;
++  toggle.checked = true;
++  change(toggle);
++  assert.equal(
++    reopened.querySelector<HTMLSelectElement>('[data-engine-pref="secondMaiaElo"]')!.value,
++    '2600',
++  );
++  assert.equal(loadEnginePreferences().secondMaiaEnabled, true);
++  assert.deepEqual(updates, [false]);
++});
++
++test('primary rating selection matches opponent input while the second rating remains independent', () => {
++  const view = engineSettingsView({ ...defaultEnginePreferences }, () => {});
++  const primary = view.querySelector<HTMLSelectElement>('[data-engine-pref="selfElo"]')!;
++  primary.value = '1800';
++  change(primary);
++  assert.equal(loadEnginePreferences().selfElo, 1800);
++  assert.equal(loadEnginePreferences().opponentElo, 1800);
++  const secondary = view.querySelector<HTMLSelectElement>('[data-engine-pref="secondMaiaElo"]')!;
++  secondary.value = '2200';
++  change(secondary);
++  assert.equal(loadEnginePreferences().secondMaiaElo, 2200);
++  assert.equal(loadEnginePreferences().selfElo, 1800);
++});
++
++test('arrow colors are saved independently, reset explicitly, and invalid SVG inputs fall back', () => {
++  const view = engineSettingsView({ ...defaultEnginePreferences }, () => {});
++  const color = view.querySelector<HTMLInputElement>('[data-arrow-color="stockfish"]')!;
++  color.value = '#abcdef';
++  change(color);
++  assert.equal(loadEnginePreferences().arrowColors.stockfish, '#abcdef');
++  assert.equal(loadEnginePreferences().arrowColors.maia, defaultEnginePreferences.arrowColors.maia);
++  view.querySelector<HTMLButtonElement>('.nosweat-reset-arrow-colors')!.click();
++  assert.deepEqual(loadEnginePreferences().arrowColors, defaultEnginePreferences.arrowColors);
++  localStorage.setItem(
++    'nosweat.enginePreferences.v2',
++    JSON.stringify({ arrowColors: { maia: '"><script>', maiaSecond: '#AABBCC' } }),
++  );
++  const prefs = loadEnginePreferences();
++  assert.equal(prefs.arrowColors.maia, defaultEnginePreferences.arrowColors.maia);
++  assert.equal(prefs.arrowColors.maiaSecond, '#aabbcc');
++});
++
++test('computer-analysis quality shares the existing setting and Mobile Maia choices', () => {
++  localStorage.removeItem('nosweat.gameReview.quality');
++  const view = engineSettingsView({ ...defaultEnginePreferences }, () => {});
++  const radios = [...view.querySelectorAll<HTMLInputElement>('[name="nosweat-review-quality"]')];
++  assert.deepEqual(
++    radios.map(r => r.value),
++    ['Fast', 'Balanced', 'Thorough'],
++  );
++  assert.equal(radios.find(r => r.checked)!.value, 'Fast');
++  radios[2].checked = true;
++  change(radios[2]);
++  assert.equal(localStorage.getItem('nosweat.gameReview.quality'), 'Thorough');
++});
 diff --git a/ui/lib/tests/noSweatReviewMaia.test.ts b/ui/lib/tests/noSweatReviewMaia.test.ts
 new file mode 100644
-index 0000000..f719c6b
+index 0000000..dc50f84
 --- /dev/null
 +++ b/ui/lib/tests/noSweatReviewMaia.test.ts
-@@ -0,0 +1,108 @@
+@@ -0,0 +1,144 @@
 +import { Chess } from 'chessops/chess';
 +import { makeFen } from 'chessops/fen';
 +import assert from 'node:assert/strict';
@@ -80458,6 +80903,42 @@ index 0000000..f719c6b
 +            mode === 'view' && enabled && !hidden && !threat,
 +          );
 +});
++
++test('arrow color and visibility changes preserve completed policy without new inference', async () => {
++  let predictions = 0;
++  const engine = new ReviewMaia(
++    async () => ({
++      predict: async () => {
++        predictions++;
++        return new Float32Array(4352);
++      },
++      release: () => {},
++    }),
++    () => {},
++  );
++  engine.set(context);
++  await tick();
++  await tick();
++  assert.equal(predictions, 2);
++  const primary = engine.primary;
++  engine.set({
++    ...context,
++    preferences: {
++      ...context.preferences,
++      maiaArrows: false,
++      arrowColors: { ...context.preferences.arrowColors, maia: '#abcdef' },
++    },
++  });
++  await tick();
++  assert.equal(predictions, 2);
++  assert.equal(engine.primary, primary);
++  engine.set({ ...context, preferences: { ...context.preferences, secondMaiaEnabled: false } });
++  await tick();
++  await tick();
++  assert.equal(predictions, 3);
++  assert.deepEqual(engine.secondary, []);
++  engine.cancel();
++});
 diff --git a/ui/lib/tests/publicNameSearch.test.ts b/ui/lib/tests/publicNameSearch.test.ts
 new file mode 100644
 index 0000000..0a3f68a
@@ -80477,19 +80958,24 @@ index 0000000..0a3f68a
 +});
 diff --git a/ui/puzzle/src/noSweatMaia.ts b/ui/puzzle/src/noSweatMaia.ts
 new file mode 100644
-index 0000000..0e124a8
+index 0000000..680e899
 --- /dev/null
 +++ b/ui/puzzle/src/noSweatMaia.ts
-@@ -0,0 +1,241 @@
+@@ -0,0 +1,287 @@
 +import { parseUci } from 'chessops/util';
 +
 +import { winningChances } from 'lib/ceval';
 +import { fenColor } from 'lib/game';
-+import { engineArrows, engineShapes, engineColors } from 'lib/nosweat/arrows';
++import { licon } from 'lib/licon';
++import { engineArrows, engineShapes } from 'lib/nosweat/arrows';
 +import { san, type Candidate } from 'lib/nosweat/core';
-+import { readEnginePreferences } from 'lib/nosweat/preferences';
++import {
++  loadEnginePreferences,
++  saveEnginePreferences,
++  showMaiaRating,
++  showEngineSettings,
++} from 'lib/nosweat/engineSettings';
 +import { loadBrowserMaia, ReviewMaia, reviewAllowed } from 'lib/nosweat/reviewMaia';
-+import { storage } from 'lib/storage';
 +import { hl, bind } from 'lib/view';
 +
 +import type PuzzleCtrl from './ctrl';
@@ -80503,6 +80989,7 @@ index 0000000..0e124a8
 +  status: string;
 +  expanded: boolean;
 +  toggle: () => void;
++  chooseRating?: () => void;
 +  play: (uci: string) => void;
 +}
 +
@@ -80533,7 +81020,7 @@ index 0000000..0e124a8
 +}
 +
 +export function puzzleMaiaChannel(channel: PolicyChannel) {
-+  const { id, fen, rating, candidates, color, status, expanded, toggle, play } = channel;
++  const { id, fen, rating, candidates, color, status, expanded, toggle, play, chooseRating } = channel;
 +  const others = candidates.slice(3).reduce((sum, candidate) => sum + candidate.probability, 0);
 +  const panel = id + '-moves';
 +  return hl('div.nosweat-maia-channel', { key: id + fen + rating }, [
@@ -80568,7 +81055,19 @@ index 0000000..0e124a8
 +        },
 +      },
 +      [
-+        hl('strong.nosweat-maia-label', { attrs: { style: 'color:' + color } }, 'M' + rating),
++        hl(
++          'button.nosweat-maia-label',
++          {
++            attrs: {
++              type: 'button',
++              style: 'color:' + color,
++              'aria-label': `Change Maia rating, ${rating}`,
++              'aria-haspopup': 'dialog',
++            },
++            hook: bind('click', () => chooseRating?.()),
++          },
++          'M' + rating,
++        ),
 +        candidates.length
 +          ? hl('div.nosweat-maia-moves', [
 +              candidates
@@ -80645,8 +81144,7 @@ index 0000000..0e124a8
 +  private readonly engine: ReviewMaia;
 +  private expanded: [boolean, boolean] = [false, false];
 +  private displayKey = '';
-+  private readonly preferences = () =>
-+    readEnginePreferences(storage.make('nosweat.enginePreferences.v2').get());
++  private readonly preferences = loadEnginePreferences;
 +  constructor(private readonly ctrl: PuzzleCtrl) {
 +    this.engine = new ReviewMaia(loadBrowserMaia, () => {
 +      ctrl.setAutoShapes();
@@ -80661,7 +81159,7 @@ index 0000000..0e124a8
 +  sync = (): void => {
 +    const prefs = this.preferences();
 +    this.engine.set(
-+      this.allowed() && prefs.maiaArrows && !this.ctrl.node.outcome()
++      this.allowed() && !this.ctrl.node.outcome()
 +        ? {
 +            id: this.ctrl.data.puzzle.id,
 +            fens: this.ctrl.nodeList.map(n => n.fen),
@@ -80670,6 +81168,12 @@ index 0000000..0e124a8
 +        : undefined,
 +    );
 +  };
++  private applyPreferences(prefs: ReturnType<typeof loadEnginePreferences>): void {
++    saveEnginePreferences(prefs);
++    this.sync();
++    this.ctrl.setAutoShapes();
++    this.ctrl.redraw();
++  }
 +  shapes() {
 +    if (!this.allowed()) return [];
 +    const prefs = this.preferences();
@@ -80686,6 +81190,7 @@ index 0000000..0e124a8
 +        fish,
 +        prefs.maiaArrows ? this.engine.primary[0]?.uci : undefined,
 +        prefs.maiaArrows ? this.engine.secondary[0]?.uci : undefined,
++        prefs.arrowColors,
 +      ),
 +      this.ctrl.flipped() ? (this.ctrl.pov === 'white' ? 'black' : 'white') : this.ctrl.pov,
 +    );
@@ -80693,7 +81198,6 @@ index 0000000..0e124a8
 +  view() {
 +    if (!this.allowed()) return undefined;
 +    const prefs = this.preferences();
-+    if (!prefs.maiaArrows) return undefined;
 +    const fen = this.ctrl.node.fen;
 +    const status = this.ctrl.node.outcome() ? 'No legal moves' : this.engine.status || 'Analyzing…';
 +    const key = `${this.ctrl.data.puzzle.id}:${fen}:${prefs.selfElo}:${prefs.secondMaiaElo}:${prefs.secondMaiaEnabled}`;
@@ -80710,6 +81214,13 @@ index 0000000..0e124a8
 +        color,
 +        status,
 +        expanded: this.expanded[index],
++        chooseRating: () =>
++          showMaiaRating(rating, selected => {
++            const next = this.preferences();
++            if (index) next.secondMaiaElo = selected;
++            else next.selfElo = next.opponentElo = selected;
++            this.applyPreferences(next);
++          }),
 +        toggle: () => {
 +          this.expanded[index] = !this.expanded[index];
 +          this.ctrl.redraw();
@@ -80717,8 +81228,24 @@ index 0000000..0e124a8
 +        play: uci => this.ctrl.sendMove(parseUci(uci)!),
 +      });
 +    return hl('section.nosweat-engine-lines', { attrs: { 'aria-label': 'Maia analysis channels' } }, [
-+      row(prefs.selfElo, this.engine.primary, engineColors.maia, 0),
-+      prefs.secondMaiaEnabled && row(prefs.secondMaiaElo, this.engine.secondary, engineColors.maiaSecond, 1),
++      hl('header.nosweat-puzzle-maia-heading', [
++        hl('span', 'Maia Analysis'),
++        hl('button.fbt.nosweat-maia-settings', {
++          attrs: {
++            type: 'button',
++            'aria-label': 'Engine Analysis settings',
++            title: 'Engine Analysis settings',
++            'data-icon': licon.Gear,
++            'aria-haspopup': 'dialog',
++          },
++          hook: bind('click', () =>
++            showEngineSettings(this.preferences(), next => this.applyPreferences(next)),
++          ),
++        }),
++      ]),
++      row(prefs.selfElo, this.engine.primary, prefs.arrowColors.maia, 0),
++      prefs.secondMaiaEnabled &&
++        row(prefs.secondMaiaElo, this.engine.secondary, prefs.arrowColors.maiaSecond, 1),
 +    ]);
 +  }
 +}
@@ -80744,17 +81271,20 @@ index 0000000..83f2957
 +});
 diff --git a/ui/puzzle/tests/noSweatMaia.test.ts b/ui/puzzle/tests/noSweatMaia.test.ts
 new file mode 100644
-index 0000000..03de291
+index 0000000..5824a87
 --- /dev/null
 +++ b/ui/puzzle/tests/noSweatMaia.test.ts
-@@ -0,0 +1,144 @@
+@@ -0,0 +1,215 @@
 +import assert from 'node:assert/strict';
 +import { test } from 'node:test';
 +import { attributesModule, init, type VNode } from 'snabbdom';
 +
++import { saveEnginePreferences } from 'lib/nosweat/engineSettings';
++import { defaultEnginePreferences } from 'lib/nosweat/preferences';
 +import { hl } from 'lib/view';
 +
-+import { puzzleMaiaChannel, fitPuzzleMaiaRow } from '../src/noSweatMaia';
++import type PuzzleCtrl from '../src/ctrl';
++import { puzzleMaiaChannel, fitPuzzleMaiaRow, PuzzleMaia } from '../src/noSweatMaia';
 +
 +const fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 +const primary = [
@@ -80891,6 +81421,74 @@ index 0000000..03de291
 +    assert.ok(root.querySelector<HTMLElement>('.nosweat-puzzle-policy')!.hidden);
 +    root.remove();
 +  }
++});
++
++test('puzzle Maia labels are keyboard-accessible rating buttons for their own channel', () => {
++  const chosen: number[] = [];
++  const host = document.createElement('div');
++  document.body.append(host);
++  const vnode = init([attributesModule])(
++    host,
++    hl(
++      'section',
++      [1600, 2600].map((rating, i) =>
++        puzzleMaiaChannel({
++          id: `rating-${i}`,
++          fen,
++          rating,
++          candidates: primary,
++          color: 'orange',
++          status: '',
++          expanded: false,
++          toggle: () => {},
++          play: () => {},
++          chooseRating: () => chosen.push(rating),
++        }),
++      ),
++    ),
++  );
++  const root = vnode.elm as HTMLElement;
++  const labels = root.querySelectorAll<HTMLButtonElement>('button.nosweat-maia-label');
++  assert.equal(labels.length, 2);
++  assert.equal(labels[0].getAttribute('aria-haspopup'), 'dialog');
++  labels[0].click();
++  labels[1].click();
++  assert.deepEqual(chosen, [1600, 2600]);
++  root.remove();
++});
++
++test('puzzle review drops only the second row and still withholds all Maia UI while solving', () => {
++  const ctrl = {
++    mode: 'view',
++    cevalEnabled: () => true,
++    threatMode: () => false,
++    node: { fen, outcome: () => undefined },
++    data: { puzzle: { id: 'test' } },
++    setAutoShapes: () => {},
++    redraw: () => {},
++  } as unknown as PuzzleCtrl;
++  const maia = new PuzzleMaia(ctrl);
++  saveEnginePreferences({ ...defaultEnginePreferences });
++  const host = document.createElement('div');
++  document.body.append(host);
++  const patch = init([attributesModule]);
++  let vnode = patch(host, maia.view()!);
++  assert.equal((vnode.elm as HTMLElement).querySelectorAll('.nosweat-maia-channel').length, 2);
++  saveEnginePreferences({ ...defaultEnginePreferences, secondMaiaEnabled: false });
++  vnode = patch(vnode, maia.view()!);
++  assert.equal((vnode.elm as HTMLElement).querySelectorAll('.nosweat-maia-channel').length, 1);
++  assert.equal((vnode.elm as HTMLElement).querySelector('.nosweat-maia-label')!.textContent, 'M1500');
++  saveEnginePreferences({ ...defaultEnginePreferences, maiaArrows: false });
++  vnode = patch(vnode, maia.view()!);
++  assert.ok(
++    (vnode.elm as HTMLElement).querySelector('.nosweat-maia-settings'),
++    'settings remain reachable with arrows off',
++  );
++  assert.equal((vnode.elm as HTMLElement).querySelectorAll('.nosweat-maia-channel').length, 2);
++  ctrl.mode = 'play';
++  assert.equal(maia.view(), undefined);
++  maia.cancel();
++  (vnode.elm as HTMLElement).remove();
 +});
 diff --git a/ui/round/src/premoveSequence.ts b/ui/round/src/premoveSequence.ts
 new file mode 100644

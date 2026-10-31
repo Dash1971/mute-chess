@@ -109,3 +109,21 @@ the external scheduler prioritizes unsettled bot/speed pairs without writing
 ratings. Rebase verification covers exact new public/private run IDs, fixed
 cutoffs, admission3000/3001 and unchanged native Glicko/shared human capacity.
 See [the bounded follow-up](overnight-rating-establishment.md).
+
+## Shared Engine Analysis settings and bounded opening text (#150/#151/#168)
+
+The namespaced shared UI dialog and preference extension expose the approved
+one/two-Maia toggle, per-channel arrow colors and existing Mobile Maia
+Fast/Balanced/Thorough modes. Native analysis settings retain a small link to it;
+puzzle review labels reuse the game-analysis rating grid. No server settings,
+rules, review/classification math or account preferences are replaced. Native
+Stockfish advanced controls remain native. Colors are validated before SVG and
+presentation changes do not invalidate inference. Rebase checks must cover both
+analysis and puzzle call sites, old saved preferences, two-column single-engine
+probabilities and review assistance gates.
+
+The prior desktop sidebar display override let a long WikiBooks article grow a
+shared CSS grid row and push Import/Export below the viewport. Restore a bounded
+board-height flex sidebar with native article scrolling. Retain the same content,
+opening toggle and bottom-tab selection. Verify long in-book/out-of-book layouts
+and narrower native breakpoints. See [presentation details](analysis-presentation.md).

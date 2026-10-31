@@ -11,9 +11,10 @@ expansion scrolls inside the same card; each model's rating grid remains separat
 The fixed-height rating chart retains the 600–2600 rating range, keyboard
 selection and raw probabilities. Issue #146 supersedes the fixed 0–100% scale
 with Maia’s adaptive 60%/100% scale; see [the source audit](maia-rating-chart.md). Its move legend sits beside the heading. The
-redundant Maia heading and expandable probability matrix are removed. The left
-column grows naturally rather than hiding game information behind an internal
-scrollbar. Native chart actions occupy a toolbar above its canvas.
+redundant Maia heading and expandable probability matrix are removed. The Maia cards stay compact. The desktop sidebar is bounded to the board height;
+opening articles scroll in the remaining space so they cannot push the bottom
+panel down the page (#168). Explicitly expanded candidates scroll in their
+existing card. Native chart actions occupy a toolbar above its canvas.
 
 White counts, centered classification labels and Black counts mirror Mobile Maia.
 Only their arrangement changes: native accuracy/ACPL values and glyph-jump/learning
@@ -206,3 +207,41 @@ unsaved. Import is the initial tab so visitors can immediately paste a position
 or game. Explicit tab switching, draft isolation and post-game defaults remain.
 The existing expected-score header remains side-to-move after the owner
 reconsidered the proposed Mobile Maia favored-side conversion (#156 canceled).
+
+## Engine Analysis settings (#150/#151, November 1, 2026)
+
+A shared **Engine Analysis** dialog opens from the small settings control next to
+Moves by Rating, the native Analysis Menu → Settings, and the puzzle-review Maia
+heading. **Enable a second Maia for analysis** defaults on for missing settings,
+while existing explicit preferences are respected. The primary/secondary ratings
+remain independent; disabling the second retains its rating. One-engine game
+analysis uses the same184px card across the full sidebar width, with eight
+leading moves in two columns of four. Others retains the exact remaining raw
+probability mass and expands all legal moves. Puzzle review simply removes the
+second compact row. Both puzzle model labels now open the existing600–2600
+button grid; a primary selection matches the two primary rating inputs.
+
+The second-engine switch and persistence follow Mobile Maia Preview
+`lib/src/play.dart` at `dd4e041db6f4d2a84e9b8af91d6e8563ff2b1026`. Mute Chess
+intentionally defaults the switch on. The same revision’s
+`lib/src/stockfish.dart` defines Fast(depth12/500ms), Balanced(depth14/1000ms)
+and Thorough(depth16/1500ms). These existing Mute Chess modes now live in the
+shared dialog, retaining `nosweat.gameReview.quality` and the native local-review
+consumer; choosing a mode applies to the next explicit review. Advanced native
+Stockfish controls remain available. Maia model/opponent/history options are
+under Advanced Maia settings.
+
+Four native color inputs independently configure the two Stockfish arrows and
+each Maia channel, with Reset arrow colors. Existing defaults, split agreements,
+arrow geometry, widths and visibility semantics are retained. Only strict six-hex
+RGB values from saved browser settings reach custom SVG; missing/invalid values
+fall back per channel. Model labels match their arrow color. Move quality, graph
+classification, expected-score perspective and raw probabilities never use this
+palette. Arrow color/visibility changes redraw without clearing/recomputing
+policy; hiding Maia arrows leaves its puzzle results/settings accessible.
+
+All settings remain browser-local in the existing v2 preference key. No backend,
+account identity, public game, rating, inference service or security-policy change
+is required. Puzzle solving/visibility/threat/engine gates still withhold Maia
+assistance. Tests cover these contracts plus native UI compilation and desktop
+browser component acceptance.
