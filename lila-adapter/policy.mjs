@@ -5,6 +5,25 @@ import { TIMING_STYLES, validatePersonality } from './personality.mjs';
 
 export const LEGACY_TIMING_VERSION = 'lognormal-mobile-controls-clock-cap-v2';
 export const TIMING_VERSION = 'lognormal-mobile-controls-personality-v3';
+export const HUMAN_OPPONENT_CONDITIONING = 'human-speed-rating-v1';
+
+function humanVersionFor(bot, opponentElo) {
+  return 'maia79-lila-v4-' + createHash('sha256').update(JSON.stringify({
+    botVersion: versionFor(bot), conditioning: HUMAN_OPPONENT_CONDITIONING, opponentElo,
+  })).digest('hex').slice(0, 16);
+}
+
+// The native admission service supplies the human's matching-speed rating.
+// Anonymous players retain freeze(bot), matching the bot's self input.
+// Never round native ratings.
+export function freezeForHuman(bot, opponentRating) {
+  if (!Number.isSafeInteger(opponentRating) || opponentRating <= 0)
+    throw new AdapterError(400, 'A positive integer opponent rating is required');
+  const opponentElo = Math.max(600, Math.min(2600, opponentRating));
+  return { ...freeze(bot), version: humanVersionFor(bot, opponentElo), opponentElo,
+    opponentConditioning: HUMAN_OPPONENT_CONDITIONING,
+    calibration: 'human-opponent-conditioning-unvalidated' };
+}
 
 function legacyVersionFor(bot) {
   const { personality, ...legacyBot } = bot;
@@ -33,11 +52,15 @@ export function freeze(bot) {
 export function effectivePolicy(policy, ply, roster) {
   const bot = roster instanceof Map ? roster.get(policy.bot) : roster.find(bot => bot.id === policy.bot);
   const legacy = bot && policy.version === legacyVersionFor(bot) && policy.timingVersion === LEGACY_TIMING_VERSION;
-  const current = bot?.personality && policy.version === versionFor(bot) && policy.timingVersion === TIMING_VERSION &&
+  const human = bot && policy.opponentConditioning === HUMAN_OPPONENT_CONDITIONING &&
+    Number.isInteger(policy.opponentElo) && policy.opponentElo >= 600 && policy.opponentElo <= 2600 &&
+    policy.version === humanVersionFor(bot, policy.opponentElo);
+  const current = bot?.personality && (policy.version === versionFor(bot) || human) && policy.timingVersion === TIMING_VERSION &&
     policy.history === bot.personality.history && policy.humanTiming === bot.personality.humanTiming &&
     policy.timingStyle === bot.personality.timingStyle;
-  if (!bot || (!legacy && !current) || policy.modelSha256 !== MODEL_SHA256 ||
-      policy.selfElo !== bot.conditioning_self || policy.opponentElo !== bot.conditioning_opponent ||
+  const legacyHuman = human && !bot.personality && policy.timingVersion === LEGACY_TIMING_VERSION;
+  if (!bot || (!legacy && !current && !legacyHuman) || policy.modelSha256 !== MODEL_SHA256 ||
+      policy.selfElo !== bot.conditioning_self || (!human && policy.opponentElo !== bot.conditioning_opponent) ||
       typeof policy.history !== 'boolean' || !/^[a-f0-9]{32}$/.test(policy.samplingSeed))
     throw new AdapterError(503, 'Frozen policy is unavailable; game must be voided');
   const opening = ply < (bot.opening.full_moves ?? 0) * 2;

@@ -50,6 +50,36 @@ Play at [mutechess.org](https://mutechess.org/).
 We're building in public, and feedback from players helps shape the project.
 The Quiet Signal visual identity is documented in [the brand guide](design/quiet-signal/README.md).
 
+## Engine settings
+
+**Playing Maia:** each bot keeps its configured Maia self-rating input, sampling,
+move-history and timing settings. The opponent input uses your native Mute Chess
+rating for the game's time-control category at game start, limited to Maia's
+600–2600 input range. Anonymous games match the bot’s self-rating input, assuming
+equal strength. The input stays fixed throughout
+the game; existing games retain their original policy. Maia's trained model
+determines its response to the opponent input; no extra aggression rule is added.
+This does not change
+matchmaking or native Glicko ratings. Bot calibration measured fixed self/opponent
+inputs; this new human-opponent conditioning has not been separately calibrated.
+See [#176](https://github.com/Dash1971/mute-chess/issues/176) and the
+[rating methodology](docs/bot-population.md).
+
+**Analysis Maia:** each channel uses its selected rating for both inputs, matching
+Mobile Maia. Engine Analysis is available through the analysis gears and
+**Profile & settings → Engine Analysis**. Two Maia channels are enabled by default.
+With one enabled, game analysis uses the extra space for more moves; puzzle review
+simply removes the second row. Settings include each Maia rating, Maia/Stockfish
+arrow colors, and Fast/Balanced/Thorough computer review. Preferences are saved in
+the current browser. See [#150](https://github.com/Dash1971/mute-chess/issues/150),
+[#151](https://github.com/Dash1971/mute-chess/issues/151),
+[#173](https://github.com/Dash1971/mute-chess/issues/173), and
+[analysis details](docs/analysis-presentation.md).
+
+Browser analysis downloads its model from mutechess.org and caches it locally.
+Visitors do not download the model from GitHub; deployment can fetch a pinned
+upstream copy if the server's existing model is unavailable.
+
 ## The club, 2097
 
 Neural implants have put Stockfish 99 and 4750 Elo in everyone's head. Nobody can

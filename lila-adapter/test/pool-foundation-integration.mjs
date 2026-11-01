@@ -33,7 +33,7 @@ for (const bot of roster) {
   seen.add(key);
   const html = await get('/@/' + bot.username);
   assert.match(html, /Bot settings/);
-  for (const label of ['Conditioning', 'Temperature', 'Top-p', 'Move history', 'Human timing', 'Timing style'])
+  for (const label of ['Maia rating input', 'Opponent rating input', 'Temperature', 'Top-p', 'Move history', 'Human timing', 'Timing style'])
     assert.ok(html.includes(label), label);
   assert.ok(html.includes(bot.personality.timingStyle.replaceAll('-', ' ')));
   assert.ok(html.includes('/docs/bot-population.md'));

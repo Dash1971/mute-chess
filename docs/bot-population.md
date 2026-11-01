@@ -27,7 +27,7 @@ live earned ratings are not reset from them. The current loader also includes
 [`catalog-roster.json`](../lila-adapter/catalog-roster.json), bringing the public
 pool to 10,000 identities.
 
-Each bot keeps its conditioning inputs, temperature, top-p, opening policy,
+Each bot keeps its self-conditioning input, temperature, top-p, opening policy,
 move-history switch, human-timing switch and timing style across games and
 deployments. Native profiles expose these settings and identify bots clearly.
 The new catalog's assigned RD 100 and zero-game initialization is documented in
@@ -186,3 +186,30 @@ shows the allocation, supported rating ranges and reproducible generator.
 Native Glicko continues updating ratings normally. Matching human Lichess
 strength remains a project goal that we will monitor through actual play;
 bot-only calibration does not independently guarantee that correspondence.
+
+## Human opponent conditioning (#176)
+
+New signed-in human-versus-Maia admissions pass the same native speed rating
+already used for pool matching to the private adapter. For example, a human with
+Blitz 1737 and Rapid 1881 supplies 1737 for Blitz and 1881 for Rapid. The bot's
+configured self input remains fixed. The adapter keeps the exact integer human
+rating within 600–2600 and clamps outside that model range. Anonymous play
+assumes equal strength and matches the bot self input; the native 1500
+matchmaking default does not become a model input. Native correspondence and
+unlimited admission retain their existing perf-key selection.
+
+For signed-in humans, `freezeForHuman` records `human-speed-rating-v1` and a
+separate v4 policy version bound to the bot policy and opponent input. Rating
+updates cannot change an admitted game's snapshot. Old v2/v3 games retain their
+previous fixed input; `freeze`, anonymous games and study policies remain
+unchanged. Validation rejects malformed ratings, changed conditioning and
+mismatched bot/history/timing settings. There is no adaptive response to the
+score or clock, no new matching rule, and no rating write.
+
+The completed calibration and catalog seed methodology measured fixed
+self/opponent conditioning. They do not validate the new human-conditioned
+behavior; native Glicko continues to update earned ratings from actual results.
+This feature does not recalibrate, reseed or launch another study. Bot profiles
+disclose the new rule. Analysis and puzzle-review channels continue to use their
+selected rating for both inputs, as documented in
+[README](../README.md#engine-settings).

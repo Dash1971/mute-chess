@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { NostrAuth, AdapterError } from './nostr-auth.mjs';
 import { Maia } from './maia.mjs';
 import { createZapInvoice, validateZapReceipt, InvoiceError } from './lightning.mjs';
-import { freeze, effectivePolicy, targetTimeForPolicy, addedWait } from './policy.mjs';
+import { freeze, freezeForHuman, effectivePolicy, targetTimeForPolicy, addedWait } from './policy.mjs';
 import { validatePersonality } from './personality.mjs';
 
 const token = process.env.ADAPTER_TOKEN;
@@ -125,7 +125,7 @@ const server = http.createServer(async (request, response) => {
       if (!maia.healthy) throw new AdapterError(503, 'Maia unavailable');
       const bot = botsById.get(body.bot);
       if (!bot) throw new AdapterError(400, 'Unknown opponent');
-      return send(200, freeze(bot));
+      return send(200, Object.hasOwn(body, 'opponentRating') ? freezeForHuman(bot, body.opponentRating) : freeze(bot));
     }
     throw new AdapterError(404, 'Unknown endpoint');
   } catch (error) {
