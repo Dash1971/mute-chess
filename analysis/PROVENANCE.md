@@ -142,23 +142,26 @@ compact data and CC0 license; `analysis/prepare-openings.py` reproduces them.
 See `docs/analysis-presentation.md` for the approved boundaries and verification.
 
 
-## Maia Moves by Rating source audit (#146)
+## Maia Moves by Rating and current-position color audit (#146/#190)
 
-The chart follows CSSLab/maia-platform-frontend
-`a6e52f5c811ee18863cb2f0e81f2433a5b9905de`: `MovesByRating.tsx`,
-`useMoveRecommendations.ts`, `useEngineAnalysis.ts`, `utils.ts`, and
-`constants/analysis.ts`. The candidate union, three quality palettes, ranked
-shades, raw probabilities, matched 600–2600 sweep, shared tooltip and adaptive
-60%/100% axis follow those sources. The native queue requests a genuine third
-Stockfish root only for this chart; existing review/classification calls retain
-their two-PV contract. See `docs/maia-rating-chart.md` for exact rules and retained
-compact/native adaptations.
+The November 1 color/tooltip audit pins CSSLab/maia-platform-frontend (GPL-3.0)
+`325b85c3b6427f2e8e691e1dcf4ab9d4dbf94ec3`: `MovesByRating.tsx`,
+`MoveTooltip.tsx`, `Highlight.tsx`, `useMoveRecommendations.ts`,
+`useEngineAnalysis.ts`, controller `utils.ts`, `constants/analysis.ts`,
+`lib/engine/stockfish.ts` and `lib/analysis.ts`. The original palettes, complete
+all-legal-root shade ranking, staged depth 10/14/18 deepening and tooltip formulas
+follow those sources. Both cards and chart consume the same merged score map;
+Others is presentation-only. Default review callers keep two PVs and native
+whole-game classifications remain unchanged.
 
-The selected local Maia model/history and bounded Stockfish evidence remain our
-inputs. Maia’s opening-book overlay and broader all-legal-root engine searches
-are not imported, so probabilities, evaluations and shade ranks may differ.
-Missing samples remain gaps, stale curves clear, and unscored moves stay neutral.
-The rendering does not change full-game labels, native accuracy or board arrows.
+Our visible-candidate-only coverage was an explicit earlier shortcut; the owner
+observed its expansion-dependent recoloring. A palette-only patch was withdrawn.
+Mute retains native SF19/1MB and its 15 second per-phase watchdog, whereas upstream
+Maia has depth-only searches without that time cap. Completed root coverage,
+position cancellation and failure honesty are enforced; no partial vector becomes
+a complete color map. Different models/history, engine versions and Maia's book
+overlay still prevent a promise of identical evaluations. See
+`docs/maia-rating-chart.md` for source links, exact formulas and verification.
 
 Issue #148 aligns the analysis brilliant tree/badge color with Mobile Maia’s
 `#15aabf`, and separates summary symbols/names using En Croissant’s grid principle.
