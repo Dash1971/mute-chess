@@ -1,11 +1,17 @@
-> **Current population release:** see [the calibrated 10,000-bot roster](catalog-roster.md)
-> for the owner-approved expansion and assigned nonprovisional initialization.
-> Historical experiment/provisional descriptions below remain provenance;
-> they are superseded for newly generated catalog identities only.
+> **The 10,000-bot pool is live.** See [the calibrated roster](catalog-roster.md)
+> for its rating distribution, persistent settings and Research-seeded profiles.
+> The original 250 accounts keep their earned ratings and histories; 9,750 new
+> identities start with assigned nonprovisional ratings and zero completed games.
+> Historical experiment descriptions below preserve the earlier methodology.
 
 # Bot population and persistent personalities
 
-This is the infrastructure stage of [#69](https://github.com/Dash1971/mute-chess/issues/69), implemented in #72. It preserves the 44 existing identities and their earned native ratings. The planned population is 10,000. The owner-approved #137 experiment adds 206 identities to the original 44: 200 training configurations and 50 held out, covering fixed history and continuous temperature/top-p 0–1. See [the frozen experimental design](strength-experiment.md). Large-scale generation follows validation, not individual calibration games for every name. The bounded public rating trial is documented in [native-bot-trial.md](native-bot-trial.md), with execution/results tracked in #73. Country personas and scheduled breaks are deferred in #71.
+The original population infrastructure ([#69](https://github.com/Dash1971/mute-chess/issues/69),
+implemented in #72) retained 44 existing identities. Subsequent research expanded
+that reference cohort to 250 and established their native Blitz and Rapid
+ratings. The current pool adds 9,750 identities using those measured policies;
+see [the calibrated roster](catalog-roster.md). Country personas and scheduled
+breaks remain deferred in #71.
 
 ## Human rating goal
 
@@ -13,9 +19,22 @@ A human player's established Mute Chess rating should roughly translate to their
 
 ## Fixed settings
 
-The original 44-entry configuration remains [`lila-adapter/roster.json`](../lila-adapter/roster.json), unchanged for historical policy/migration reproducibility. The additive population is [`experiment-roster.json`](../lila-adapter/experiment-roster.json); `roster.mjs` loads both, and the native public roster is their exact concatenation. `deploy/study/design.py` reproduces the explicit configuration/split manifest. New seed ratings have RD 300 and are unvalidated priors, never earned or forcibly established ratings. Their unplayed Bullet/Classical defaults are also provisional; this experiment measures Blitz/Rapid only. Each bot keeps its conditioning inputs, temperature, top-p, opening policy, move-history switch, human-timing switch and timing style across games and deployments. Native bot profiles expose the current settings. BOT identification remains visible.
+The historical 250-bot reference cohort combines
+[`roster.json`](../lila-adapter/roster.json) and
+[`experiment-roster.json`](../lila-adapter/experiment-roster.json). Those files
+retain the original policies and initialization records for reproducibility;
+live earned ratings are not reset from them. The current loader also includes
+[`catalog-roster.json`](../lila-adapter/catalog-roster.json), bringing the public
+pool to 10,000 identities.
 
-Existing sampling policies are unchanged: Full (temperature 1, top-p 1), Balanced (1, .95), Focused (.5, .9), and Argmax (0, 1). Non-Full policies use Full sampling through both colors' first five moves, then their fixed sampling settings. Conditioning inputs describe the network's input, not measured playing strength. Sampling and timing do not adapt to whether the human is winning.
+Each bot keeps its conditioning inputs, temperature, top-p, opening policy,
+move-history switch, human-timing switch and timing style across games and
+deployments. Native profiles expose these settings and identify bots clearly.
+The new catalog's assigned RD 100 and zero-game initialization is documented in
+[the current rating policy](catalog-roster.md#ratings); historical experimental
+RD and provisional descriptions below do not override that policy.
+
+The original 44 profiles retain their named sampling settings: Full (temperature 1, top-p 1), Balanced (1, .95), Focused (.5, .9), and Argmax (0, 1). Non-Full policies use Full sampling through both colors' first five moves, then their fixed sampling settings. Conditioning inputs describe the network's input, not measured playing strength. Sampling and timing do not adapt to whether the human is winning.
 
 The original sampling increments and the exact Mobile Maia measurements are compared in [the sampling-reference audit](sampling-reference-audit.md). The historical reference-as-Full assumption remains recorded; #100 tracks the owner-confirmed p95 reference baseline. Earned perfs are never reset to that estimate.
 
@@ -150,31 +169,20 @@ limits of extrapolating them to human games or VPS hardware. This report
 introduces no new common rating adjustment or production capacity increase.
 
 
-### Reference calibration and the planned expanded pool
+### Reference calibration and the live expanded pool
 
-The same 250 reference identities now have established native Blitz and Rapid
-ratings, retaining their Lichess-derived starting anchor, persistent settings
-and earned game histories. The completed [overnight protocol](overnight-rating-establishment.md)
-and canonical research preserve the execution evidence; study services were
-cleaned up and normal public capacity restored.
+The 250 reference identities have established native Blitz and Rapid ratings,
+retaining their Lichess-derived starting anchor, persistent settings and earned
+game histories. The expanded pool preserves those accounts and adds 9,750
+persistent identities with assigned nonprovisional ratings. New profiles label
+them **Research-seeded**: they reuse measured playing policies, not another
+account's completed games or rating history.
 
-The [illustrated report](https://github.com/Dash1971/mobile-maia-research/blob/d12f93536442c636d56ec23313e89807a2771467/studies/bot-rating-establishment-2026-10-31/REPORT.md)
-answers how ratings were obtained, how they relate to Lichess, and how settings
-change playing strength. It includes controlled sampling comparisons, a rough
-catalog-planning formula without a separate history term, and a proposed
-10,000-identity allocation informed by Lichess Blitz percentiles. History is
-omitted because it supplied no useful extra predictive adjustment in the checks,
-not because a zero causal effect was established.
+The [illustrated report](https://github.com/Dash1971/mobile-maia-research/blob/140e2eb411923930fb0d5950b92abf6f3c0166dd/studies/bot-rating-establishment-2026-10-31/REPORT.md)
+explains the Lichess reference, the impact of engine settings and the measured
+policies used to seed the expanded pool. The [roster methodology](catalog-roster.md)
+shows the allocation, supported rating ranges and reproducible generator.
 
-The proposed expansion would assign calibrated policy ratings without a
-provisional catalog mark; this does not give each new name an earned calibration
-history or copy another account's games/RD. This product plan has not been
-implemented. Current native rating behavior is unchanged. The desired weakest
-rating band still needs calibration, and Rapid needs its own roster allocation.
-
-The canonical [data and reproduction guide](https://github.com/Dash1971/mobile-maia-research/tree/d12f93536442c636d56ec23313e89807a2771467/studies/bot-rating-establishment-2026-10-31)
-retains the original frozen procedures and all measured results separately from
-the proposed catalog approximation. Bot-only games refine relative standings;
-ongoing human/reference evidence is needed to monitor the inherited Lichess
-correspondence. No roster activation, rating writes, inference, deployment or
-capacity increase accompanies this summary.
+Native Glicko continues updating ratings normally. Matching human Lichess
+strength remains a project goal that we will monitor through actual play;
+bot-only calibration does not independently guarantee that correspondence.

@@ -3,8 +3,8 @@
 The roster contains **10,000 persistent identities**: the original 250 reference
 bots plus 9,750 new opponents. The new identities reuse measured Maia playing
 policies; their names, history mode, sampling and timing personality persist.
-This source release is prepared for deployment; the activation receipt below
-must be completed before claiming it is live.
+The expanded roster is live on [Mute Chess](https://mutechess.org/). Quick pairing
+uses these opponents while retaining native rules, clocks and ratings.
 
 ## Ratings
 
@@ -21,7 +21,7 @@ new ratings **Research-seeded** and link the methodology. Existing named account
 keep their names. Twelve strong SignalTrain/Test placeholders receive display
 names only; their handles, playing policies, ratings and histories stay intact.
 
-The [research report](https://github.com/Dash1971/mobile-maia-research/blob/d12f93536442c636d56ec23313e89807a2771467/studies/bot-rating-establishment-2026-10-31/REPORT.md)
+The [research report](https://github.com/Dash1971/mobile-maia-research/blob/140e2eb411923930fb0d5950b92abf6f3c0166dd/studies/bot-rating-establishment-2026-10-31/REPORT.md)
 explains the Lichess starting reference, native rated games and sampling effects.
 For this release, we can use direct measured-policy evidence rather than
 extrapolating the report's smooth planning formula to thousands of new settings.
@@ -145,7 +145,15 @@ Provisioning is bounded and idempotent; catalog collisions fail safely. Release
 verification must show 9,750 legitimate zero-game assigned records added,
 existing earned perfs/history unchanged, and all service/security checks healthy.
 
-## Activation receipt
+## Live availability
 
-Pending verified-main deployment and live provisioning audit. Source generation
-and passing tests alone are not a claim of live activation.
+The public pool contains all 10,000 identities. The expansion added 9,750
+**Research-seeded** accounts with assigned nonprovisional ratings and zero
+completed games. The original 250 accounts retain their earned ratings and
+histories. The normal concurrency limit is unchanged; no calibration games were
+needed for each new name. Native Glicko continues adjusting ratings as games
+are played.
+
+The [initial live verification](https://github.com/Dash1971/mobile-maia-research/blob/140e2eb411923930fb0d5950b92abf6f3c0166dd/studies/bot-rating-establishment-2026-10-31/data/catalog-2026-11-01/deployment-status.json)
+records these starting counts and preserved accounts. It is a deployment
+snapshot; ratings and game counts continue to evolve.
