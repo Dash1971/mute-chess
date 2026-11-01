@@ -1,18 +1,18 @@
 # Moves by Rating source audit (#146)
 
-The owner bounded this implementation to Moves by Rating. The existing two Maia
-cards, their advanced opponent settings, native board/tree, graph, accuracy,
-ACPL, review and learning controls retain their behavior and dimensions.
+The original chart scope is extended by the November 1 owner request to audit
+current-position colors and add Maia's move-hover details. The native board/tree,
+graph, accuracy, ACPL, whole-game classifications and review controls remain intact.
 
-Reference: [CSSLab/maia-platform-frontend](https://github.com/CSSLab/maia-platform-frontend/tree/a6e52f5c811ee18863cb2f0e81f2433a5b9905de),
-GPL-3.0, revision `a6e52f5c811ee18863cb2f0e81f2433a5b9905de`.
+Reference: [CSSLab/maia-platform-frontend](https://github.com/CSSLab/maia-platform-frontend/tree/325b85c3b6427f2e8e691e1dcf4ab9d4dbf94ec3),
+GPL-3.0, revision `325b85c3b6427f2e8e691e1dcf4ab9d4dbf94ec3`.
 
 | Source | Behavior followed |
 | --- | --- |
-| [MovesByRating.tsx](https://github.com/CSSLab/maia-platform-frontend/blob/a6e52f5c811ee18863cb2f0e81f2433a5b9905de/src/components/Analysis/MovesByRating.tsx) | Filled curves, per-move colors, shared rating tooltip, adaptive axes, legend and endpoint labels |
-| [useMoveRecommendations.ts](https://github.com/CSSLab/maia-platform-frontend/blob/a6e52f5c811ee18863cb2f0e81f2433a5b9905de/src/hooks/useAnalysisController/useMoveRecommendations.ts) | Deduplicated candidate union and quality shade ranks |
-| [useEngineAnalysis.ts](https://github.com/CSSLab/maia-platform-frontend/blob/a6e52f5c811ee18863cb2f0e81f2433a5b9905de/src/hooks/useAnalysisController/useEngineAnalysis.ts) | Matched self/opponent rating sweep |
-| [utils.ts](https://github.com/CSSLab/maia-platform-frontend/blob/a6e52f5c811ee18863cb2f0e81f2433a5b9905de/src/hooks/useAnalysisController/utils.ts) and [constants/analysis.ts](https://github.com/CSSLab/maia-platform-frontend/blob/a6e52f5c811ee18863cb2f0e81f2433a5b9905de/src/constants/analysis.ts) | Stockfish win-rate-loss quality boundaries and exact palettes |
+| [MovesByRating.tsx](https://github.com/CSSLab/maia-platform-frontend/blob/325b85c3b6427f2e8e691e1dcf4ab9d4dbf94ec3/src/components/Analysis/MovesByRating.tsx) | Filled curves, per-move colors, shared rating tooltip, adaptive axes, legend and endpoint labels |
+| [useMoveRecommendations.ts](https://github.com/CSSLab/maia-platform-frontend/blob/325b85c3b6427f2e8e691e1dcf4ab9d4dbf94ec3/src/hooks/useAnalysisController/useMoveRecommendations.ts) | Deduplicated candidate union and quality shade ranks |
+| [useEngineAnalysis.ts](https://github.com/CSSLab/maia-platform-frontend/blob/325b85c3b6427f2e8e691e1dcf4ab9d4dbf94ec3/src/hooks/useAnalysisController/useEngineAnalysis.ts) | Matched self/opponent rating sweep |
+| [utils.ts](https://github.com/CSSLab/maia-platform-frontend/blob/325b85c3b6427f2e8e691e1dcf4ab9d4dbf94ec3/src/hooks/useAnalysisController/utils.ts) and [constants/analysis.ts](https://github.com/CSSLab/maia-platform-frontend/blob/325b85c3b6427f2e8e691e1dcf4ab9d4dbf94ec3/src/constants/analysis.ts) | Stockfish win-rate-loss quality boundaries and exact palettes |
 
 ## Selection and probabilities
 
@@ -32,7 +32,7 @@ clear old curves immediately; delayed/canceled inference cannot republish them.
 
 Good means Stockfish win-rate loss at most five percentage points, acceptable at
 most ten, otherwise blunder. Rank available engine evidence within each quality
-group by mover win rate, then mover centipawns and stable move ID; cap shade rank
+group by mover win rate, then raw White-perspective centipawns and stable move ID; cap shade rank
 at four. The palettes, in rank order, are:
 
 - Good: `#238b45 #41ab5d #74c476 #90D289 #AEDFA4`
@@ -43,18 +43,39 @@ One move uses the same color in its curve, translucent area, points, legend,
 endpoint and tooltip. Unknown scores stay neutral. These are quick current-
 position estimates, separate from full-game classifications and raw likelihoods.
 
-The existing bounded engine queue searches three genuine root PVs for this
-chart, then missing chart candidates. Default ReviewFish callers still request
-two PVs. Completeness checks use the requested count and legal root count;
-partial iterations do not qualify. Root budget stays depth 12/500ms, candidate
-budget 300ms, with minimum depth 8, cancellation and stale-result guards intact.
-Late rating leaders drain the queue even when they arrive during completion.
+The November 1 audit found that our visible-candidate search shortcut changed the
+shade-ranking pool when Others opened. This was a behavioral departure from Maia;
+a palette-only replacement would hide the cause. Preserve Maia's exact palettes.
 
-Maia’s site evaluates broader all-legal-root Stockfish coverage and overlays an
-opening book through move five. Mute retains its selected local 5M/79M model,
-history, engine and bounded search. Different inputs/coverage can change
-probabilities, scores and relative shade ranks. This implementation matches the
-chart’s selection/presentation rules; it does not promise identical numbers.
+Follow Maia's `staged-root-probe` strategy: screen **every legal root** to depth 10,
+publishing only complete MultiPV iterations. Then deepen up to four Maia moves
+covering 95% policy per active channel, plus the played continuation, to depth 14;
+deepen four Stockfish roots to 18; and finish selected candidates at 18. Retain the
+complete root vector throughout. Native castling UCIs normalize to standard UCI.
+Others only expands the presentation and schedules no analysis. Cards, chart,
+legend and move popup share the same current mapping; chart Stockfish candidates
+come from the current merged vector, not a stale earlier root search.
+
+Good means loss <= 0.05 and acceptable <= 0.10 with no epsilon. Convert mates to
++/-10000 CP before the empirical lookup clamps to its +/-1000CP endpoints; do
+not replace this empirical measure with 0/1. Color loss uses the maximum empirical
+win rate. CP loss separately uses the best mover-relative CP. Ties in win-rate
+loss follow raw White CP descending and UCI lexical order, including Black.
+
+Mute uses native Stockfish 19/1MB and retains its existing 15 second per-phase
+watchdog, cancellation and stale-result checks. Upstream Maia uses depth-only
+searches without this watchdog. Completed complete vectors remain usable after a
+deepening timeout; a timed-out worker is discarded before another search. Native
+review callers retain their original two-PV defaults and whole-game policy.
+Models/history, engine versions and Maia's opening-book overlay can still produce
+different probabilities or evaluations; this is not a promise of identical numbers.
+
+Move-hover details follow `MoveTooltip.tsx`: Maia raw probability (one decimal
+percent), SF Eval (White perspective, two decimals or signed mate), SF Winrate
+(the empirical mover-perspective lookup), and SF Eval Loss (mover-relative
+move-minus-best CP, two decimals). Missing metrics are omitted. Keyboard focus
+also opens the popup; Escape/destroy/navigation clean it up. The chart's existing
+shared probability tooltip remains separate, matching Maia's chart interaction.
 
 ## Compact native integration
 
@@ -77,11 +98,12 @@ preview/return action. These interactions are compact/native adaptations.
 Run all native UI tests and build/type checks, targeted formatting/typed lint,
 and departure-register checks. Regressions cover uncapped union order, raw
 probabilities, 60/100 boundaries, gaps, tooltip/keyboard behavior, quality shades,
-three-PV protocol completeness, actual matched input calls, stale cancellation,
-hover ownership and late quality leaders. Independently reviewed by a second
+complete all-root protocol publication, exact matched inputs, cancellation,
+castling normalization, expansion-independent shading, merged-root ordering,
+mate/Black parity, popup metrics/lifecycle, watchdog recovery and hover ownership. Independently reviewed by a second
 Codex agent; automated/browser evidence is not human acceptance testing.
 
-After rebasing, compare the three-PV protocol option with native worker handling,
+After rebasing, compare opt-in all-root screening with native worker handling,
 `ceval.hovering` ownership and key propagation. No private Maia API, remote
 inference, new dependency, rules, ratings or classification change is involved.
 

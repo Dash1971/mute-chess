@@ -66,12 +66,13 @@ endgames begin with Endgame. Short neighboring labels use separate text lanes.
 Native graph data, scale, selection, tooltip, classifications, stored division and
 accuracy calculations are unchanged; phase accuracy is still omitted.
 
-Candidate blunders retain the Maia platform's 5/10 percentage-point Stockfish-loss
-boundaries. Within the currently evaluated blunder group, order by mover win rate,
-then centipawns and move ID, and cap the shade rank at five. This follows the
-platform's ranking semantics, not probability buckets or new severity thresholds.
-The accepted palette uses red shades throughout. Unsearched moves stay neutral;
-the existing bounded searches and stale-result guards remain intact.
+Current-position colors follow the audited Maia full-root mapping described in
+[the source audit](maia-rating-chart.md). All legal roots participate before ranked
+shading; Others does not trigger evaluation. Cards and chart use the same original
+Maia palettes, including their pale-to-dark blunder shades. Natural deeper engine
+evidence can update colors. Move-hover details expose the same probability,
+White-perspective SF evaluation, mover win rate and CP loss as Maia. Whole-game
+classification and its Mobile Maia/En Croissant palette remain separate.
 
 Puzzle analysis remains a separate compact surface. Each row stays on one line;
 when width requires fewer leading previews, their unchanged raw probability joins

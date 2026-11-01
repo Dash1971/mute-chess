@@ -3262,6 +3262,15 @@ index 818aaae..901eb6e 100644
    title?: string;
    flair?: Flair;
    patron?: boolean; // BC
+diff --git a/ui/analyse/css/_analyse.base.scss b/ui/analyse/css/_analyse.base.scss
+index 5519010..1a9dc11 100644
+--- a/ui/analyse/css/_analyse.base.scss
++++ b/ui/analyse/css/_analyse.base.scss
+@@ -22,3 +22,4 @@
+ @import 'persistence';
+ @import 'keyboard';
+ @import 'settings';
++@import 'move-tooltip';
 diff --git a/ui/analyse/css/_analyse.free.scss b/ui/analyse/css/_analyse.free.scss
 index a5094c6..60daa09 100644
 --- a/ui/analyse/css/_analyse.free.scss
@@ -21212,6 +21221,51 @@ index 0000000..806bb5f
 +          0
 +        )
 +      )
+diff --git a/ui/analyse/css/_move-tooltip.scss b/ui/analyse/css/_move-tooltip.scss
+new file mode 100644
+index 0000000..61ea569
+--- /dev/null
++++ b/ui/analyse/css/_move-tooltip.scss
+@@ -0,0 +1,39 @@
++.nosweat-move-tooltip {
++  position: fixed;
++  z-index: 10000;
++  min-width: 12rem;
++  max-width: calc(100vw - 16px);
++  overflow: hidden;
++  border: 1px solid #484346;
++  border-radius: 5px;
++  background: rgba(24, 20, 22, 0.96);
++  color: #eee;
++  box-shadow: 0 4px 16px #0006;
++  backdrop-filter: blur(8px);
++  pointer-events: none;
++}
++.nosweat-move-tooltip__header {
++  padding: 0.45rem 0.75rem;
++  border-bottom: 1px solid #484346;
++  font-size: 1.1rem;
++  font-weight: 600;
++}
++.nosweat-move-tooltip__rows {
++  display: grid;
++  grid-template-columns: auto auto;
++  gap: 0.25rem 1rem;
++  padding: 0.5rem 0.75rem;
++  font-family: monospace;
++  font-size: 0.95rem;
++  font-variant-numeric: tabular-nums;
++  white-space: nowrap;
++}
++.nosweat-move-tooltip__rows > :nth-child(even) {
++  text-align: right;
++}
++.nosweat-move-tooltip__maia {
++  color: #e97562;
++}
++.nosweat-move-tooltip__fish {
++  color: #62b0e8;
++}
 diff --git a/ui/analyse/src/analyse.nosweatWorker.ts b/ui/analyse/src/analyse.nosweatWorker.ts
 new file mode 100644
 index 0000000..ec4cc78
@@ -21241,10 +21295,10 @@ index 0000000..ec4cc78
 +};
 diff --git a/ui/analyse/src/noSweatAnalysis.ts b/ui/analyse/src/noSweatAnalysis.ts
 new file mode 100644
-index 0000000..58ce5ad
+index 0000000..ee54cfc
 --- /dev/null
 +++ b/ui/analyse/src/noSweatAnalysis.ts
-@@ -0,0 +1,789 @@
+@@ -0,0 +1,877 @@
 +import type { DrawShape } from '@lichess-org/chessground/draw';
 +import { parseUci } from 'chessops/util';
 +import { attributesModule, classModule, init } from 'snabbdom';
@@ -21260,20 +21314,20 @@ index 0000000..58ce5ad
 +import type AnalyseCtrl from './ctrl';
 +import { engineArrows, engineShapes, engineColors, type EngineColors } from './noSweatArrows';
 +import { BoardReview } from './noSweatBoardReview';
-+import { candidateQuality, qualityLabels, stockfishWinrate, blunderRanks } from './noSweatCandidateQuality';
-+import { encodeHistory, policy, san, position, standardUci, type Candidate } from './noSweatCore';
-+import { reviewClick } from './noSweatEvents';
-+import { ReviewFish, type Review } from './noSweatFish';
++import { candidateWhiteCp, qualityLabels, stockfishWinrate } from './noSweatCandidateQuality';
++import { encodeHistory, legalUcis, policy, san, position, standardUci, type Candidate } from './noSweatCore';
++import { reviewClick, reviewMove } from './noSweatEvents';
++import { ReviewFish, type Review, type CandidateSearchOptions } from './noSweatFish';
++import { withMoveTooltip, type MoveTooltipDetails } from './noSweatMoveTooltip';
 +import { OpeningLabel } from './noSweatOpening';
 +import { readEnginePreferences, type EnginePreferences } from './noSweatPreferences';
 +import {
 +  ratingSamples as samples,
-+  chartMoves,
 +  ratingChart,
 +  ratingLegend,
 +  type RatingChartOptions,
 +} from './noSweatRatingChart';
-+import { ratingChartQualities } from './noSweatRatingChartQuality';
++import { ratingChartQualities, type RatingChartQuality } from './noSweatRatingChartQuality';
 +
 +interface MaiaClient {
 +  predict(input: {
@@ -21353,7 +21407,9 @@ index 0000000..58ce5ad
 +  private compareBusy = false;
 +  private qualityBusy = false;
 +  private qualityRoot?: Review;
-+  private readonly qualityFailed = new Set<string>();
++  private qualityScreened = false;
++  private qualitySession = Symbol('candidate analysis');
++  private readonly qualityAttempted = new Set<string>();
 +
 +  constructor(readonly ctrl: AnalyseCtrl) {
 +    this.boardReview = new BoardReview(ctrl);
@@ -21472,7 +21528,9 @@ index 0000000..58ce5ad
 +    this.expectedScore = this.secondaryExpectedScore = undefined;
 +    this.scores.clear();
 +    this.qualityRoot = undefined;
-+    this.qualityFailed.clear();
++    this.qualityScreened = false;
++    this.qualitySession = Symbol('candidate analysis');
++    this.qualityAttempted.clear();
 +    const ratingContext = this.ratingKey();
 +    if (ratingContext !== this.ratingContext) this.byRating.clear();
 +    this.ratingContext = ratingContext;
@@ -21558,6 +21616,7 @@ index 0000000..58ce5ad
 +  private async refresh(generation: number): Promise<void> {
 +    this.status = 'Preparing local Maia…';
 +    this.ctrl.redraw();
++    this.colorCandidates();
 +    const fens = this.historyFens();
 +    const results = await Promise.allSettled([
 +      this.predict(fens, this.selfElo, generation),
@@ -21626,100 +21685,187 @@ index 0000000..58ce5ad
 +    moves: string[] = [],
 +    time = 1200,
 +    multiPv = 2,
++    depth = 12,
++    options?: CandidateSearchOptions,
 +  ): Promise<Review> {
-+    const key = JSON.stringify(['sf19-candidate-depth12-v2', fen, moves, time, multiPv]);
++    const key = JSON.stringify([
++      'sf19-maia-root-screen-v3',
++      fen,
++      moves,
++      time,
++      multiPv,
++      depth,
++      !!options?.allRoots,
++    ]);
 +    const cached = this.reviewCache.get(key);
 +    if (cached) return cached;
-+    const result = await this.fish.search(fen, moves, this.abort.signal, 12, time, undefined, multiPv);
++    const result = await this.fish.search(
++      fen,
++      moves,
++      this.abort.signal,
++      depth,
++      time,
++      this.qualitySession,
++      multiPv,
++      options,
++    );
 +    if (!this.valid(generation)) throw new Error('Cancelled');
 +    this.reviewCache.set(key, result);
 +    if (this.reviewCache.size > 400) this.reviewCache.delete(this.reviewCache.keys().next().value!);
 +    return result;
 +  }
-+  private visibleCandidates(): string[] {
-+    return [
-+      ...new Set(
-+        [
-+          ...this.candidates.slice(0, this.expanded[0] ? undefined : this.leadingMoveCount),
-+          ...this.secondaryCandidates.slice(0, this.expanded[1] ? undefined : 4),
-+        ]
-+          .map(c => c.uci)
-+          .concat(
-+            this.ratingTable
-+              ? chartMoves(this.byRating, this.chartPrimaryCandidates(), this.chartStockfishMoves())
-+              : [],
-+          ),
-+      ),
-+    ];
++  private qualityCandidates(): string[] {
++    const selected = new Set<string>();
++    for (const candidates of this.secondMaiaEnabled
++      ? [this.candidates, this.secondaryCandidates]
++      : [this.candidates]) {
++      let covered = 0;
++      for (const candidate of candidates.slice(0, 4)) {
++        selected.add(candidate.uci);
++        covered += candidate.probability;
++        if (covered >= 0.95) break;
++      }
++    }
++    const played = this.normalUci(this.ctrl.node.children[0]?.uci);
++    if (played) selected.add(played);
++    return [...selected];
 +  }
++
 +  private colorCandidates(): void {
 +    const generation = this.generation;
-+    if (!this.valid(generation) || this.qualityBusy || !this.visibleCandidates().length) return;
++    if (!this.valid(generation) || this.qualityBusy) return;
++    const targets = () =>
++      this.qualityCandidates().filter(
++        move => (this.scores.get(move)?.depth ?? 0) < 18 && !this.qualityAttempted.has(`18:${move}`),
++      );
++    if (
++      this.qualityAttempted.has('screen') &&
++      (!this.qualityScreened || (this.qualityAttempted.has('root:18') && !targets().length))
++    )
++      return;
 +    this.qualityBusy = true;
 +    (async () => {
 +      const fen = this.ctrl.node.fen;
-+      if (!this.qualityRoot) {
-+        // Chart candidates include the actual third SF root. Other ReviewFish
-+        // callers and the native full-game/classifier engines keep two PVs.
-+        const root = await this.review(fen, generation, [], 500, this.ratingTable ? 3 : 2);
-+        if (!this.valid(generation)) return;
-+        if (root.current.depth < 8) return;
-+        this.qualityRoot = root;
-+        for (const line of root.current.lines) {
-+          const move = this.normalUci(line.moves[0]);
-+          if (move) this.scores.set(move, { score: line, depth: root.current.depth });
-+        }
-+        this.ctrl.redraw();
-+      }
-+      // Re-read the visible set so opening Others during a search joins this queue.
-+      for (;;) {
-+        const move = this.visibleCandidates().find(m => !this.scores.has(m) && !this.qualityFailed.has(m));
-+        if (!move || !this.valid(generation)) break;
++      const legal = new Set(legalUcis(fen));
++      const search = async (moves: string[], depth: number, multiPv = 1, allRoots = false) => {
++        const publish = (review: Review) => {
++          if (!this.valid(generation)) return;
++          if (allRoots) {
++            const roots = review.current.lines.map(line => this.normalUci(line.moves[0]));
++            if (
++              roots.length !== legal.size ||
++              new Set(roots).size !== legal.size ||
++              roots.some(move => !move || !legal.has(move))
++            )
++              return;
++            this.qualityScreened = true;
++          }
++          if (!this.qualityScreened) return;
++          if (!moves.length) this.qualityRoot = review;
++          for (const line of review.current.lines) {
++            const move = this.normalUci(line.moves[0]);
++            if (move && legal.has(move))
++              this.scores.set(move, {
++                score: line,
++                depth: Math.max(this.scores.get(move)?.depth ?? 0, review.current.depth),
++              });
++          }
++          this.ctrl.redraw();
++        };
 +        try {
-+          const result = await this.review(fen, generation, [move], 300);
-+          if (!this.valid(generation)) return;
-+          if (result.current.depth >= 8)
-+            this.scores.set(move, { score: result.current.lines[0], depth: result.current.depth });
-+          else this.qualityFailed.add(move);
++          const result = await this.review(fen, generation, moves, 0, multiPv, depth, {
++            allRoots,
++            maxMultiPv: 4,
++            onUpdate: publish,
++          });
++          publish(result);
 +        } catch {
-+          if (!this.valid(generation)) return;
-+          this.qualityFailed.add(move);
++          // A failed or cancelled phase cannot invent missing root evidence.
++          // Completed position-wide iterations remain useful if deepening times out.
 +        }
-+        this.ctrl.redraw();
++      };
++      if (!this.qualityAttempted.has('screen')) {
++        this.qualityAttempted.add('screen');
++        await search([], 10, legal.size, true);
++      }
++      if (!this.valid(generation) || !this.qualityScreened) return;
++      for (const move of this.qualityCandidates()) {
++        if (!this.valid(generation)) return;
++        if ((this.scores.get(move)?.depth ?? 0) >= 14 || this.qualityAttempted.has(`14:${move}`)) continue;
++        this.qualityAttempted.add(`14:${move}`);
++        await search([move], 14);
++      }
++      if (!this.qualityAttempted.has('root:18')) {
++        this.qualityAttempted.add('root:18');
++        await search([], 18, 4);
++      }
++      for (;;) {
++        if (!this.valid(generation)) return;
++        const move = targets()[0];
++        if (!move) break;
++        this.qualityAttempted.add(`18:${move}`);
++        await search([move], 18);
 +      }
 +    })()
 +      .catch(() => {
-+        // Color evidence is optional; Maia probabilities remain usable on failure.
++        // Color evidence is optional; policy probabilities remain usable.
 +      })
 +      .finally(() => {
 +        if (this.valid(generation)) {
 +          this.qualityBusy = false;
 +          if (this.status === 'Loading Stockfish review…') this.status = '';
 +          this.ctrl.redraw();
-+          // The last rating sample can arrive between queue completion and this
-+          // continuation. Drain that new leader without retrying shallow roots.
-+          if (
-+            this.qualityRoot &&
-+            this.visibleCandidates().some(move => !this.scores.has(move) && !this.qualityFailed.has(move))
-+          )
-+            this.colorCandidates();
++          // Maia can arrive at a phase boundary; its selected candidates still deepen.
++          if (this.qualityScreened && targets().length) this.colorCandidates();
 +        }
 +      });
 +  }
++
++  private candidateQualities(): Map<string, RatingChartQuality> {
++    if (!this.enabled || !this.analysisAllowed() || this.ctrl.threatMode()) return new Map();
++    return ratingChartQualities(
++      new Map([...this.scores].flatMap(([uci, result]) => (result ? [[uci, result.score] as const] : []))),
++      position(this.ctrl.node.fen).turn === 'white',
++    );
++  }
++
 +  private moveQuality(uci: string) {
 +    if (!this.enabled || !this.analysisAllowed() || this.ctrl.threatMode()) return undefined;
++    return this.candidateQualities().get(uci)?.quality;
++  }
++
++  private moveTooltip(uci: string, probability: number): MoveTooltipDetails | undefined {
++    if (!this.enabled || !this.analysisAllowed() || this.ctrl.threatMode()) return undefined;
 +    const white = position(this.ctrl.node.fen).turn === 'white';
-+    const scores = [...this.scores.values()].flatMap(s => (s ? [s.score] : []));
-+    const value = (s: EvalScore) => stockfishWinrate(s, white) ?? -1;
-+    const best = scores.reduce<EvalScore | undefined>(
-+      (a, b) => (!a || value(b) > value(a) ? b : a),
-+      undefined,
-+    );
-+    return candidateQuality(best, this.scores.get(uci)?.score, white);
++    const score = this.scores.get(uci)?.score;
++    const cp = score && candidateWhiteCp(score, white);
++    const knownCp = [...this.scores.values()].flatMap(value => {
++      const cp = value && candidateWhiteCp(value.score, white);
++      return cp === undefined ? [] : [cp];
++    });
++    const signed = (cp: number) => `${cp > 0 ? '+' : ''}${(cp / 100).toFixed(2)}`;
++    const mate = score?.mate;
++    return {
++      san: san(this.ctrl.node.fen, uci),
++      color: this.candidateQualities().get(uci)?.color ?? 'var(--c-font-dim)',
++      maiaProbability: probability,
++      stockfishEval:
++        cp === undefined
++          ? undefined
++          : mate === undefined
++            ? signed(cp)
++            : `${(mate === 0 ? !white : mate > 0) ? '+' : '-'}M${Math.abs(mate)}`,
++      stockfishWinrate: score && stockfishWinrate(score, white),
++      stockfishEvalLoss:
++        cp === undefined || !knownCp.length
++          ? undefined
++          : signed(white ? cp - Math.max(...knownCp) : Math.min(...knownCp) - cp),
++    };
 +  }
 +
 +  private chartStockfishMoves(): string[] {
 +    if (!this.enabled || !this.analysisAllowed() || this.ctrl.threatMode()) return [];
++    if (this.qualityScreened) return [...this.candidateQualities().keys()].slice(0, 3);
 +    const lines = this.qualityRoot?.current.lines ?? this.ctrl.node.ceval?.pvs ?? [];
 +    return [...new Set(lines.slice(0, 3).flatMap(line => this.normalUci(line.moves[0]) ?? []))];
 +  }
@@ -21755,10 +21901,7 @@ index 0000000..58ce5ad
 +
 +  private chartOptions(): RatingChartOptions {
 +    const fen = this.ctrl.node.fen;
-+    const qualities = ratingChartQualities(
-+      new Map([...this.scores].flatMap(([uci, result]) => (result ? [[uci, result.score] as const] : []))),
-+      position(fen).turn === 'white',
-+    );
++    const qualities = this.candidateQualities();
 +    return {
 +      primary: this.chartPrimaryCandidates(),
 +      stockfish: this.chartStockfishMoves(),
@@ -21851,10 +21994,7 @@ index 0000000..58ce5ad
 +    const expanded = this.expanded[Number(secondary)];
 +    const leading = this.leadingMoveCount;
 +    const rest = candidates.slice(leading).reduce((sum, c) => sum + c.probability, 0);
-+    const grades = blunderRanks(
-+      new Map([...this.scores].flatMap(([uci, result]) => (result ? [[uci, result.score] as const] : []))),
-+      white,
-+    );
++    const qualities = this.candidateQualities();
 +    const moves: (Candidate | undefined)[] = candidates.slice(0, expanded ? undefined : leading);
 +    while (moves.length < leading) moves.push(undefined);
 +    const groups = this.secondMaiaEnabled
@@ -21920,16 +22060,19 @@ index 0000000..58ce5ad
 +                          attrs: {
 +                            type: 'button',
 +                            'data-quality': quality ?? 'pending',
-+                            'data-blunder-rank': quality === 'blunder' ? (grades.get(c.uci) ?? 0) : false,
-+                            title: quality
-+                              ? qualityLabels[quality] + ' · Stockfish estimate'
-+                              : 'Move quality not yet available',
++                            style: qualities.has(c.uci) ? `color:${qualities.get(c.uci)!.color}` : false,
 +                            'aria-label':
 +                              san(this.ctrl.node.fen, c.uci) +
 +                              ': ' +
 +                              (quality ? qualityLabels[quality] : 'quality not yet available'),
 +                          },
-+                          hook: reviewClick(() => this.preview(c.uci)),
++                          hook: withMoveTooltip(
++                            reviewMove(
++                              () => this.preview(c.uci),
++                              active => this.hoverChartMove(active ? c.uci : undefined),
++                            ),
++                            () => this.moveTooltip(c.uci, c.probability),
++                          ),
 +                        },
 +                        san(this.ctrl.node.fen, c.uci),
 +                      ),
@@ -21952,7 +22095,6 @@ index 0000000..58ce5ad
 +          },
 +          hook: reviewClick(() => {
 +            this.expanded[Number(secondary)] = !expanded;
-+            this.colorCandidates();
 +            this.ctrl.redraw();
 +          }),
 +        },
@@ -22497,11 +22639,11 @@ index 0000000..d1a01b5
 +}
 diff --git a/ui/analyse/src/noSweatCandidateQuality.ts b/ui/analyse/src/noSweatCandidateQuality.ts
 new file mode 100644
-index 0000000..739e8e3
+index 0000000..6cd82f1
 --- /dev/null
 +++ b/ui/analyse/src/noSweatCandidateQuality.ts
-@@ -0,0 +1,253 @@
-+// Maia platform (GPL-3.0), revision a6e52f5c811ee18863cb2f0e81f2433a5b9905de.
+@@ -0,0 +1,262 @@
++// Maia platform (GPL-3.0), revision 325b85c3b6427f2e8e691e1dcf4ab9d4dbf94ec3.
 +// Source: src/lib/analysis.ts, src/hooks/useAnalysisController/utils.ts and constants/analysis.ts.
 +// Empirical CP lookup and 5/10 percentage-point boundaries; never use Maia likelihood.
 +const cpLookup: Record<string, number> = {
@@ -22710,12 +22852,21 @@ index 0000000..739e8e3
 +
 +export type CandidateQuality = 'good' | 'ok' | 'blunder';
 +export const qualityFromLoss = (loss: number): CandidateQuality =>
-+  loss <= 0.05 + 1e-10 ? 'good' : loss <= 0.1 + 1e-10 ? 'ok' : 'blunder';
++  loss <= 0.05 ? 'good' : loss <= 0.1 ? 'ok' : 'blunder';
++
++// Maia converts mate evidence to CP before its empirical win-rate lookup.
++export const candidateWhiteCp = (score: EvalScore, white: boolean): number | undefined => {
++  if (score.mate !== undefined) {
++    if (!Number.isFinite(score.mate)) return undefined;
++    return score.mate === 0 ? (white ? -10000 : 10000) : score.mate > 0 ? 10000 : -10000;
++  }
++  return score.cp !== undefined && Number.isFinite(score.cp) ? score.cp : undefined;
++};
 +
 +export const stockfishWinrate = (score: EvalScore, white: boolean): number | undefined => {
-+  if (score.mate !== undefined) return score.mate > 0 === white ? 1 : 0;
-+  if (score.cp === undefined || !Number.isFinite(score.cp)) return undefined;
-+  const cp = Math.max(-10, Math.min(10, (white ? score.cp : -score.cp) / 100));
++  const whiteCp = candidateWhiteCp(score, white);
++  if (whiteCp === undefined) return undefined;
++  const cp = Math.max(-10, Math.min(10, (white ? whiteCp : -whiteCp) / 100));
 +  return cpLookup[(Math.round(cp * 10) / 10).toFixed(1)];
 +};
 +
@@ -22748,7 +22899,7 @@ index 0000000..739e8e3
 +      .sort(
 +        (a, b) =>
 +          b.value - a.value ||
-+          (white ? 1 : -1) * ((b.score.cp ?? 0) - (a.score.cp ?? 0)) ||
++          candidateWhiteCp(b.score, white)! - candidateWhiteCp(a.score, white)! ||
 +          a.uci.localeCompare(b.uci),
 +      )
 +      .map((s, i) => [s.uci, Math.min(i, 4)]),
@@ -23092,12 +23243,13 @@ index 0000000..496fe17
 +}
 diff --git a/ui/analyse/src/noSweatFish.ts b/ui/analyse/src/noSweatFish.ts
 new file mode 100644
-index 0000000..b703dec
+index 0000000..f60f15b
 --- /dev/null
 +++ b/ui/analyse/src/noSweatFish.ts
-@@ -0,0 +1,228 @@
+@@ -0,0 +1,257 @@
 +import type { BrowserEngineInfo } from 'lib/ceval';
-+// Use Lila's native Stockfish loader/assets with a separate bounded review queue.
++// Native Stockfish loader; candidate stages follow Maia frontend 325b85c3 (GPL-3.0).
++// The existing watchdog remains a Mute resource bound, not Maia's depth policy.
 +import { StockfishWebEngine } from 'lib/ceval/engines/stockfishWebEngine';
 +import { Protocol } from 'lib/ceval/protocol';
 +
@@ -23109,6 +23261,11 @@ index 0000000..b703dec
 +  previous?: Snapshot;
 +  terminal?: boolean;
 +  quality?: string;
++}
++export interface CandidateSearchOptions {
++  allRoots?: boolean;
++  maxMultiPv?: 4;
++  onUpdate?: (review: Review) => void;
 +}
 +const info: BrowserEngineInfo = {
 +  id: 'nosweat-review-sf19-small',
@@ -23134,6 +23291,7 @@ index 0000000..b703dec
 +    reject: (e: Error) => void;
 +    signal: AbortSignal;
 +    started: boolean;
++    onUpdate?: (review: Review) => void;
 +    timer: ReturnType<typeof setTimeout>;
 +  };
 +  private booted!: () => void;
@@ -23171,12 +23329,19 @@ index 0000000..b703dec
 +        t.started = true;
 +        this.output?.('position fen ' + t.fen);
 +        this.output?.(
-+          `go depth ${t.depth} movetime ${t.time}` +
++          `go depth ${t.depth}` +
++            (t.time > 0 ? ` movetime ${t.time}` : '') +
 +            (t.moves.length ? ' searchmoves ' + t.moves.join(' ') : ''),
 +        );
 +      }
-+    } else if (text.startsWith('info ')) this.task?.snapshots.add(text);
-+    else if (text.startsWith('bestmove')) {
++    } else if (text.startsWith('info ')) {
++      const task = this.task;
++      if (!task) return;
++      const previous = task.snapshots.completed;
++      task.snapshots.add(text);
++      if (task.snapshots.completed && previous !== task.snapshots.completed && !task.signal.aborted)
++        task.onUpdate?.({ current: task.snapshots.completed, previous: task.snapshots.previous });
++    } else if (text.startsWith('bestmove')) {
 +      const t = this.task;
 +      if (!t) return;
 +      clearTimeout(t.timer);
@@ -23204,6 +23369,7 @@ index 0000000..b703dec
 +    signal: AbortSignal,
 +    session?: symbol,
 +    multiPv = 2,
++    options?: CandidateSearchOptions,
 +  ): Promise<Review> {
 +    let deadline: ReturnType<typeof setTimeout> | undefined;
 +    try {
@@ -23222,7 +23388,11 @@ index 0000000..b703dec
 +    const legal = new Set(moves.length ? moves : legalUcis(fen));
 +    const count = Math.min(
 +      legal.size,
-+      Number.isFinite(multiPv) ? Math.max(1, Math.min(3, Math.floor(multiPv))) : 2,
++      options?.allRoots && !moves.length
++        ? 256
++        : Number.isFinite(multiPv)
++          ? Math.max(1, Math.min(options?.maxMultiPv ?? 3, Math.floor(multiPv)))
++          : 2,
 +    );
 +    return new Promise((resolve, reject) => {
 +      if (this.task) {
@@ -23238,6 +23408,7 @@ index 0000000..b703dec
 +        reject,
 +        signal,
 +        started: false,
++        onUpdate: options?.onUpdate,
 +        snapshots: new SearchSnapshots(legal, count, position(fen).turn === 'white'),
 +        timer: setTimeout(() => this.fail(new Error('Stockfish review timed out')), time + 15000),
 +      });
@@ -23294,6 +23465,7 @@ index 0000000..b703dec
 +    time = 1200,
 +    session?: symbol,
 +    multiPv = 2,
++    options?: CandidateSearchOptions,
 +  ): Promise<Review> {
 +    const generation = this.generation;
 +    const job = this.tail
@@ -23311,7 +23483,15 @@ index 0000000..b703dec
 +            protocol,
 +          );
 +        }
-+        return this.protocol.search(fen, moves, depth, time, signal, session, multiPv);
++        try {
++          return await this.protocol.search(fen, moves, depth, time, signal, session, multiPv, options);
++        } catch (error) {
++          // A depth-only phase can hit the watchdog. Discard that worker before
++          // another search so its late info/bestmove cannot enter a new task.
++          const cleanCancellation = signal.aborted && error instanceof Error && error.message === 'Cancelled';
++          if (!cleanCancellation && generation === this.generation) this.destroy();
++          throw error;
++        }
 +      });
 +    this.tail = job;
 +    return job;
@@ -23473,6 +23653,163 @@ index 0000000..18c2480
 +    if (category !== -1) counts[category]++;
 +  }
 +  return counts;
++}
+diff --git a/ui/analyse/src/noSweatMoveTooltip.ts b/ui/analyse/src/noSweatMoveTooltip.ts
+new file mode 100644
+index 0000000..0220987
+--- /dev/null
++++ b/ui/analyse/src/noSweatMoveTooltip.ts
+@@ -0,0 +1,151 @@
++import type { Hooks, VNode } from 'lib/view';
++
++// Maia's MoveTooltip presentation, adapted to the native analysis DOM.
++export interface MoveTooltipDetails {
++  san: string;
++  color: string;
++  maiaProbability?: number;
++  stockfishEval?: string;
++  stockfishWinrate?: number;
++  stockfishEvalLoss?: string;
++}
++
++let nextId = 0;
++let hideActive: (() => void) | undefined;
++const attachedTooltips = new WeakMap<HTMLElement | SVGElement, () => void>();
++const dismissedTooltips = new WeakSet<HTMLElement | SVGElement>();
++
++export function attachMoveTooltip(
++  element: HTMLElement | SVGElement,
++  details: () => MoveTooltipDetails | undefined,
++): () => void {
++  const id = `nosweat-move-tooltip-${++nextId}`;
++  let popup: HTMLElement | undefined;
++  let hovered = false;
++  let focused = false;
++
++  const hide = () => {
++    popup?.remove();
++    popup = undefined;
++    const describedBy = element
++      .getAttribute('aria-describedby')
++      ?.split(/\s+/)
++      .filter(value => value !== id);
++    if (describedBy?.length) element.setAttribute('aria-describedby', describedBy.join(' '));
++    else element.removeAttribute('aria-describedby');
++    window.removeEventListener('scroll', hide, true);
++    window.removeEventListener('resize', hide);
++    window.removeEventListener('keydown', escape);
++    if (hideActive === hide) hideActive = undefined;
++  };
++  const escape = (event: KeyboardEvent) => {
++    if (event.key === 'Escape') {
++      dismissedTooltips.add(element);
++      hide();
++    }
++  };
++  const show = () => {
++    if (dismissedTooltips.has(element) || popup || !element.isConnected) return;
++    const data = details();
++    if (!data) return;
++    hideActive?.();
++    popup = document.createElement('div');
++    popup.className = 'nosweat-move-tooltip';
++    popup.id = id;
++    popup.setAttribute('role', 'tooltip');
++    const header = document.createElement('div');
++    header.className = 'nosweat-move-tooltip__header';
++    header.textContent = data.san;
++    header.style.color = data.color;
++    popup.append(header);
++    const rows = document.createElement('div');
++    rows.className = 'nosweat-move-tooltip__rows';
++    const row = (label: string, value: string, maia = false) => {
++      const name = document.createElement('span');
++      name.className = maia ? 'nosweat-move-tooltip__maia' : 'nosweat-move-tooltip__fish';
++      name.textContent = label;
++      const number = document.createElement('span');
++      number.textContent = value;
++      rows.append(name, number);
++    };
++    if (data.maiaProbability !== undefined)
++      row('Maia:', `${(Math.round(data.maiaProbability * 1000) / 10).toFixed(1)}%`, true);
++    if (data.stockfishEval !== undefined) row('SF Eval:', data.stockfishEval);
++    if (data.stockfishWinrate !== undefined)
++      row('SF Winrate:', `${(data.stockfishWinrate * 100).toFixed(1)}%`);
++    if (data.stockfishEvalLoss !== undefined) row('SF Eval Loss:', data.stockfishEvalLoss);
++    popup.append(rows);
++    document.body.append(popup);
++    const anchor = element.getBoundingClientRect();
++    const box = popup.getBoundingClientRect();
++    const maxLeft = Math.max(8, window.innerWidth - box.width - 8);
++    const maxTop = Math.max(8, window.innerHeight - box.height - 8);
++    popup.style.left = `${Math.min(maxLeft, Math.max(8, anchor.left))}px`;
++    popup.style.top = `${Math.min(maxTop, Math.max(8, anchor.top >= box.height + 10 ? anchor.top - box.height - 10 : anchor.bottom + 10))}px`;
++    const describedBy = element.getAttribute('aria-describedby');
++    element.setAttribute('aria-describedby', [describedBy, id].filter(Boolean).join(' '));
++    hideActive = hide;
++    window.addEventListener('scroll', hide, true);
++    window.addEventListener('resize', hide);
++    window.addEventListener('keydown', escape);
++  };
++  const enter = () => {
++    hovered = true;
++    dismissedTooltips.delete(element);
++    show();
++  };
++  const leave = () => {
++    hovered = false;
++    if (!focused) hide();
++  };
++  const focus = () => {
++    focused = true;
++    dismissedTooltips.delete(element);
++    show();
++  };
++  const blur = () => {
++    focused = false;
++    if (!hovered) hide();
++  };
++  element.addEventListener('mouseenter', enter);
++  element.addEventListener('mouseleave', leave);
++  element.addEventListener('focus', focus);
++  element.addEventListener('blur', blur);
++  focused = document.activeElement === element;
++  hovered = element.matches(':hover');
++  if (focused || hovered) show();
++
++  return () => {
++    hide();
++    element.removeEventListener('mouseenter', enter);
++    element.removeEventListener('mouseleave', leave);
++    element.removeEventListener('focus', focus);
++    element.removeEventListener('blur', blur);
++  };
++}
++
++export function withMoveTooltip(hooks: Hooks, details: () => MoveTooltipDetails | undefined): Hooks {
++  const attach = (vnode: VNode) => {
++    const element = vnode.elm as HTMLElement | SVGElement;
++    attachedTooltips.get(element)?.();
++    attachedTooltips.set(element, attachMoveTooltip(element, details));
++  };
++  return {
++    ...hooks,
++    insert: vnode => {
++      hooks.insert?.(vnode);
++      attach(vnode);
++    },
++    update: (old, vnode) => {
++      hooks.update?.(old, vnode);
++      attach(vnode);
++    },
++    destroy: vnode => {
++      const element = vnode.elm as HTMLElement | SVGElement;
++      attachedTooltips.get(element)?.();
++      attachedTooltips.delete(element);
++      dismissedTooltips.delete(element);
++      hooks.destroy?.(vnode);
++    },
++  };
 +}
 diff --git a/ui/analyse/src/noSweatOpening.ts b/ui/analyse/src/noSweatOpening.ts
 new file mode 100644
@@ -24249,13 +24586,18 @@ index 0000000..0a8874e
 +}
 diff --git a/ui/analyse/src/noSweatRatingChartQuality.ts b/ui/analyse/src/noSweatRatingChartQuality.ts
 new file mode 100644
-index 0000000..a984c3a
+index 0000000..473a855
 --- /dev/null
 +++ b/ui/analyse/src/noSweatRatingChartQuality.ts
-@@ -0,0 +1,45 @@
-+// Maia platform (GPL-3.0), revision a6e52f5c811ee18863cb2f0e81f2433a5b9905de.
+@@ -0,0 +1,50 @@
++// Maia platform (GPL-3.0), revision 325b85c3b6427f2e8e691e1dcf4ab9d4dbf94ec3.
 +// Chart-only adaptation of useAnalysisController/utils.ts and constants/analysis.ts.
-+import { qualityFromLoss, stockfishWinrate, type CandidateQuality } from './noSweatCandidateQuality';
++import {
++  candidateWhiteCp,
++  qualityFromLoss,
++  stockfishWinrate,
++  type CandidateQuality,
++} from './noSweatCandidateQuality';
 +
 +const colors: Record<CandidateQuality, string[]> = {
 +  good: ['#238b45', '#41ab5d', '#74c476', '#90D289', '#AEDFA4'],
@@ -24287,7 +24629,7 @@ index 0000000..a984c3a
 +      .sort(
 +        (a, b) =>
 +          b.value - a.value ||
-+          (white ? 1 : -1) * ((b.score.cp ?? 0) - (a.score.cp ?? 0)) ||
++          candidateWhiteCp(b.score, white)! - candidateWhiteCp(a.score, white)! ||
 +          a.uci.localeCompare(b.uci),
 +      )
 +      .map(({ uci, value }) => {
@@ -24660,20 +25002,30 @@ index 0000000..d6acaaf
 +});
 diff --git a/ui/analyse/tests/candidateColorLifecycle.test.ts b/ui/analyse/tests/candidateColorLifecycle.test.ts
 new file mode 100644
-index 0000000..23534d2
+index 0000000..1ee751f
 --- /dev/null
 +++ b/ui/analyse/tests/candidateColorLifecycle.test.ts
-@@ -0,0 +1,265 @@
+@@ -0,0 +1,349 @@
 +import assert from 'node:assert/strict';
 +import { mock, test } from 'node:test';
 +
 +import type AnalyseCtrl from '../src/ctrl';
-+import type { Review } from '../src/noSweatFish';
++import { legalUcis } from '../src/noSweatCore';
++import type { Review, CandidateSearchOptions } from '../src/noSweatFish';
 +
-+const jobs: { signal: AbortSignal; resolve: (r: Review) => void }[] = [];
++const jobs: { signal: AbortSignal; resolve: (r: Review) => void; options?: CandidateSearchOptions }[] = [];
 +class FakeFish {
-+  search(_fen: string, _moves: string[], signal: AbortSignal) {
-+    return new Promise<Review>(resolve => jobs.push({ signal, resolve }));
++  search(
++    _fen: string,
++    _moves: string[],
++    signal: AbortSignal,
++    _depth?: number,
++    _time?: number,
++    _session?: symbol,
++    _multiPv?: number,
++    options?: CandidateSearchOptions,
++  ) {
++    return new Promise<Review>(resolve => jobs.push({ signal, resolve, options }));
 +  }
 +  destroy() {}
 +}
@@ -24726,6 +25078,9 @@ index 0000000..23534d2
 +  assert.equal(jobs.length, 1);
 +  model.setEnabled(false);
 +  assert.equal(jobs[0].signal.aborted, true);
++  jobs[0].options?.onUpdate?.({
++    current: { depth: 10, lines: legalUcis(fen).map(move => ({ cp: 0, moves: [move] })) },
++  });
 +  jobs[0].resolve({ current: { depth: 12, lines: [{ cp: 0, moves: ['e2e4'] }] } });
 +  await new Promise(resolve => setTimeout(resolve, 0));
 +  assert.equal(model.scores.size, 0);
@@ -24876,33 +25231,104 @@ index 0000000..23534d2
 +  model.release();
 +});
 +
-+test('a rating leader arriving at quality-queue completion is still evaluated', async () => {
-+  const { ctrl, model } = chartModel();
++test('all legal roots are screened before ranked shading and Others only changes presentation', async t => {
++  const { model } = chartModel();
 +  await Promise.resolve();
 +  model.enabled = true;
-+  model.candidates = [{ uci: 'a2a3', probability: 1 }];
-+  const roots = ['e2e4', 'd2d4', 'g1f3'].map(uci => ({ cp: 0, moves: [uci] }));
-+  (model as any).qualityRoot = { current: { depth: 12, lines: roots } };
-+  roots.forEach(line => model.scores.set(line.moves[0], { score: line, depth: 12 }));
-+  let inject = true;
-+  ctrl.redraw = () => {
-+    if (inject && model.scores.has('a2a3')) {
-+      inject = false;
-+      queueMicrotask(() => {
-+        model.byRating.set(2600, [{ uci: 'b2b3', probability: 0.5 }]);
-+        (model as any).colorCandidates();
-+      });
-+    }
-+  };
-+  const start = jobs.length;
++  model.candidates = [
++    { uci: 'e2e4', probability: 0.98 },
++    { uci: 'a2a3', probability: 0.02 },
++  ];
++  const legal = legalUcis(fen);
++  model.secondaryCandidates = [
++    { uci: 'd2d4', probability: 1 },
++    ...legal.filter(uci => uci !== 'd2d4').map(uci => ({ uci, probability: 0 })),
++  ];
++  assert.equal(legal.length, 20);
++  const lines = legal.map((uci, i) => ({ cp: uci === 'e2e4' ? 0 : -500 - i * 10, moves: [uci] }));
++  const calls: { moves: string[]; depth: number; allRoots: boolean }[] = [];
++  t.mock.method(
++    model as any,
++    'review',
++    async (
++      _fen: string,
++      _gen: number,
++      moves: string[],
++      _time: number,
++      multiPv: number,
++      depth: number,
++      options: CandidateSearchOptions,
++    ) => {
++      calls.push({ moves, depth, allRoots: !!options.allRoots });
++      if (options.allRoots) {
++        options.onUpdate?.({ current: { depth: 1, lines: lines.slice(0, -1) } });
++        assert.equal(model.scores.size, 0, 'an incomplete screening cannot publish a partial color pool');
++        options.onUpdate?.({ current: { depth: 2, lines } });
++        assert.equal(model.scores.size, 20);
++      }
++      return {
++        current: {
++          depth,
++          lines: moves.length
++            ? lines.filter(line => moves.includes(line.moves[0]))
++            : options.allRoots
++              ? lines
++              : lines.slice(0, multiPv),
++        },
++      };
++    },
++  );
 +  (model as any).colorCandidates();
-+  jobs[start].resolve({ current: { depth: 12, lines: [{ cp: -500, moves: ['a2a3'] }] } });
 +  await new Promise(resolve => setTimeout(resolve, 0));
-+  assert.equal(jobs.length, start + 2, 'the final sample must wake the completed queue');
-+  jobs[start + 1].resolve({ current: { depth: 12, lines: [{ cp: -100, moves: ['b2b3'] }] } });
-+  await new Promise(resolve => setTimeout(resolve, 0));
-+  assert.equal(model.scores.get('b2b3')?.depth, 12);
-+  assert.notEqual((model as any).chartOptions().color('b2b3'), 'var(--c-font-dim)');
++  assert.equal((model as any).qualityBusy, false);
++  assert.deepEqual(calls[0], { moves: [], depth: 10, allRoots: true });
++  assert.ok(calls.some(call => call.depth === 18 && !call.moves.length));
++  assert.equal(model.scores.size, 20);
++  const before = [...(model as any).candidateQualities()];
++  const total = calls.length;
++  const card = (model as any).maiaCard(true);
++  const others = card.children.find((child: any) => child.sel === 'button.nosweat-others');
++  others.elm = document.createElement('button');
++  others.data.hook.insert(others);
++  others.elm.click();
++  await Promise.resolve();
++  assert.equal(calls.length, total, 'expanding Others does not schedule any engine search');
++  assert.deepEqual([...(model as any).candidateQualities()], before);
++  model.byRating.set(600, [{ uci: 'b2b3', probability: 1 }]);
++  (model as any).colorCandidates();
++  await Promise.resolve();
++  assert.equal(calls.length, total, 'a chart leader already has the position-wide screened evidence');
++  model.release();
++});
++
++test('move popup follows Maia White eval, mover winrate and a separate CP-loss baseline', async () => {
++  const { model } = chartModel();
++  await Promise.resolve();
++  model.enabled = true;
++  model.scores.set('e2e4', { score: { cp: 25 }, depth: 18 });
++  model.scores.set('f1b5', { score: { cp: -337 }, depth: 18 });
++  const details = (model as any).moveTooltip('f1b5', 0.125);
++  assert.equal(details.stockfishEval, '-3.37');
++  assert.equal(details.stockfishEvalLoss, '-3.62');
++  assert.equal(details.maiaProbability, 0.125);
++  assert.equal(details.color, (model as any).chartOptions().color('f1b5'));
++  model.release();
++});
++
++test('castling continuations normalize to standard UCI and chart roots follow the current merged ranking', async () => {
++  const { ctrl, model } = chartModel();
++  await Promise.resolve();
++  const currentFen = 'r1bnkb1r/pp2pppp/1n6/4P3/2B5/5N2/PP3PPP/RNB1K2R w KQkq - 0 10';
++  ctrl.node = { fen: currentFen, children: [{ uci: 'e1h1' }] } as any;
++  assert.deepEqual((model as any).qualityCandidates(), ['e1g1']);
++  model.enabled = true;
++  (model as any).qualityScreened = true;
++  (model as any).qualityRoot = { current: { depth: 18, lines: [{ cp: 0, moves: ['c4b3'] }] } };
++  model.scores.set('c4b3', { score: { cp: 0 }, depth: 18 });
++  model.scores.set('c4b5', { score: { cp: 10 }, depth: 18 });
++  model.scores.set('c4e2', { score: { cp: 20 }, depth: 18 });
++  model.scores.set('c4d3', { score: { cp: 30 }, depth: 18 });
++  assert.deepEqual((model as any).chartStockfishMoves(), ['c4d3', 'c4e2', 'c4b5']);
 +  model.release();
 +});
 +
@@ -24931,23 +25357,42 @@ index 0000000..23534d2
 +});
 diff --git a/ui/analyse/tests/candidateQuality.test.ts b/ui/analyse/tests/candidateQuality.test.ts
 new file mode 100644
-index 0000000..feee0fd
+index 0000000..802a3a6
 --- /dev/null
 +++ b/ui/analyse/tests/candidateQuality.test.ts
-@@ -0,0 +1,60 @@
+@@ -0,0 +1,79 @@
 +import assert from 'node:assert/strict';
 +import { test } from 'node:test';
 +
-+import { candidateQuality, qualityFromLoss, blunderRanks } from '../src/noSweatCandidateQuality';
++import {
++  candidateQuality,
++  qualityFromLoss,
++  blunderRanks,
++  stockfishWinrate,
++} from '../src/noSweatCandidateQuality';
 +
 +test('Maia-platform boundaries use five and ten percentage points of SF winrate loss', () => {
 +  assert.equal(qualityFromLoss(0.05), 'good');
++  assert.equal(qualityFromLoss(0.05 + 1e-12), 'ok');
 +  assert.equal(qualityFromLoss(0.05001), 'ok');
 +  assert.equal(qualityFromLoss(0.1), 'ok');
++  assert.equal(qualityFromLoss(0.1 + 1e-12), 'blunder');
 +  assert.equal(qualityFromLoss(0.10001), 'blunder');
 +  assert.equal(candidateQuality({ cp: 0 }, { cp: 0 }, true), 'good');
 +  assert.equal(candidateQuality({ cp: 0 }, { cp: -100 }, true), 'ok');
 +  assert.equal(candidateQuality({ cp: 0 }, { cp: -500 }, true), 'blunder');
++});
++
++test('Maia mate evidence uses empirical CP endpoints, including a losing mate-zero for either mover', () => {
++  const winning = stockfishWinrate({ cp: 10000 }, true);
++  const losing = stockfishWinrate({ cp: -10000 }, true);
++  assert.equal(winning, 0.8518353443061348);
++  assert.equal(losing, 0.16874792794783955);
++  assert.equal(stockfishWinrate({ mate: 2 }, true), winning);
++  assert.equal(stockfishWinrate({ mate: -2 }, false), winning);
++  assert.equal(stockfishWinrate({ mate: 0 }, true), losing);
++  assert.equal(stockfishWinrate({ mate: 0 }, false), losing);
++  assert.equal(stockfishWinrate({ mate: NaN }, true), undefined);
 +});
 +
 +test('blunder shades follow Stockfish loss order, cap at five and ignore missing evidence', () => {
@@ -77933,10 +78378,10 @@ index 0000000..3c938d9
 +});
 diff --git a/ui/analyse/tests/maiaSingleEngine.test.ts b/ui/analyse/tests/maiaSingleEngine.test.ts
 new file mode 100644
-index 0000000..1318fce
+index 0000000..b37644a
 --- /dev/null
 +++ b/ui/analyse/tests/maiaSingleEngine.test.ts
-@@ -0,0 +1,75 @@
+@@ -0,0 +1,79 @@
 +import assert from 'node:assert/strict';
 +import { mock, test } from 'node:test';
 +import { attributesModule, init } from 'snabbdom';
@@ -78008,9 +78453,162 @@ index 0000000..1318fce
 +  root.querySelector<HTMLButtonElement>('.nosweat-others')!.click();
 +  vnode = patch(vnode, (model as any).candidateView());
 +  assert.equal((vnode.elm as HTMLElement).querySelectorAll('.nosweat-policy tbody button').length, 20);
-+  assert.equal((model as any).visibleCandidates().length, 20);
++  assert.equal(
++    (model as any).qualityCandidates().length,
++    4,
++    'Others does not enlarge the deepening selection',
++  );
 +  model.release();
 +  root.remove();
++});
+diff --git a/ui/analyse/tests/moveTooltip.test.ts b/ui/analyse/tests/moveTooltip.test.ts
+new file mode 100644
+index 0000000..0a25547
+--- /dev/null
++++ b/ui/analyse/tests/moveTooltip.test.ts
+@@ -0,0 +1,143 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++import { h, init } from 'snabbdom';
++
++import { attachMoveTooltip, withMoveTooltip } from '../src/noSweatMoveTooltip';
++
++const event = (element: HTMLElement, name: string) => {
++  const value = document.createEvent('Event');
++  value.initEvent(name, false, false);
++  element.dispatchEvent(value);
++};
++
++test('move details render outside the clipped card with source formatting and safe text', () => {
++  const card = document.createElement('div');
++  card.style.overflow = 'hidden';
++  const move = document.createElement('button');
++  card.append(move);
++  document.body.append(card);
++  const dispose = attachMoveTooltip(move, () => ({
++    san: '<Bxf7+>',
++    color: '#cb181d',
++    maiaProbability: 0.125,
++    stockfishEval: '-3.37',
++    stockfishWinrate: 0.343,
++    stockfishEvalLoss: '-3.62',
++  }));
++  event(move, 'mouseenter');
++  const popup = document.querySelector<HTMLElement>('.nosweat-move-tooltip')!;
++  assert.equal(popup.parentElement, document.body);
++  assert.equal(popup.getAttribute('role'), 'tooltip');
++  assert.equal(popup.querySelector('.nosweat-move-tooltip__header')?.textContent, '<Bxf7+>');
++  assert.equal(popup.querySelector('bxf7'), null);
++  assert.equal(
++    popup.querySelector('.nosweat-move-tooltip__rows')?.textContent,
++    'Maia:12.5%SF Eval:-3.37SF Winrate:34.3%SF Eval Loss:-3.62',
++  );
++  assert.equal(move.getAttribute('aria-describedby'), popup.id);
++  event(move, 'mouseleave');
++  assert.equal(document.querySelector('.nosweat-move-tooltip'), null);
++  assert.equal(move.hasAttribute('aria-describedby'), false);
++  dispose();
++  card.remove();
++});
++
++test('focus, Escape and disposal clean up the popup and omit unavailable evidence', () => {
++  const move = document.createElement('button');
++  document.body.append(move);
++  move.setAttribute('aria-describedby', 'existing-help');
++  const dispose = attachMoveTooltip(move, () => ({ san: 'e4', color: '#238b45', maiaProbability: 0 }));
++  move.focus();
++  const popup = document.querySelector<HTMLElement>('.nosweat-move-tooltip')!;
++  assert.ok(popup);
++  assert.equal(popup.querySelector('.nosweat-move-tooltip__rows')?.textContent, 'Maia:0.0%');
++  assert.ok(move.getAttribute('aria-describedby')?.startsWith('existing-help '));
++  const escape = document.createEvent('KeyboardEvent');
++  escape.initEvent('keydown', true, false);
++  Object.defineProperty(escape, 'key', { value: 'Escape' });
++  move.dispatchEvent(escape);
++  assert.equal(document.querySelector('.nosweat-move-tooltip'), null);
++  assert.equal(move.getAttribute('aria-describedby'), 'existing-help');
++  move.blur();
++  event(move, 'mouseenter');
++  assert.ok(document.querySelector('.nosweat-move-tooltip'));
++  dispose();
++  assert.equal(document.querySelector('.nosweat-move-tooltip'), null);
++  event(move, 'mouseenter');
++  assert.equal(document.querySelector('.nosweat-move-tooltip'), null);
++  move.remove();
++});
++
++test('fresh VNode hooks replace one DOM attachment and destroy removes it', () => {
++  const patch = init([]);
++  const host = document.createElement('div');
++  document.body.append(host);
++  let reads = 0;
++  const view = (san: string) =>
++    h('div', [
++      h(
++        'button',
++        {
++          key: 'move',
++          hook: withMoveTooltip({}, () => {
++            reads++;
++            return { san, color: '#cb181d' };
++          }),
++        },
++        san,
++      ),
++    ]);
++  let tree = patch(host, view('e4'));
++  const move = (tree.elm as HTMLElement).querySelector('button')!;
++  tree = patch(tree, view('d4'));
++  tree = patch(tree, view('Nf3'));
++  event(move, 'mouseenter');
++  assert.equal(reads, 1, 'redraws must not accumulate tooltip listeners');
++  assert.equal(document.querySelector('.nosweat-move-tooltip__header')?.textContent, 'Nf3');
++  tree = patch(tree, h('div'));
++  assert.equal(document.querySelector('.nosweat-move-tooltip'), null);
++  document.body.append(move);
++  event(move, 'mouseenter');
++  assert.equal(reads, 1, 'destroy removes the final attachment');
++  move.remove();
++  (tree.elm as HTMLElement).remove();
++});
++
++test('Escape stays dismissed through same-node redraws until a new focus or hover', () => {
++  const patch = init([]);
++  const host = document.createElement('div');
++  document.body.append(host);
++  const view = (san: string) =>
++    h('div', [
++      h(
++        'button',
++        {
++          key: 'move',
++          hook: withMoveTooltip({}, () => ({ san, color: '#cb181d' })),
++        },
++        san,
++      ),
++    ]);
++  let tree = patch(host, view('e4'));
++  const move = (tree.elm as HTMLElement).querySelector('button')!;
++  move.focus();
++  assert.ok(document.querySelector('.nosweat-move-tooltip'));
++  const escape = document.createEvent('KeyboardEvent');
++  escape.initEvent('keydown', true, false);
++  Object.defineProperty(escape, 'key', { value: 'Escape' });
++  move.dispatchEvent(escape);
++  tree = patch(tree, view('d4'));
++  assert.equal(document.activeElement, move);
++  assert.equal(document.querySelector('.nosweat-move-tooltip'), null);
++  move.blur();
++  move.focus();
++  assert.equal(document.querySelector('.nosweat-move-tooltip__header')?.textContent, 'd4');
++  move.dispatchEvent(escape);
++  tree = patch(tree, view('Nf3'));
++  assert.equal(document.querySelector('.nosweat-move-tooltip'), null);
++  event(move, 'mouseenter');
++  assert.equal(document.querySelector('.nosweat-move-tooltip__header')?.textContent, 'Nf3');
++  tree = patch(tree, h('div'));
++  assert.equal(document.querySelector('.nosweat-move-tooltip'), null);
++  (tree.elm as HTMLElement).remove();
 +});
 diff --git a/ui/analyse/tests/noSweat.test.ts b/ui/analyse/tests/noSweat.test.ts
 new file mode 100644
@@ -79525,10 +80123,10 @@ index 0000000..cc2de6d
 +});
 diff --git a/ui/analyse/tests/ratingChartEvidence.test.ts b/ui/analyse/tests/ratingChartEvidence.test.ts
 new file mode 100644
-index 0000000..27f6eea
+index 0000000..229855e
 --- /dev/null
 +++ b/ui/analyse/tests/ratingChartEvidence.test.ts
-@@ -0,0 +1,100 @@
+@@ -0,0 +1,152 @@
 +import assert from 'node:assert/strict';
 +import { mock, test } from 'node:test';
 +
@@ -79558,14 +80156,16 @@ index 0000000..27f6eea
 +  namedExports: { StockfishWebEngine: FakeEngine },
 +});
 +const { ReviewFish } = await import('../src/noSweatFish');
++const { legalUcis } = await import('../src/noSweatCore');
 +const fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 +const start = async (multiPv?: number, moves: string[] = []) => {
 +  const fish = new ReviewFish(() => {});
-+  const result = fish.search(fen, moves, new AbortController().signal, 12, 500, undefined, multiPv);
++  const abort = new AbortController();
++  const result = fish.search(fen, moves, abort.signal, 12, 500, undefined, multiPv);
 +  await new Promise(resolve => setImmediate(resolve));
 +  const engine = engines.at(-1)!;
 +  engine.protocol.received('readyok');
-+  return { fish, engine, result };
++  return { fish, engine, result, abort };
 +};
 +const line = (rank: number, move: string, depth = 12) =>
 +  `info depth ${depth} multipv ${rank} score cp ${40 - rank * 10} pv ${move}`;
@@ -79629,9 +80229,59 @@ index 0000000..27f6eea
 +    fish.destroy();
 +  }
 +});
++
++test('Maia candidate screening publishes only complete all-legal iterations and keeps them on a partial next depth', async () => {
++  const currentFen = 'r1bnkb1r/pp2pppp/1n6/4P3/2B5/5N2/PP3PPP/RNB1K2R w KQkq - 0 10';
++  const moves = legalUcis(currentFen);
++  assert.equal(moves.length, 38);
++  const fish = new ReviewFish(() => {});
++  const updates: number[] = [];
++  const result = fish.search(currentFen, [], new AbortController().signal, 10, 0, Symbol(), moves.length, {
++    allRoots: true,
++    onUpdate: review => updates.push(review.current.lines.length),
++  });
++  await new Promise(resolve => setImmediate(resolve));
++  const engine = engines.at(-1)!;
++  engine.protocol.received('readyok');
++  assert.ok(engine.commands.includes('setoption name MultiPV value 38'));
++  assert.ok(engine.commands.includes('go depth 10'));
++  moves.slice(0, -1).forEach((move, i) => engine.protocol.received(line(i + 1, move, 9)));
++  assert.deepEqual(updates, []);
++  engine.protocol.received(line(moves.length, moves.at(-1)!, 9));
++  assert.deepEqual(updates, [38]);
++  engine.protocol.received(line(1, moves[0], 10));
++  engine.protocol.received('bestmove ' + moves[0]);
++  const review = await result;
++  assert.equal(review.current.depth, 9);
++  assert.equal(review.current.lines.length, 38);
++  fish.destroy();
++});
++
++for (const aborted of [false, true])
++  test(`a ${aborted ? 'cancelled ' : ''}timed-out search discards its worker before any late output can enter the next search`, async t => {
++    t.mock.timers.enable({ apis: ['setTimeout'] });
++    const first = await start();
++    const rejected = assert.rejects(first.result, /review timed out/);
++    if (aborted) first.abort.abort();
++    t.mock.timers.tick(15501);
++    await rejected;
++    assert.ok(first.engine.commands.includes('quit'));
++    const next = first.fish.search(fen, [], new AbortController().signal, 12, 500);
++    await new Promise(resolve => setImmediate(resolve));
++    const replacement = engines.at(-1)!;
++    assert.notEqual(replacement, first.engine);
++    replacement.protocol.received('readyok');
++    first.engine.protocol.received(line(1, 'a2a3', 99));
++    first.engine.protocol.received('bestmove a2a3');
++    replacement.protocol.received(line(1, 'e2e4'));
++    replacement.protocol.received(line(2, 'd2d4'));
++    replacement.protocol.received('bestmove e2e4');
++    assert.equal((await next).current.lines[0].moves[0], 'e2e4');
++    first.fish.destroy();
++  });
 diff --git a/ui/analyse/tests/ratingChartQuality.test.ts b/ui/analyse/tests/ratingChartQuality.test.ts
 new file mode 100644
-index 0000000..bb86b79
+index 0000000..13eff1f
 --- /dev/null
 +++ b/ui/analyse/tests/ratingChartQuality.test.ts
 @@ -0,0 +1,87 @@
@@ -79685,7 +80335,7 @@ index 0000000..bb86b79
 +  );
 +});
 +
-+test('chart quality and CP tie ordering retain the mover perspective for Black', () => {
++test('chart quality uses mover perspective while tied shades use Maia raw White CP ordering', () => {
 +  const white = new Map<string, EvalScore>([
 +    ['best', { cp: 0 }],
 +    ['good', { cp: -30 }],
@@ -79701,7 +80351,7 @@ index 0000000..bb86b79
 +    ]),
 +    false,
 +  );
-+  assert.deepEqual([...ties.keys()], ['more', 'less']);
++  assert.deepEqual([...ties.keys()], ['less', 'more']);
 +});
 +
 +test('mate evidence remains valid while unknown or malformed evidence stays unmapped', () => {

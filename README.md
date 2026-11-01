@@ -82,6 +82,12 @@ The 79M model tries WebGPU, with a multi-threaded CPU fallback where supported.
 Visitors do not download the model from GitHub; deployment can fetch a pinned
 upstream copy if the server's existing model is unavailable.
 
+Current-position move colors follow Maia's complete legal-move evaluation and
+ranked palettes. Cards and Moves by Rating share the same colors; opening Others
+only expands the list. Move-hover details show Maia probability, White-perspective
+Stockfish evaluation, mover win rate and evaluation loss. These estimates remain
+separate from whole-game classifications. See the [source audit](docs/maia-rating-chart.md).
+
 ## Players and rating statistics
 
 The [player directory](https://mutechess.org/player) uses Lichess's leaderboard,
