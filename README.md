@@ -57,7 +57,9 @@ move-history and timing settings. The opponent input uses your native Mute Chess
 rating for the game's time-control category at game start, limited to Maia's
 600–2600 input range. Anonymous games match the bot’s self-rating input, assuming
 equal strength. The input stays fixed throughout
-the game; existing games retain their original policy. This does not change
+the game; existing games retain their original policy. Maia's trained model
+determines its response to the opponent input; no extra aggression rule is added.
+This does not change
 matchmaking or native Glicko ratings. Bot calibration measured fixed self/opponent
 inputs; this new human-opponent conditioning has not been separately calibrated.
 See [#176](https://github.com/Dash1971/mute-chess/issues/176) and the
