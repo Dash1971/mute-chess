@@ -287,7 +287,7 @@
         },
         {
           "id": "focused-native-features",
-          "rationale": "Constrain visible navigation and unsupported routes, standard-only tools and bot-game metadata; preserve native puzzles, community and direct friend invitations. Watch/Learn/explorer remain hidden or deferred, and imported practice data uses the licensed subset rather than upstream production data. Owner-requested immediate forum posting (#81) bypasses only the age/game qualification for signed-in humans when nosweat.enabled; native bot denial, category ACLs, captcha, rate limits and moderation remain authoritative. The forum module adds the existing native test dependency for its access regressions. The October 31 owner correction restores header player search and the original native scroll-hide listener (#122/#124). Issue #173 adds a browser-local Engine Analysis action to the existing authenticated account menu; it opens the shared dialog without a new route or account writes. Issue #181 retains native live player/game counters under quick pairing, with native socket number spreaders and no new counting backend.",
+          "rationale": "Constrain visible navigation and unsupported routes, standard-only tools and bot-game metadata; preserve native puzzles, community and direct friend invitations. Watch/Learn/explorer remain hidden or deferred, and imported practice data uses the licensed subset rather than upstream production data. Owner-requested immediate forum posting (#81) bypasses only the age/game qualification for signed-in humans when nosweat.enabled; native bot denial, category ACLs, captcha, rate limits and moderation remain authoritative. The forum module adds the existing native test dependency for its access regressions. The October 31 owner correction restores header player search and the original native scroll-hide listener (#122/#124). Issue #173 adds a browser-local Engine Analysis action to the existing authenticated account menu; it opens the shared dialog without a new route or account writes. Issue #181 retains native live player/game counters under quick pairing, with native socket number spreaders and no new counting backend. Issue #196 retains native New opponent navigation through the homepage pool. Only the Maia automatic hash join is deferred until after the native lobby constructor returns, so its immediate pairing redraw cannot access uninitialized Snabbdom VNodes; native human pool timing and the existing pairing endpoint are unchanged.",
           "verification": [
             "Native site/editor/puzzle tests and UI build",
             "puzzles/ and learning/ validation",
@@ -295,7 +295,8 @@
             "Native ForumAccessTest (fresh/anonymous/bot/upstream eligibility and team ACLs)",
             "Private community integration: immediate topic and reply, invalid captcha rejection",
             "Native header hides on downward scroll and reappears upward even without search; restored header search stays native (#122/#124)",
-            "Account sidebar Engine Analysis action opens shared settings in place; signed-out/native upstream menu remains unchanged (#173)"
+            "Account sidebar Engine Analysis action opens shared settings in place; signed-out/native upstream menu remains unchanged (#173)",
+            "maiaPoolBootstrap.test.ts exercises the real lobby constructor, Snabbdom bootstrap and pool view: signed-in, anonymous and initially-now-playing hash joins send one correctly configured pairing request after initial render and redirect normally. The unfixed source reproduces appVNode-before-initialization failures; full UI format, typed lint, tests and build pass."
           ],
           "files": [
             "app/controllers/Cms.scala",
@@ -347,7 +348,8 @@
             "ui/site/src/topBar.ts",
             "ui/site/tests/topBar.test.ts",
             "ui/site/tests/tsconfig.json",
-            "ui/lobby/css/_layout.scss"
+            "ui/lobby/css/_layout.scss",
+            "ui/lobby/tests/maiaPoolBootstrap.test.ts"
           ]
         },
         {
