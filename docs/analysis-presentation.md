@@ -248,11 +248,12 @@ browser component acceptance.
 
 ## Account-menu access and matched inputs (#173)
 
-Profile & settings now includes an **Engine Analysis** menu entry, opening the
-same dialog in place. The existing analysis/puzzle gear access remains. The
-account page loads the shared dialog styling through native hashed CSS; settings
-use the same browser-local preference key. No extra route, account write or
-duplicate settings form is needed.
+Profile & settings includes an **Engine Analysis** menu entry. Following the
+owner correction in #180, it navigates to `/account/preferences/engine-analysis`
+inside the native account settings layout, with the normal sidebar, heading,
+section spacing and radio controls. The existing analysis/puzzle gear dialogs
+remain available. Both presentations share the same preference bindings and
+browser-local key; changing the page presentation adds no account writes.
 
 Mobile Maia `lib/src/review.dart` at
 `dd4e041db6f4d2a84e9b8af91d6e8563ff2b1026` sends `selfElo: elo` and

@@ -341,6 +341,19 @@ index 5334d5e..4ed89ec 100644
  
    def list = Open:
      ctx.me.foldUse(Redirect(routes.Plan.index()).toFuccess): me ?=>
+diff --git a/app/controllers/Pref.scala b/app/controllers/Pref.scala
+index e78c3a3..1c7c4ab 100644
+--- a/app/controllers/Pref.scala
++++ b/app/controllers/Pref.scala
+@@ -24,6 +24,8 @@ final class Pref(env: Env) extends LilaController(env):
+ 
+   def form(categSlug: String) = Auth { ctx ?=> me ?=>
+     lila.pref.PrefCateg(categSlug) match
++      case None if categSlug == "engine-analysis" && env.noSweat.enabled =>
++        Ok.page(views.account.pref.engineAnalysis(me))
+       case None if categSlug == "notification" =>
+         Ok.async:
+           env.notifyM.api.prefs
 diff --git a/app/controllers/Setup.scala b/app/controllers/Setup.scala
 index 7d5ec39..0600592 100644
 --- a/app/controllers/Setup.scala
@@ -1586,7 +1599,7 @@ index 11cbae2..e7be391 100644
              ctx.kid.no.option(
                form3
 diff --git a/modules/pref/src/main/ui/AccountPref.scala b/modules/pref/src/main/ui/AccountPref.scala
-index 468bba6..5360a09 100644
+index 468bba6..2065dab 100644
 --- a/modules/pref/src/main/ui/AccountPref.scala
 +++ b/modules/pref/src/main/ui/AccountPref.scala
 @@ -16,7 +16,17 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
@@ -1608,7 +1621,25 @@ index 468bba6..5360a09 100644
  
    def apply(u: User, form: play.api.data.Form[?], categ: lila.pref.PrefCateg)(using Context) =
      AccountPage(
-@@ -239,7 +249,7 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
+@@ -223,6 +233,17 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
+         )
+       )
+ 
++  def engineAnalysis(u: User)(using Context) =
++    AccountPage(s"Engine Analysis - ${u.username}", "engine-analysis"):
++      div(cls := "box box-pad")(
++        h1(cls := "box__top")("Engine Analysis"),
++        form(cls := "nosweat-engine-preferences")(
++          div(id := "nosweat-engine-settings-page"),
++          p(cls := "help")("Settings are saved automatically in this browser."),
++          p(cls := "saved text none", dataIcon := Icon.Checkmark)(trp.yourPreferencesHaveBeenSaved())
++        )
++      )
++
+   object notification:
+ 
+     def apply(form: Form[?])(using Context) =
+@@ -239,7 +260,7 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
                    tr(
                      th,
                      th(trp.notifyBell(), iconTag(Icon.BellOutline)),
@@ -1617,7 +1648,7 @@ index 468bba6..5360a09 100644
                    )
                  ),
                  tbody(
-@@ -253,10 +263,21 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
+@@ -253,10 +274,21 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
                      trp.notifyBroadcasts() -> "broadcastRound",
                      trp.notifyGameEvent() -> "gameEvent",
                      trans.team.teamUpdates() -> "teamUpdate"
@@ -1640,7 +1671,7 @@ index 468bba6..5360a09 100644
                  id := "correspondence-email-notif"
                )( // id is set to allow direct unsubcribe link in correspondence emails
                  bits.setting(
-@@ -279,8 +300,9 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
+@@ -279,8 +311,9 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
          Seq("bell", "push").map: allow =>
            val name = s"$filterName.$allow"
            val checked = form.data(name).contains("true")
@@ -1653,10 +1684,10 @@ index 468bba6..5360a09 100644
              else if !checked then div(iconTag(Icon.X))
              else
 diff --git a/modules/pref/src/main/ui/AccountUi.scala b/modules/pref/src/main/ui/AccountUi.scala
-index 6568e7b..2c8ab03 100644
+index 6568e7b..32cd057 100644
 --- a/modules/pref/src/main/ui/AccountUi.scala
 +++ b/modules/pref/src/main/ui/AccountUi.scala
-@@ -84,50 +84,29 @@ final class AccountUi(helpers: Helpers):
+@@ -84,50 +84,28 @@ final class AccountUi(helpers: Helpers):
              a(activeCls(categ.slug), href := routes.Pref.form(categ.slug))(
                categName(categ)
              ),
@@ -1664,9 +1695,8 @@ index 6568e7b..2c8ab03 100644
 +            .exists(_.nostrKey.isDefined)
 +            .option(
 +              a(
-+                cls := "nosweat-engine-settings-link",
-+                href := "#engine-analysis",
-+                attr("aria-haspopup") := "dialog"
++                activeCls("engine-analysis"),
++                href := routes.Pref.form("engine-analysis")
 +              )("Engine Analysis")
 +            ),
            a(activeCls("notification"), href := routes.Pref.form("notification"))(
@@ -4926,6 +4956,28 @@ index 334435d..05a29ed 100644
  
  export const userRating = (u: Pick<AnyUser, 'rating' | 'provisional' | 'brackets'>): string | undefined => {
    if (u.rating) {
+diff --git a/ui/lobby/css/_layout.scss b/ui/lobby/css/_layout.scss
+index e1f9396..11096a3 100644
+--- a/ui/lobby/css/_layout.scss
++++ b/ui/lobby/css/_layout.scss
+@@ -181,3 +181,17 @@
+     grid-area: timeline;
+   }
+ }
++
++main.lobby.mutechess-play {
++  grid-template-areas: 'app' 'table' 'about';
++
++  .lobby__counters {
++    grid-area: table;
++    display: flex;
++    position: static;
++    flex-flow: row wrap;
++    justify-content: center;
++    gap: 0 2em;
++    margin: 1em 0;
++  }
++}
 diff --git a/ui/lobby/src/ctrl.ts b/ui/lobby/src/ctrl.ts
 index a8b22d7..ca1d9bc 100644
 --- a/ui/lobby/src/ctrl.ts
@@ -5130,18 +5182,10 @@ index 3e5ae86..cef13a6 100644
      gameModeButtons(ctrl),
      colorButtons(ctrl.setupCtrl),
 diff --git a/ui/lobby/src/view/table.ts b/ui/lobby/src/view/table.ts
-index 9053e1a..e8f724f 100644
+index 9053e1a..a4d12dc 100644
 --- a/ui/lobby/src/view/table.ts
 +++ b/ui/lobby/src/view/table.ts
-@@ -10,6 +10,7 @@ type ButtonInfo = { gameType: GameType | 'dev' | 'bots'; label: string; disabled
- 
- export default function table(ctrl: LobbyController) {
-   const { data, opts } = ctrl;
-+  if (opts.noSweat) return hl('div.lobby__table', [renderSetupModal(ctrl)]);
-   const hasOngoingRealTimeGame = ctrl.hasOngoingRealTimeGame(true);
-   const hookDisabled =
-     opts.playban || opts.hasUnreadLichessMessage || ctrl.me?.isBot || hasOngoingRealTimeGame;
-@@ -19,7 +20,9 @@ export default function table(ctrl: LobbyController) {
+@@ -19,7 +19,9 @@ export default function table(ctrl: LobbyController) {
        gameType: 'hook',
        label: i18n.site.createLobbyGame,
        disabled: hookDisabled,
@@ -5152,7 +5196,7 @@ index 9053e1a..e8f724f 100644
      },
      {
        gameType: 'friend',
-@@ -37,7 +40,8 @@ export default function table(ctrl: LobbyController) {
+@@ -37,14 +39,16 @@ export default function table(ctrl: LobbyController) {
        disabled: hasOngoingRealTimeGame,
      },
    ];
@@ -5162,6 +5206,15 @@ index 9053e1a..e8f724f 100644
      lobbyButtons.push({
        gameType: 'bots',
        label: 'play bot',
+     });
+ 
+   return hl('div.lobby__table', [
+-    hl('div.lobby__start', [site.blindMode && hl('h2', i18n.site.play), lobbyButtons.map(makeLobbyButton)]),
++    !opts.noSweat &&
++      hl('div.lobby__start', [site.blindMode && hl('h2', i18n.site.play), lobbyButtons.map(makeLobbyButton)]),
+     renderSetupModal(ctrl),
+     site.blindMode
+       ? undefined
 diff --git a/ui/lobby/src/view/tabs.ts b/ui/lobby/src/view/tabs.ts
 index bfe17e8..c95e1c7 100644
 --- a/ui/lobby/src/view/tabs.ts
@@ -6199,27 +6252,54 @@ index 18646b3..5eb1d07 100644
  
    {
      // stick top bar
+diff --git a/ui/user/css/_account.scss b/ui/user/css/_account.scss
+index fc3e09e..2b2a8be 100644
+--- a/ui/user/css/_account.scss
++++ b/ui/user/css/_account.scss
+@@ -325,3 +325,16 @@
+     white-space: pre-wrap;
+   }
+ }
++
++.nosweat-engine-settings-page {
++  select {
++    max-width: 100%;
++  }
++  input[type='color'] {
++    width: 4rem;
++    height: 3rem;
++    padding: 3px;
++    appearance: auto;
++    cursor: pointer;
++  }
++}
 diff --git a/ui/user/src/user.account.ts b/ui/user/src/user.account.ts
-index 48a0e33..d06f1a1 100644
+index 48a0e33..4bc93c5 100644
 --- a/ui/user/src/user.account.ts
 +++ b/ui/user/src/user.account.ts
-@@ -2,11 +2,20 @@ import flairPickerLoader from 'bits/flairPicker';
+@@ -2,11 +2,26 @@ import flairPickerLoader from 'bits/flairPicker';
  import { createSelectSearch } from 'bits/selectSearch';
  
  import { licon } from 'lib/licon';
-+import { loadEnginePreferences, showEngineSettings } from 'lib/nosweat/engineSettings';
++import { loadEnginePreferences, engineSettingsView } from 'lib/nosweat/engineSettings';
  import { storage } from 'lib/storage';
  import { addPasswordVisibilityToggleListener, confirm } from 'lib/view';
  import * as xhr from 'lib/xhr';
  
  site.load.then(() => {
-+  document
-+    .querySelector<HTMLAnchorElement>('.nosweat-engine-settings-link')
-+    ?.addEventListener('click', async event => {
-+      event.preventDefault();
-+      await site.asset.loadCssPath('bits.engineSettings');
-+      showEngineSettings(loadEnginePreferences(), () => {});
-+    });
++  const engineSettings = document.getElementById('nosweat-engine-settings-page');
++  if (engineSettings) {
++    engineSettings.append(
++      engineSettingsView(
++        loadEnginePreferences(),
++        () => {
++          document.querySelector('.nosweat-engine-preferences .saved')?.classList.remove('none');
++        },
++        true,
++      ),
++    );
++    engineSettings.closest('form')?.addEventListener('submit', event => event.preventDefault());
++  }
 +
    $('.emoji-details').each(function (this: HTMLElement) {
      flairPickerLoader(this);
@@ -79956,10 +80036,10 @@ index 0000000..4b6b4be
 +};
 diff --git a/ui/lib/src/nosweat/engineSettings.ts b/ui/lib/src/nosweat/engineSettings.ts
 new file mode 100644
-index 0000000..a5ae238
+index 0000000..b2b990b
 --- /dev/null
 +++ b/ui/lib/src/nosweat/engineSettings.ts
-@@ -0,0 +1,168 @@
+@@ -0,0 +1,212 @@
 +import { frag } from '../index';
 +import { storage } from '../storage';
 +import { domDialog } from '../view';
@@ -80003,6 +80083,7 @@ index 0000000..a5ae238
 +export function engineSettingsView(
 +  initial: EnginePreferences,
 +  changed: (prefs: EnginePreferences) => void,
++  accountPage = false,
 +): HTMLElement {
 +  let prefs = initial;
 +  const select = (key: keyof EnginePreferences, name: string, options: [string, string][]) =>
@@ -80015,7 +80096,44 @@ index 0000000..a5ae238
 +  const toggle = (key: 'history' | 'maiaArrows' | 'fishArrows' | 'secondMaiaEnabled', name: string) =>
 +    `<span class="setting"><span>${name}</span><span class="form-check__input"><input id="maia-${key}" type="checkbox" aria-label="${name}" data-engine-pref="${key}" ${prefs[key] ? 'checked' : ''}><label class="form-check__label" for="maia-${key}"></label></span></span>`;
 +  const ratings: [string, string][] = maiaRatings.map(n => [String(n), String(n)]);
-+  const view = frag<HTMLElement>(`<div class="nosweat-maia-settings-view">
++  const section = (name: string, control: string, attrs = '') =>
++    `<section ${attrs}><h2>${name}</h2>${control}</section>`;
++  const accountSelect = (key: keyof EnginePreferences, name: string, options: [string, string][]) =>
++    section(
++      name,
++      `<select data-engine-pref="${key}" aria-label="${name}">${options.map(([value, text]) => `<option value="${value}" ${String(prefs[key]) === value ? 'selected' : ''}>${text}</option>`).join('')}</select>`,
++      `data-maia-setting="${key}"`,
++    );
++  const accountToggle = (key: 'history' | 'maiaArrows' | 'fishArrows' | 'secondMaiaEnabled', name: string) =>
++    section(
++      name,
++      `<group class="radio">${[true, false].map(value => `<div><input id="maia-${key}-${value}" type="radio" name="maia-${key}" value="${value ? 1 : 0}" data-engine-pref="${key}" ${prefs[key] === value ? 'checked' : ''}><label for="maia-${key}-${value}">${value ? 'Yes' : 'No'}</label></div>`).join('')}</group>`,
++    );
++  const arrowName = {
++    maia: 'Primary Maia',
++    maiaSecond: 'Second Maia',
++    stockfish: 'Stockfish best move',
++    stockfishSecond: 'Stockfish second move',
++  };
++  const accountMarkup = () => `<div class="nosweat-engine-settings-page">
++    ${accountToggle('secondMaiaEnabled', 'Enable a second Maia for analysis')}
++    ${accountSelect('selfElo', 'Primary Maia rating', ratings)}
++    ${accountSelect('secondMaiaElo', 'Second Maia rating', ratings)}
++    ${accountSelect('model', 'Maia model', [
++      ['5m', 'Maia3 5M · light'],
++      ['79m', 'Maia3 79M'],
++    ])}
++    ${accountToggle('history', 'Use move history')}
++    ${accountToggle('maiaArrows', 'Show Maia arrows')}
++    ${accountToggle('fishArrows', 'Show Stockfish arrows')}
++    ${(Object.keys(engineColors) as (keyof EngineColors)[]).map(key => section(`${arrowName[key]} arrow color`, `<input type="color" data-arrow-color="${key}" value="${prefs.arrowColors[key]}" aria-label="${arrowName[key]} arrow color">`, key === 'maiaSecond' ? 'data-second-maia' : '')).join('')}
++    <section><button type="button" class="button button-empty nosweat-reset-arrow-colors">Reset arrow colors</button></section>
++    ${section('Computer analysis', `<group class="radio">${gameReviewQualities.map(q => `<div><input id="maia-quality-${q.name}" type="radio" name="nosweat-review-quality" value="${q.name}" ${q.name === gameReviewQuality(storage.get('nosweat.gameReview.quality')).name ? 'checked' : ''}><label for="maia-quality-${q.name}">${q.name}</label></div>`).join('')}</group><p class="help">Fast: depth 12, up to 0.5 seconds per position. Balanced: depth 14, up to 1 second. Thorough: depth 16, up to 1.5 seconds. Applies to your next computer analysis.</p>`)}
++  </div>`;
++  const view = frag<HTMLElement>(
++    accountPage
++      ? accountMarkup()
++      : `<div class="nosweat-maia-settings-view">
 +    <fieldset><legend>Analysis engines</legend>
 +      ${toggle('secondMaiaEnabled', 'Enable a second Maia for analysis')}
 +      <p>Compare two ratings, or turn this off to show more moves from one Maia. Puzzle review shows one row when this is off.</p>
@@ -80049,7 +80167,8 @@ index 0000000..a5ae238
 +      <div class="nosweat-review-quality">${gameReviewQualities.map(q => `<label><input type="radio" name="nosweat-review-quality" value="${q.name}" ${q.name === gameReviewQuality(storage.get('nosweat.gameReview.quality')).name ? 'checked' : ''}><span>${q.name}</span></label>`).join('')}</div>
 +      <p>Choose faster review or deeper analysis. Applies the next time you analyze a game or line.</p><details><summary>About analysis quality</summary><p>Fast: depth 12, up to 0.5 seconds per position.<br>Balanced: depth 14, up to 1 second per position.<br>Thorough: depth 16, up to 1.5 seconds per position.</p></details>
 +    </fieldset>
-+  </div>`);
++  </div>`,
++  );
 +  const secondary = view.querySelector<HTMLElement>('[data-maia-setting="secondMaiaElo"]')!;
 +  const updateSecondary = () => {
 +    secondary.hidden = !prefs.secondMaiaEnabled;
@@ -80062,7 +80181,9 @@ index 0000000..a5ae238
 +      const key = input.dataset.enginePref as keyof EnginePreferences;
 +      const value =
 +        input.tagName === 'INPUT'
-+          ? (input as HTMLInputElement).checked
++          ? (input as HTMLInputElement).type === 'radio'
++            ? input.value === '1'
++            : (input as HTMLInputElement).checked
 +          : key === 'selfElo' || key === 'secondMaiaElo'
 +            ? Number(input.value)
 +            : input.value;
@@ -80091,7 +80212,10 @@ index 0000000..a5ae238
 +    changed(prefs);
 +  };
 +  view.querySelectorAll<HTMLInputElement>('input[name="nosweat-review-quality"]').forEach(input => {
-+    input.onchange = () => storage.set('nosweat.gameReview.quality', gameReviewQuality(input.value).name);
++    input.onchange = () => {
++      storage.set('nosweat.gameReview.quality', gameReviewQuality(input.value).name);
++      changed(prefs);
++    };
 +  });
 +  return view;
 +}
@@ -80588,10 +80712,10 @@ index 0000000..b041dbc
 +});
 diff --git a/ui/lib/tests/maiaSettings.test.ts b/ui/lib/tests/maiaSettings.test.ts
 new file mode 100644
-index 0000000..8997b4a
+index 0000000..7d0511b
 --- /dev/null
 +++ b/ui/lib/tests/maiaSettings.test.ts
-@@ -0,0 +1,100 @@
+@@ -0,0 +1,125 @@
 +import assert from 'node:assert/strict';
 +import { test } from 'node:test';
 +
@@ -80691,6 +80815,31 @@ index 0000000..8997b4a
 +  assert.equal(prefs.selfElo, 1800);
 +  assert.equal(prefs.opponentElo, 1800);
 +  assert.equal(prefs.secondMaiaElo, 2600);
++});
++
++test('account engine settings use native sections and radio choices with the shared browser preferences', () => {
++  localStorage.clear();
++  const updates: boolean[] = [];
++  const view = engineSettingsView(
++    { ...defaultEnginePreferences, secondMaiaElo: 2600 },
++    next => updates.push(next.secondMaiaEnabled),
++    true,
++  );
++  assert.equal(view.className, 'nosweat-engine-settings-page');
++  assert.ok(view.querySelectorAll('section > h2').length > 5);
++  assert.equal(view.querySelector('dialog'), null);
++  const no = view.querySelector<HTMLInputElement>('[data-engine-pref="secondMaiaEnabled"][value="0"]')!;
++  no.checked = true;
++  change(no);
++  assert.equal(loadEnginePreferences().secondMaiaEnabled, false);
++  assert.equal(loadEnginePreferences().secondMaiaElo, 2600);
++  assert.equal(view.querySelector<HTMLElement>('[data-maia-setting="secondMaiaElo"]')!.hidden, true);
++  const primary = view.querySelector<HTMLSelectElement>('[data-engine-pref="selfElo"]')!;
++  primary.value = '1800';
++  change(primary);
++  assert.equal(loadEnginePreferences().selfElo, 1800);
++  assert.equal(loadEnginePreferences().opponentElo, 1800);
++  assert.deepEqual(updates, [false, false]);
 +});
 diff --git a/ui/lib/tests/noSweatReviewMaia.test.ts b/ui/lib/tests/noSweatReviewMaia.test.ts
 new file mode 100644

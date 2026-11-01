@@ -410,3 +410,19 @@ This differs from analysis/puzzle Maia, where both inputs match each selected
 channel. Document engine choices in README and issue/PR. Fixed-input calibration
 does not establish the new dynamic-human policy's strength; preserve earned
 ratings and native matching/Glicko without rerating or starting research games.
+
+## Native Engine Analysis preferences page (owner correction, November 1, #180)
+
+Profile & settings must open Engine Analysis as a normal native account settings
+page, matching its sidebar, heading, section spacing and native controls. Do not
+open a modal from this settings-menu entry. Preserve existing analysis/puzzle
+gear dialogs and the shared browser-local preference storage and behavior.
+Keep the correction bounded; general tooling work requires separate discussion
+and explicit owner approval as recorded in the workspace instructions.
+
+## Homepage activity counters (owner correction, November 1, #181)
+
+Restore the native live players-online and games-in-progress counters below
+quick pairing. Preserve native counts, socket updates, number spreaders and
+links. Keep the focused Maia pairing surface; do not restore unrelated lobby
+buttons, feeds or navigation.
