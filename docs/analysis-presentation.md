@@ -209,6 +209,16 @@ or game. Explicit tab switching, draft isolation and post-game defaults remain.
 The existing expected-score header remains side-to-move after the owner
 reconsidered the proposed Mobile Maia favored-side conversion (#156 canceled).
 
+The Maia platform has an opening-score display exception: its
+[pinned analysis page](https://github.com/csslab/maia-platform-frontend/blob/325b85c3b6427f2e8e691e1dcf4ab9d4dbf94ec3/src/pages/analysis/%5B...id%5D.tsx#L1196)
+uses Stockfish centipawns converted to win rate for the first ten plies. In the
+Halloween Gambit example, the displayed -1.84-pawn evaluation maps to 40.1% White there; Mute Chess's 48.5%
+Black remains the actual Maia79M expected score, `win + 0.5 × draw`. Outside that
+opening override, the platform uses the same expected-score formula. The owner
+chose to retain Mute Chess's Maia values and side-to-move headers. This metric
+difference does not establish either method's calibration; investigation is
+tracked in [#194](https://github.com/Dash1971/mute-chess/issues/194).
+
 ## Engine Analysis settings (#150/#151, November 1, 2026)
 
 A shared **Engine Analysis** dialog opens from the small settings control next to
