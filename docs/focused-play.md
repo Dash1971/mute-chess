@@ -71,3 +71,20 @@ The focused homepage retains the original Lichess players-online and
 games-in-progress counters below quick pairing. They use the existing native
 socket updates and number spreaders, with no separate counting or polling.
 The removed lobby buttons and homepage feeds remain hidden.
+
+## New opponent pool bootstrap (#196)
+
+Retain Lichess's finished-game New opponent link to the homepage `#pool` route.
+Mute's automatic Maia join previously called its immediate redraw from inside
+the lobby constructor, before native `main()` initialized its Snabbdom VNodes.
+That threw `Cannot access appVNode before initialization` before `/club/play`
+was sent; the selected pool could remain on its spinner after the hash was
+consumed. Starting from the now-playing tab could fail even earlier in `setTab`.
+
+Queue the existing Maia hash-join callback as a microtask, so the constructor and
+initial native render complete first. This adds no intentional wait or page,
+retains native navigation and leaves human pool timing, manual pool clicks,
+server pairing, capacity, clocks, ratings and game completion unchanged. The
+regression runs the real controller, initial Snabbdom render and pool view for
+signed-in, anonymous and initially-now-playing cases, then verifies the existing
+request and redirect. No public games are created by these tests.

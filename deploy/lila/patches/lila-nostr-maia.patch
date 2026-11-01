@@ -5434,7 +5434,7 @@ index e1f9396..11096a3 100644
 +  }
 +}
 diff --git a/ui/lobby/src/ctrl.ts b/ui/lobby/src/ctrl.ts
-index a8b22d7..ca1d9bc 100644
+index a8b22d7..67dfb83 100644
 --- a/ui/lobby/src/ctrl.ts
 +++ b/ui/lobby/src/ctrl.ts
 @@ -4,6 +4,7 @@ import { pubsub } from 'lib/pubsub';
@@ -5462,7 +5462,19 @@ index a8b22d7..ca1d9bc 100644
      this.poolInStorage = storage.make('lobby.pool-in');
      this.poolInStorage.listen(_ => {
        // when another tab joins a pool
-@@ -210,6 +214,7 @@ export default class LobbyController {
+@@ -154,7 +158,10 @@ export default class LobbyController {
+         if (this.poolMember) this.poolIn();
+         else if (this.tab === 'real_time' && !this.data.hooks.length) this.socket.realTimeIn();
+       }, 10 * 1000);
+-      this.joinPoolFromLocationHash();
++      // Maia pairing redraws immediately; the native lobby VNodes are only
++      // initialized after this constructor returns.
++      if (opts.noSweat) queueMicrotask(this.joinPoolFromLocationHash);
++      else this.joinPoolFromLocationHash();
+     }
+ 
+     pubsub.on('socket.open', () => {
+@@ -210,6 +217,7 @@ export default class LobbyController {
    private readonly flushHooksSchedule = () => setTimeout(this.flushHooks, 8000);
  
    setTab = (tab: Tab) => {
@@ -5470,7 +5482,7 @@ index a8b22d7..ca1d9bc 100644
      if (tab !== this.tab) {
        if (tab === 'seeks') this.fetchSeeks();
        else if (tab === 'real_time') this.socket.realTimeIn();
-@@ -258,6 +263,11 @@ export default class LobbyController {
+@@ -258,6 +266,11 @@ export default class LobbyController {
    };
  
    clickPool = (id: string) => {
@@ -5482,7 +5494,7 @@ index a8b22d7..ca1d9bc 100644
      if (!this.me) {
        xhr.anonPoolSeek(this.pools.find(p => p.id === id)!);
        this.setTab('real_time');
-@@ -266,6 +276,29 @@ export default class LobbyController {
+@@ -266,6 +279,29 @@ export default class LobbyController {
      this.redraw();
    };
  
@@ -5512,7 +5524,7 @@ index a8b22d7..ca1d9bc 100644
    enterPool = (member: PoolMember) => {
      poolRangeStorage.set(this.me?.username, member.id, member.range);
      this.setTab('pools');
-@@ -352,7 +385,8 @@ export default class LobbyController {
+@@ -352,7 +388,8 @@ export default class LobbyController {
        if (range) member.range = range;
        if (match) {
          this.setTab('pools');
@@ -82383,6 +82395,84 @@ index 0000000..0a3f68a
 +  assert.ok(result.includes('Alice &lt;friend&gt;'));
 +  assert.ok(!result.includes('Alice <friend>'));
 +});
+diff --git a/ui/lobby/tests/maiaPoolBootstrap.test.ts b/ui/lobby/tests/maiaPoolBootstrap.test.ts
+new file mode 100644
+index 0000000..a53b20e
+--- /dev/null
++++ b/ui/lobby/tests/maiaPoolBootstrap.test.ts
+@@ -0,0 +1,72 @@
++import assert from 'node:assert/strict';
++import { mock, test } from 'node:test';
++import { h } from 'snabbdom';
++
++document.documentElement.lang = 'en-US';
++// Keep the real lobby controller, pool view and Snabbdom bootstrap. The unrelated
++// sidebar and carousel are not needed to exercise automatic pool entry.
++mock.module('../src/view/table', { defaultExport: () => h('div.lobby__table') });
++mock.module('../src/view/carousel', { namedExports: { makeCarousel: () => {} } });
++mock.module('../src/view/playing', { defaultExport: () => h('div.now-playing') });
++mock.module('../src/view/realTime/main', { defaultExport: () => h('div.real-time') });
++mock.module('../src/view/correspondence', { defaultExport: () => h('div.seeks') });
++const { default: main } = await import('../src/main');
++import type { LobbyOpts } from '../src/interfaces';
++
++for (const state of ['signed-in', 'anonymous', 'now-playing'] as const)
++  test(`new-opponent pool entry waits for native lobby initialization: ${state}`, async t => {
++    t.mock.timers.enable({ apis: ['setTimeout', 'setInterval', 'Date'] });
++    Object.assign(globalThis, { location: window.location, history: window.history });
++    localStorage.clear();
++    window.history.replaceState(null, '', '/#pool/15+10/previousBot');
++    document.body.innerHTML = '<div class="lobby__app"></div><div class="lobby__table"></div>';
++    let respond!: (response: Response) => void;
++    const request = t.mock.method(
++      globalThis,
++      'fetch',
++      () => new Promise<Response>(resolve => (respond = resolve)),
++    );
++    Object.assign(site, { redirect: () => {} });
++    const redirect = t.mock.method(site, 'redirect', () => {});
++    const ctrl = main({
++      appElement: document.querySelector('.lobby__app')!,
++      tableElement: document.querySelector('.lobby__table')!,
++      socketSend: () => {},
++      pools: [{ id: '15+10', lim: 15, inc: 10 }],
++      hasUnreadLichessMessage: false,
++      playban: false,
++      showRatings: true,
++      noSweat: true,
++      data: {
++        hooks: [],
++        seeks: [],
++        me: state === 'anonymous' ? undefined : { username: 'Player', isBot: false },
++        nbNowPlaying: state === 'now-playing' ? 1 : 0,
++        nbMyTurn: 0,
++        nowPlaying:
++          state === 'now-playing' ? [{ gameId: 'previous', speed: 'rapid', opponent: { id: 'bot' } }] : [],
++        ratingMap: null,
++        counters: { members: 1, rounds: 0 },
++      },
++    } as LobbyOpts);
++    assert.ok(document.querySelector('.lobby__app__content'));
++    // Pool entry must not redraw while main() is still constructing its VNodes.
++    assert.equal(request.mock.callCount(), 0);
++    await new Promise(resolve => setImmediate(resolve));
++    assert.equal(request.mock.callCount(), 1);
++    assert.equal(ctrl.tab, 'pools');
++    assert.equal(ctrl.poolMember?.id, '15+10');
++    assert.ok(document.querySelector('.lpool.active[data-id="15+10"] .spinner'));
++    const [url, options] = request.mock.calls[0].arguments as unknown as [string, RequestInit];
++    assert.equal(url, '/club/play');
++    assert.deepEqual(JSON.parse(options.body as string), {
++      minutes: 15,
++      increment: 10,
++      rated: state !== 'anonymous',
++    });
++    respond(Response.json({ url: '/abcd1234wxyz' }));
++    await new Promise(resolve => setImmediate(resolve));
++    assert.deepEqual(redirect.mock.calls[0].arguments, ['/abcd1234wxyz']);
++    assert.equal(ctrl.poolMember, undefined);
++    t.mock.timers.reset();
++  });
 diff --git a/ui/puzzle/src/noSweatMaia.ts b/ui/puzzle/src/noSweatMaia.ts
 new file mode 100644
 index 0000000..680e899
