@@ -127,3 +127,11 @@ shared CSS grid row and push Import/Export below the viewport. Restore a bounded
 board-height flex sidebar with native article scrolling. Retain the same content,
 opening toggle and bottom-tab selection. Verify long in-book/out-of-book layouts
 and narrower native breakpoints. See [presentation details](analysis-presentation.md).
+
+Issue #173 adds a small Engine Analysis action to the existing authenticated
+account menu, handled by its existing native account UI module. The action opens
+the shared dialog in place with a native hashed stylesheet; no account route or
+server-setting storage is added. Both Maia conditioning inputs now always match
+the selected channel rating, following Mobile Maia exactly. Legacy mismatched
+preferences are normalized, and actual inference-call regressions cover both
+analysis and puzzle channels.

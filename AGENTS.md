@@ -371,3 +371,11 @@ probabilities, classification colors, expected-score perspective and native
 Stockfish/solving gates. This supersedes the earlier idea-only status. #168 fixes
 long opening articles pushing the underboard away; bound/scroll the sidebar
 without hiding opening text or changing tabs. See docs/analysis-presentation.md.
+
+## Profile access and Maia conditioning (November 1, #173)
+
+Keep the current engine settings gears and expose the same Engine Analysis
+dialog from Profile & settings. Both Maia inputs must always use that channel’s
+selected rating, as in Mobile Maia review.dart; remove the opponent-input control
+and normalize old saved mismatches. Apply this to both analysis and puzzle review
+without replacing native account/settings behavior.
