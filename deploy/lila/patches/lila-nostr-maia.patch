@@ -80123,7 +80123,7 @@ index 0000000..cc2de6d
 +});
 diff --git a/ui/analyse/tests/ratingChartEvidence.test.ts b/ui/analyse/tests/ratingChartEvidence.test.ts
 new file mode 100644
-index 0000000..229855e
+index 0000000..82bdcff
 --- /dev/null
 +++ b/ui/analyse/tests/ratingChartEvidence.test.ts
 @@ -0,0 +1,152 @@
@@ -80247,7 +80247,7 @@ index 0000000..229855e
 +  assert.ok(engine.commands.includes('go depth 10'));
 +  moves.slice(0, -1).forEach((move, i) => engine.protocol.received(line(i + 1, move, 9)));
 +  assert.deepEqual(updates, []);
-+  engine.protocol.received(line(moves.length, moves.at(-1)!, 9));
++  engine.protocol.received(line(moves.length, moves.at(-1), 9));
 +  assert.deepEqual(updates, [38]);
 +  engine.protocol.received(line(1, moves[0], 10));
 +  engine.protocol.received('bestmove ' + moves[0]);
