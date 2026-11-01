@@ -129,9 +129,10 @@ opening toggle and bottom-tab selection. Verify long in-book/out-of-book layouts
 and narrower native breakpoints. See [presentation details](analysis-presentation.md).
 
 Issue #173 adds a small Engine Analysis action to the existing authenticated
-account menu, handled by its existing native account UI module. The action opens
-the shared dialog in place with a native hashed stylesheet; no account route or
-server-setting storage is added. Both Maia conditioning inputs now always match
+account menu, handled by its existing native account UI module. The owner subsequently corrected this presentation in #180: the menu now opens
+a normal page through the existing authenticated preferences route, reusing the
+native AccountPage layout and controls. Board gear dialogs remain available;
+shared browser-local bindings preserve the same preferences without account writes. Both Maia conditioning inputs now always match
 the selected channel rating, following Mobile Maia exactly. Legacy mismatched
 preferences are normalized, and actual inference-call regressions cover both
 analysis and puzzle channels.

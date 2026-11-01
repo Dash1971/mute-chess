@@ -67,7 +67,8 @@ See [#176](https://github.com/Dash1971/mute-chess/issues/176) and the
 
 **Analysis Maia:** each channel uses its selected rating for both inputs, matching
 Mobile Maia. Engine Analysis is available through the analysis gears and
-**Profile & settings → Engine Analysis**. Two Maia channels are enabled by default.
+**Profile & settings → Engine Analysis**, which opens a normal account settings
+page. The board gears retain their quick settings dialog. Two Maia channels are enabled by default.
 With one enabled, game analysis uses the extra space for more moves; puzzle review
 simply removes the second row. Settings include each Maia rating, Maia/Stockfish
 arrow colors, and Fast/Balanced/Thorough computer review. Preferences are saved in

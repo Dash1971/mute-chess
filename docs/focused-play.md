@@ -64,3 +64,10 @@ keep canonical handles. Native autocomplete elsewhere is unchanged.
 Search being absent must skip only CLI setup, not the later native scroll
 listener. Restore native hide-on-down/reveal-on-up behavior rather than styling
 a permanently pinned header.
+
+## Native live counters (#181)
+
+The focused homepage retains the original Lichess players-online and
+games-in-progress counters below quick pairing. They use the existing native
+socket updates and number spreaders, with no separate counting or polling.
+The removed lobby buttons and homepage feeds remain hidden.
