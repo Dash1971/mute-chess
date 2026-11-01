@@ -58,7 +58,7 @@ export async function generateCatalog() {
     const homage=naming.newCandidates[index];
     const identity=homage ? {name:homage.name,username:homage.name.replace(/[^A-Za-z0-9]/g,'')} : names[index];
     const source=byId.get(t.prototypeId), random=assignedPersonality(id);
-    const personality={...random,history:source.personality.history};
+    const personality={...random,assignment:'measured-policy-history-hash-timing-v1',history:source.personality.history};
     const ratings={};
     for(const speed of ['blitz','rapid']) ratings[speed]={initial_rating:t.ratings[speed],initial_rd:100,status:'research-seeded',source:'measured-policy-reference'};
     const bullet=transfer(references,source.conditioning_self,'bullet','blitz');

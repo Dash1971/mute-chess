@@ -28,6 +28,7 @@ test('ten thousand unique identities preserve the exact250 measured policies',()
 test('assigned ratings reuse measured exact policies; no invented game histories',()=>{
  const sources=new Map(old.map(b=>[b.id,b]));
  for(const b of full.slice(250)){
+   assert.equal(b.personality.assignment,'measured-policy-history-hash-timing-v1');
    const a=b.rating_assignment;assert.equal(a.method,'measured-policy-reference-v1');assert.equal(a.gameCount,0);
    assert.equal(a.initialRd,100);assert.ok(a.referenceIds.length>0);
    for(const id of a.referenceIds)assert.deepEqual(canonicalCatalogPolicy(b),canonicalCatalogPolicy(sources.get(id)));
