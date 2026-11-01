@@ -495,10 +495,93 @@ index 49e260e..2872316 100644
        JsonOk:
          Json.obj(
 diff --git a/app/controllers/User.scala b/app/controllers/User.scala
-index eaaba62..dfa6af6 100644
+index eaaba62..464bc98 100644
 --- a/app/controllers/User.scala
 +++ b/app/controllers/User.scala
-@@ -567,6 +567,20 @@ final class User(
+@@ -254,22 +254,34 @@ final class User(
+       yield pag
+ 
+   def list = Open:
+-    env.user.cached.top10.get {}.flatMap { leaderboards =>
+-      negotiate(
+-        html = for
+-          nbAllTime <- env.user.cached.top10NbGame.get {}
+-          tourneyWinners <- env.tournament.winners.all.map(_.top)
+-          topOnline <- env.user.cached.getTop50Online
+-          _ <- lightUserApi.preloadMany(tourneyWinners.map(_.userId))
+-          page <- renderPage:
+-            views.user.list(tourneyWinners, topOnline, leaderboards, nbAllTime)
+-        yield Ok(page),
+-        json = // lichobile only
+-          given OWrites[LightPerf] = OWrites(env.user.jsonView.lightPerfIsOnline)
+-          import lila.user.JsonView.leaderboardsWrites
+-          JsonOk(leaderboards).publicCache(1.minute)
+-      )
+-    }
++    if env.noSweat.enabled then
++      env.user.api.currentPlayers.speeds
++        .parallel(pk => env.user.api.currentPlayers(pk).map(pk -> _))
++        .flatMap: boards =>
++          val online = boards
++            .find(_._1 == PerfKey.blitz)
++            .toList
++            .flatMap(_._2)
++            .filter(p => env.socket.isOnline.exec(p.user.id))
++            .take(50)
++          Ok.page(views.user.list.current(online, boards.map((pk, rows) => pk -> rows.take(10))))
++    else
++      env.user.cached.top10.get {}.flatMap { leaderboards =>
++        negotiate(
++          html = for
++            nbAllTime <- env.user.cached.top10NbGame.get {}
++            tourneyWinners <- env.tournament.winners.all.map(_.top)
++            topOnline <- env.user.cached.getTop50Online
++            _ <- lightUserApi.preloadMany(tourneyWinners.map(_.userId))
++            page <- renderPage:
++              views.user.list(tourneyWinners, topOnline, leaderboards, nbAllTime)
++          yield Ok(page),
++          json = // lichobile only
++            given OWrites[LightPerf] = OWrites(env.user.jsonView.lightPerfIsOnline)
++            import lila.user.JsonView.leaderboardsWrites
++            JsonOk(leaderboards).publicCache(1.minute)
++        )
++      }
+ 
+   def apiList = Anon:
+     env.user.cached.top10.get {}.map { leaderboards =>
+@@ -279,11 +291,26 @@ final class User(
+     }
+ 
+   def top(perfKey: PerfKey, page: Int) = Open:
+-    Reasonable(page, Max(20)):
+-      env.user.cached
+-        .topPerfPager(perfKey, page)
+-        .flatMap: pager =>
+-          Ok.page(views.user.list.top(perfKey, pager))
++    if env.noSweat.enabled then
++      Reasonable(page, Max(1000)):
++        Found(perfKey.some.filter(env.user.api.currentPlayers.speeds.contains)): pk =>
++          env.user.api
++            .currentPlayers(pk)
++            .flatMap: rows =>
++              val perPage = MaxPerPage(100)
++              val pager = Paginator.fromResults(
++                rows.slice((page - 1) * perPage.value, page * perPage.value),
++                rows.size,
++                page,
++                perPage
++              )
++              Ok.page(views.user.list.top(pk, pager))
++    else
++      Reasonable(page, Max(20)):
++        env.user.cached
++          .topPerfPager(perfKey, page)
++          .flatMap: pager =>
++            Ok.page(views.user.list.top(perfKey, pager))
+ 
+   def topNbApi(nb: Int, perfKey: PerfKey) = Anon:
+     if nb == 1 && perfKey == PerfKey.standard then
+@@ -567,6 +594,20 @@ final class User(
          env.security.forms.signup.firstUsernameError(name) match
            case Some(error) => BadRequest(jsonError(error))
            case None => UserStr.read(name).so(env.user.repo.existsSec).map(JsonOk)
@@ -519,6 +602,30 @@ index eaaba62..dfa6af6 100644
        else
          get("term")
            .flatMap(UserSearch.read)
+@@ -614,9 +655,20 @@ final class User(
+             yield Ok(result)
+ 
+   def ratingDistribution(perfKey: PerfKey, username: Option[UserStr] = None) = Open:
+-    Found(perfKey.some.filter(lila.rating.PerfType.isLeaderboardable)): perfKey =>
+-      env.perfStat.api
+-        .weeklyRatingDistribution(perfKey)
++    Found(
++      perfKey.some.filter(pk =>
++        if env.noSweat.enabled then env.user.api.currentPlayers.speeds.contains(pk)
++        else lila.rating.PerfType.isLeaderboardable(pk)
++      )
++    ): perfKey =>
++      val distribution =
++        if env.noSweat.enabled then
++          env.user.api
++            .currentPlayers(perfKey)
++            .map: rows =>
++              lila.user.NoSweatPlayerRatings.distribution(rows.map(_.rating.value))
++        else env.perfStat.api.weeklyRatingDistribution(perfKey)
++      distribution
+         .flatMap: data =>
+           WithMyPerfs:
+             username match
 diff --git a/app/controllers/UserAnalysis.scala b/app/controllers/UserAnalysis.scala
 index 8ce37a2..89c9561 100644
 --- a/app/controllers/UserAnalysis.scala
@@ -914,6 +1021,18 @@ index ab74f28..37b206a 100644
  
  val auth = lila.web.ui.AuthUi(helpers)
  
+diff --git a/app/views/user/list.scala b/app/views/user/list.scala
+index 5222d2d..2edd45b 100644
+--- a/app/views/user/list.scala
++++ b/app/views/user/list.scala
+@@ -9,6 +9,7 @@ object list:
+ 
+   private lazy val ui = lila.user.ui.UserList(helpers, bits)
+   export ui.top
++  export ui.current
+ 
+   def apply(
+       tourneyWinners: List[lila.tournament.Winner],
 diff --git a/app/views/user/show/header.scala b/app/views/user/show/header.scala
 index 26a6045..a02716c 100644
 --- a/app/views/user/show/header.scala
@@ -968,6 +1087,29 @@ index 9688ca7..f6a2f8b 100644
  
  object page:
  
+diff --git a/app/views/user/ui.scala b/app/views/user/ui.scala
+index 200c983..28b7a25 100644
+--- a/app/views/user/ui.scala
++++ b/app/views/user/ui.scala
+@@ -8,7 +8,7 @@ import lila.perfStat.PerfStatData
+ import lila.rating.UserPerfsExt.best8Perfs
+ import lila.user.Profile.flagInfo
+ 
+-val bits = lila.user.ui.UserBits(helpers)
++val bits = lila.user.ui.UserBits(helpers, env.noSweat.enabled)
+ val noteUi = lila.user.ui.NoteUi(helpers)
+ val download = lila.user.ui.UserGamesDownload(helpers)
+ 
+@@ -41,7 +41,8 @@ def mini(
+   val nameFrag = realName.map(frag(_))
+   show.ui.mini(u, playing, blocked, ping, rel, crosstable, flag, nameFrag, perfs, userMarks)
+ 
+-val perfStat = lila.perfStat.PerfStatUi(helpers)(views.user.bits.communityMenu("ratings"))
++val perfStat =
++  lila.perfStat.PerfStatUi(helpers, env.noSweat.enabled)(views.user.bits.communityMenu("ratings"))
+ def perfStatPage(data: PerfStatData, ratingChart: Option[SafeJsonStr])(using Context) =
+   perfStat.page(
+     data,
 diff --git a/build.sbt b/build.sbt
 index 885adb4..06960ae 100644
 --- a/build.sbt
@@ -1483,6 +1625,113 @@ index b916ee3..3775c75 100644
      case ("join", o) if !member.bot =>
        HookPoolLimit(
          member,
+diff --git a/modules/perfStat/src/main/PerfStatUi.scala b/modules/perfStat/src/main/PerfStatUi.scala
+index fbe7c01..fdc4eff 100644
+--- a/modules/perfStat/src/main/PerfStatUi.scala
++++ b/modules/perfStat/src/main/PerfStatUi.scala
+@@ -10,7 +10,7 @@ import lila.rating.PerfType
+ import lila.ui.*
+ import lila.ui.ScalatagsTemplate.{ *, given }
+ 
+-final class PerfStatUi(helpers: Helpers)(communityMenu: Context ?=> Frag):
++final class PerfStatUi(helpers: Helpers, focused: Boolean = false)(communityMenu: Context ?=> Frag):
+   import helpers.{ *, given }
+   import trans.perfStat as tps
+ 
+@@ -373,7 +373,10 @@ final class PerfStatUi(helpers: Helpers)(communityMenu: Context ?=> Frag):
+       me: Option[UserWithPerfs]
+   ) =
+     val myVisiblePerfs = me.map(_.perfs).ifTrue(ctx.pref.showRatings)
+-    Page(trans.site.weeklyPerfTypeRatingDistribution.txt(perfType.trans))
++    val distributionTitle =
++      if focused then s"${perfType.trans} rating distribution"
++      else trans.site.weeklyPerfTypeRatingDistribution.txt(perfType.trans)
++    Page(distributionTitle)
+       .css("user.rating.stats")
+       .flag(_.fullScreen)
+       .js(
+@@ -392,11 +395,13 @@ final class PerfStatUi(helpers: Helpers)(communityMenu: Context ?=> Frag):
+           div(cls := "rating-stats page-menu__content box box-pad")(
+             boxTop(
+               h1(
+-                trans.site.weeklyPerfTypeRatingDistribution(
++                (if focused then (selector: Frag) => frag(selector, " rating distribution")
++                 else (selector: Frag) => trans.site.weeklyPerfTypeRatingDistribution(selector)) (
+                   lila.ui.bits.mselect(
+                     "variant-stats",
+                     span(perfType.trans),
+-                    lila.rating.PerfType.leaderboardable
++                    (if focused then lila.rating.PerfType.standardWithUltra
++                     else lila.rating.PerfType.leaderboardable)
+                       .map(PerfType(_))
+                       .map: pt =>
+                         a(
+@@ -409,36 +414,42 @@ final class PerfStatUi(helpers: Helpers)(communityMenu: Context ?=> Frag):
+               )
+             ),
+             div(cls := "desc", dataIcon := perfType.icon)(
+-              myVisiblePerfs
+-                .flatMap(_(perfType).glicko.establishedIntRating)
+-                .map: rating =>
+-                  val (under, sum) = lila.perfStat.percentileOf(data, rating)
+-                  div(
+-                    trans.site.nbPerfTypePlayersThisWeek(strong(sum.localize), perfType.trans),
+-                    br,
+-                    trans.site.yourPerfTypeRatingIsRating(perfType.trans, strong(rating)),
+-                    br,
+-                    trans.site.youAreBetterThanPercentOfPerfTypePlayers(
+-                      strong((under * 100.0 / sum).round, "%"),
+-                      perfType.trans
++              if focused then
++                frag(
++                  p(strong(data.sum.localize), s" players with a current ${perfType.trans} rating."),
++                  p("Includes starting ratings until games are played.")
++                )
++              else
++                myVisiblePerfs
++                  .flatMap(_(perfType).glicko.establishedIntRating)
++                  .map: rating =>
++                    val (under, sum) = lila.perfStat.percentileOf(data, rating)
++                    div(
++                      trans.site.nbPerfTypePlayersThisWeek(strong(sum.localize), perfType.trans),
++                      br,
++                      trans.site.yourPerfTypeRatingIsRating(perfType.trans, strong(rating)),
++                      br,
++                      trans.site.youAreBetterThanPercentOfPerfTypePlayers(
++                        strong((if sum == 0 then 0L else (under * 100.0 / sum).round), "%"),
++                        perfType.trans
++                      )
+                     )
+-                  )
+-                .getOrElse:
+-                  div(
+-                    trans.site.nbPerfTypePlayersThisWeek
+-                      .plural(data.sum, strong(data.sum.localize), perfType.trans),
+-                    ctx.pref.showRatings.option(
+-                      frag(
+-                        br,
+-                        trans.site.youDoNotHaveAnEstablishedPerfTypeRating(perfType.trans)
++                  .getOrElse:
++                    div(
++                      trans.site.nbPerfTypePlayersThisWeek
++                        .plural(data.sum, strong(data.sum.localize), perfType.trans),
++                      ctx.pref.showRatings.option(
++                        frag(
++                          br,
++                          trans.site.youDoNotHaveAnEstablishedPerfTypeRating(perfType.trans)
++                        )
+                       )
+                     )
+-                  )
+             ),
+             div(id := "rating_distribution")(
+               canvas(
+                 id := "rating_distribution_chart",
+-                ariaTitle(trans.site.weeklyPerfTypeRatingDistribution.txt(perfType.trans))
++                ariaTitle(distributionTitle)
+               )(spinner)
+             )
+           )
 diff --git a/modules/plan/src/main/PlanApi.scala b/modules/plan/src/main/PlanApi.scala
 index 0e35266..8dbe5e8 100644
 --- a/modules/plan/src/main/PlanApi.scala
@@ -2170,6 +2419,51 @@ index 6f5e768..83f5df7 100644
      )
  
    export realNameCache.{ sync as realName, preloadMany as preloadRealNames }
+diff --git a/modules/user/src/main/UserApi.scala b/modules/user/src/main/UserApi.scala
+index 5c99667..0c0b2a9 100644
+--- a/modules/user/src/main/UserApi.scala
++++ b/modules/user/src/main/UserApi.scala
+@@ -293,3 +293,40 @@ final class UserApi(userRepo: UserRepo, perfsRepo: UserPerfsRepo, cacheApi: Cach
+           user <- doc.getAsOpt[User]("user")
+           perfs = perfsRepo.aggregate.readFrom(doc, user)
+         yield UserWithPerfs(user, perfs)
++
++  // A read-only directory of current site ratings, including managed players.
++  // Competitive ranking eligibility and Glicko writes remain native.
++  object currentPlayers:
++    val speeds = PerfType.standardWithUltra
++
++    def apply(pk: PerfKey): Fu[List[lila.core.user.LightPerf]] =
++      if speeds.contains(pk) then cache.get(pk) else fuccess(Nil)
++
++    private val cache = cacheApi[PerfKey, List[lila.core.user.LightPerf]](speeds.size, "user.currentPlayers"):
++      _.expireAfterWrite(1.minute).buildAsyncFuture(fetch)
++
++    private def fetch(pk: PerfKey): Fu[List[lila.core.user.LightPerf]] =
++      import lila.rating.Perf.perfHandler
++      perfsRepo.coll
++        .aggregateList(Int.MaxValue, _.sec): framework =>
++          import framework.*
++          import lila.user.BSONFields as F
++          Match(bdoc(s"$pk.gl.r".exists(true))) -> List(
++            PipelineOperator(lookup.simple(userRepo.coll, "user", "_id", "_id")),
++            UnwindField("user"),
++            Match(
++              bdoc(
++                s"user.${F.enabled}" -> true,
++                s"user.${F.marks}".nin(List(UserMark.engine, UserMark.boost, UserMark.rankban))
++              )
++            ),
++            Project(bdoc(pk.value -> true, "user" -> true))
++          )
++        .map: docs =>
++          docs
++            .flatMap: doc =>
++              for
++                user <- doc.getAsOpt[User]("user")
++                perf <- doc.getAsOpt[lila.core.perf.Perf](pk.value)
++              yield lila.core.user.LightPerf(user.light, pk, perf.intRating, perf.progress)
++            .sortBy(p => (-p.rating.value, p.user.id.value))
 diff --git a/modules/user/src/main/UserForm.scala b/modules/user/src/main/UserForm.scala
 index 947bee6..d3f3a3f 100644
 --- a/modules/user/src/main/UserForm.scala
@@ -2435,6 +2729,88 @@ index 55cb8a7..062a1a3 100644
 +          ).flatten,
 +        trans.site.more.txt()
 +      )
+diff --git a/modules/user/src/main/ui/UserBits.scala b/modules/user/src/main/ui/UserBits.scala
+index 2924f50..89446b0 100644
+--- a/modules/user/src/main/ui/UserBits.scala
++++ b/modules/user/src/main/ui/UserBits.scala
+@@ -6,7 +6,7 @@ import lila.rating.PerfType
+ import lila.ui.*
+ import lila.ui.ScalatagsTemplate.{ *, given }
+ 
+-final class UserBits(helpers: Helpers):
++final class UserBits(helpers: Helpers, focused: Boolean = false):
+   import helpers.*
+ 
+   def communityMenu(active: String)(using Translate) =
+@@ -18,19 +18,23 @@ final class UserBits(helpers: Helpers):
+       )(
+         trans.site.ratingStats()
+       ),
+-      a(cls := active.active("tournament"), href := routes.Tournament.leaderboard)(
+-        trans.arena.tournamentWinners()
+-      ),
+-      a(cls := active.active("shield"), href := routes.Tournament.shields)(
+-        trans.arena.tournamentShields()
+-      ),
+-      div(cls := "sep"),
+-      a(cls := active.active("bots"), href := routes.PlayApi.botOnline)(
+-        trans.site.onlineBots()
+-      ),
+-      div(cls := "sep"),
+-      a(cls := active.active("fide"), href := addQueryParam(routes.Fide.index().url, "community", "1"))(
+-        trans.broadcast.fidePlayers()
++      (!focused).option(
++        frag(
++          a(cls := active.active("tournament"), href := routes.Tournament.leaderboard)(
++            trans.arena.tournamentWinners()
++          ),
++          a(cls := active.active("shield"), href := routes.Tournament.shields)(
++            trans.arena.tournamentShields()
++          ),
++          div(cls := "sep"),
++          a(cls := active.active("bots"), href := routes.PlayApi.botOnline)(
++            trans.site.onlineBots()
++          ),
++          div(cls := "sep"),
++          a(cls := active.active("fide"), href := addQueryParam(routes.Fide.index().url, "community", "1"))(
++            trans.broadcast.fidePlayers()
++          )
++        )
+       )
+     )
+ 
+diff --git a/modules/user/src/main/ui/UserList.scala b/modules/user/src/main/ui/UserList.scala
+index aa2948a..607eadf 100644
+--- a/modules/user/src/main/ui/UserList.scala
++++ b/modules/user/src/main/ui/UserList.scala
+@@ -12,6 +12,27 @@ import lila.ui.ScalatagsTemplate.{ *, given }
+ final class UserList(helpers: Helpers, bits: UserBits):
+   import helpers.{ *, given }
+ 
++  def current(online: List[LightPerf], boards: List[(PerfKey, List[LightPerf])])(using ctx: Context) =
++    Page(trans.site.players.txt())
++      .css("user.list")
++      .flag(_.fullScreen):
++        main(cls := "page-menu")(
++          bits.communityMenu("leaderboard"),
++          div(cls := "community page-menu__content box box-pad")(
++            st.section(cls := "community__online")(
++              h2(trans.site.onlinePlayers()),
++              ol(cls := "user-top")(
++                online.map(p => li(lightUserLink(p.user), ctx.pref.showRatings.option(p.rating)))
++              )
++            ),
++            div(cls := "community__leaders")(
++              h2(trans.site.leaderboard()),
++              p("Current player ratings, including starting ratings until games are played."),
++              div(cls := "leaderboards")(boards.map((pk, rows) => userTopPerf(rows, pk)))
++            )
++          )
++        )
++
+   def page(
+       online: List[UserWithPerfs],
+       leaderboards: lila.rating.UserPerfs.Leaderboards,
 diff --git a/modules/user/src/main/ui/UserShow.scala b/modules/user/src/main/ui/UserShow.scala
 index 90a91f3..621b36b 100644
 --- a/modules/user/src/main/ui/UserShow.scala
@@ -4464,6 +4840,19 @@ index d06272b..26e771c 100644
        chart.update('none');
      });
  }
+diff --git a/ui/chart/src/chart.ratingDistribution.ts b/ui/chart/src/chart.ratingDistribution.ts
+index 928e8e1..7beb48d 100644
+--- a/ui/chart/src/chart.ratingDistribution.ts
++++ b/ui/chart/src/chart.ratingDistribution.ts
+@@ -27,7 +27,7 @@ export async function initModule(data: DistributionData): Promise<void> {
+     const ratings: number[] = [];
+     for (let i = 0; i < data.freq.length; i++) {
+       ratings.push(ratingAt(i));
+-      cumul.push(arraySum(data.freq.slice(0, i)) / sum);
++      cumul.push(sum ? arraySum(data.freq.slice(0, i)) / sum : 0);
+     }
+     const gradient = this.getContext('2d')?.createLinearGradient(0, 0, 0, 400);
+     gradient?.addColorStop(0, 'rgb(119 152 191 / 1)');
 diff --git a/ui/dasher/src/interfaces.ts b/ui/dasher/src/interfaces.ts
 index ba0f963..0e2c0e6 100644
 --- a/ui/dasher/src/interfaces.ts
@@ -8935,6 +9324,18 @@ index 0000000..376f9b7
 +      !NoSweatStudyScope.valid("trial1", local.replace("27028", "27018"), local, "127.0.0.1:19763", false)
 +    )
 +    assert(!NoSweatStudyScope.valid("../bad", local, local, "127.0.0.1:19763", false))
+diff --git a/modules/user/src/main/NoSweatPlayerRatings.scala b/modules/user/src/main/NoSweatPlayerRatings.scala
+new file mode 100644
+index 0000000..28ad57d
+--- /dev/null
++++ b/modules/user/src/main/NoSweatPlayerRatings.scala
+@@ -0,0 +1,6 @@
++package lila.user
++
++object NoSweatPlayerRatings:
++  def distribution(ratings: List[Int]): List[Int] =
++    val counts = ratings.groupMapReduce(r => r.max(400).min(4000) / 25 * 25)(_ => 1)(_ + _)
++    (400 to 4000 by 25).map(r => counts.getOrElse(r, 0)).toList
 diff --git a/modules/user/src/main/NoSweatUserSearch.scala b/modules/user/src/main/NoSweatUserSearch.scala
 new file mode 100644
 index 0000000..d864975
@@ -8979,6 +9380,29 @@ index 0000000..443ecc5
 +    assertEquals(inserted.getAsOpt[Boolean]("noSweatBot"), Some(true))
 +    assertEquals(inserted.child("count").flatMap(_.getAsOpt[Int]("game")), Some(0))
 +    assertEquals(inserted.getAsOpt[String]("noSweatSeedVersion"), None)
+diff --git a/modules/user/src/test/NoSweatPlayerRatingsTest.scala b/modules/user/src/test/NoSweatPlayerRatingsTest.scala
+new file mode 100644
+index 0000000..2560107
+--- /dev/null
++++ b/modules/user/src/test/NoSweatPlayerRatingsTest.scala
+@@ -0,0 +1,17 @@
++package lila.user
++
++class NoSweatPlayerRatingsTest extends munit.FunSuite:
++  test("distribution retains current ratings above the native weekly chart's range"):
++    val counts = NoSweatPlayerRatings.distribution(List(400, 424, 425, 2800, 3000, 3999, 4000))
++    assertEquals(counts.sum, 7)
++    assertEquals(counts.head, 2)
++    assertEquals(counts(1), 1)
++    assertEquals(counts((3000 - 400) / 25), 1)
++    assertEquals(counts.last, 1)
++
++  test("empty and out-of-range inputs keep finite bins without losing players"):
++    assertEquals(NoSweatPlayerRatings.distribution(Nil).sum, 0)
++    val counts = NoSweatPlayerRatings.distribution(List(399, 4001))
++    assertEquals(counts.head, 1)
++    assertEquals(counts.last, 1)
++    assertEquals(counts.sum, 2)
 diff --git a/modules/user/src/test/NoSweatUserSearchTest.scala b/modules/user/src/test/NoSweatUserSearchTest.scala
 new file mode 100644
 index 0000000..6904666
