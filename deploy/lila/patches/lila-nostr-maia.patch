@@ -24249,18 +24249,19 @@ index 0000000..0a8874e
 +}
 diff --git a/ui/analyse/src/noSweatRatingChartQuality.ts b/ui/analyse/src/noSweatRatingChartQuality.ts
 new file mode 100644
-index 0000000..a984c3a
+index 0000000..13288a9
 --- /dev/null
 +++ b/ui/analyse/src/noSweatRatingChartQuality.ts
-@@ -0,0 +1,45 @@
+@@ -0,0 +1,46 @@
 +// Maia platform (GPL-3.0), revision a6e52f5c811ee18863cb2f0e81f2433a5b9905de.
 +// Chart-only adaptation of useAnalysisController/utils.ts and constants/analysis.ts.
 +import { qualityFromLoss, stockfishWinrate, type CandidateQuality } from './noSweatCandidateQuality';
 +
++// Blunder shades match the Maia move cards, keeping them visibly red.
 +const colors: Record<CandidateQuality, string[]> = {
 +  good: ['#238b45', '#41ab5d', '#74c476', '#90D289', '#AEDFA4'],
 +  ok: ['#ffffcc', '#ffeda0', '#fed976', '#feb24c', '#ec7014'],
-+  blunder: ['#fcbba1', '#fc9272', '#fb6a4a', '#ef3b2c', '#cb181d'],
++  blunder: ['#ff9292', '#ff7777', '#ff5b5b', '#f43d3d', '#df2828'],
 +};
 +
 +export interface RatingChartQuality {
@@ -79631,7 +79632,7 @@ index 0000000..27f6eea
 +});
 diff --git a/ui/analyse/tests/ratingChartQuality.test.ts b/ui/analyse/tests/ratingChartQuality.test.ts
 new file mode 100644
-index 0000000..bb86b79
+index 0000000..e3afbb0
 --- /dev/null
 +++ b/ui/analyse/tests/ratingChartQuality.test.ts
 @@ -0,0 +1,87 @@
@@ -79652,8 +79653,8 @@ index 0000000..bb86b79
 +  assert.equal(colors.get('best')?.color, '#238b45');
 +  assert.equal(colors.get('good')?.color, '#41ab5d');
 +  assert.equal(colors.get('ok')?.color, '#ffffcc');
-+  assert.equal(colors.get('blunder')?.color, '#fcbba1');
-+  assert.equal(colors.get('worse')?.color, '#fc9272');
++  assert.equal(colors.get('blunder')?.color, '#ff9292');
++  assert.equal(colors.get('worse')?.color, '#ff7777');
 +  assert.deepEqual(
 +    ['best', 'good', 'ok', 'blunder', 'worse'].map(move => colors.get(move)?.quality),
 +    ['good', 'good', 'ok', 'blunder', 'blunder'],
