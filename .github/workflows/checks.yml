@@ -124,7 +124,7 @@ jobs:
       - uses: sbt/setup-sbt@f9efdb0d6d5959d3e1510935d4ff64a65821a256 # v1
       - name: Check native Scala formatting, GIF parsing, study plan, forum permissions and user search
         working-directory: /tmp/lila
-        run: sbt -J-Xms128m -J-Xmx3g -J-Xss2m -J-XX:ActiveProcessorCount=2 -Dsbt.task.cpus=2 -Dsbt.supershell=false 'scalafmtCheckAll;game/testOnly lila.game.NoSweatAnalysisGifTest;compile;forum/testOnly lila.forum.ForumAccessTest;user/testOnly lila.user.NoSweatUserSearchTest;user/testOnly lila.user.NoSweatPlayerRatingsTest;testOnly lila.app.NoSweatStudyPlanTest;testOnly lila.app.NoSweatBotCatalogTest;user/testOnly lila.user.NoSweatBotIdentityTest'
+        run: sbt -J-Xms128m -J-Xmx3g -J-Xss2m -J-XX:ActiveProcessorCount=2 -Dsbt.task.cpus=2 -Dsbt.supershell=false 'scalafmtCheckAll;game/testOnly lila.game.NoSweatAnalysisGifTest;bot/testOnly lila.bot.PublicBotActivityTest;compile;forum/testOnly lila.forum.ForumAccessTest;user/testOnly lila.user.NoSweatUserSearchTest;user/testOnly lila.user.NoSweatPlayerRatingsTest;testOnly lila.app.NoSweatStudyPlanTest;testOnly lila.app.NoSweatBotCatalogTest;user/testOnly lila.user.NoSweatBotIdentityTest'
 
 
   native-gif:
