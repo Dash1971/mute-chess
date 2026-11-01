@@ -19,12 +19,16 @@ validation. See the [bot rating methodology](docs/bot-population.md).
 
 We started from observed Lichess Maia ratings, then used rated games and native
 Glicko-2 to establish a varied reference roster. Our illustrated
-[bot-rating report](https://github.com/Dash1971/mobile-maia-research/blob/d12f93536442c636d56ec23313e89807a2771467/studies/bot-rating-establishment-2026-10-31/REPORT.md)
-explains that reference, the measured effects of engine settings, and a proposed
-formula and Lichess-shaped distribution for a 10,000-bot pool. Keeping playing
-ratings close to Lichess remains a goal we will monitor as people play. The
-expanded roster and assigned catalog-rating policy are plans, not activated by
-this documentation update.
+[bot-rating report](https://github.com/Dash1971/mobile-maia-research/blob/140e2eb411923930fb0d5950b92abf6f3c0166dd/studies/bot-rating-establishment-2026-10-31/REPORT.md)
+explains the reference, the measured effects of engine settings, and how the
+expanded pool is calibrated.
+
+The [live pool contains 10,000 persistent opponents](docs/catalog-roster.md).
+The original 250 reference bots retain their earned ratings and game histories.
+The 9,750 new identities reuse measured playing policies and start with assigned
+nonprovisional ratings labeled **Research-seeded**, with zero completed games.
+Native Glicko-2 updates those ratings as they play. Keeping playing strength close
+to Lichess remains a goal we will monitor over time.
 
 ## The chess
 
