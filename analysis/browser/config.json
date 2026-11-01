@@ -67,9 +67,10 @@
         "bytes": 338088
       },
       {
-        "path": "vendor/ort-wasm-simd-threaded.asyncify.mjs",
+        "path": "vendor/ort-wasm-simd-threaded.asyncify.js",
         "sha256": "59cf781530e1a16df2a291d78798e3ec1152467edaec402d6f9599d85047c302",
-        "bytes": 53457
+        "bytes": 53457,
+        "sourceUrl": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.1/dist/ort-wasm-simd-threaded.asyncify.mjs"
       },
       {
         "path": "vendor/ort-wasm-simd-threaded.js",
@@ -82,9 +83,10 @@
         "bytes": 53725
       },
       {
-        "path": "vendor/ort.webgpu.min.mjs",
+        "path": "vendor/ort.webgpu.min.js",
         "sha256": "329cd956772397a1aedd668e911195d39afefb182f6fc14aafa4f08ac8d8f379",
-        "bytes": 70742
+        "bytes": 70742,
+        "sourceUrl": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.1/dist/ort.webgpu.min.mjs"
       }
     ],
     "assets": {
@@ -97,11 +99,12 @@
         "sourceUrl": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.1/dist/ort-wasm-simd-threaded.wasm"
       },
       "webgpu": {
-        "url": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.1/dist/ort-wasm-simd-threaded.asyncify.wasm",
+        "url": "/assets/nosweat/analysis/ort-wasm-simd-threaded.asyncify.wasm",
         "bytes": 28747738,
         "sha256": "ca319e9539cd0f1e291cf56074760121eaf39650f5dbf84b6e52c07f4b2944ec",
-        "module": "vendor/ort.webgpu.min.mjs",
-        "loader": "vendor/ort-wasm-simd-threaded.asyncify.mjs"
+        "module": "vendor/ort.webgpu.min.js",
+        "loader": "vendor/ort-wasm-simd-threaded.asyncify.js",
+        "sourceUrl": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.1/dist/ort-wasm-simd-threaded.asyncify.wasm"
       }
     }
   },

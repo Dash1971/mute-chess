@@ -264,3 +264,19 @@ the primary rating. Actual inference code enforces matching inputs independently
 of stored preferences, including post-puzzle review. The matched rating chart,
 raw policy, expected-score perspective, review gates and engine visibility remain
 unchanged.
+
+## Readable WikiBook and 79M browser acceleration (#183/#184)
+
+The WikiBook article retains its natural height in the existing board-height
+sidebar. Scroll the sidebar to read the whole article; its native collapse
+control and the underboard position remain unchanged.
+
+The 79M browser worker tries ONNX Runtime WebGPU first when the browser exposes
+WebGPU. It falls back to up to four WASM CPU threads when cross-origin isolation
+is available, then to one thread if threaded initialization or execution fails.
+The 5M bounded one-thread path remains unchanged. GPU/runtime failure retries
+the same request without resetting its original watchdog. Model bytes, history,
+matched rating inputs, policy/value heads and the exact 21-point rating sweep
+are unchanged. Runtime diagnostics record the selected backend and thread count.
+Pinned GPU runtime assets are served from Mute Chess's existing asset path.
+This is backend selection, not a measured speedup claim on every device.

@@ -2907,7 +2907,7 @@ index a5094c6..60daa09 100644
    .pair {
      @extend %flex-center;
 diff --git a/ui/analyse/css/_layout.scss b/ui/analyse/css/_layout.scss
-index 4f219ad..e0d2109 100644
+index 4f219ad..b1221ce 100644
 --- a/ui/analyse/css/_layout.scss
 +++ b/ui/analyse/css/_layout.scss
 @@ -113,6 +113,12 @@ $analyse-gauge-gap: 4px;
@@ -2946,7 +2946,7 @@ index 4f219ad..e0d2109 100644
      &__side {
        margin-top: 0;
      }
-@@ -174,6 +189,37 @@ $analyse-gauge-gap: 4px;
+@@ -174,6 +189,40 @@ $analyse-gauge-gap: 4px;
        min-height: 10em;
      }
  
@@ -2965,7 +2965,10 @@ index 4f219ad..e0d2109 100644
 +      }
 +
 +      .analyse__wiki {
++        flex: 0 0 auto;
 +        min-height: 0;
++        max-height: none;
++        overflow: visible;
 +      }
 +
 +      .nosweat-candidate-panel {
@@ -2984,7 +2987,7 @@ index 4f219ad..e0d2109 100644
      @include crosstable-large;
    }
  }
-@@ -181,3 +227,20 @@ $analyse-gauge-gap: 4px;
+@@ -181,3 +230,20 @@ $analyse-gauge-gap: 4px;
  .blind-mode .analyse {
    display: block;
  }
@@ -20814,7 +20817,7 @@ index 0000000..ec4cc78
 +};
 diff --git a/ui/analyse/src/noSweatAnalysis.ts b/ui/analyse/src/noSweatAnalysis.ts
 new file mode 100644
-index 0000000..f5b18da
+index 0000000..58ce5ad
 --- /dev/null
 +++ b/ui/analyse/src/noSweatAnalysis.ts
 @@ -0,0 +1,789 @@
@@ -21085,7 +21088,7 @@ index 0000000..f5b18da
 +    const config = { ...this.config!, browserModel: this.model };
 +    this.client = new module.MaiaClient({
 +      config: async () => config,
-+      worker: () => new Worker('/assets/nosweat/analysis/maia-worker.js?v=analysis1', { type: 'module' }),
++      worker: () => new Worker('/assets/nosweat/analysis/maia-worker.js?v=analysis2', { type: 'module' }),
 +    });
 +    return this.client!;
 +  }
@@ -80406,7 +80409,7 @@ index 0000000..a0a8385
 +}
 diff --git a/ui/lib/src/nosweat/reviewMaia.ts b/ui/lib/src/nosweat/reviewMaia.ts
 new file mode 100644
-index 0000000..7032d64
+index 0000000..6572f65
 --- /dev/null
 +++ b/ui/lib/src/nosweat/reviewMaia.ts
 @@ -0,0 +1,121 @@
@@ -80528,7 +80531,7 @@ index 0000000..7032d64
 +  const config = { ...(await response.json()), browserModel: model };
 +  return new module.MaiaClient({
 +    config: async () => config,
-+    worker: () => new Worker('/assets/nosweat/analysis/maia-worker.js?v=analysis1', { type: 'module' }),
++    worker: () => new Worker('/assets/nosweat/analysis/maia-worker.js?v=analysis2', { type: 'module' }),
 +  });
 +}
 diff --git a/ui/lib/src/nosweat/reviewQuality.ts b/ui/lib/src/nosweat/reviewQuality.ts
