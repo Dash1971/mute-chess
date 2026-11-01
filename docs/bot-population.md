@@ -1,3 +1,8 @@
+> **Current population release:** see [the calibrated 10,000-bot roster](catalog-roster.md)
+> for the owner-approved expansion and assigned nonprovisional initialization.
+> Historical experiment/provisional descriptions below remain provenance;
+> they are superseded for newly generated catalog identities only.
+
 # Bot population and persistent personalities
 
 This is the infrastructure stage of [#69](https://github.com/Dash1971/mute-chess/issues/69), implemented in #72. It preserves the 44 existing identities and their earned native ratings. The planned population is 10,000. The owner-approved #137 experiment adds 206 identities to the original 44: 200 training configurations and 50 held out, covering fixed history and continuous temperature/top-p 0–1. See [the frozen experimental design](strength-experiment.md). Large-scale generation follows validation, not individual calibration games for every name. The bounded public rating trial is documented in [native-bot-trial.md](native-bot-trial.md), with execution/results tracked in #73. Country personas and scheduled breaks are deferred in #71.

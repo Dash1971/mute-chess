@@ -1,0 +1,2708 @@
+{
+  "schema": 1,
+  "version": "measured-policy-catalog-2026-11-01-v1",
+  "total": 10000,
+  "preserved": 250,
+  "added": 9750,
+  "referencePolicies": 245,
+  "usedPolicies": 202,
+  "method": "Exact measured policy reuse; equivalent-policy RD-weighted reference means; joint Blitz/Rapid CDF allocation",
+  "assignedRd": 100,
+  "assignedGameCount": 0,
+  "researchUrl": "https://github.com/Dash1971/mobile-maia-research/blob/d12f93536442c636d56ec23313e89807a2771467/studies/bot-rating-establishment-2026-10-31/REPORT.md",
+  "referenceRosterSha256": "ac9cb13a2c2e6b59daf1c7d09a74527da7c07fcdd166ea2d0389e72c5d669296",
+  "referencePerfsSha256": "c5396653687632153d2651d91bcd9157a2087f89a2cac0facbd50ceeaddf8f91",
+  "aliases": {
+    "SignalTrain084": "Roy Batty",
+    "SignalTrain072": "Judge Dredd",
+    "SignalTest021": "Molly",
+    "SignalTest039": "Case",
+    "SignalTest043": "Rick Deckard",
+    "SignalTest032": "Judge Anderson",
+    "SignalTrain150": "Armitage",
+    "SignalTrain004": "Rachael",
+    "SignalTrain006": "Officer K",
+    "SignalTest004": "Judge Death",
+    "SignalTrain119": "Johnny Silverhand",
+    "SignalTrain106": "Hideo"
+  },
+  "distributionSource": {
+    "retrievedAtUtc": "2026-10-30T04:46:15.711285+00:00",
+    "pools": {
+      "blitz": {
+        "source": "https://lichess.org/stat/rating/distribution/blitz",
+        "sample": "weekly rating distribution",
+        "players": 734903,
+        "bucketStart": 400,
+        "bucketStep": 25,
+        "buckets": 97,
+        "medianBucket": 1450,
+        "modeBucket": 1400,
+        "p10Bucket": 925,
+        "p90Bucket": 1975,
+        "htmlSha256": "32f3acb15b2bc9bf248ba02354e675d53e2b8b2b8191b86fcc7ff391ae46aeb3",
+        "shares": {
+          "400-999": 12.91,
+          "1000-1399": 31.05,
+          "1400-1799": 34.36,
+          "1800-2199": 18.47,
+          "2200-2800": 3.21
+        }
+      },
+      "rapid": {
+        "source": "https://lichess.org/stat/rating/distribution/rapid",
+        "sample": "weekly rating distribution",
+        "players": 543612,
+        "bucketStart": 400,
+        "bucketStep": 25,
+        "buckets": 97,
+        "medianBucket": 1350,
+        "modeBucket": 1400,
+        "p10Bucket": 850,
+        "p90Bucket": 1875,
+        "htmlSha256": "e112564f5296c8dd287babe28e8d0c4604a86d6d34e57c6fdaa8b24b421f1051",
+        "shares": {
+          "400-999": 18.19,
+          "1000-1399": 34.26,
+          "1400-1799": 32.24,
+          "1800-2199": 13.92,
+          "2200-2800": 1.39
+        }
+      },
+      "bullet": {
+        "source": "https://lichess.org/stat/rating/distribution/bullet",
+        "sample": "weekly rating distribution",
+        "players": 373232,
+        "bucketStart": 400,
+        "bucketStep": 25,
+        "buckets": 97,
+        "medianBucket": 1525,
+        "modeBucket": 1500,
+        "p10Bucket": 975,
+        "p90Bucket": 2150,
+        "htmlSha256": "7e9896697e8151835531583f46e367149a66a55d06dd57edd3c18f39968f4f1e",
+        "shares": {
+          "400-999": 11.02,
+          "1000-1399": 27.75,
+          "1400-1799": 30.29,
+          "1800-2199": 22.39,
+          "2200-2800": 8.55
+        }
+      }
+    }
+  },
+  "distribution": {
+    "thresholds": [
+      1000,
+      1400,
+      1800,
+      2200,
+      2600
+    ],
+    "target": {
+      "blitz": {
+        "cdf": [
+          0.09201704634119352,
+          0.4157102689451867,
+          0.7739104159159713,
+          0.9664832842012081,
+          0.9985473157970896
+        ],
+        "includedSourcePlayers": 704902,
+        "bandCounts": [
+          920.1704634119352,
+          3236.932226039932,
+          3582.001469707846,
+          1925.7286828523684,
+          320.6403159588135,
+          14.526842029104955
+        ]
+      },
+      "rapid": {
+        "cdf": [
+          0.11912354859028551,
+          0.488014356625876,
+          0.8351226295126908,
+          0.9849837774881451,
+          0.9997939998494614
+        ],
+        "includedSourcePlayers": 504854,
+        "bandCounts": [
+          1191.235485902855,
+          3688.908080355905,
+          3471.0827288681476,
+          1498.6114797545433,
+          148.102223613163,
+          2.060001505386026
+        ]
+      }
+    },
+    "achieved": {
+      "blitz": {
+        "cdf": [
+          0.092,
+          0.4157,
+          0.7739,
+          0.9665,
+          0.9985
+        ],
+        "bandCounts": [
+          920,
+          3237,
+          3582,
+          1926,
+          320,
+          15
+        ],
+        "maxCdfMismatchPercentagePoints": 0.0047315797089497735
+      },
+      "rapid": {
+        "cdf": [
+          0.1191,
+          0.488,
+          0.8351,
+          0.985,
+          0.9986
+        ],
+        "bandCounts": [
+          1191,
+          3689,
+          3471,
+          1499,
+          136,
+          14
+        ],
+        "maxCdfMismatchPercentagePoints": 0.11939998494613357
+      }
+    }
+  },
+  "templateCounts": [
+    {
+      "key": "[1000,0,0,5,true]",
+      "sourceIds": [
+        "chrome-alley"
+      ],
+      "ratings": {
+        "blitz": 1546.9803050550386,
+        "rapid": 1503.0701927705343
+      },
+      "count": 51
+    },
+    {
+      "key": "[1000,0.5,0.9,5,false]",
+      "sourceIds": [
+        "chrome-sparrow"
+      ],
+      "ratings": {
+        "blitz": 1545.5714032578078,
+        "rapid": 1612.9705645332056
+      },
+      "count": 52
+    },
+    {
+      "key": "[1000,1,0.95,5,false]",
+      "sourceIds": [
+        "sideband"
+      ],
+      "ratings": {
+        "blitz": 1329.6379918510538,
+        "rapid": 1199.115745207935
+      },
+      "count": 104
+    },
+    {
+      "key": "[1000,1,1,0,true]",
+      "sourceIds": [
+        "cobalt-mist"
+      ],
+      "ratings": {
+        "blitz": 1188.1034129669868,
+        "rapid": 1038.2829516120855
+      },
+      "count": 105
+    },
+    {
+      "key": "[1008,0.097763,0.621915,5,true]",
+      "sourceIds": [
+        "signaltest036"
+      ],
+      "ratings": {
+        "blitz": 1422.5255333160276,
+        "rapid": 1719.6922346991516
+      },
+      "count": 52
+    },
+    {
+      "key": "[1009,0.104154,0.694122,5,false]",
+      "sourceIds": [
+        "signaltrain056"
+      ],
+      "ratings": {
+        "blitz": 1586.5854653356655,
+        "rapid": 1410.5060200320663
+      },
+      "count": 52
+    },
+    {
+      "key": "[1020,0.292641,0.119984,5,false]",
+      "sourceIds": [
+        "signaltrain050"
+      ],
+      "ratings": {
+        "blitz": 1422.8612893173856,
+        "rapid": 1380.474589285692
+      },
+      "count": 103
+    },
+    {
+      "key": "[1033,0.29664,0.806164,5,true]",
+      "sourceIds": [
+        "signaltrain097"
+      ],
+      "ratings": {
+        "blitz": 1702.2539817051363,
+        "rapid": 1612.9195763735793
+      },
+      "count": 51
+    },
+    {
+      "key": "[1036,0.551988,0.232911,5,true]",
+      "sourceIds": [
+        "signaltrain152"
+      ],
+      "ratings": {
+        "blitz": 1556.4679977536584,
+        "rapid": 1534.712901545433
+      },
+      "count": 51
+    },
+    {
+      "key": "[1053,0.344433,0.017311,5,true]",
+      "sourceIds": [
+        "signaltest020"
+      ],
+      "ratings": {
+        "blitz": 1501.2592327412797,
+        "rapid": 1337.0826354872174
+      },
+      "count": 103
+    },
+    {
+      "key": "[1053,0.44212,0.434125,5,true]",
+      "sourceIds": [
+        "signaltrain080"
+      ],
+      "ratings": {
+        "blitz": 1420.9972531655112,
+        "rapid": 1528.389380196967
+      },
+      "count": 52
+    },
+    {
+      "key": "[1073,0.179795,0.303779,5,true]",
+      "sourceIds": [
+        "signaltrain138"
+      ],
+      "ratings": {
+        "blitz": 1563.8219356261493,
+        "rapid": 1482.1388168530684
+      },
+      "count": 52
+    },
+    {
+      "key": "[1085,0.226681,0.488087,5,false]",
+      "sourceIds": [
+        "signaltrain099"
+      ],
+      "ratings": {
+        "blitz": 1565.368344281584,
+        "rapid": 1444.6497691843135
+      },
+      "count": 52
+    },
+    {
+      "key": "[1100,0.059645,0.671915,5,true]",
+      "sourceIds": [
+        "signaltrain101"
+      ],
+      "ratings": {
+        "blitz": 1562.1458437554984,
+        "rapid": 1759.2349768070785
+      },
+      "count": 51
+    },
+    {
+      "key": "[1103,0.738854,0.969851,5,false]",
+      "sourceIds": [
+        "signaltest022"
+      ],
+      "ratings": {
+        "blitz": 1497.7419604139732,
+        "rapid": 1492.231071799995
+      },
+      "count": 51
+    },
+    {
+      "key": "[1112,0.082645,0.932655,5,true]",
+      "sourceIds": [
+        "signaltrain035"
+      ],
+      "ratings": {
+        "blitz": 1682.370794672382,
+        "rapid": 1571.0190493428331
+      },
+      "count": 51
+    },
+    {
+      "key": "[1122,0.94133,0.160249,5,true]",
+      "sourceIds": [
+        "signaltrain085"
+      ],
+      "ratings": {
+        "blitz": 1514.9083532593345,
+        "rapid": 1731.507827272946
+      },
+      "count": 52
+    },
+    {
+      "key": "[1130,0.560991,0.925925,5,false]",
+      "sourceIds": [
+        "signaltrain008"
+      ],
+      "ratings": {
+        "blitz": 1590.9686347674572,
+        "rapid": 1529.5434441154716
+      },
+      "count": 52
+    },
+    {
+      "key": "[1146,0.120281,0.749225,5,true]",
+      "sourceIds": [
+        "signaltrain102"
+      ],
+      "ratings": {
+        "blitz": 1583.412224253815,
+        "rapid": 1649.9656587743202
+      },
+      "count": 51
+    },
+    {
+      "key": "[1155,0.10806,0.364368,5,false]",
+      "sourceIds": [
+        "signaltest026"
+      ],
+      "ratings": {
+        "blitz": 1678.7689801531278,
+        "rapid": 1708.3478770933675
+      },
+      "count": 52
+    },
+    {
+      "key": "[1159,0.959116,0.33523,5,true]",
+      "sourceIds": [
+        "signaltrain044"
+      ],
+      "ratings": {
+        "blitz": 1415.2267343803787,
+        "rapid": 1611.1261827796811
+      },
+      "count": 52
+    },
+    {
+      "key": "[1171,0.222124,0.638577,5,true]",
+      "sourceIds": [
+        "signaltrain131"
+      ],
+      "ratings": {
+        "blitz": 1458.3959219002927,
+        "rapid": 1587.0320425933141
+      },
+      "count": 52
+    },
+    {
+      "key": "[1177,0.42058,0.772409,5,false]",
+      "sourceIds": [
+        "signaltrain100"
+      ],
+      "ratings": {
+        "blitz": 1565.4979270337383,
+        "rapid": 1500.9088040020647
+      },
+      "count": 52
+    },
+    {
+      "key": "[1200,0,0,5,true]",
+      "sourceIds": [
+        "carbon-kite"
+      ],
+      "ratings": {
+        "blitz": 1624.1870691452007,
+        "rapid": 1619.8755754034014
+      },
+      "count": 52
+    },
+    {
+      "key": "[1200,0.5,0.9,5,false]",
+      "sourceIds": [
+        "rooftop-echo"
+      ],
+      "ratings": {
+        "blitz": 1716.5337836372942,
+        "rapid": 1642.1626893011078
+      },
+      "count": 52
+    },
+    {
+      "key": "[1200,1,0.95,5,true]",
+      "sourceIds": [
+        "static-rain"
+      ],
+      "ratings": {
+        "blitz": 1379.3652324318525,
+        "rapid": 1331.5799000034783
+      },
+      "count": 104
+    },
+    {
+      "key": "[1200,1,1,0,false]",
+      "sourceIds": [
+        "violet-metro"
+      ],
+      "ratings": {
+        "blitz": 1372.072146830801,
+        "rapid": 1299.9111373862827
+      },
+      "count": 105
+    },
+    {
+      "key": "[1206,0.899835,0.473585,5,true]",
+      "sourceIds": [
+        "signaltrain092"
+      ],
+      "ratings": {
+        "blitz": 1597.762837120365,
+        "rapid": 1673.231807398026
+      },
+      "count": 52
+    },
+    {
+      "key": "[1213,0.37175,0.447436,5,true]",
+      "sourceIds": [
+        "signaltest038"
+      ],
+      "ratings": {
+        "blitz": 1508.9585261553061,
+        "rapid": 1638.0654946538316
+      },
+      "count": 52
+    },
+    {
+      "key": "[1223,0.609297,0.888914,5,false]",
+      "sourceIds": [
+        "signaltrain018"
+      ],
+      "ratings": {
+        "blitz": 1773.3971309675992,
+        "rapid": 1437.4865671540952
+      },
+      "count": 52
+    },
+    {
+      "key": "[1229,0.016791,0.422241,5,false]",
+      "sourceIds": [
+        "signaltrain025"
+      ],
+      "ratings": {
+        "blitz": 1582.6548658035238,
+        "rapid": 1750.393955431505
+      },
+      "count": 52
+    },
+    {
+      "key": "[1244,0.989807,0.126866,5,true]",
+      "sourceIds": [
+        "signaltrain059"
+      ],
+      "ratings": {
+        "blitz": 1662.79305714762,
+        "rapid": 1737.0380409474442
+      },
+      "count": 52
+    },
+    {
+      "key": "[1261,0.469432,0.865275,5,false]",
+      "sourceIds": [
+        "signaltrain109"
+      ],
+      "ratings": {
+        "blitz": 1772.847697144019,
+        "rapid": 1763.0501478635101
+      },
+      "count": 52
+    },
+    {
+      "key": "[1274,0.18197,0.410196,5,true]",
+      "sourceIds": [
+        "signaltest011"
+      ],
+      "ratings": {
+        "blitz": 1805.2845120015986,
+        "rapid": 1788.6077406481947
+      },
+      "count": 77
+    },
+    {
+      "key": "[1278,0.87769,0.026299,5,false]",
+      "sourceIds": [
+        "signaltrain079"
+      ],
+      "ratings": {
+        "blitz": 1756.9679144763047,
+        "rapid": 1634.6501269266766
+      },
+      "count": 52
+    },
+    {
+      "key": "[1286,0.158017,0.897601,5,true]",
+      "sourceIds": [
+        "signaltest007"
+      ],
+      "ratings": {
+        "blitz": 1885.5441542991425,
+        "rapid": 1694.1067371275783
+      },
+      "count": 77
+    },
+    {
+      "key": "[1302,0.917022,0.342889,5,true]",
+      "sourceIds": [
+        "signaltrain134"
+      ],
+      "ratings": {
+        "blitz": 1686.3536911819342,
+        "rapid": 1646.0399203902814
+      },
+      "count": 51
+    },
+    {
+      "key": "[1319,0.145533,0.618973,5,true]",
+      "sourceIds": [
+        "signaltrain075"
+      ],
+      "ratings": {
+        "blitz": 1582.445670979024,
+        "rapid": 1735.2166998213831
+      },
+      "count": 51
+    },
+    {
+      "key": "[1331,0.025548,0.38922,5,true]",
+      "sourceIds": [
+        "signaltrain021"
+      ],
+      "ratings": {
+        "blitz": 1798.6356833521631,
+        "rapid": 1670.1831663935754
+      },
+      "count": 51
+    },
+    {
+      "key": "[1348,0.653068,0.012051,5,false]",
+      "sourceIds": [
+        "signaltrain031"
+      ],
+      "ratings": {
+        "blitz": 1637.7211053368783,
+        "rapid": 1750.828694136207
+      },
+      "count": 51
+    },
+    {
+      "key": "[1372,0.862887,0.482461,5,false]",
+      "sourceIds": [
+        "signaltrain149"
+      ],
+      "ratings": {
+        "blitz": 1741.8528248948771,
+        "rapid": 1555.904549324487
+      },
+      "count": 52
+    },
+    {
+      "key": "[1386,0.626698,0.46026,5,true]",
+      "sourceIds": [
+        "signaltrain113"
+      ],
+      "ratings": {
+        "blitz": 1960.769769114259,
+        "rapid": 2062.5078738492803
+      },
+      "count": 24
+    },
+    {
+      "key": "[1394,0.177406,0.247803,5,true]",
+      "sourceIds": [
+        "signaltest030"
+      ],
+      "ratings": {
+        "blitz": 1577.9164371664822,
+        "rapid": 1469.932345028847
+      },
+      "count": 52
+    },
+    {
+      "key": "[1400,0,0,5,false]",
+      "sourceIds": [
+        "rust-halo"
+      ],
+      "ratings": {
+        "blitz": 1746.3025293114897,
+        "rapid": 1785.519993702237
+      },
+      "count": 52
+    },
+    {
+      "key": "[1400,0.5,0.9,5,true]",
+      "sourceIds": [
+        "night-courier"
+      ],
+      "ratings": {
+        "blitz": 1626.9091388622464,
+        "rapid": 1753.8974727252075
+      },
+      "count": 51
+    },
+    {
+      "key": "[1400,1,0.95,5,false]",
+      "sourceIds": [
+        "quiet-proxy"
+      ],
+      "ratings": {
+        "blitz": 1510.1930307053915,
+        "rapid": 1537.0990828226388
+      },
+      "count": 51
+    },
+    {
+      "key": "[1400,1,1,0,true]",
+      "sourceIds": [
+        "neon-rook"
+      ],
+      "ratings": {
+        "blitz": 1499.5829586296254,
+        "rapid": 1379.9330681698104
+      },
+      "count": 104
+    },
+    {
+      "key": "[1403,0.540307,0.066875,5,true]",
+      "sourceIds": [
+        "signaltrain063"
+      ],
+      "ratings": {
+        "blitz": 1807.7884755975956,
+        "rapid": 1920.8973028877303
+      },
+      "count": 24
+    },
+    {
+      "key": "[1414,0.26338,0.299096,5,false]",
+      "sourceIds": [
+        "signaltrain057"
+      ],
+      "ratings": {
+        "blitz": 1856.2880718670883,
+        "rapid": 1994.8217300235347
+      },
+      "count": 24
+    },
+    {
+      "key": "[1425,0.128872,0.351507,5,false]",
+      "sourceIds": [
+        "signaltrain023"
+      ],
+      "ratings": {
+        "blitz": 1866.1297047494993,
+        "rapid": 1660.7626261069715
+      },
+      "count": 76
+    },
+    {
+      "key": "[1428,0.339824,0.508934,5,false]",
+      "sourceIds": [
+        "signaltest027"
+      ],
+      "ratings": {
+        "blitz": 1543.2251513212227,
+        "rapid": 1798.7714371276961
+      },
+      "count": 52
+    },
+    {
+      "key": "[1435,0.091485,0.476346,5,true]",
+      "sourceIds": [
+        "signaltrain128"
+      ],
+      "ratings": {
+        "blitz": 1746.5423395635464,
+        "rapid": 1660.8536112557463
+      },
+      "count": 52
+    },
+    {
+      "key": "[1448,0.583839,0.363424,5,true]",
+      "sourceIds": [
+        "signaltrain103"
+      ],
+      "ratings": {
+        "blitz": 1899.7355296508392,
+        "rapid": 1832.0889710763195
+      },
+      "count": 24
+    },
+    {
+      "key": "[1462,0.744376,0.779498,5,false]",
+      "sourceIds": [
+        "signaltest047"
+      ],
+      "ratings": {
+        "blitz": 1648.4171676542078,
+        "rapid": 1600.8944876346711
+      },
+      "count": 52
+    },
+    {
+      "key": "[1473,0.886437,0.873791,5,false]",
+      "sourceIds": [
+        "signaltrain051"
+      ],
+      "ratings": {
+        "blitz": 1609.7547436118489,
+        "rapid": 1525.403243204266
+      },
+      "count": 52
+    },
+    {
+      "key": "[1499,0.476363,0.567912,5,false]",
+      "sourceIds": [
+        "signaltrain116"
+      ],
+      "ratings": {
+        "blitz": 1811.2293558419055,
+        "rapid": 1755.4852350137905
+      },
+      "count": 77
+    },
+    {
+      "key": "[1523,0.572316,0.733137,5,false]",
+      "sourceIds": [
+        "signaltest009"
+      ],
+      "ratings": {
+        "blitz": 1848.7021792079147,
+        "rapid": 1757.2974312034532
+      },
+      "count": 77
+    },
+    {
+      "key": "[1524,0.813854,0.897974,5,true]",
+      "sourceIds": [
+        "signaltrain087"
+      ],
+      "ratings": {
+        "blitz": 1758.927896456344,
+        "rapid": 1711.978713454164
+      },
+      "count": 51
+    },
+    {
+      "key": "[1539,0.402451,0.520152,5,true]",
+      "sourceIds": [
+        "signaltrain091"
+      ],
+      "ratings": {
+        "blitz": 1914.6359361707355,
+        "rapid": 1965.7446243002646
+      },
+      "count": 24
+    },
+    {
+      "key": "[1551,0.827168,0.500492,5,true]",
+      "sourceIds": [
+        "signaltrain055"
+      ],
+      "ratings": {
+        "blitz": 1908.8000931143745,
+        "rapid": 1661.186684594584
+      },
+      "count": 77
+    },
+    {
+      "key": "[1569,0.814944,0.032211,5,false]",
+      "sourceIds": [
+        "signaltrain141"
+      ],
+      "ratings": {
+        "blitz": 1991.1137992476274,
+        "rapid": 1906.7537994014838
+      },
+      "count": 23
+    },
+    {
+      "key": "[1600,0,0,5,true]",
+      "sourceIds": [
+        "static-bishop"
+      ],
+      "ratings": {
+        "blitz": 1809.8269362285723,
+        "rapid": 1801.8832740791993
+      },
+      "count": 23
+    },
+    {
+      "key": "[1600,0.5,0.9,5,true]",
+      "sourceIds": [
+        "switchback"
+      ],
+      "ratings": {
+        "blitz": 1931.9750614309028,
+        "rapid": 1943.5012077491872
+      },
+      "count": 24
+    },
+    {
+      "key": "[1600,1,0.95,5,true]",
+      "sourceIds": [
+        "analog-ghost"
+      ],
+      "ratings": {
+        "blitz": 1650.3035059240733,
+        "rapid": 1623.7002995279165
+      },
+      "count": 52
+    },
+    {
+      "key": "[1606,0.994061,0.780051,5,false]",
+      "sourceIds": [
+        "signaltrain027"
+      ],
+      "ratings": {
+        "blitz": 1688.6867117262682,
+        "rapid": 1747.9106039848677
+      },
+      "count": 51
+    },
+    {
+      "key": "[1611,0.946761,0.147719,5,false]",
+      "sourceIds": [
+        "signaltest025"
+      ],
+      "ratings": {
+        "blitz": 2021.5580470783764,
+        "rapid": 1649.8375004527174
+      },
+      "count": 77
+    },
+    {
+      "key": "[1621,0.099891,0.189561,5,true]",
+      "sourceIds": [
+        "signaltrain047"
+      ],
+      "ratings": {
+        "blitz": 1851.2677337977505,
+        "rapid": 1988.498226352995
+      },
+      "count": 24
+    },
+    {
+      "key": "[1631,0.53727,0.049363,5,true]",
+      "sourceIds": [
+        "signaltrain082"
+      ],
+      "ratings": {
+        "blitz": 2069.67920738586,
+        "rapid": 1814.394097216518
+      },
+      "count": 24
+    },
+    {
+      "key": "[1648,0.735734,0.826589,5,true]",
+      "sourceIds": [
+        "signaltrain144"
+      ],
+      "ratings": {
+        "blitz": 1914.1943694821646,
+        "rapid": 1855.3035482255034
+      },
+      "count": 24
+    },
+    {
+      "key": "[1652,0.306841,0.802382,5,false]",
+      "sourceIds": [
+        "signaltest033"
+      ],
+      "ratings": {
+        "blitz": 1999.5018992638375,
+        "rapid": 1922.3779653395075
+      },
+      "count": 24
+    },
+    {
+      "key": "[1656,0.070725,0.102612,5,false]",
+      "sourceIds": [
+        "signaltrain045"
+      ],
+      "ratings": {
+        "blitz": 2046.205285487972,
+        "rapid": 1928.3339124998722
+      },
+      "count": 24
+    },
+    {
+      "key": "[1665,0.335001,0.750304,5,false]",
+      "sourceIds": [
+        "signaltrain030"
+      ],
+      "ratings": {
+        "blitz": 1912.0659636928535,
+        "rapid": 1929.2674999342023
+      },
+      "count": 24
+    },
+    {
+      "key": "[1680,0.663579,0.271671,5,true]",
+      "sourceIds": [
+        "signaltrain123"
+      ],
+      "ratings": {
+        "blitz": 2108.641114515519,
+        "rapid": 2005.519744538861
+      },
+      "count": 24
+    },
+    {
+      "key": "[1694,0.162662,0.894845,5,true]",
+      "sourceIds": [
+        "signaltrain060"
+      ],
+      "ratings": {
+        "blitz": 1877.0153807419442,
+        "rapid": 1913.8534501745967
+      },
+      "count": 24
+    },
+    {
+      "key": "[1700,0.499309,0.138324,5,false]",
+      "sourceIds": [
+        "signaltest019"
+      ],
+      "ratings": {
+        "blitz": 2086.9457382883693,
+        "rapid": 1935.377407204505
+      },
+      "count": 24
+    },
+    {
+      "key": "[1707,0.278011,0.684872,5,false]",
+      "sourceIds": [
+        "signaltrain148"
+      ],
+      "ratings": {
+        "blitz": 2099.378501058536,
+        "rapid": 1903.6023100681791
+      },
+      "count": 24
+    },
+    {
+      "key": "[1720,0.687426,0.181467,5,true]",
+      "sourceIds": [
+        "signaltrain076"
+      ],
+      "ratings": {
+        "blitz": 1829.6989553001724,
+        "rapid": 1921.6230025984107
+      },
+      "count": 24
+    },
+    {
+      "key": "[1724,0.045431,0.351396,5,false]",
+      "sourceIds": [
+        "signaltest045"
+      ],
+      "ratings": {
+        "blitz": 1986.4054091963117,
+        "rapid": 1998.8545512228904
+      },
+      "count": 24
+    },
+    {
+      "key": "[1733,0.720243,0.714969,5,false]",
+      "sourceIds": [
+        "signaltrain068"
+      ],
+      "ratings": {
+        "blitz": 1923.2388578951984,
+        "rapid": 2048.491433656448
+      },
+      "count": 24
+    },
+    {
+      "key": "[1754,0.456064,0.600199,5,false]",
+      "sourceIds": [
+        "signaltrain034"
+      ],
+      "ratings": {
+        "blitz": 2078.483203464781,
+        "rapid": 1930.1545979775901
+      },
+      "count": 24
+    },
+    {
+      "key": "[1756,0.194795,0.849005,5,false]",
+      "sourceIds": [
+        "signaltrain089"
+      ],
+      "ratings": {
+        "blitz": 1914.0408692058795,
+        "rapid": 1930.6834961479094
+      },
+      "count": 24
+    },
+    {
+      "key": "[1771,0.392081,0.530117,5,false]",
+      "sourceIds": [
+        "signaltrain043"
+      ],
+      "ratings": {
+        "blitz": 1926.4059124963069,
+        "rapid": 1818.0414396731603
+      },
+      "count": 23
+    },
+    {
+      "key": "[1778,0.210987,0.557267,5,true]",
+      "sourceIds": [
+        "signaltest040"
+      ],
+      "ratings": {
+        "blitz": 1960.773096364113,
+        "rapid": 1862.6889472206537
+      },
+      "count": 24
+    },
+    {
+      "key": "[1782,0.343204,0.688316,5,false]",
+      "sourceIds": [
+        "signaltrain129"
+      ],
+      "ratings": {
+        "blitz": 2130.388595514523,
+        "rapid": 1657.3485148087668
+      },
+      "count": 76
+    },
+    {
+      "key": "[1800,0,0,5,false]",
+      "sourceIds": [
+        "ghost-gambit"
+      ],
+      "ratings": {
+        "blitz": 2025.6357194199722,
+        "rapid": 2121.8077066727456
+      },
+      "count": 24
+    },
+    {
+      "key": "[1800,0.5,0.9,5,true]",
+      "sourceIds": [
+        "neon-knight"
+      ],
+      "ratings": {
+        "blitz": 2024.8648311815386,
+        "rapid": 1987.2161831047908
+      },
+      "count": 24
+    },
+    {
+      "key": "[1800,1,0.95,5,true]",
+      "sourceIds": [
+        "night-current"
+      ],
+      "ratings": {
+        "blitz": 1774.5272077485909,
+        "rapid": 1745.1107461556644
+      },
+      "count": 52
+    },
+    {
+      "key": "[1800,1,1,0,false]",
+      "sourceIds": [
+        "ghost-relay"
+      ],
+      "ratings": {
+        "blitz": 1608.9595611216712,
+        "rapid": 1583.2524200450143
+      },
+      "count": 51
+    },
+    {
+      "key": "[1809,0.404602,0.78867,5,true]",
+      "sourceIds": [
+        "signaltrain036"
+      ],
+      "ratings": {
+        "blitz": 1891.6064143330898,
+        "rapid": 1941.7209136505187
+      },
+      "count": 24
+    },
+    {
+      "key": "[1809,0.827246,0.6742,5,false]",
+      "sourceIds": [
+        "signaltest050"
+      ],
+      "ratings": {
+        "blitz": 1928.3364099858425,
+        "rapid": 1900.51829496348
+      },
+      "count": 24
+    },
+    {
+      "key": "[1818,0.232292,0.624529,5,false]",
+      "sourceIds": [
+        "signaltrain126"
+      ],
+      "ratings": {
+        "blitz": 1866.88521367509,
+        "rapid": 2053.4663636525943
+      },
+      "count": 24
+    },
+    {
+      "key": "[1832,0.581814,0.466683,5,false]",
+      "sourceIds": [
+        "signaltrain074"
+      ],
+      "ratings": {
+        "blitz": 2131.9339236207134,
+        "rapid": 2001.314163924201
+      },
+      "count": 24
+    },
+    {
+      "key": "[1855,0.323744,0.870507,5,false]",
+      "sourceIds": [
+        "signaltrain033"
+      ],
+      "ratings": {
+        "blitz": 2009.308908292991,
+        "rapid": 1930.0258104449813
+      },
+      "count": 24
+    },
+    {
+      "key": "[1865,0.501614,0.151778,5,false]",
+      "sourceIds": [
+        "signaltrain133"
+      ],
+      "ratings": {
+        "blitz": 2045.3989596468427,
+        "rapid": 2019.3131944199506
+      },
+      "count": 24
+    },
+    {
+      "key": "[1869,0.371494,0.70809,5,true]",
+      "sourceIds": [
+        "signaltrain049"
+      ],
+      "ratings": {
+        "blitz": 2101.4392714327423,
+        "rapid": 2086.346865459772
+      },
+      "count": 24
+    },
+    {
+      "key": "[1888,0.750654,0.452277,5,true]",
+      "sourceIds": [
+        "signaltrain067"
+      ],
+      "ratings": {
+        "blitz": 2302.5043599017436,
+        "rapid": 2066.564827393776
+      },
+      "count": 19
+    },
+    {
+      "key": "[1906,0.713913,0.178295,5,false]",
+      "sourceIds": [
+        "signaltrain093"
+      ],
+      "ratings": {
+        "blitz": 2192.544517915405,
+        "rapid": 2172.852740808987
+      },
+      "count": 24
+    },
+    {
+      "key": "[1912,0.381655,0.913801,5,true]",
+      "sourceIds": [
+        "signaltrain098"
+      ],
+      "ratings": {
+        "blitz": 1932.2630126838144,
+        "rapid": 1833.032898810634
+      },
+      "count": 24
+    },
+    {
+      "key": "[1931,0.904995,0.08329,5,false]",
+      "sourceIds": [
+        "signaltrain122"
+      ],
+      "ratings": {
+        "blitz": 2207.021797633261,
+        "rapid": 2064.9135175447273
+      },
+      "count": 19
+    },
+    {
+      "key": "[1947,0.428634,0.091487,5,false]",
+      "sourceIds": [
+        "signaltest034"
+      ],
+      "ratings": {
+        "blitz": 2185.2514859383255,
+        "rapid": 2050.306715207403
+      },
+      "count": 24
+    },
+    {
+      "key": "[1957,0.31659,0.854935,5,true]",
+      "sourceIds": [
+        "signaltrain069"
+      ],
+      "ratings": {
+        "blitz": 2117.5302484273966,
+        "rapid": 2036.6365133672814
+      },
+      "count": 24
+    },
+    {
+      "key": "[1962,0.065053,0.578693,5,true]",
+      "sourceIds": [
+        "signaltrain156"
+      ],
+      "ratings": {
+        "blitz": 2320.0618202199216,
+        "rapid": 2168.7017320807468
+      },
+      "count": 19
+    },
+    {
+      "key": "[1978,0.778587,0.210528,5,false]",
+      "sourceIds": [
+        "signaltrain070"
+      ],
+      "ratings": {
+        "blitz": 2284.5965252735,
+        "rapid": 2373.1518386189496
+      },
+      "count": 2
+    },
+    {
+      "key": "[1989,0.659481,0.188425,5,true]",
+      "sourceIds": [
+        "signaltest003"
+      ],
+      "ratings": {
+        "blitz": 2087.5588797668242,
+        "rapid": 2105.198244549304
+      },
+      "count": 24
+    },
+    {
+      "key": "[1989,0.727493,0.758891,5,true]",
+      "sourceIds": [
+        "signaltrain046"
+      ],
+      "ratings": {
+        "blitz": 2043.8300415208118,
+        "rapid": 2031.9124773895037
+      },
+      "count": 23
+    },
+    {
+      "key": "[2000,0,0,5,true]",
+      "sourceIds": [
+        "null-echo"
+      ],
+      "ratings": {
+        "blitz": 2423.068082777761,
+        "rapid": 2384.9557512479923
+      },
+      "count": 2
+    },
+    {
+      "key": "[2000,0.5,0.9,5,false]",
+      "sourceIds": [
+        "circuit-saint"
+      ],
+      "ratings": {
+        "blitz": 2228.4203248378444,
+        "rapid": 2391.5016046571895
+      },
+      "count": 2
+    },
+    {
+      "key": "[2000,1,0.95,5,true]",
+      "sourceIds": [
+        "midnight-signal"
+      ],
+      "ratings": {
+        "blitz": 1911.7400655332287,
+        "rapid": 1970.522814973972
+      },
+      "count": 24
+    },
+    {
+      "key": "[2001,0.970709,0.473321,5,true]",
+      "sourceIds": [
+        "probe001"
+      ],
+      "ratings": {
+        "blitz": 2261.6894024396097,
+        "rapid": 1984.404471556081
+      },
+      "count": 18
+    },
+    {
+      "key": "[2013,0.685858,0.573731,5,true]",
+      "sourceIds": [
+        "signaltrain132"
+      ],
+      "ratings": {
+        "blitz": 2058.0132626472355,
+        "rapid": 1987.6268469097251
+      },
+      "count": 24
+    },
+    {
+      "key": "[2035,0.963707,0.838785,5,false]",
+      "sourceIds": [
+        "signaltrain120"
+      ],
+      "ratings": {
+        "blitz": 2092.740543212643,
+        "rapid": 2089.6313928501463
+      },
+      "count": 24
+    },
+    {
+      "key": "[2041,0.569247,0.162784,5,false]",
+      "sourceIds": [
+        "signaltrain048"
+      ],
+      "ratings": {
+        "blitz": 2297.807355865023,
+        "rapid": 2096.3612597341476
+      },
+      "count": 18
+    },
+    {
+      "key": "[2057,0.786623,0.414733,5,false]",
+      "sourceIds": [
+        "signaltrain037"
+      ],
+      "ratings": {
+        "blitz": 2375.809295268792,
+        "rapid": 2118.0316270309568
+      },
+      "count": 18
+    },
+    {
+      "key": "[2074,0.574372,0.648276,5,true]",
+      "sourceIds": [
+        "signaltrain136"
+      ],
+      "ratings": {
+        "blitz": 2416.3676443448467,
+        "rapid": 2192.3692952870174
+      },
+      "count": 18
+    },
+    {
+      "key": "[2077,0.544797,0.564252,5,true]",
+      "sourceIds": [
+        "signaltest037"
+      ],
+      "ratings": {
+        "blitz": 2314.3342340608697,
+        "rapid": 2374.2852524975947
+      },
+      "count": 3
+    },
+    {
+      "key": "[2083,0.256173,0.355613,5,false]",
+      "sourceIds": [
+        "signaltrain108"
+      ],
+      "ratings": {
+        "blitz": 2340.3182392543044,
+        "rapid": 2342.0602899787723
+      },
+      "count": 2
+    },
+    {
+      "key": "[2087,0.192238,0.84221,5,true]",
+      "sourceIds": [
+        "signaltrain054"
+      ],
+      "ratings": {
+        "blitz": 2068.756920271893,
+        "rapid": 2092.194274869808
+      },
+      "count": 24
+    },
+    {
+      "key": "[2105,0.603882,0.509687,5,true]",
+      "sourceIds": [
+        "signaltrain090"
+      ],
+      "ratings": {
+        "blitz": 2280.1678898729815,
+        "rapid": 2401.7298832468628
+      },
+      "count": 2
+    },
+    {
+      "key": "[2117,0.804223,0.990775,5,true]",
+      "sourceIds": [
+        "signaltest028"
+      ],
+      "ratings": {
+        "blitz": 1951.1153027869157,
+        "rapid": 1832.3353015709254
+      },
+      "count": 24
+    },
+    {
+      "key": "[2120,0.035962,0.919983,5,true]",
+      "sourceIds": [
+        "signaltrain096"
+      ],
+      "ratings": {
+        "blitz": 2374.4431477652306,
+        "rapid": 2224.174138679633
+      },
+      "count": 3
+    },
+    {
+      "key": "[2139,0.877291,0.057652,5,true]",
+      "sourceIds": [
+        "signaltest018"
+      ],
+      "ratings": {
+        "blitz": 2276.925283061961,
+        "rapid": 2315.869586377217
+      },
+      "count": 3
+    },
+    {
+      "key": "[2143,0.001695,0.563083,5,true]",
+      "sourceIds": [
+        "signaltrain039"
+      ],
+      "ratings": {
+        "blitz": 2394.279150196872,
+        "rapid": 2393.4667539726697
+      },
+      "count": 2
+    },
+    {
+      "key": "[2153,0.160239,0.143256,5,false]",
+      "sourceIds": [
+        "signaltrain032"
+      ],
+      "ratings": {
+        "blitz": 2369.941465670847,
+        "rapid": 2293.2968146049143
+      },
+      "count": 2
+    },
+    {
+      "key": "[2176,0.930314,0.199074,5,true]",
+      "sourceIds": [
+        "signaltrain086"
+      ],
+      "ratings": {
+        "blitz": 2334.043251893775,
+        "rapid": 2203.4779842475696
+      },
+      "count": 2
+    },
+    {
+      "key": "[2196,0.944027,0.906853,5,false]",
+      "sourceIds": [
+        "signaltrain143"
+      ],
+      "ratings": {
+        "blitz": 2157.527545842828,
+        "rapid": 1944.3252578122078
+      },
+      "count": 24
+    },
+    {
+      "key": "[2199,0.677293,0.921889,5,true]",
+      "sourceIds": [
+        "signaltest013"
+      ],
+      "ratings": {
+        "blitz": 2245.467965126278,
+        "rapid": 2263.617751564718
+      },
+      "count": 2
+    },
+    {
+      "key": "[2200,0,0,5,false]",
+      "sourceIds": [
+        "blackout"
+      ],
+      "ratings": {
+        "blitz": 2468.285102273526,
+        "rapid": 2229.5843986523882
+      },
+      "count": 2
+    },
+    {
+      "key": "[2200,0.5,0.9,5,false]",
+      "sourceIds": [
+        "quantum-shade"
+      ],
+      "ratings": {
+        "blitz": 2451.7556176425333,
+        "rapid": 2262.8472427817896
+      },
+      "count": 3
+    },
+    {
+      "key": "[2200,1,0.95,5,true]",
+      "sourceIds": [
+        "signal-weaver"
+      ],
+      "ratings": {
+        "blitz": 1973.1906357937296,
+        "rapid": 2129.15425297412
+      },
+      "count": 24
+    },
+    {
+      "key": "[2200,1,1,0,false]",
+      "sourceIds": [
+        "neon-drift"
+      ],
+      "ratings": {
+        "blitz": 2048.7666906498644,
+        "rapid": 2012.8881302461918
+      },
+      "count": 23
+    },
+    {
+      "key": "[2200,1,1,0,true]",
+      "sourceIds": [
+        "signaltrain005"
+      ],
+      "ratings": {
+        "blitz": 1955.357591579205,
+        "rapid": 2180.585861483526
+      },
+      "count": 24
+    },
+    {
+      "key": "[2208,0.620882,0.374001,5,false]",
+      "sourceIds": [
+        "signaltrain014"
+      ],
+      "ratings": {
+        "blitz": 2294.333661734903,
+        "rapid": 2256.1185435627604
+      },
+      "count": 3
+    },
+    {
+      "key": "[2250,0.789051,0.815881,5,true]",
+      "sourceIds": [
+        "signaltrain040"
+      ],
+      "ratings": {
+        "blitz": 2500.468895776105,
+        "rapid": 2415.7026158488834
+      },
+      "count": 2
+    },
+    {
+      "key": "[2256,0.708304,0.872599,5,false]",
+      "sourceIds": [
+        "signaltest005"
+      ],
+      "ratings": {
+        "blitz": 2484.4138892799506,
+        "rapid": 2205.5490532874064
+      },
+      "count": 2
+    },
+    {
+      "key": "[2258,0.006771,0.532465,5,true]",
+      "sourceIds": [
+        "signaltrain111"
+      ],
+      "ratings": {
+        "blitz": 2379.334698373389,
+        "rapid": 2374.939166629017
+      },
+      "count": 2
+    },
+    {
+      "key": "[2268,0.249319,0.969695,5,true]",
+      "sourceIds": [
+        "signaltrain052"
+      ],
+      "ratings": {
+        "blitz": 2465.286597590573,
+        "rapid": 2399.3049244782737
+      },
+      "count": 2
+    },
+    {
+      "key": "[2282,0.258986,0.294178,5,false]",
+      "sourceIds": [
+        "signaltrain010"
+      ],
+      "ratings": {
+        "blitz": 2459.183944503239,
+        "rapid": 2355.5408730708937
+      },
+      "count": 2
+    },
+    {
+      "key": "[2300,0.494258,0.962445,5,false]",
+      "sourceIds": [
+        "signaltrain151"
+      ],
+      "ratings": {
+        "blitz": 2501.5663822632646,
+        "rapid": 2189.527612266619
+      },
+      "count": 18
+    },
+    {
+      "key": "[2317,0.381242,0.61504,5,false]",
+      "sourceIds": [
+        "signaltest006"
+      ],
+      "ratings": {
+        "blitz": 2486.5290926008533,
+        "rapid": 2255.2287849474237
+      },
+      "count": 2
+    },
+    {
+      "key": "[2319,0.412357,0.727441,5,true]",
+      "sourceIds": [
+        "signaltrain106"
+      ],
+      "ratings": {
+        "blitz": 2515.7589897342996,
+        "rapid": 2593.9275343398294
+      },
+      "count": 2
+    },
+    {
+      "key": "[2337,0.80562,0.590468,5,false]",
+      "sourceIds": [
+        "signaltrain115"
+      ],
+      "ratings": {
+        "blitz": 2292.4494360452372,
+        "rapid": 2466.010078448161
+      },
+      "count": 2
+    },
+    {
+      "key": "[2344,0.509013,0.099776,5,true]",
+      "sourceIds": [
+        "signaltrain058"
+      ],
+      "ratings": {
+        "blitz": 2464.3520769480274,
+        "rapid": 2474.9332436923314
+      },
+      "count": 2
+    },
+    {
+      "key": "[2359,0.226964,0.382344,5,false]",
+      "sourceIds": [
+        "signaltest039"
+      ],
+      "ratings": {
+        "blitz": 2556.838788547182,
+        "rapid": 2551.6192365453035
+      },
+      "count": 2
+    },
+    {
+      "key": "[2359,0.893224,0.989092,5,true]",
+      "sourceIds": [
+        "signaltrain114"
+      ],
+      "ratings": {
+        "blitz": 1952.1924245156113,
+        "rapid": 2170.8932322397704
+      },
+      "count": 24
+    },
+    {
+      "key": "[2379,0.14907,0.54565,5,true]",
+      "sourceIds": [
+        "signaltrain130"
+      ],
+      "ratings": {
+        "blitz": 2473.3755301766887,
+        "rapid": 2469.6567492137724
+      },
+      "count": 2
+    },
+    {
+      "key": "[2400,0.5,0.9,5,true]",
+      "sourceIds": [
+        "chrome-oracle"
+      ],
+      "ratings": {
+        "blitz": 2387.1083802287585,
+        "rapid": 2396.103778654887
+      },
+      "count": 2
+    },
+    {
+      "key": "[2400,1,0.95,5,true]",
+      "sourceIds": [
+        "holo-raven"
+      ],
+      "ratings": {
+        "blitz": 2213.3839340371374,
+        "rapid": 2272.8352654630344
+      },
+      "count": 3
+    },
+    {
+      "key": "[2400,1,1,0,false]",
+      "sourceIds": [
+        "indigo-pulse"
+      ],
+      "ratings": {
+        "blitz": 2087.6880211076823,
+        "rapid": 2052.372592625625
+      },
+      "count": 24
+    },
+    {
+      "key": "[2448,0.136529,0.309777,5,false]",
+      "sourceIds": [
+        "signaltrain081"
+      ],
+      "ratings": {
+        "blitz": 2440.0176165271173,
+        "rapid": 2343.4974695147407
+      },
+      "count": 2
+    },
+    {
+      "key": "[2469,0.926438,0.94546,5,true]",
+      "sourceIds": [
+        "signaltrain024"
+      ],
+      "ratings": {
+        "blitz": 2070.545029669044,
+        "rapid": 2014.9480237835717
+      },
+      "count": 24
+    },
+    {
+      "key": "[2472,0.386321,0.996661,5,true]",
+      "sourceIds": [
+        "signaltrain121"
+      ],
+      "ratings": {
+        "blitz": 2447.7137673797806,
+        "rapid": 2298.0058045361666
+      },
+      "count": 2
+    },
+    {
+      "key": "[2474,0.535184,0.749428,5,true]",
+      "sourceIds": [
+        "signaltest010"
+      ],
+      "ratings": {
+        "blitz": 2328.263420222606,
+        "rapid": 2523.9662260789546
+      },
+      "count": 2
+    },
+    {
+      "key": "[2486,0.76366,0.32038,5,false]",
+      "sourceIds": [
+        "mycroft"
+      ],
+      "ratings": {
+        "blitz": 2205.7064981521116,
+        "rapid": 2521.851743834861
+      },
+      "count": 2
+    },
+    {
+      "key": "[2508,0.176382,0.938505,5,false]",
+      "sourceIds": [
+        "joshua"
+      ],
+      "ratings": {
+        "blitz": 2673.899489066875,
+        "rapid": 2534.1330736350237
+      },
+      "count": 1
+    },
+    {
+      "key": "[2515,0.843902,0.956746,5,false]",
+      "sourceIds": [
+        "deepthought"
+      ],
+      "ratings": {
+        "blitz": 2298.3959356549767,
+        "rapid": 2200.266308581124
+      },
+      "count": 2
+    },
+    {
+      "key": "[2522,0.59119,0.339831,5,true]",
+      "sourceIds": [
+        "signaltest016"
+      ],
+      "ratings": {
+        "blitz": 2389.1131269130874,
+        "rapid": 2482.9333128198273
+      },
+      "count": 3
+    },
+    {
+      "key": "[2537,0.484787,0.740248,5,false]",
+      "sourceIds": [
+        "glados"
+      ],
+      "ratings": {
+        "blitz": 2749.8275619045567,
+        "rapid": 2583.1714069401332
+      },
+      "count": 1
+    },
+    {
+      "key": "[2551,0.848509,0.25247,5,true]",
+      "sourceIds": [
+        "skynet"
+      ],
+      "ratings": {
+        "blitz": 2519.6716193936995,
+        "rapid": 2554.242146748406
+      },
+      "count": 2
+    },
+    {
+      "key": "[2572,0.028431,0.287011,5,false]",
+      "sourceIds": [
+        "walterwobot"
+      ],
+      "ratings": {
+        "blitz": 2756.956193258839,
+        "rapid": 2330.7425742949026
+      },
+      "count": 1
+    },
+    {
+      "key": "[2572,0.799972,0.178182,5,true]",
+      "sourceIds": [
+        "signaltest049"
+      ],
+      "ratings": {
+        "blitz": 2248.7063501893035,
+        "rapid": 2448.2383500343353
+      },
+      "count": 2
+    },
+    {
+      "key": "[2600,0,0,5,false]",
+      "sourceIds": [
+        "kernel-ghost",
+        "neuromancer"
+      ],
+      "ratings": {
+        "blitz": 2706.87558827598,
+        "rapid": 2516.8913606534743
+      },
+      "count": 1
+    },
+    {
+      "key": "[2600,1,0.95,5,true]",
+      "sourceIds": [
+        "prism-wraith"
+      ],
+      "ratings": {
+        "blitz": 2316.0776591863832,
+        "rapid": 2188.400548473968
+      },
+      "count": 18
+    },
+    {
+      "key": "[2600,1,1,0,false]",
+      "sourceIds": [
+        "ultraviolet"
+      ],
+      "ratings": {
+        "blitz": 2212.6507730671806,
+        "rapid": 2051.62591016613
+      },
+      "count": 19
+    },
+    {
+      "key": "[600,0.5,0.9,5,false]",
+      "sourceIds": [
+        "pocket-static"
+      ],
+      "ratings": {
+        "blitz": 1062.8517539131694,
+        "rapid": 1115.637665489213
+      },
+      "count": 104
+    },
+    {
+      "key": "[600,1,1,0,true]",
+      "sourceIds": [
+        "pixel-moth"
+      ],
+      "ratings": {
+        "blitz": 815.9486031806349,
+        "rapid": 879.3474329822546
+      },
+      "count": 914
+    },
+    {
+      "key": "[610,0.134319,0.845565,5,true]",
+      "sourceIds": [
+        "signaltest035"
+      ],
+      "ratings": {
+        "blitz": 1040.125748972829,
+        "rapid": 1114.4753382309282
+      },
+      "count": 105
+    },
+    {
+      "key": "[611,0.548366,0.226994,5,false]",
+      "sourceIds": [
+        "signaltrain088"
+      ],
+      "ratings": {
+        "blitz": 1201.567600898634,
+        "rapid": 1037.3868701871183
+      },
+      "count": 105
+    },
+    {
+      "key": "[633,0.674662,0.020632,5,true]",
+      "sourceIds": [
+        "signaltrain029"
+      ],
+      "ratings": {
+        "blitz": 1165.8000968327333,
+        "rapid": 835.428750108685
+      },
+      "count": 136
+    },
+    {
+      "key": "[663,0.849195,0.706176,5,true]",
+      "sourceIds": [
+        "signaltest002"
+      ],
+      "ratings": {
+        "blitz": 1195.022163825975,
+        "rapid": 1078.7986215809374
+      },
+      "count": 104
+    },
+    {
+      "key": "[683,0.126225,0.719968,5,false]",
+      "sourceIds": [
+        "signaltrain112"
+      ],
+      "ratings": {
+        "blitz": 1238.819004163965,
+        "rapid": 1286.8716218070783
+      },
+      "count": 105
+    },
+    {
+      "key": "[699,0.202732,0.245273,5,false]",
+      "sourceIds": [
+        "signaltrain053"
+      ],
+      "ratings": {
+        "blitz": 1132.1110262432467,
+        "rapid": 1320.4461160862356
+      },
+      "count": 104
+    },
+    {
+      "key": "[707,0.209024,0.002475,5,false]",
+      "sourceIds": [
+        "signaltrain154"
+      ],
+      "ratings": {
+        "blitz": 1167.564403266365,
+        "rapid": 1217.4604531773894
+      },
+      "count": 104
+    },
+    {
+      "key": "[714,0.291219,0.294301,5,false]",
+      "sourceIds": [
+        "signaltest012"
+      ],
+      "ratings": {
+        "blitz": 1179.4988133284924,
+        "rapid": 1226.9634649017014
+      },
+      "count": 104
+    },
+    {
+      "key": "[722,0.972279,0.169174,5,false]",
+      "sourceIds": [
+        "signaltrain139"
+      ],
+      "ratings": {
+        "blitz": 1205.404510798769,
+        "rapid": 1081.663629340148
+      },
+      "count": 104
+    },
+    {
+      "key": "[726,0.98799,0.681188,5,false]",
+      "sourceIds": [
+        "signaltest008"
+      ],
+      "ratings": {
+        "blitz": 1229.8473922844742,
+        "rapid": 1222.1100136130733
+      },
+      "count": 105
+    },
+    {
+      "key": "[741,0.285569,0.425279,5,false]",
+      "sourceIds": [
+        "signaltrain009"
+      ],
+      "ratings": {
+        "blitz": 1463.1456225900338,
+        "rapid": 1228.7881808116197
+      },
+      "count": 103
+    },
+    {
+      "key": "[742,0.667127,0.81088,5,true]",
+      "sourceIds": [
+        "signaltrain135"
+      ],
+      "ratings": {
+        "blitz": 1149.3417823568038,
+        "rapid": 1399.5289184167425
+      },
+      "count": 105
+    },
+    {
+      "key": "[775,0.704432,0.677817,5,false]",
+      "sourceIds": [
+        "signaltrain016"
+      ],
+      "ratings": {
+        "blitz": 1063.1373351678126,
+        "rapid": 1259.2054959551203
+      },
+      "count": 105
+    },
+    {
+      "key": "[776,0.440867,0.491467,5,true]",
+      "sourceIds": [
+        "signaltest015"
+      ],
+      "ratings": {
+        "blitz": 1438.797742522224,
+        "rapid": 1609.9264289646005
+      },
+      "count": 51
+    },
+    {
+      "key": "[783,0.489713,0.324613,5,true]",
+      "sourceIds": [
+        "signaltrain071"
+      ],
+      "ratings": {
+        "blitz": 1120.793301130423,
+        "rapid": 1361.1390082210671
+      },
+      "count": 105
+    },
+    {
+      "key": "[799,0.981018,0.438624,5,true]",
+      "sourceIds": [
+        "signaltrain145"
+      ],
+      "ratings": {
+        "blitz": 1350.270075687174,
+        "rapid": 1087.7959200663622
+      },
+      "count": 105
+    },
+    {
+      "key": "[800,0,0,5,false]",
+      "sourceIds": [
+        "velvet-circuit"
+      ],
+      "ratings": {
+        "blitz": 1388.5910339027537,
+        "rapid": 1390.156053795874
+      },
+      "count": 104
+    },
+    {
+      "key": "[800,0.5,0.9,5,false]",
+      "sourceIds": [
+        "patchwork"
+      ],
+      "ratings": {
+        "blitz": 1233.9805513635442,
+        "rapid": 1397.2616230307867
+      },
+      "count": 105
+    },
+    {
+      "key": "[800,1,0.95,5,false]",
+      "sourceIds": [
+        "neon-finch"
+      ],
+      "ratings": {
+        "blitz": 1033.2212800273091,
+        "rapid": 1097.5238590848035
+      },
+      "count": 105
+    },
+    {
+      "key": "[800,1,1,0,false]",
+      "sourceIds": [
+        "copper-byte"
+      ],
+      "ratings": {
+        "blitz": 1026.9888768948365,
+        "rapid": 979.1068890958809
+      },
+      "count": 137
+    },
+    {
+      "key": "[807,0.431578,0.196019,5,true]",
+      "sourceIds": [
+        "signaltrain017"
+      ],
+      "ratings": {
+        "blitz": 1305.8340854470794,
+        "rapid": 1274.2121166736706
+      },
+      "count": 105
+    },
+    {
+      "key": "[818,0.40439,0.78076,5,true]",
+      "sourceIds": [
+        "signaltest042"
+      ],
+      "ratings": {
+        "blitz": 1376.2915178117232,
+        "rapid": 1377.0411059641087
+      },
+      "count": 104
+    },
+    {
+      "key": "[839,0.746468,0.799594,5,true]",
+      "sourceIds": [
+        "signaltrain073"
+      ],
+      "ratings": {
+        "blitz": 1251.024266932053,
+        "rapid": 1251.7991845287124
+      },
+      "count": 104
+    },
+    {
+      "key": "[849,0.654002,0.265785,5,true]",
+      "sourceIds": [
+        "signaltrain064"
+      ],
+      "ratings": {
+        "blitz": 1370.5759604988846,
+        "rapid": 1198.6614168404092
+      },
+      "count": 104
+    },
+    {
+      "key": "[864,0.708008,0.646217,5,true]",
+      "sourceIds": [
+        "signaltrain147"
+      ],
+      "ratings": {
+        "blitz": 1229.9983841893504,
+        "rapid": 1355.8148488586573
+      },
+      "count": 105
+    },
+    {
+      "key": "[876,0.631804,0.398844,5,false]",
+      "sourceIds": [
+        "signaltrain118"
+      ],
+      "ratings": {
+        "blitz": 1410.391427164472,
+        "rapid": 1539.0724358919213
+      },
+      "count": 51
+    },
+    {
+      "key": "[885,0.977148,0.128442,5,true]",
+      "sourceIds": [
+        "signaltrain146"
+      ],
+      "ratings": {
+        "blitz": 1459.1626732240861,
+        "rapid": 1576.6533602566412
+      },
+      "count": 52
+    },
+    {
+      "key": "[897,0.274107,0.371294,5,false]",
+      "sourceIds": [
+        "signaltrain019"
+      ],
+      "ratings": {
+        "blitz": 1424.9606140932062,
+        "rapid": 1464.3355702519243
+      },
+      "count": 52
+    },
+    {
+      "key": "[914,0.427449,0.44435,5,false]",
+      "sourceIds": [
+        "signaltrain104"
+      ],
+      "ratings": {
+        "blitz": 1445.5953591164503,
+        "rapid": 1423.1955697173214
+      },
+      "count": 52
+    },
+    {
+      "key": "[925,0.692502,0.975159,5,true]",
+      "sourceIds": [
+        "signaltrain041"
+      ],
+      "ratings": {
+        "blitz": 1194.6878839541296,
+        "rapid": 1136.573211884965
+      },
+      "count": 105
+    },
+    {
+      "key": "[938,0.739864,0.396943,5,true]",
+      "sourceIds": [
+        "signaltrain127"
+      ],
+      "ratings": {
+        "blitz": 1273.9306800258435,
+        "rapid": 1367.119192902934
+      },
+      "count": 105
+    },
+    {
+      "key": "[951,0.682255,0.118666,5,false]",
+      "sourceIds": [
+        "signaltest044"
+      ],
+      "ratings": {
+        "blitz": 1592.6084478794344,
+        "rapid": 1514.1214967309556
+      },
+      "count": 51
+    },
+    {
+      "key": "[953,0.087471,0.239174,5,false]",
+      "sourceIds": [
+        "signaltrain142"
+      ],
+      "ratings": {
+        "blitz": 1488.7398476647043,
+        "rapid": 1390.7341995484278
+      },
+      "count": 103
+    },
+    {
+      "key": "[963,0.041191,0.497314,5,false]",
+      "sourceIds": [
+        "signaltrain140"
+      ],
+      "ratings": {
+        "blitz": 1506.0565266283284,
+        "rapid": 1428.2421302370315
+      },
+      "count": 52
+    },
+    {
+      "key": "[964,0.900101,0.312149,5,true]",
+      "sourceIds": [
+        "signaltest023"
+      ],
+      "ratings": {
+        "blitz": 1563.0667415955124,
+        "rapid": 1301.5127861671997
+      },
+      "count": 103
+    },
+    {
+      "key": "[983,0.839508,0.785144,5,false]",
+      "sourceIds": [
+        "signaltrain065"
+      ],
+      "ratings": {
+        "blitz": 1513.9243107940072,
+        "rapid": 1305.6369195217735
+      },
+      "count": 103
+    },
+    {
+      "key": "[990,0.048405,0.404166,5,true]",
+      "sourceIds": [
+        "signaltrain078"
+      ],
+      "ratings": {
+        "blitz": 1458.9656444883692,
+        "rapid": 1413.8699523330122
+      },
+      "count": 52
+    }
+  ],
+  "top20": {
+    "blitz": [
+      {
+        "id": "wintermute",
+        "username": "Wintermute",
+        "name": "Wintermute",
+        "rating": 3042.928059907733,
+        "reference": true
+      },
+      {
+        "id": "durandal",
+        "username": "Durandal",
+        "name": "Durandal",
+        "rating": 2887.043663518027,
+        "reference": true
+      },
+      {
+        "id": "signaltrain084",
+        "username": "SignalTrain084",
+        "name": "Roy Batty",
+        "rating": 2867.480776970812,
+        "reference": true
+      },
+      {
+        "id": "kernel-ghost",
+        "username": "KernelGhost",
+        "name": "Kernel Ghost",
+        "rating": 2838.7868637138868,
+        "reference": true
+      },
+      {
+        "id": "catalog-00001",
+        "username": "Pris",
+        "name": "Pris",
+        "rating": 2756.956193258839,
+        "reference": false
+      },
+      {
+        "id": "walterwobot",
+        "username": "WalterWobot",
+        "name": "WalterWobot",
+        "rating": 2756.956193258839,
+        "reference": true
+      },
+      {
+        "id": "glados",
+        "username": "GLaDOS",
+        "name": "GLaDOS",
+        "rating": 2749.8275619045567,
+        "reference": true
+      },
+      {
+        "id": "catalog-00002",
+        "username": "Gaff",
+        "name": "Gaff",
+        "rating": 2749.8275619045567,
+        "reference": false
+      },
+      {
+        "id": "hal9000",
+        "username": "HAL9000",
+        "name": "HAL9000",
+        "rating": 2716.0770364988293,
+        "reference": true
+      },
+      {
+        "id": "colossus",
+        "username": "Colossus",
+        "name": "Colossus",
+        "rating": 2709.7224437173963,
+        "reference": true
+      },
+      {
+        "id": "catalog-00003",
+        "username": "EldonTyrell",
+        "name": "Eldon Tyrell",
+        "rating": 2706.87558827598,
+        "reference": false
+      },
+      {
+        "id": "signaltrain072",
+        "username": "SignalTrain072",
+        "name": "Judge Dredd",
+        "rating": 2697.039795924903,
+        "reference": true
+      },
+      {
+        "id": "joshua",
+        "username": "Joshua",
+        "name": "Joshua",
+        "rating": 2673.899489066875,
+        "reference": true
+      },
+      {
+        "id": "catalog-00004",
+        "username": "Leon",
+        "name": "Leon",
+        "rating": 2673.899489066875,
+        "reference": false
+      },
+      {
+        "id": "event-horizon",
+        "username": "EventHorizon",
+        "name": "Event Horizon",
+        "rating": 2617.500220404456,
+        "reference": true
+      },
+      {
+        "id": "signaltest021",
+        "username": "SignalTest021",
+        "name": "Molly",
+        "rating": 2587.492204474359,
+        "reference": true
+      },
+      {
+        "id": "shodan",
+        "username": "SHODAN",
+        "name": "SHODAN",
+        "rating": 2586.56394726601,
+        "reference": true
+      },
+      {
+        "id": "neuromancer",
+        "username": "Neuromancer",
+        "name": "Neuromancer",
+        "rating": 2571.2032717754664,
+        "reference": true
+      },
+      {
+        "id": "catalog-00005",
+        "username": "JudgeFear",
+        "name": "Judge Fear",
+        "rating": 2556.838788547182,
+        "reference": false
+      },
+      {
+        "id": "catalog-00006",
+        "username": "JudgeFire",
+        "name": "Judge Fire",
+        "rating": 2556.838788547182,
+        "reference": false
+      }
+    ],
+    "rapid": [
+      {
+        "id": "signaltest021",
+        "username": "SignalTest021",
+        "name": "Molly",
+        "rating": 2813.151371712525,
+        "reference": true
+      },
+      {
+        "id": "wintermute",
+        "username": "Wintermute",
+        "name": "Wintermute",
+        "rating": 2761.653293312705,
+        "reference": true
+      },
+      {
+        "id": "signaltrain150",
+        "username": "SignalTrain150",
+        "name": "Armitage",
+        "rating": 2711.3724963650848,
+        "reference": true
+      },
+      {
+        "id": "signaltrain004",
+        "username": "SignalTrain004",
+        "name": "Rachael",
+        "rating": 2693.477300194014,
+        "reference": true
+      },
+      {
+        "id": "zero-day",
+        "username": "ZeroDay",
+        "name": "Zero Day",
+        "rating": 2675.7061662805877,
+        "reference": true
+      },
+      {
+        "id": "signaltest032",
+        "username": "SignalTest032",
+        "name": "Judge Anderson",
+        "rating": 2672.732690223161,
+        "reference": true
+      },
+      {
+        "id": "signaltest043",
+        "username": "SignalTest043",
+        "name": "Rick Deckard",
+        "rating": 2671.523996798503,
+        "reference": true
+      },
+      {
+        "id": "signaltrain006",
+        "username": "SignalTrain006",
+        "name": "Officer K",
+        "rating": 2667.1346239447994,
+        "reference": true
+      },
+      {
+        "id": "signaltrain084",
+        "username": "SignalTrain084",
+        "name": "Roy Batty",
+        "rating": 2661.242084304385,
+        "reference": true
+      },
+      {
+        "id": "colossus",
+        "username": "Colossus",
+        "name": "Colossus",
+        "rating": 2661.0973497745017,
+        "reference": true
+      },
+      {
+        "id": "durandal",
+        "username": "Durandal",
+        "name": "Durandal",
+        "rating": 2654.3575145070495,
+        "reference": true
+      },
+      {
+        "id": "shodan",
+        "username": "SHODAN",
+        "name": "SHODAN",
+        "rating": 2623.792279515448,
+        "reference": true
+      },
+      {
+        "id": "signaltest004",
+        "username": "SignalTest004",
+        "name": "Judge Death",
+        "rating": 2613.068537298485,
+        "reference": true
+      },
+      {
+        "id": "signaltrain119",
+        "username": "SignalTrain119",
+        "name": "Johnny Silverhand",
+        "rating": 2607.035909527616,
+        "reference": true
+      },
+      {
+        "id": "catalog-00010",
+        "username": "AltCunningham",
+        "name": "Alt Cunningham",
+        "rating": 2593.9275343398294,
+        "reference": false
+      },
+      {
+        "id": "catalog-00009",
+        "username": "MarieFranceTessier",
+        "name": "Marie-France Tessier",
+        "rating": 2593.9275343398294,
+        "reference": false
+      },
+      {
+        "id": "signaltrain106",
+        "username": "SignalTrain106",
+        "name": "Hideo",
+        "rating": 2593.9275343398294,
+        "reference": true
+      },
+      {
+        "id": "signaltrain072",
+        "username": "SignalTrain072",
+        "name": "Judge Dredd",
+        "rating": 2593.2396426311016,
+        "reference": true
+      },
+      {
+        "id": "event-horizon",
+        "username": "EventHorizon",
+        "name": "Event Horizon",
+        "rating": 2584.487266168914,
+        "reference": true
+      },
+      {
+        "id": "glados",
+        "username": "GLaDOS",
+        "name": "GLaDOS",
+        "rating": 2583.1714069401332,
+        "reference": true
+      }
+    ]
+  },
+  "ranges": {
+    "blitz": {
+      "newMin": 815.9486031806349,
+      "newMax": 2756.956193258839
+    },
+    "rapid": {
+      "newMin": 835.428750108685,
+      "newMax": 2593.9275343398294
+    },
+    "bullet": {
+      "newMin": 1317.948603180635,
+      "newMax": 2996.956193258839
+    },
+    "classical": {
+      "newMin": 977.428750108685,
+      "newMax": 2708.9275343398294
+    }
+  }
+}

@@ -9,11 +9,12 @@
       "areas": [
         {
           "id": "application-wiring",
-          "rationale": "Connect the bounded Maia, Nostr, patron and focused-page adapters to native routing and dependency wiring; do not replace native domain services. Issue #101 publishes managed BOT connection transitions through the native Tell bus so WebSocket room presence retains active rounds; disconnection is paired on finish/failure. Native lifecycle/flush/TTL remain unchanged.",
+          "rationale": "Connect the bounded Maia, Nostr, patron and focused-page adapters to native routing and dependency wiring; do not replace native domain services. Issue #101 publishes managed BOT connection transitions through the native Tell bus so WebSocket room presence retains active rounds; disconnection is paired on finish/failure. Native lifecycle/flush/TTL remain unchanged. Issue #172 validates the complete managed catalog before provisioning; assigned catalog accounts use existing native Glicko initialization with explicit per-speed priors, RD100 and zero games. Existing seed markers preserve earned perfs; catalog identity markers reject adoption of unrelated existing accounts. Default-only profile display aliases preserve canonical identities and all histories.",
           "verification": [
             "Native stage/format checks",
             "Private login, pool, account and source/provenance checks",
-            "Private slow legal replay across two native idle windows; monotonic plies, paired presence and no native lifecycle patch (#101)."
+            "Private slow legal replay across two native idle windows; monotonic plies, paired presence and no native lifecycle patch (#101).",
+            "Native NoSweatBotCatalogTest: six-speed priors, zero-game native ratings/nonprovisional flags, unchanged legacy fallbacks, catalog collisions and guarded display names; isolated provisioning/restart verifies no existing perf changes."
           ],
           "files": [
             "app/Env.scala",
@@ -26,7 +27,7 @@
         },
         {
           "id": "nostr-and-public-profiles",
-          "rationale": "Support signature-based Nostr login, optional native TOTP, editable public names and stable native account IDs; preserve native sessions, ownership and game history. Issue #94 adds optional signer discovery, key-backup guidance and browser persistence controls in the existing login view, preserving its native page, authentication and identity contracts. Issues #124/#125 restore public-name friend discovery and an owner-only Nostr account page using the existing encrypted browser store, with explicit transient private-key reveal/copy and optional public Primal links; no server-side secret-key storage or identity migration.",
+          "rationale": "Support signature-based Nostr login, optional native TOTP, editable public names and stable native account IDs; preserve native sessions, ownership and game history. Issue #94 adds optional signer discovery, key-backup guidance and browser persistence controls in the existing login view, preserving its native page, authentication and identity contracts. Issues #124/#125 restore public-name friend discovery and an owner-only Nostr account page using the existing encrypted browser store, with explicit transient private-key reveal/copy and optional public Primal links; no server-side secret-key storage or identity migration. Issue #172 stores the optional managed catalog identity marker in the same new-account insert, retaining legacy account creation when absent and making interrupted provisioning resumable without claiming unmarked existing accounts.",
           "verification": [
             "Adapter authentication/security/login tests",
             "Native NostrName/PublicName tests",
@@ -34,7 +35,8 @@
             "Browser login/key-store regressions: explicit copy/download, saved identity, optional persistence and fresh signed 2FA",
             "Native login view format/compilation and browser layout check",
             "Header search finds enabled accounts by literal public-name/handle prefixes; displayed names are escaped and profile links retain canonical IDs (#124)",
-            "Owner-only Nostr page; private key stays browser-local, matching-account checks, explicit reveal/copy, timeout/visibility cleanup and Primal community links (#125)"
+            "Owner-only Nostr page; private key stays browser-local, matching-account checks, explicit reveal/copy, timeout/visibility cleanup and Primal community links (#125)",
+            "Native NoSweatBotIdentityTest: unchanged legacy insert document and atomic catalog owner metadata with zero game history; app catalog recovery/collision tests."
           ],
           "files": [
             "app/controllers/Account.scala",
@@ -72,16 +74,18 @@
             "ui/lib/src/view/userLink.ts",
             "ui/lib/tests/publicNameSearch.test.ts",
             "ui/round/src/view/user.ts",
-            "ui/site/src/clinput.ts"
+            "ui/site/src/clinput.ts",
+            "modules/user/src/test/NoSweatBotIdentityTest.scala"
           ]
         },
         {
           "id": "maia-bot-pool",
-          "rationale": "Restrict quick pairing to managed Maia bots and validate admissions, while retaining native games, clocks, Glicko and completion. Add a derived rating index and a roster-level presence bridge without changing ordinary user/API-bot presence.",
+          "rationale": "Restrict quick pairing to managed Maia bots and validate admissions, while retaining native games, clocks, Glicko and completion. Add a derived rating index and a roster-level presence bridge without changing ordinary user/API-bot presence. Issue #172 adds namespaced seed validation and research-seeded profile provenance for the 10,000-identity catalog; native Glicko calculations/provisional criteria and uniform eligible matching remain unchanged. Sci-fi aliases apply only to managed placeholder accounts with absent/default display names.",
           "verification": [
             "Native PoolCatalogTest/ManagedPresenceTest",
             "Adapter policy/personality tests",
-            "Private pool, timing and presence integration"
+            "Private pool, timing and presence integration",
+            "Native NoSweatBotCatalogTest and exact source/catalog agreement; zero fabricated games/history, persistent per-speed assignments, default-only aliases and managed-account collision rejection."
           ],
           "files": [
             "app/controllers/Setup.scala",
@@ -97,7 +101,10 @@
             "modules/lobby/src/main/Env.scala",
             "modules/lobby/src/main/LobbySocket.scala",
             "modules/socket/src/main/RemoteSocket.scala",
-            "public/nosweat-roster.json"
+            "public/nosweat-roster.json",
+            "app/NoSweatBotCatalog.scala",
+            "src/test/scala/NoSweatBotCatalogTest.scala",
+            "public/nosweat-bot-aliases.json"
           ]
         },
         {

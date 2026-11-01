@@ -27,7 +27,8 @@ export function freeze(bot) {
     topP: bot.top_p_after_opening, timingVersion: personality ? TIMING_VERSION : LEGACY_TIMING_VERSION,
     ...(personality ? { humanTiming: personality.humanTiming, timingStyle: personality.timingStyle } : {}),
     samplingSeed: randomBytes(16).toString('hex'), rated: false,
-    calibration: bot.conditioning_self >= 2200 ? 'experimental-unvalidated' : 'unvalidated-provisional' };
+    calibration: bot.rating_assignment ? 'research-seeded-policy-reference-v1' :
+      (bot.conditioning_self >= 2200 ? 'experimental-unvalidated' : 'unvalidated-provisional') };
 }
 export function effectivePolicy(policy, ply, roster) {
   const bot = roster instanceof Map ? roster.get(policy.bot) : roster.find(bot => bot.id === policy.bot);

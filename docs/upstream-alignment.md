@@ -135,3 +135,19 @@ server-setting storage is added. Both Maia conditioning inputs now always match
 the selected channel rating, following Mobile Maia exactly. Legacy mismatched
 preferences are normalized, and actual inference-call regressions cover both
 analysis and puzzle channels.
+
+
+## Assigned bot catalog initialization (#172)
+
+The owner-approved10,000-identity catalog adds configuration-backed policy
+references and a narrow initialization helper. New catalog accounts alone receive
+RD100/zero-game assigned ratings; existing native Glicko formulas, RD110
+provisional threshold, earned perfs and all human accounts remain unchanged.
+Explicit six-speed seeds retain measured/inferred provenance. Whole-roster
+identity validation, fresh-account marker checks and one-time default-only
+public-name aliases prevent collisions or reseeding. Native zero-game display
+uses its existing latest/Perf contract. Profiles add one Research-seeded basis
+row. Rebase tests cover explicit priors, truthfulnb0, native nonprovisional
+status, collision refusal, legacy fallback and display-only aliases. The shared
+presence/index/±200 matching and normal2-game cap stay unchanged. See
+[catalog methodology and reproducible manifest](catalog-roster.md).

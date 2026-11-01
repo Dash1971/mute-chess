@@ -4,10 +4,10 @@ import { createHash } from 'node:crypto';
 import { readFile, writeFile, mkdtemp, mkdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadRoster } from '../roster.mjs';
+import { loadReferenceRoster } from '../roster.mjs';
 import { CONTINUATION_PROFILE, CONTINUATION_ADMISSION_END, CONTINUATION_DEADLINE,
   recordDigest, validateContinuation, loadContinuation } from '../study-continuation.mjs';
-const roster = await loadRoster();
+const roster = await loadReferenceRoster();
 const manifest = JSON.parse(await readFile(new URL('../experiment-manifest.json', import.meta.url)));
 const sha = value => createHash('sha256').update(value).digest('hex');
 function fixture() {
