@@ -21,6 +21,7 @@ jobs:
       - run: npm test
         working-directory: lila-adapter
       - run: node analysis/test-client.mjs
+      - run: node --experimental-vm-modules --no-warnings analysis/test-worker.mjs
       - run: node learning/test-import.mjs
       - name: Parse runtime JavaScript and build the browser login
         run: |

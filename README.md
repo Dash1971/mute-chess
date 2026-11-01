@@ -78,6 +78,7 @@ the current browser. See [#150](https://github.com/Dash1971/mute-chess/issues/15
 [analysis details](docs/analysis-presentation.md).
 
 Browser analysis downloads its model from mutechess.org and caches it locally.
+The 79M model tries WebGPU, with a multi-threaded CPU fallback where supported.
 Visitors do not download the model from GitHub; deployment can fetch a pinned
 upstream copy if the server's existing model is unavailable.
 

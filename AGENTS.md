@@ -426,3 +426,12 @@ Restore the native live players-online and games-in-progress counters below
 quick pairing. Preserve native counts, socket updates, number spreaders and
 links. Keep the focused Maia pairing surface; do not restore unrelated lobby
 buttons, feeds or navigation.
+
+## Readable opening article and 79M execution (November 1, #183/#184)
+
+Allow WikiBook to retain its natural article height and scroll within the fixed
+sidebar, preserving native collapse and underboard placement. The owner approved
+implementing a GPU-first79M browser path with CPU fallback for testing. Keep
+model bytes, input semantics, exact21chart samples, cancellation and deadlines
+unchanged. Reuse pinned runtime assets and existing preparation; no general
+benchmarking/deployment framework is part of this change.

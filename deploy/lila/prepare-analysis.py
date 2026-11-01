@@ -6,7 +6,7 @@ source=Path(__file__).resolve().parents[2]/'analysis/browser'
 dest=Path(sys.argv[1]).resolve()/'public/nosweat/analysis'
 shutil.copytree(source,dest,dirs_exist_ok=True)
 config=json.loads((source/'config.json').read_text())
-for asset,relative in [(m,'models/'+m['id']+'.onnx') for m in config['models'].values()] + [(config['runtime']['assets']['wasm'],'ort-wasm-simd-threaded.wasm')]:
+for asset,relative in [(m,'models/'+m['id']+'.onnx') for m in config['models'].values()] + [(a,Path(a['url']).name) for a in config['runtime']['assets'].values()]:
     output=dest/relative
     def matches(path):
         return path.exists() and path.stat().st_size==asset['bytes'] and hashlib.file_digest(path.open('rb'),'sha256').hexdigest()==asset['sha256']
