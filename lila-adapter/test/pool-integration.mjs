@@ -39,6 +39,16 @@ class Client {
 }
 const admin = new Client();
 const games = () => admin.call('/club/internal/games', undefined, 200, 'Bearer ' + token);
+async function checkConditioning(game, humanRating) {
+  const active = (await games()).find(g => g.id === game.id);
+  assert.ok(active, 'admitted game has a frozen policy');
+  const policy = active.policy;
+  assert.equal(policy.opponentElo, humanRating === undefined ? policy.selfElo : Math.max(600, Math.min(2600, humanRating)));
+  if (humanRating !== undefined) {
+    assert.equal(policy.opponentConditioning, 'human-speed-rating-v1');
+    assert.match(policy.version, /^maia79-lila-v4-/);
+  }
+}
 async function waitFor(predicate, label) {
   for (let i = 0; i < 90; i++) { const result = await predicate(); if (result) return result; await delay(200); }
   throw Error('Timed out: ' + label);
@@ -84,11 +94,13 @@ try {
   await guest.call('/club/play', { bot: 'pixel-moth' }, 400);
   const anonymous = await guest.play({ minutes: 5, increment: 3 });
   assert.equal(anonymous.anonymous, true); assert.equal(anonymous.rated, false);
+  await checkConditioning(anonymous);
   const same = await guest.play({ minutes: 10, increment: 0 }); assert.equal(same.id, anonymous.id);
   const owned = await guest.round(anonymous); assert.equal(owned.player.spectator, undefined);
   await user.login();
   const rated = await user.play({ minutes: 5, increment: 3 }); assert.equal(rated.rated, true);
   const initial = await user.round(rated); assert.equal(initial.player.rating, 1500); assert.equal(initial.player.provisional, true);
+  await checkConditioning(rated, initial.player.rating);
   await new Client().call('/club/play', { minutes: 5, increment: 3 }, 503);
   await playAndResign(guest, anonymous);
   const { white } = await playAndResign(user, rated);
@@ -100,6 +112,7 @@ try {
   assert.ok(diff < 0);
   const next = await user.play({ minutes: 5, increment: 3 });
   const nextRound = await user.round(next); assert.equal(nextRound.player.rating, 1500 + diff);
+  await checkConditioning(next, nextRound.player.rating);
   assert.ok(Math.abs(nextRound.player.rating - nextRound.opponent.rating) <= 200);
   await abort(next);
   const controls = [[1,0],[2,1],[3,0],[3,2],[5,0],[5,3],[10,0],[10,5],[15,10],[30,0],[30,20],[0.25,0],[180,180]];
@@ -124,6 +137,7 @@ try {
   console.log(JSON.stringify({ ok: true, run, ratingDiff: diff, fixtures: [anonymous.id, rated.id], checks: [
     'native homepage and Nostr login page', 'anonymous casual ownership and rejoin', 'no manual bot selection',
     'random matched bot within 200', 'initial provisional 1500', 'native rated result and next-game rating',
+    'human-speed frozen opponent input and anonymous equal-strength conditioning',
     'native WebSocket reconnect', 'PGN', 'global capacity', '11 quick controls and custom limits', 'correspondence and unlimited', 'new opponent keeps the prior clock',
   ] }, null, 2));
 } finally {

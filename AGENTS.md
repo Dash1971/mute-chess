@@ -399,3 +399,14 @@ Only strong SignalTrain/Test placeholders receive public display-name aliases;
 canonical IDs/usernames/history remain unchanged. See docs/catalog-roster.md,
 source manifest and the exact-path departure register. Follow issue/PR/check/
 GitHubmerge/verified-main deployment and backup-preserving provisioning audit.
+## Playing Maia opponent conditioning (November 1, #176)
+
+For new human-versus-Maia games, use the human's native matching-speed rating as
+the opponent model input, clamped to600–2600; anonymous play matches the bot self
+input, assuming equal strength. Freeze signed-in human conditioning
+at admission under a new explicit policy version. Keep the bot self input and
+fixed sampling/history/timing, existing frozen games and study policies intact.
+This differs from analysis/puzzle Maia, where both inputs match each selected
+channel. Document engine choices in README and issue/PR. Fixed-input calibration
+does not establish the new dynamic-human policy's strength; preserve earned
+ratings and native matching/Glicko without rerating or starting research games.

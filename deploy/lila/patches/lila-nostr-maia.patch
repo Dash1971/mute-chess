@@ -6316,10 +6316,10 @@ index 0000000..48dc736
 +    current.isEmpty || current.contains(username) || current.contains(alias)
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..1a3c63b
+index 0000000..2ceeb25
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,711 @@
+@@ -0,0 +1,714 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -6873,7 +6873,10 @@ index 0000000..1a3c63b
 +            opponent <- poolOpponent(perfKey, rating, busy)
 +            bot = botsById(opponent.user.id)
 +            slug = (bot \ "id").as[String]
-+            frozen <- adapter("/freeze", Json.obj("bot" -> slug))
++            frozen <- adapter(
++              "/freeze",
++              Json.obj("bot" -> slug) ++ human.fold(Json.obj())(_ => Json.obj("opponentRating" -> rating))
++            )
 +            policy = frozen.as[JsObject] ++ Json.obj("rated" -> rated)
 +            requestedColor = (data \ "color").asOpt[String].getOrElse("random")
 +            _ = requireThat(Set("random", "white", "black").contains(requestedColor), 400, "Invalid color")
@@ -7659,10 +7662,10 @@ index 0000000..5ad3b84
 +    user ?=> handle(club.details(id, user.value).map(_.fold(NotFound)(Ok(_))))
 diff --git a/app/views/noSweatBot.scala b/app/views/noSweatBot.scala
 new file mode 100644
-index 0000000..64100c0
+index 0000000..550f673
 --- /dev/null
 +++ b/app/views/noSweatBot.scala
-@@ -0,0 +1,40 @@
+@@ -0,0 +1,41 @@
 +package views
 +
 +import play.api.libs.json.*
@@ -7685,9 +7688,10 @@ index 0000000..64100c0
 +            .map: _ =>
 +              tr(th("Rating basis"), td("Research-seeded")),
 +          tr(
-+            th("Conditioning"),
-+            td(s"${(bot \ "conditioning_self").as[Int]} / ${(bot \ "conditioning_opponent").as[Int]}")
++            th("Maia rating input"),
++            td((bot \ "conditioning_self").as[Int].toString)
 +          ),
++          tr(th("Opponent rating input"), td("Your rating for this time control (600–2600)")),
 +          tr(th("Temperature"), td((bot \ "temperature_after_opening").as[Double].toString)),
 +          tr(th("Top-p"), td((bot \ "top_p_after_opening").as[Double].toString)),
 +          tr(th("Move history"), td(if history then "On" else "Off")),
@@ -7697,7 +7701,7 @@ index 0000000..64100c0
 +        )
 +      ),
 +      p(
-+        "These settings stay fixed across games. Conditioning is a model input, not a measured playing rating."
++        "Bot settings stay fixed. The opponent input uses your rating at game start; anonymous play matches the bot's Maia input. Conditioning is a model input, not a measured playing rating."
 +      ),
 +      a(href := "https://github.com/Dash1971/mute-chess/blob/main/docs/bot-population.md")(
 +        "Policy and rating methodology"

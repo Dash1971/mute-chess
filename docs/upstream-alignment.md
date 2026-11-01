@@ -151,3 +151,13 @@ row. Rebase tests cover explicit priors, truthfulnb0, native nonprovisional
 status, collision refusal, legacy fallback and display-only aliases. The shared
 presence/index/±200 matching and normal2-game cap stay unchanged. See
 [catalog methodology and reproducible manifest](catalog-roster.md).
+## Human-game Maia conditioning (#176)
+
+The bounded NoSweatService admission hook forwards the human's already-loaded
+native matching-speed rating to the private adapter; no extra rating lookup or
+rating formula is introduced. The adapter clamps and freezes the opponent input
+under a separate version. Bot profiles describe the actual rule instead of two
+fixed inputs. Native game creation, matching, clocks, ratings, completion, old
+frozen games and study policies remain unchanged. Rebase checks must verify the
+perf key/default at admission, authenticated freeze forwarding, input bounds,
+versioned compatibility and unchanged self/history/sampling/timing controls.

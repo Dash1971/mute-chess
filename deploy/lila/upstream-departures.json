@@ -9,12 +9,13 @@
       "areas": [
         {
           "id": "application-wiring",
-          "rationale": "Connect the bounded Maia, Nostr, patron and focused-page adapters to native routing and dependency wiring; do not replace native domain services. Issue #101 publishes managed BOT connection transitions through the native Tell bus so WebSocket room presence retains active rounds; disconnection is paired on finish/failure. Native lifecycle/flush/TTL remain unchanged. Issue #172 validates the complete managed catalog before provisioning; assigned catalog accounts use existing native Glicko initialization with explicit per-speed priors, RD100 and zero games. Existing seed markers preserve earned perfs; catalog identity markers reject adoption of unrelated existing accounts. Default-only profile display aliases preserve canonical identities and all histories.",
+          "rationale": "Connect the bounded Maia, Nostr, patron and focused-page adapters to native routing and dependency wiring; do not replace native domain services. Issue #101 publishes managed BOT connection transitions through the native Tell bus so WebSocket room presence retains active rounds; disconnection is paired on finish/failure. Native lifecycle/flush/TTL remain unchanged. Issue #172 validates the complete managed catalog before provisioning; assigned catalog accounts use existing native Glicko initialization with explicit per-speed priors, RD100 and zero games. Existing seed markers preserve earned perfs; catalog identity markers reject adoption of unrelated existing accounts. Default-only profile display aliases preserve canonical identities and all histories. Issue #176 forwards the already-loaded native signed-in human matching-speed rating at admission for separately versioned Maia opponent conditioning; native rating lookup/matching/game creation remain unchanged.",
           "verification": [
             "Native stage/format checks",
             "Private login, pool, account and source/provenance checks",
             "Private slow legal replay across two native idle windows; monotonic plies, paired presence and no native lifecycle patch (#101).",
-            "Native NoSweatBotCatalogTest: six-speed priors, zero-game native ratings/nonprovisional flags, unchanged legacy fallbacks, catalog collisions and guarded display names; isolated provisioning/restart verifies no existing perf changes."
+            "Native NoSweatBotCatalogTest: six-speed priors, zero-game native ratings/nonprovisional flags, unchanged legacy fallbacks, catalog collisions and guarded display names; isolated provisioning/restart verifies no existing perf changes.",
+            "Signed-in human speed rating forwarded to authenticated freeze; anonymous inputs match bot self; exact600\u20132600 clamping, immutable new policy and existing-game/study compatibility (#176)."
           ],
           "files": [
             "app/Env.scala",
@@ -80,7 +81,7 @@
         },
         {
           "id": "maia-bot-pool",
-          "rationale": "Restrict quick pairing to managed Maia bots and validate admissions, while retaining native games, clocks, Glicko and completion. Add a derived rating index and a roster-level presence bridge without changing ordinary user/API-bot presence. Issue #172 adds namespaced seed validation and research-seeded profile provenance for the 10,000-identity catalog; native Glicko calculations/provisional criteria and uniform eligible matching remain unchanged. Sci-fi aliases apply only to managed placeholder accounts with absent/default display names.",
+          "rationale": "Restrict quick pairing to managed Maia bots and validate admissions, while retaining native games, clocks, Glicko and completion. Add a derived rating index and a roster-level presence bridge without changing ordinary user/API-bot presence. Issue #172 adds namespaced seed validation and research-seeded profile provenance for the 10,000-identity catalog; native Glicko calculations/provisional criteria and uniform eligible matching remain unchanged. Sci-fi aliases apply only to managed placeholder accounts with absent/default display names. Issue #176 updates bot profile disclosure: self input remains fixed; opponent input follows the human rating at game start.",
           "verification": [
             "Native PoolCatalogTest/ManagedPresenceTest",
             "Adapter policy/personality tests",
