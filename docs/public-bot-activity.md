@@ -28,7 +28,12 @@ separate no-added-wait contract.
 The existing adapter uses one shared worker with no more than two outstanding
 inference requests. Its bounded queue gives human turns two of every three
 contested dispatch slots, serves FIFO within each class, and keeps artificial
-clock waits outside inference slots. Automatic games use the existing
+clock waits outside inference slots. Each successful native poll invalidates
+waiting work whose game disappeared, whose ply changed, or whose bot turn ended.
+Running results and delayed submissions are checked against that latest poll;
+native stale-ply validation remains authoritative. Obsolete turns and temporary
+queue saturation use the neutral retry path, without failing the native game.
+Automatic games use the existing
 `nosweat_game` records, `/games` boards, watcher routes, PGN/history and native
 Glicko updates. No ratings are reseeded or recalculated outside native results.
 Random activity across 10,000 accounts gives uneven, gradual rating refresh; it
@@ -49,6 +54,18 @@ curl --fail --silent --show-error http://127.0.0.1:29663/club/internal/activity 
   -H 'Content-Type: application/json' --data '{"paused":true}'
 ```
 
+For the first activation, install the backend with
+`nosweat.activity.enabled = false` and issue the pause POST above **before the
+first enabled start**. That endpoint works while the feature is disabled and
+persists `{ "_id": "public", "paused": true }` in `nosweat_activity`; no direct
+database command is needed. Verify `paused: true`, `active: 0`, and `drained: true`.
+Then enable the existing application setting and restart through the existing
+release procedure. Confirm `enabled: true`, `paused: true`, `active: 0`, and
+`capacity: 10`, plus service health and preserved ratings/history, before the
+explicit resume POST with `{"paused":false}`. An enabled start without a saved
+pause document defaults to unpaused and can create games on the first adapter
+poll, so do not enable the setting before initializing that control.
+
 Pause persists in the `nosweat_activity` control document. It prevents only new
 automatic admissions: current games continue receiving moves, finish naturally
 and keep their ordinary results. Status identifies its `scope` as `maia-pool` and reports `enabled`, `paused`, `active`,
@@ -64,6 +81,7 @@ fabricating results; manual pause does not trigger that handling. A failed
 candidate/policy admission does not prevent polling already active games.
 
 Validation covers queue bounds, human preference without background starvation,
+resign/flag/finish churn, obsolete-ply cancellation, neutral saturation retries,
 immutable automatic timing, old study contracts, native cap/pause/speed rules,
 Scala formatting/compilation and exact patch reconstruction. Native runtime and
 watcher smoke checks remain required before activation. No public load run is a

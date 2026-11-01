@@ -64,16 +64,20 @@ async function play(game) {
     const policy = effectivePolicy(production, game.ply, botsById);
     const clock = { baseSeconds: game.clock?.initial ?? null, incrementSeconds: game.clock?.increment ?? 0 };
     const targetMs = game.automatic ? automaticTargetTime(game.policy, clock) : targetTimeForPolicy(production, clock);
-    const result = await predictions.predict(moves, policy, game.automatic === true);
+    const turn = { id: game.id, ply: game.ply };
+    const result = await predictions.predict(moves, policy, game.automatic === true, turn);
     const elapsed = performance.now() - started;
     const remaining = (game.botColor === 'white' ? game.state.wtime : game.state.btime) ?? 60000;
     const waitMs = addedWait(targetMs, elapsed, remaining - elapsed);
     if (waitMs > 0) await delay(waitMs);
+    if (!predictions.isCurrent(turn)) return;
     if (!maia.healthy || stopping) throw Error('Maia worker unavailable');
     await native(`/club/internal/${game.id}/move`, { ply: game.ply, move: result.move,
       timing: { targetMs, actualMs: Math.round(performance.now() - started), inferenceMs: result.inferenceMs } });
     lastSubmitted.set(game.id, game.ply);
   } catch (error) {
+    // Obsolete turns and temporary queue saturation use the same neutral retry
+    // path as native stale-ply conflicts. The next poll can admit fresh work.
     if (error.status !== 409) {
       console.error(JSON.stringify({ event: 'maia_game_failure', id: game.id, error: error.message }));
       await native(`/club/internal/${game.id}/failure`, {}).catch(() => {});
@@ -87,6 +91,7 @@ async function poll() {
       const games = await native('/club/internal/games');
       if (!Array.isArray(games)) throw Error('Invalid native game list');
       latestGames = games;
+      predictions.synchronize(games);
       lastNativeSuccess = Date.now();
       const ids = new Set(games.map(g => g.id));
       for (const id of lastSubmitted.keys()) if (!ids.has(id)) lastSubmitted.delete(id);
