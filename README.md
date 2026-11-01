@@ -82,6 +82,18 @@ The 79M model tries WebGPU, with a multi-threaded CPU fallback where supported.
 Visitors do not download the model from GitHub; deployment can fetch a pinned
 upstream copy if the server's existing model is unavailable.
 
+## Players and rating statistics
+
+The [player directory](https://mutechess.org/player) uses Lichess's leaderboard,
+ranked-list and rating-distribution views. Players share the same lists across
+standard time controls; FIDE, tournament and separate bot sections are omitted.
+These lists read current saved ratings, including starting ratings before games
+are played, and refresh within a minute. Statistics describe current site ratings,
+not weekly activity, and cover the full 400–4000 rating range. Closed accounts and
+accounts marked for cheating, boosting or a ranking ban are excluded. This display
+does not write ratings, histories or native competitive rankings.
+See [#187](https://github.com/Dash1971/mute-chess/issues/187).
+
 ## The club, 2097
 
 Neural implants have put Stockfish 99 and 4750 Elo in everyone's head. Nobody can
