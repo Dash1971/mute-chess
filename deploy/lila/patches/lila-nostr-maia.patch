@@ -21491,10 +21491,10 @@ index 0000000..806bb5f
 +      )
 diff --git a/ui/analyse/css/_move-tooltip.scss b/ui/analyse/css/_move-tooltip.scss
 new file mode 100644
-index 0000000..61ea569
+index 0000000..c49c61e
 --- /dev/null
 +++ b/ui/analyse/css/_move-tooltip.scss
-@@ -0,0 +1,39 @@
+@@ -0,0 +1,44 @@
 +.nosweat-move-tooltip {
 +  position: fixed;
 +  z-index: 10000;
@@ -21503,18 +21503,20 @@ index 0000000..61ea569
 +  overflow: hidden;
 +  border: 1px solid #484346;
 +  border-radius: 5px;
-+  background: rgba(24, 20, 22, 0.96);
++  background: rgb(24 20 22 / 0.96);
 +  color: #eee;
 +  box-shadow: 0 4px 16px #0006;
 +  backdrop-filter: blur(8px);
 +  pointer-events: none;
 +}
++
 +.nosweat-move-tooltip__header {
 +  padding: 0.45rem 0.75rem;
 +  border-bottom: 1px solid #484346;
 +  font-size: 1.1rem;
 +  font-weight: 600;
 +}
++
 +.nosweat-move-tooltip__rows {
 +  display: grid;
 +  grid-template-columns: auto auto;
@@ -21525,12 +21527,15 @@ index 0000000..61ea569
 +  font-variant-numeric: tabular-nums;
 +  white-space: nowrap;
 +}
++
 +.nosweat-move-tooltip__rows > :nth-child(even) {
 +  text-align: right;
 +}
++
 +.nosweat-move-tooltip__maia {
 +  color: #e97562;
 +}
++
 +.nosweat-move-tooltip__fish {
 +  color: #62b0e8;
 +}
