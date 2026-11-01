@@ -9,7 +9,7 @@
       "areas": [
         {
           "id": "application-wiring",
-          "rationale": "Connect the bounded Maia, Nostr, patron and focused-page adapters to native routing and dependency wiring; do not replace native domain services. Issue #101 publishes managed BOT connection transitions through the native Tell bus so WebSocket room presence retains active rounds; disconnection is paired on finish/failure. Native lifecycle/flush/TTL remain unchanged. Issue #172 validates the complete managed catalog before provisioning; assigned catalog accounts use existing native Glicko initialization with explicit per-speed priors, RD100 and zero games. Existing seed markers preserve earned perfs; catalog identity markers reject adoption of unrelated existing accounts. Default-only profile display aliases preserve canonical identities and all histories. Issue #176 forwards the already-loaded native signed-in human matching-speed rating at admission for separately versioned Maia opponent conditioning; native rating lookup/matching/game creation remain unchanged.",
+          "rationale": "Connect the bounded Maia, Nostr, patron and focused-page adapters to native routing and dependency wiring; do not replace native domain services. Issue #101 publishes managed BOT connection transitions through the native Tell bus so WebSocket room presence retains active rounds; disconnection is paired on finish/failure. Native lifecycle/flush/TTL remain unchanged. Issue #172 validates the complete managed catalog before provisioning; assigned catalog accounts use existing native Glicko initialization with explicit per-speed priors, RD100 and zero games. Existing seed markers preserve earned perfs; catalog identity markers reject adoption of unrelated existing accounts. Default-only profile display aliases preserve canonical identities and all histories. Issue #176 forwards the already-loaded native signed-in human matching-speed rating at admission for separately versioned Maia opponent conditioning; native rating lookup/matching/game creation remain unchanged. Public spectator activity uses the same admission sequencer and nosweat_game records for rated BOT-versus-BOT games, with a fixed five-game target under a shared ten-game cap only when explicitly enabled. A persisted internal pause closes automatic admissions while active rounds drain; existing /games and watcher routes include these native records without a second viewing system.",
           "verification": [
             "Native stage/format checks",
             "Private login, pool, account and source/provenance checks",
@@ -81,12 +81,13 @@
         },
         {
           "id": "maia-bot-pool",
-          "rationale": "Restrict quick pairing to managed Maia bots and validate admissions, while retaining native games, clocks, Glicko and completion. Add a derived rating index and a roster-level presence bridge without changing ordinary user/API-bot presence. Issue #172 adds namespaced seed validation and research-seeded profile provenance for the 10,000-identity catalog; native Glicko calculations/provisional criteria and uniform eligible matching remain unchanged. Sci-fi aliases apply only to managed placeholder accounts with absent/default display names. Issue #176 updates bot profile disclosure: self input remains fixed; opponent input follows the human rating at game start.",
+          "rationale": "Restrict quick pairing to managed Maia bots and validate admissions, while retaining native games, clocks, Glicko and completion. Add a derived rating index and a roster-level presence bridge without changing ordinary user/API-bot presence. Issue #172 adds namespaced seed validation and research-seeded profile provenance for the 10,000-identity catalog; native Glicko calculations/provisional criteria and uniform eligible matching remain unchanged. Sci-fi aliases apply only to managed placeholder accounts with absent/default display names. Issue #176 updates bot profile disclosure: self input remains fixed; opponent input follows the human rating at game start. Automatic public game reservations require exact white/black BOT seats and explicit enabled configuration; native rules, clocks, ratings and history remain authoritative. Both seats participate in the same busy-account exclusion as human matchmaking.",
           "verification": [
             "Native PoolCatalogTest/ManagedPresenceTest",
             "Adapter policy/personality tests",
             "Private pool, timing and presence integration",
-            "Native NoSweatBotCatalogTest and exact source/catalog agreement; zero fabricated games/history, persistent per-speed assignments, default-only aliases and managed-account collision rejection."
+            "Native NoSweatBotCatalogTest and exact source/catalog agreement; zero fabricated games/history, persistent per-speed assignments, default-only aliases and managed-account collision rejection.",
+            "PublicBotActivityTest covers shared ten-game capacity, five-auto target, pause boundaries and successful-admission Blitz/Rapid alternation; adapter queue/policy regressions cover bounded inference and immutable automatic timing overrides."
           ],
           "files": [
             "app/controllers/Setup.scala",
@@ -105,7 +106,9 @@
             "public/nosweat-roster.json",
             "app/NoSweatBotCatalog.scala",
             "src/test/scala/NoSweatBotCatalogTest.scala",
-            "public/nosweat-bot-aliases.json"
+            "public/nosweat-bot-aliases.json",
+            "modules/bot/src/main/PublicBotActivity.scala",
+            "modules/bot/src/test/PublicBotActivityTest.scala"
           ]
         },
         {
@@ -435,6 +438,17 @@
             "modules/user/src/main/ui/UserList.scala",
             "modules/perfStat/src/main/PerfStatUi.scala",
             "ui/chart/src/chart.ratingDistribution.ts"
+          ]
+        },
+        {
+          "id": "focused-activity-signup-domain",
+          "rationale": "Owner-requested activity timeline branding: the focused Mute Chess site translates the existing signup entry and replaces its lichess.org domain with mutechess.org. Unfocused upstream rendering keeps the original translation unchanged.",
+          "verification": [
+            "Native Scala formatting and compile; focused signup timeline text is rendered through escaped native tags."
+          ],
+          "files": [
+            "app/views/activity.scala",
+            "modules/activity/src/main/ActivityUi.scala"
           ]
         }
       ]

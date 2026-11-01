@@ -6,6 +6,23 @@ import { TIMING_STYLES, validatePersonality } from './personality.mjs';
 export const LEGACY_TIMING_VERSION = 'lognormal-mobile-controls-clock-cap-v2';
 export const TIMING_VERSION = 'lognormal-mobile-controls-personality-v3';
 export const HUMAN_OPPONENT_CONDITIONING = 'human-speed-rating-v1';
+export const AUTOMATIC_POLICY_VERSION = 'public-bot-human-timing-v1';
+
+// Preserve the bot's entire production snapshot. Only automatic games add this
+// explicit timing wrapper, leaving persistent personalities and studies intact.
+export function freezeAutomatic(bot) {
+  return { version: AUTOMATIC_POLICY_VERSION, addedHumanWait: true, rated: true, production: { ...freeze(bot), rated: true } };
+}
+export function automaticProduction(policy) {
+  if (policy?.version !== AUTOMATIC_POLICY_VERSION || policy.addedHumanWait !== true || policy.rated !== true)
+    throw new AdapterError(503, 'Automatic game policy unavailable');
+  return policy.production;
+}
+export function automaticTargetTime(policy, clock, random) {
+  const production = automaticProduction(policy);
+  // Validation of this untouched snapshot happens through effectivePolicy.
+  return targetTimeForPolicy({ ...production, humanTiming: true }, clock, random);
+}
 
 function humanVersionFor(bot, opponentElo) {
   return 'maia79-lila-v4-' + createHash('sha256').update(JSON.stringify({

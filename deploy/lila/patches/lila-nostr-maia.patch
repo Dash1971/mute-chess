@@ -715,6 +715,20 @@ index a6875eb..cb26269 100644
      then optionsHandler.some
      else router.handlerFor(request)
  
+diff --git a/app/views/activity.scala b/app/views/activity.scala
+index 5cfaafd..bf5591c 100644
+--- a/app/views/activity.scala
++++ b/app/views/activity.scala
+@@ -3,7 +3,8 @@ package views.activity
+ import lila.app.UiEnv.{ *, given }
+ import lila.core.perf.UserWithPerfs
+ 
+-private lazy val ui = lila.activity.ui.ActivityUi(helpers)(views.tournament.ui.tournamentIdToName)
++private lazy val ui =
++  lila.activity.ui.ActivityUi(helpers, env.noSweat.enabled)(views.tournament.ui.tournamentIdToName)
+ 
+ def apply(u: UserWithPerfs, as: Iterable[lila.activity.ActivityView])(using ctx: Context) =
+   ui(u, as): activity =>
 diff --git a/app/views/analyse.scala b/app/views/analyse.scala
 index 3fb4283..712b229 100644
 --- a/app/views/analyse.scala
@@ -1124,10 +1138,10 @@ index 885adb4..06960ae 100644
  
  lazy val forumSearch = module("forumSearch",
 diff --git a/conf/routes b/conf/routes
-index f2a7ab2..40e1493 100644
+index f2a7ab2..cc51786 100644
 --- a/conf/routes
 +++ b/conf/routes
-@@ -1,6 +1,27 @@
+@@ -1,6 +1,29 @@
  # Run `./lila.sh playRoutes` after modifying this file
  
 +# Mute Chess information
@@ -1148,6 +1162,8 @@ index f2a7ab2..40e1493 100644
 +POST  /club/internal/study             controllers.NoSweat.experimentCreate
 +POST  /club/internal/study/stop        controllers.NoSweat.experimentStop
 +POST  /club/internal/study/:id/move    controllers.NoSweat.experimentMove(id: GameId)
++GET   /club/internal/activity          controllers.NoSweat.activityStatus
++POST  /club/internal/activity          controllers.NoSweat.activityPause
 +GET   /club/internal/games             controllers.NoSweat.games
 +POST  /club/internal/:id/move           controllers.NoSweat.move(id: GameId)
 +POST  /club/internal/:id/failure        controllers.NoSweat.failure(id: GameId)
@@ -1155,7 +1171,7 @@ index f2a7ab2..40e1493 100644
  GET   /                                controllers.Lobby.home
  GET   /lobby/seeks                     controllers.Lobby.seeks
  
-@@ -220,6 +241,7 @@ GET   /$lang<\w\w\w?>/racer             controllers.Racer.homeLang(lang: Languag
+@@ -220,6 +243,7 @@ GET   /$lang<\w\w\w?>/racer             controllers.Racer.homeLang(lang: Languag
  
  # User Analysis
  GET   /analysis/help                   controllers.UserAnalysis.help
@@ -1163,7 +1179,7 @@ index f2a7ab2..40e1493 100644
  GET   /analysis/pgn/*pgn               controllers.UserAnalysis.pgn(pgn)
  GET   /analysis/*something             controllers.UserAnalysis.parseArg(something)
  GET   /analysis                        controllers.UserAnalysis.index
-@@ -333,6 +355,10 @@ GET   /$lang<\w\w\w?>/learn            controllers.Learn.indexLang(lang: Languag
+@@ -333,6 +357,10 @@ GET   /$lang<\w\w\w?>/learn            controllers.Learn.indexLang(lang: Languag
  
  # Patron
  GET   /patron                          controllers.Plan.index(page: Int ?= 1)
@@ -1174,6 +1190,29 @@ index f2a7ab2..40e1493 100644
  GET   /patron/thanks                   controllers.Plan.thanks
  GET   /patron/list                     controllers.Plan.list
  POST  /patron/style                    controllers.Plan.style
+diff --git a/modules/activity/src/main/ActivityUi.scala b/modules/activity/src/main/ActivityUi.scala
+index 8bb30bf..ce761f5 100644
+--- a/modules/activity/src/main/ActivityUi.scala
++++ b/modules/activity/src/main/ActivityUi.scala
+@@ -13,7 +13,7 @@ import lila.rating.UserPerfsExt.dubiousPuzzle
+ import lila.ui.*
+ import lila.ui.ScalatagsTemplate.{ *, given }
+ 
+-final class ActivityUi(helpers: Helpers)(
++final class ActivityUi(helpers: Helpers, focused: Boolean = false)(
+     tournamentIdToName: lila.core.id.TourId => Translate ?=> ClientName ?=> String
+ ):
+   import helpers.{ *, given }
+@@ -352,7 +352,8 @@ final class ActivityUi(helpers: Helpers)(
+   private def renderSignup(using Context) =
+     entryTag(
+       iconTag(Icon.StarOutline),
+-      div(trans.activity.signedUp())
++      if focused then div(trans.activity.signedUp.txt().replace("lichess.org", "mutechess.org"))
++      else div(trans.activity.signedUp())
+     )
+ 
+   val entryTag = div(cls := "entry")
 diff --git a/modules/analyse/src/main/ui/AnalyseUi.scala b/modules/analyse/src/main/ui/AnalyseUi.scala
 index 2fde85c..b009933 100644
 --- a/modules/analyse/src/main/ui/AnalyseUi.scala
@@ -1480,10 +1519,10 @@ index 6fa1cc3..bdf092f 100644
    def authorLink(post: ForumPost, cssClass: Option[String] = None, withOnline: Boolean = true)(using
        Context
 diff --git a/modules/game/src/main/Env.scala b/modules/game/src/main/Env.scala
-index 43d76ae..f7166dd 100644
+index 43d76ae..344d065 100644
 --- a/modules/game/src/main/Env.scala
 +++ b/modules/game/src/main/Env.scala
-@@ -34,7 +34,67 @@ final class Env(
+@@ -34,7 +34,82 @@ final class Env(
  )(using scheduler: Scheduler)(using Executor, Materializer):
    private val config = appConfig.get[GameConfig]("game")(using AutoConfig.loader)
  
@@ -1546,7 +1585,22 @@ index 43d76ae..f7166dd 100644
 +          seats && game.variant.standard && game.sourceIs(_.Pool) &&
 +          doc.getAsOpt[String]("state").contains("reserved") &&
 +          doc.getAsOpt[Boolean]("rated").contains(game.rated.yes)
-+        if allowed then funit else fufail("Game has no human-versus-Maia pool reservation")
++        val automatic = appConfig.getOptional[Boolean]("nosweat.activity.enabled").getOrElse(false) &&
++          reservation.exists: doc =>
++            doc.getAsOpt[Boolean]("automatic").contains(true) &&
++              doc.getAsOpt[String]("state").contains("reserved") &&
++              doc.getAsOpt[Boolean]("rated").contains(true) && game.rated.yes &&
++              game.variant.standard && game.sourceIs(_.Pool) && game.userIds.distinct.size == 2 &&
++              doc.getAsOpt[UserId]("white") == game.whitePlayer.userId &&
++              doc.getAsOpt[UserId]("black") == game.blackPlayer.userId
++        if automatic then
++          userApi
++            .byIds(game.userIds)
++            .flatMap: users =>
++              if users.size == 2 && users.forall(u => u.isBot && u.enabled.yes) then funit
++              else fufail("Automatic games require two enabled BOT accounts")
++        else if allowed then funit
++        else fufail("Game has no Maia pool reservation")
 +
 +  val gameRepo = GameRepo(db(config.gameColl), admitNoSweat)
  
@@ -6797,10 +6851,10 @@ index 0000000..48dc736
 +    current.isEmpty || current.contains(username) || current.contains(alias)
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..2ceeb25
+index 0000000..4eb7fea
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,714 @@
+@@ -0,0 +1,875 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -6827,10 +6881,23 @@ index 0000000..2ceeb25
 +  private val records = env.mongo.mainDb(CollName("nosweat_game"))
 +  private val lastPoll = AtomicLong(System.currentTimeMillis())
 +  private val adapterInstance = AtomicReference("")
-+  private val connectedBots = new java.util.concurrent.ConcurrentHashMap[GameId, Color]()
++  private val connectedBots = new java.util.concurrent.ConcurrentHashMap[GameId, Set[Color]]()
++  private val activityEnabled = env.config.getOptional[Boolean]("nosweat.activity.enabled").getOrElse(false)
++  require(
++    !activityEnabled || !env.config.getOptional[Boolean]("nosweat.study.enabled").getOrElse(false),
++    "Automatic public play and bounded studies cannot run together"
++  )
++  val normalCapacity = if activityEnabled then lila.bot.PublicBotActivity.capacity else 2
++  private val activityState = env.mongo.mainDb(CollName("nosweat_activity"))
++  private val nextActivityAdmission = AtomicLong(0)
++  private def automatic(doc: Bdoc): Boolean = doc.getAsOpt[Boolean]("automatic").contains(true)
++  private def occupied(doc: Bdoc): Set[UserId] =
++    if automatic(doc) then List("white", "black").flatMap(doc.getAsOpt[UserId]).toSet
++    else doc.getAsOpt[UserId]("bot").toSet
 +  private def disconnectBot(id: GameId): Unit =
-+    Option(connectedBots.remove(id)).foreach: color =>
-+      lila.common.Bus.pub(lila.core.round.Tell(id, lila.core.round.RoundBus.BotConnected(color, false)))
++    Option(connectedBots.remove(id)).foreach: colors =>
++      colors.foreach: color =>
++        lila.common.Bus.pub(lila.core.round.Tell(id, lila.core.round.RoundBus.BotConnected(color, false)))
 +  private[app] val queue = scalalib.actor.AsyncActorSequencer(
 +    maxSize = Max(32),
 +    timeout = 20.seconds,
@@ -6852,6 +6919,7 @@ index 0000000..2ceeb25
 +  private def botId(bot: JsObject): UserId = UserId((bot \ "username").as[String].toLowerCase)
 +  private lazy val botsById = roster.map(bot => botId(bot) -> bot).toMap
 +  private lazy val botIds = botsById.keySet
++  private lazy val botPool = botIds.toVector
 +  private val ratingCatalog = new lila.bot.PoolCatalog
 +  private val poolKeys = List(
 +    PerfKey.ultraBullet,
@@ -7347,7 +7415,7 @@ index 0000000..2ceeb25
 +          )
 +          val perfKey = lila.rating.PerfType(chess.variant.Standard, chess.Speed(clock)).key
 +          val rated = user.isDefined && mode != "unlimited" && (data \ "rated").asOpt[Boolean].getOrElse(true)
-+          val busy = games.flatMap(_._1.getAsOpt[UserId]("bot")).toSet ++ studyBusy._2
++          val busy = games.flatMap(g => occupied(g._1)).toSet ++ studyBusy._2
 +          for
 +            human <- user.traverse(u => env.user.api.byIdWithPerf(u.id, perfKey)).map(_.flatten)
 +            rating = human.fold(1500)(_.perf.intRating.value)
@@ -7413,6 +7481,143 @@ index 0000000..2ceeb25
 +      "anonymous" -> game.players(color).userId.isEmpty
 +    )
 +
++  private def activityPaused: Fu[Boolean] =
++    if !activityEnabled then fuTrue
++    else activityState.byId[Bdoc]("public").map(_.flatMap(_.getAsOpt[Boolean]("paused")).getOrElse(false))
++
++  def activityStatus: Fu[JsObject] =
++    for
++      _ <- ready
++      paused <- activityPaused
++      games <- current()
++    yield Json.obj(
++      "enabled" -> activityEnabled,
++      "scope" -> "maia-pool",
++      "paused" -> paused,
++      "active" -> games.count(g => automatic(g._1)),
++      "target" -> lila.bot.PublicBotActivity.target,
++      "totalActive" -> games.size,
++      "capacity" -> normalCapacity,
++      "drained" -> !games.exists(g => automatic(g._1)),
++      "draining" -> (paused && games.exists(g => automatic(g._1)))
++    )
++
++  // Pausing closes only future automatic admissions. Existing native clocks,
++  // moves and results continue normally, even across adapter polling cycles.
++  def pauseActivity(paused: Boolean): Fu[JsObject] = queue:
++    activityState.update
++      .one(
++        bid("public"),
++        set("paused" -> paused),
++        upsert = true
++      )
++      .flatMap(_ => activityStatus)
++
++  private def replenishActivity(): Funit =
++    val now = System.currentTimeMillis()
++    if !activityEnabled || now < nextActivityAdmission.get() then funit
++    else
++      nextActivityAdmission.set(now + 1000)
++      queue:
++        for
++          paused <- activityPaused
++          games <- current()
++          _ <-
++            if !lila.bot.PublicBotActivity.canAdmit(paused, games.count(g => automatic(g._1)), games.size)
++            then funit
++            else
++              val busy = games.flatMap(g => occupied(g._1)).toSet
++              val available = botPool.filterNot(busy)
++              if available.size < 2 then funit
++              else
++                for
++                  control <- activityState.byId[Bdoc]("public")
++                  admitted = control.flatMap(_.getAsOpt[Long]("admitted")).getOrElse(0L)
++                  key = lila.bot.PublicBotActivity.speed(admitted)
++                  first = available(scalalib.SecureRandom.nextInt(available.size))
++                  whiteOpt <- env.user.api.byIdWithPerf(first, key)
++                  _ <- whiteOpt match
++                    case Some(white) if white.user.isBot && white.user.enabled.yes =>
++                      poolOpponent(key, white.perf.intRating.value, busy + first).flatMap: black =>
++                        createAutomatic(white, black, key, admitted)
++                    case _ =>
++                      ratingCatalog.update(first, Map.empty)
++                      funit
++                yield ()
++        yield ()
++          // Admission scarcity or a failed policy freeze must not interrupt move
++          // polling for games already in progress. The next normal poll may retry.
++      .recover:
++        case _: NoSweatError => ()
++
++  private def createAutomatic(
++      white: lila.core.user.WithPerf,
++      black: lila.core.user.WithPerf,
++      key: PerfKey,
++      admitted: Long
++  ): Funit =
++    val blitz = key == PerfKey.blitz
++    val clock = Clock.Config(
++      Clock.LimitSeconds(if blitz then 300 else 600),
++      Clock.IncrementSeconds(if blitz then 3 else 5)
++    )
++    for
++      frozen <- adapter(
++        "/freeze-automatic",
++        Json.obj(
++          "white" -> (botsById(white.user.id) \ "id").as[String],
++          "black" -> (botsById(black.user.id) \ "id").as[String]
++        )
++      )
++      _ =
++        for (color, bot) <- List("white" -> white, "black" -> black) do
++          val policy = frozen \ color
++          requireThat(
++            (policy \ "version").asOpt[String].contains("public-bot-human-timing-v1") &&
++              (policy \ "addedHumanWait").asOpt[Boolean].contains(true) &&
++              (policy \ "rated").asOpt[Boolean].contains(true) &&
++              (policy \ "production" \ "bot")
++                .asOpt[String]
++                .contains((botsById(bot.user.id) \ "id").as[String]),
++            503,
++            "Automatic game policy unavailable"
++          )
++      id <- env.game.idGenerator.game
++      game = lila.core.game
++        .newGame(
++          chess =
++            chess.Game(position = chess.variant.Standard.initialPosition, clock = Some(clock.toClock.start)),
++          players = ByColor(c => lila.game.Player.make(c, Some(if c == Color.white then white else black))),
++          rated = Rated(true),
++          source = Source.Pool,
++          pgnImport = None,
++          daysPerTurn = None,
++          rules = Set(GameRule.noRematch, GameRule.noGiveTime, GameRule.noClaimWin)
++        )
++        .withId(id)
++        .start
++      _ <- records.insert.one(
++        bdoc(
++          "_id" -> id,
++          "automatic" -> true,
++          "white" -> white.user.id,
++          "black" -> black.user.id,
++          "state" -> "reserved",
++          "rated" -> true,
++          "snapshot" -> Json.stringify(frozen),
++          "createdAt" -> nowInstant,
++          "control" -> clock.show
++        )
++      )
++      _ <- (for
++        _ <- env.game.gameRepo.insertDenormalized(game)
++        _ <- env.round.onStart.exec(id)
++        _ <- records.update.one(bid(id), set("state" -> "active"))
++        _ <- activityState.update.one(bid("public"), set("admitted" -> (admitted + 1)), upsert = true)
++      yield ()).recoverWith:
++        case error => failGame(id, "automatic_admission_failure").flatMap(_ => fufail(error))
++    yield ()
++
 +  def games(instance: Option[String]): Fu[JsValue] =
 +    val pollingInstance = instance.filter(_.matches("[0-9a-f-]{36}"))
 +    val restarted = pollingInstance
@@ -7431,6 +7636,7 @@ index 0000000..2ceeb25
 +    ready
 +      .map(_ => pollingInstance.foreach(_ => env.bot.onlineApiUsers.setManagedOnline(botIds)))
 +      .flatMap(_ => recover)
++      .flatMap(_ => replenishActivity())
 +      .flatMap(_ => current())
 +      .flatMap: games =>
 +        games
@@ -7438,18 +7644,23 @@ index 0000000..2ceeb25
 +            env.bot.jsonView
 +              .gameState(WithInitialFen(game, None))
 +              .map: state =>
-+                val bot = doc.getAsOpt[UserId]("bot").get
-+                val color = game.player(bot).get.color
-+                if Option(connectedBots.putIfAbsent(game.id, color)).isEmpty then
-+                  lila.common.Bus.pub(
-+                    lila.core.round.Tell(game.id, lila.core.round.RoundBus.BotConnected(color, true))
-+                  )
++                val isAutomatic = automatic(doc)
++                val bot = if isAutomatic then game.player.userId.get else doc.getAsOpt[UserId]("bot").get
++                val colors = if isAutomatic then Color.all.toSet else Set(game.player(bot).get.color)
++                if Option(connectedBots.putIfAbsent(game.id, colors)).isEmpty then
++                  colors.foreach: color =>
++                    lila.common.Bus.pub(
++                      lila.core.round.Tell(game.id, lila.core.round.RoundBus.BotConnected(color, true))
++                    )
++                val snapshot = Json.parse(doc.getAsOpt[String]("snapshot").get)
++                val policy = if isAutomatic then (snapshot \ game.turnColor.name).as[JsObject] else snapshot
 +                Json.obj(
 +                  "id" -> game.id.value,
 +                  "ply" -> game.ply.value,
-+                  "botToMove" -> game.player.userId.contains(bot),
++                  "botToMove" -> (isAutomatic || game.player.userId.contains(bot)),
++                  "automatic" -> isAutomatic,
 +                  "botColor" -> game.player(bot).get.color.name,
-+                  "policy" -> Json.parse(doc.getAsOpt[String]("snapshot").get),
++                  "policy" -> policy,
 +                  "clock" -> game.clock.map(c =>
 +                    Json.obj(
 +                      "initial" -> c.config.limitSeconds.value,
@@ -7464,7 +7675,11 @@ index 0000000..2ceeb25
 +    for
 +      record <- records.byId[Bdoc](id)
 +      doc = record.getOrElse(throw NoSweatError(404, "No club game"))
-+      botId = doc.getAsOpt[UserId]("bot").get
++      game <- env.round.proxyRepo.game(id)
++      botId =
++        if automatic(doc) then
++          game.flatMap(_.player.userId).getOrElse(throw NoSweatError(404, "No automatic bot seat"))
++        else doc.getAsOpt[UserId]("bot").get
 +      bot <- env.user.repo.byId(botId)
 +      pov <- env.round.proxyRepo.pov(id, botId)
 +      p = pov.getOrElse(throw NoSweatError(404, "No bot seat"))
@@ -7517,10 +7732,10 @@ index 0000000..2ceeb25
 +        )
 diff --git a/app/NoSweatStudy.scala b/app/NoSweatStudy.scala
 new file mode 100644
-index 0000000..a2fa5a2
+index 0000000..3fac5df
 --- /dev/null
 +++ b/app/NoSweatStudy.scala
-@@ -0,0 +1,329 @@
+@@ -0,0 +1,330 @@
 +package lila.app
 +
 +import play.api.libs.json.*
@@ -7649,7 +7864,8 @@ index 0000000..a2fa5a2
 +    plan.capacity(docs.count(_.getAsOpt[String]("state").contains("finished")))
 +
 +  def capacity: Fu[Int] =
-+    if !enabled || closed.get() || System.currentTimeMillis() >= deadline then fuccess(2)
++    if !enabled || closed.get() || System.currentTimeMillis() >= deadline then
++      fuccess(env.noSweat.normalCapacity)
 +    else documents.map(docs => stage(docs).max(2))
 +
 +  def busy: Fu[(Int, Set[UserId])] =
@@ -7894,10 +8110,10 @@ index 0000000..703a031
 +  def find(key: String): Option[NoSweatStudyPlan] = plans.find(_.key == key)
 diff --git a/app/controllers/NoSweat.scala b/app/controllers/NoSweat.scala
 new file mode 100644
-index 0000000..5ad3b84
+index 0000000..c20bd3d
 --- /dev/null
 +++ b/app/controllers/NoSweat.scala
-@@ -0,0 +1,243 @@
+@@ -0,0 +1,253 @@
 +package controllers
 +
 +import play.api.libs.json.*
@@ -8115,6 +8331,16 @@ index 0000000..5ad3b84
 +      env.noSweatStudy
 +        .move(id, (json \ "ply").as[Int], (json \ "move").as[String])
 +        .map(_ => Ok(Json.obj("ok" -> true)))
++
++  def activityStatus = Anon:
++    handle:
++      internal
++      club.activityStatus.map(Ok(_))
++
++  def activityPause = AnonBodyOf(parse.tolerantText(4096)): body =>
++    handle:
++      internal
++      club.pauseActivity((Json.parse(body) \ "paused").as[Boolean]).map(Ok(_))
 +
 +  def games = Anon:
 +    handle:
@@ -8942,6 +9168,23 @@ index 0000000..902252a
 +          .flatMap(_.iterator)
 +          .filterNot(excluded)
 +          .toVector
+diff --git a/modules/bot/src/main/PublicBotActivity.scala b/modules/bot/src/main/PublicBotActivity.scala
+new file mode 100644
+index 0000000..e211b19
+--- /dev/null
++++ b/modules/bot/src/main/PublicBotActivity.scala
+@@ -0,0 +1,11 @@
++package lila.bot
++
++import lila.core.perf.PerfKey
++
++/** Product limits for public spectator activity; ordinary admission shares this ceiling. */
++object PublicBotActivity:
++  val capacity = 10
++  val target = 5
++  def canAdmit(paused: Boolean, automaticGames: Int, totalGames: Int): Boolean =
++    !paused && automaticGames < target && totalGames < capacity
++  def speed(admitted: Long): PerfKey = if admitted % 2 == 0 then PerfKey.blitz else PerfKey.rapid
 diff --git a/modules/bot/src/test/ManagedPresenceTest.scala b/modules/bot/src/test/ManagedPresenceTest.scala
 new file mode 100644
 index 0000000..1752531
@@ -9015,6 +9258,31 @@ index 0000000..8ffa31b
 +    catalog.update(id, Map(PerfKey.blitz -> 1500))
 +    catalog.replace(Map.empty)
 +    assertEquals(catalog.within(PerfKey.blitz, 1500, Set.empty), Vector.empty)
+diff --git a/modules/bot/src/test/PublicBotActivityTest.scala b/modules/bot/src/test/PublicBotActivityTest.scala
+new file mode 100644
+index 0000000..bf47918
+--- /dev/null
++++ b/modules/bot/src/test/PublicBotActivityTest.scala
+@@ -0,0 +1,19 @@
++package lila.bot
++
++import lila.core.perf.PerfKey
++
++class PublicBotActivityTest extends munit.FunSuite:
++  test("five background games share ten total slots, preserving room for human admissions"):
++    assert(PublicBotActivity.canAdmit(false, 4, 9))
++    assert(!PublicBotActivity.canAdmit(false, 5, 5))
++    assert(!PublicBotActivity.canAdmit(false, 4, 10))
++    assert(!PublicBotActivity.canAdmit(false, 0, 10))
++  test("manual pause prevents replenishment at every occupancy without touching existing games"):
++    for automatic <- 0 to 5; total <- automatic to 10 do
++      assert(!PublicBotActivity.canAdmit(true, automatic, total))
++    assert(PublicBotActivity.canAdmit(false, 0, 0))
++  test("successful admissions alternate native Blitz and Rapid independent of completion order"):
++    assertEquals(
++      (0L until 6L).map(PublicBotActivity.speed).toList,
++      List(PerfKey.blitz, PerfKey.rapid, PerfKey.blitz, PerfKey.rapid, PerfKey.blitz, PerfKey.rapid)
++    )
 diff --git a/modules/core/src/main/NostrName.scala b/modules/core/src/main/NostrName.scala
 new file mode 100644
 index 0000000..6d6be63
@@ -21223,10 +21491,10 @@ index 0000000..806bb5f
 +      )
 diff --git a/ui/analyse/css/_move-tooltip.scss b/ui/analyse/css/_move-tooltip.scss
 new file mode 100644
-index 0000000..61ea569
+index 0000000..c49c61e
 --- /dev/null
 +++ b/ui/analyse/css/_move-tooltip.scss
-@@ -0,0 +1,39 @@
+@@ -0,0 +1,44 @@
 +.nosweat-move-tooltip {
 +  position: fixed;
 +  z-index: 10000;
@@ -21235,18 +21503,20 @@ index 0000000..61ea569
 +  overflow: hidden;
 +  border: 1px solid #484346;
 +  border-radius: 5px;
-+  background: rgba(24, 20, 22, 0.96);
++  background: rgb(24 20 22 / 0.96);
 +  color: #eee;
 +  box-shadow: 0 4px 16px #0006;
 +  backdrop-filter: blur(8px);
 +  pointer-events: none;
 +}
++
 +.nosweat-move-tooltip__header {
 +  padding: 0.45rem 0.75rem;
 +  border-bottom: 1px solid #484346;
 +  font-size: 1.1rem;
 +  font-weight: 600;
 +}
++
 +.nosweat-move-tooltip__rows {
 +  display: grid;
 +  grid-template-columns: auto auto;
@@ -21257,12 +21527,15 @@ index 0000000..61ea569
 +  font-variant-numeric: tabular-nums;
 +  white-space: nowrap;
 +}
++
 +.nosweat-move-tooltip__rows > :nth-child(even) {
 +  text-align: right;
 +}
++
 +.nosweat-move-tooltip__maia {
 +  color: #e97562;
 +}
++
 +.nosweat-move-tooltip__fish {
 +  color: #62b0e8;
 +}

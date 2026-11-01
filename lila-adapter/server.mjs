@@ -6,8 +6,10 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { NostrAuth, AdapterError } from './nostr-auth.mjs';
 import { Maia } from './maia.mjs';
+import { PredictionQueue } from './prediction-queue.mjs';
 import { createZapInvoice, validateZapReceipt, InvoiceError } from './lightning.mjs';
-import { freeze, freezeForHuman, effectivePolicy, targetTimeForPolicy, addedWait } from './policy.mjs';
+import { freeze, freezeForHuman, freezeAutomatic, automaticProduction, automaticTargetTime,
+  effectivePolicy, targetTimeForPolicy, addedWait } from './policy.mjs';
 import { validatePersonality } from './personality.mjs';
 
 const token = process.env.ADAPTER_TOKEN;
@@ -24,6 +26,7 @@ if (botsById.size !== roster.length || new Set(roster.map(bot => bot.username.to
 const auth = new NostrAuth(publicOrigin);
 const maia = new Maia(process.env.MAIA_PYTHON, fileURLToPath(new URL('./maia_worker.py', import.meta.url)), process.env.MAIA_MODEL);
 await maia.ready;
+const predictions = new PredictionQueue(maia);
 let stopping = false;
 let lastNativeSuccess = Date.now();
 const inFlight = new Set();
@@ -57,18 +60,24 @@ async function play(game) {
   try {
     const started = performance.now();
     const moves = game.state.moves ? game.state.moves.split(' ') : [];
-    const policy = effectivePolicy(game.policy, game.ply, botsById);
-    const targetMs = targetTimeForPolicy(game.policy, { baseSeconds: game.clock?.initial ?? null, incrementSeconds: game.clock?.increment ?? 0 });
-    const result = await maia.predict(moves, policy);
+    const production = game.automatic ? automaticProduction(game.policy) : game.policy;
+    const policy = effectivePolicy(production, game.ply, botsById);
+    const clock = { baseSeconds: game.clock?.initial ?? null, incrementSeconds: game.clock?.increment ?? 0 };
+    const targetMs = game.automatic ? automaticTargetTime(game.policy, clock) : targetTimeForPolicy(production, clock);
+    const turn = { id: game.id, ply: game.ply };
+    const result = await predictions.predict(moves, policy, game.automatic === true, turn);
     const elapsed = performance.now() - started;
     const remaining = (game.botColor === 'white' ? game.state.wtime : game.state.btime) ?? 60000;
     const waitMs = addedWait(targetMs, elapsed, remaining - elapsed);
     if (waitMs > 0) await delay(waitMs);
+    if (!predictions.isCurrent(turn)) return;
     if (!maia.healthy || stopping) throw Error('Maia worker unavailable');
     await native(`/club/internal/${game.id}/move`, { ply: game.ply, move: result.move,
       timing: { targetMs, actualMs: Math.round(performance.now() - started), inferenceMs: result.inferenceMs } });
     lastSubmitted.set(game.id, game.ply);
   } catch (error) {
+    // Obsolete turns and temporary queue saturation use the same neutral retry
+    // path as native stale-ply conflicts. The next poll can admit fresh work.
     if (error.status !== 409) {
       console.error(JSON.stringify({ event: 'maia_game_failure', id: game.id, error: error.message }));
       await native(`/club/internal/${game.id}/failure`, {}).catch(() => {});
@@ -82,6 +91,7 @@ async function poll() {
       const games = await native('/club/internal/games');
       if (!Array.isArray(games)) throw Error('Invalid native game list');
       latestGames = games;
+      predictions.synchronize(games);
       lastNativeSuccess = Date.now();
       const ids = new Set(games.map(g => g.id));
       for (const id of lastSubmitted.keys()) if (!ids.has(id)) lastSubmitted.delete(id);
@@ -127,6 +137,12 @@ const server = http.createServer(async (request, response) => {
       if (!bot) throw new AdapterError(400, 'Unknown opponent');
       return send(200, Object.hasOwn(body, 'opponentRating') ? freezeForHuman(bot, body.opponentRating) : freeze(bot));
     }
+    if (request.url === '/freeze-automatic') {
+      if (!maia.healthy) throw new AdapterError(503, 'Maia unavailable');
+      const white = botsById.get(body.white), black = botsById.get(body.black);
+      if (!white || !black || white.id === black.id) throw new AdapterError(400, 'Invalid automatic seats');
+      return send(200, { white: freezeAutomatic(white), black: freezeAutomatic(black) });
+    }
     throw new AdapterError(404, 'Unknown endpoint');
   } catch (error) {
     if (error instanceof InvoiceError) {
@@ -146,6 +162,6 @@ maia.child.once('exit', () => {
 });
 console.log(`Private Nostr/Maia adapter listening on 127.0.0.1:${port}`);
 void poll();
-function stop() { stopping = true; server.close(); maia.close(); }
+function stop() { stopping = true; predictions.close(); server.close(); maia.close(); }
 process.on('SIGTERM', stop);
 process.on('SIGINT', stop);

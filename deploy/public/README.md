@@ -119,7 +119,7 @@ Inspect `journalctl -u nosweatchess-app` and the other units; HTTP request loggi
 is disabled. The public source archive includes exact upstream trees and our
 patches, with build instructions and licenses, but no accounts, keys or backups.
 
-There is a two-game global cap. Anonymous games are casual. Nostr accounts start at native provisional 1500 and use native Glicko ratings; automatic pairing stays within ±200. The 44 bot priors remain estimates, with per-speed provisional seeds. Newly supported speed categories inherit blitz/rapid priors as explicit starting estimates. Existing speed ratings are never reset.
+The default managed Maia pool has a two-game cap. The explicitly enabled [public bot activity mode](../../docs/public-bot-activity.md) shares ten Maia-driven games between human play and up to five rated spectator games, with authenticated manual pause/drain; Friend games retain their separate admission path. Anonymous games are casual. Nostr accounts start at native provisional 1500 and use native Glicko ratings; automatic pairing stays within ±200. The 44 bot priors remain estimates, with per-speed provisional seeds. Newly supported speed categories inherit blitz/rapid priors as explicit starting estimates. Existing speed ratings are never reset.
 Bot personalities now fix move history, human timing on/off and timing style per
 identity. Presence uses one expiring managed health lease, and pairing uses a
 derived native-rating index with admission-time validation. The roster remains 44
