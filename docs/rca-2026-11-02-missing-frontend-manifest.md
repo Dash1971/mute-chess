@@ -76,6 +76,21 @@ used. The native departure-register checks and all five register tests pass;
 the changed TypeScript file passes the existing formatter.
 
 The unchanged frontend-only recovery build subsequently finished in 8.9 seconds
-and emitted both `manifest.cbea6335.js` and `manifest.json`. The complete artifact
-check and repaired-release results are recorded here after verification; a
-successful recovery build alone is not being described as a successful deployment.
+and emitted both `manifest.cbea6335.js` and `manifest.json`. Before switching,
+all 5,712 referenced files were verified to exist and match the actual build
+output byte for byte. The corrected `main-373753b3da05-0623a8d8-assets1` release
+is live, with the original compiled backend, WebSocket and GIF binaries retained.
+No additional backend build was needed.
+
+Live verification passed for the manifest, JavaScript/CSS responses and MIME
+types, all nine service roles, WebSocket upgrade, GIF renderer and protected Maia
+endpoint. The existing security monitor reported no drift or exposure findings.
+All thirteen current-data fingerprints matched before and after the repaired
+switch. Fresh browser acceptance confirmed the profile npub/copy control,
+permanent resolver, Nostr URI search, ordinary display-name search, native mini
+profile npub content, and absence of a Nostr field on a bot profile.
+
+The final persisted activity state remained paused, with zero active native,
+pool and study games. Bots were not restarted. The preventive source correction
+passed all four required PR checks and merged in PR #215; no release framework
+or backup redesign was introduced.
