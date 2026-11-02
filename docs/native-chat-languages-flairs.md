@@ -33,9 +33,13 @@ Native Lichess supplies the chess experience translations. Mute-specific sign-in
 
 The native picker’s **Bot flairs** category collects a small technology-themed set, with additive cyberpunk/cypherpunk search keywords and the requested original artwork. Existing native flair IDs, profile form validation, preference to hide flairs and normal display paths remain intact.
 
-Managed bots with no flair receive one randomly during existing provisioning. The update is conditional on the managed-bot marker and missing flair field, so restarts do not reshuffle assignments or overwrite an existing choice. Ratings, names, history, policies and country fields are untouched; the icons make no claim about a bot’s real nationality.
+Managed bots with no flair receive one randomly during existing provisioning. The original named roster, sci-fi homage identities and special public aliases receive only the six new custom flairs; a one-time marker preserves their assignments across restarts. Wintermute has a fixed Circuit Knight assignment, as requested by the owner. Other bots use a missing-flair-only update, preserving existing choices. All updates require the managed-bot marker. Ratings, names, history, policies and country fields are untouched; the icons make no claim about a bot’s real nationality.
 
 The broken-image investigation found the gateway counted static image requests against the same 600/minute bucket as page actions. The picker contains thousands of icons. Static GET/HEAD requests now have their own bounded 6000/minute bucket, retaining the 600/minute action limit, file containment, method restrictions and connection limits. The real-handler test verifies that 650 image requests succeed without exhausting a page action, and that the action limit still rejects request 601.
+
+## Bot locations (#201)
+
+The native free-text profile Location field receives a stable assignment during existing bot provisioning, only when empty. Character locations match their worlds: Wintermute in Villa Straylight, Freeside; Judge Dredd/Anderson in Mega-City One; Blade Runner characters in Los Angeles; Cyberpunk characters in Night City; HAL9000 aboard Discovery One; GLaDOS at Aperture Science. General names receive locations from small themed groups where possible. Public display aliases are resolved without renaming accounts. Human locations and country flags remain untouched. Per the owner’s direction, no explanatory fictional-location note is added to the UI.
 
 ## Focused verification
 

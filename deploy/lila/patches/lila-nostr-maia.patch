@@ -7901,10 +7901,10 @@ index 48a0e33..4bc93c5 100644
    });
 diff --git a/app/NoSweatBotCatalog.scala b/app/NoSweatBotCatalog.scala
 new file mode 100644
-index 0000000..648ef45
+index 0000000..8efd4b7
 --- /dev/null
 +++ b/app/NoSweatBotCatalog.scala
-@@ -0,0 +1,110 @@
+@@ -0,0 +1,186 @@
 +package lila.app
 +
 +import play.api.libs.json.*
@@ -7912,14 +7912,16 @@ index 0000000..648ef45
 +
 +/** Initialization of assigned bot priors; native Glicko and earned counts remain unchanged. */
 +private[app] object NoSweatBotCatalog:
-+  val flairs = Vector(
++  val customFlairs = Vector(
 +    "symbols.mute-circuit-knight",
 +    "symbols.mute-synthetic-eye",
 +    "symbols.mute-neural-chip",
 +    "symbols.mute-neon-fox",
 +    "symbols.mute-origami-crane",
-+    "symbols.mute-ghost-terminal",
++    "symbols.mute-ghost-terminal"
++  )
 +
++  val flairs = customFlairs ++ Vector(
 +    "smileys.robot",
 +    "smileys.alien",
 +    "smileys.alien-monster",
@@ -7937,6 +7939,80 @@ index 0000000..648ef45
 +    "symbols.antenna-bars",
 +    "symbols.infinity"
 +  )
++
++  def featuredFlair(bot: JsObject, aliases: Map[String, String]): Boolean =
++    val username = (bot \ "username").as[String].toLowerCase
++    (bot \ "name_reference").asOpt[String].isDefined ||
++    (bot \ "homage").asOpt[String].isDefined || aliases.contains(username) ||
++    (!assigned(bot) && !username.matches("signal(train|test)[0-9]+"))
++
++  def chooseFlair(bot: JsObject, aliases: Map[String, String]): String =
++    if (bot \ "username").as[String].equalsIgnoreCase("Wintermute") then "symbols.mute-circuit-knight"
++    else
++      val choices = if featuredFlair(bot, aliases) then customFlairs else flairs
++      choices(scala.util.Random.nextInt(choices.size))
++
++  private val locations = Vector(
++    "Night City",
++    "Chiba City",
++    "Neo-Tokyo",
++    "The Sprawl",
++    "Freeside Orbital",
++    "Ceres Station",
++    "Tycho Station",
++    "The Belt",
++    "Ghost Sector Seven",
++    "Neon Bazaar",
++    "Low Orbit",
++    "Simstim Alley",
++    "Relay Station Zero",
++    "Black ICE Frontier",
++    "Outer Rim",
++    "Neon Rain District"
++  )
++
++  def chooseLocation(bot: JsObject, aliases: Map[String, String]): String =
++    val username = (bot \ "username").as[String].toLowerCase
++    val name = aliases
++      .get(username)
++      .orElse((bot \ "name").asOpt[String])
++      .getOrElse(username)
++      .toLowerCase
++      .replaceAll("[^a-z0-9]", "")
++    name match
++      case "wintermute" => "Villa Straylight, Freeside"
++      case "neuromancer" => "Freeside construct"
++      case "hal9000" => "Discovery One, Jupiter transit"
++      case "judgedredd" | "judgeanderson" | "walterwobot" => "Mega-City One"
++      case "judgedeath" | "judgefear" | "judgefire" | "judgemortis" => "Deadworld"
++      case "pris" | "roybatty" | "rachael" | "eldontyrell" | "leon" | "gaff" | "rickdeckard" =>
++        "Los Angeles, 2019"
++      case "officerk" => "Los Angeles, 2049"
++      case "case" | "molly" => "Chiba City"
++      case "armitage" | "johnashpool" | "mariefrancetessier" => "The Sprawl"
++      case "johnnysilverhand" | "altcunningham" | "rogueamendiares" | "judyalvarez" | "gorotakemura" |
++          "jackiewelles" | "viktorvektor" | "davidmartinez" | "lucy" | "hideo" =>
++        "Night City"
++      case "panampalmer" => "Badlands, outside Night City"
++      case "songbird" | "solomonreed" => "Dogtown, Night City"
++      case "durandal" => "UESC Marathon, Tau Ceti"
++      case "shodan" => "Citadel Station"
++      case "glados" => "Aperture Science"
++      case "joshua" => "Cheyenne Mountain"
++      case "mycroft" => "Luna City"
++      case "deepthought" => "Magrathea"
++      case "colossus" => "Colossus Control Complex"
++      case "skynet" => "Cyberdyne Systems"
++      case _ =>
++        val themed =
++          if List("ghost", "shade", "phantom", "null", "void").exists(name.contains) then
++            Vector("Ghost Sector Seven", "Black ICE Frontier", "The Sprawl")
++          else if List("signal", "relay", "orbit", "echo").exists(name.contains) then
++            Vector("Relay Station Zero", "Freeside Orbital", "Low Orbit")
++          else if List("neon", "chrome", "circuit", "byte", "kernel", "metro").exists(name.contains) then
++            Vector("Night City", "Neo-Tokyo", "Neon Rain District", "Neon Bazaar")
++          else locations
++        themed(scala.util.Random.nextInt(themed.size))
 +
 +  val speeds = List(
 +    PerfKey.ultraBullet,
@@ -8017,10 +8093,10 @@ index 0000000..648ef45
 +    current.isEmpty || current.contains(username) || current.contains(alias)
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..5135d36
+index 0000000..4017ed4
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,891 @@
+@@ -0,0 +1,906 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -8314,14 +8390,29 @@ index 0000000..5135d36
 +                .void
 +          else funit
 +      _ <- env.user.repo.withColl:
++        val wintermute = name.value.equalsIgnoreCase("Wintermute")
++        val featured = NoSweatBotCatalog.featuredFlair(bot, botAliases)
++        val condition =
++          if wintermute then bdoc(UserFields.flair -> bdoc("$ne" -> "symbols.mute-circuit-knight"))
++          else if featured then bdoc("noSweatFeaturedFlairVersion" -> bdoc("$exists" -> false))
++          else bdoc(UserFields.flair -> bdoc("$exists" -> false))
 +        _.update
 +          .one(
-+            bid(user.id) ++ bdoc("noSweatBot" -> true, UserFields.flair -> bdoc("$exists" -> false)),
++            bid(user.id) ++ bdoc("noSweatBot" -> true) ++ condition,
 +            set(
-+              UserFields.flair -> NoSweatBotCatalog.flairs(
-+                scala.util.Random.nextInt(NoSweatBotCatalog.flairs.size)
-+              )
++              bdoc(UserFields.flair -> NoSweatBotCatalog.chooseFlair(bot, botAliases)) ++
++                Option.when(featured)(bdoc("noSweatFeaturedFlairVersion" -> "cyberpunk-v1")).getOrElse(bdoc())
 +            )
++          )
++          .void
++      _ <- env.user.repo.withColl:
++        _.update
++          .one(
++            bid(user.id) ++ bdoc("noSweatBot" -> true) ++ or(
++              bdoc(s"${UserFields.profile}.location" -> bdoc("$exists" -> false)),
++              bdoc(s"${UserFields.profile}.location" -> "")
++            ),
++            set(s"${UserFields.profile}.location" -> NoSweatBotCatalog.chooseLocation(bot, botAliases))
 +          )
 +          .void
 +    yield env.user.lightUserApi.invalidate(user.id)
@@ -23432,10 +23523,10 @@ index 0000000..b207c43
 +</svg>
 diff --git a/src/test/scala/NoSweatBotCatalogTest.scala b/src/test/scala/NoSweatBotCatalogTest.scala
 new file mode 100644
-index 0000000..3772eee
+index 0000000..bb36ad1
 --- /dev/null
 +++ b/src/test/scala/NoSweatBotCatalogTest.scala
-@@ -0,0 +1,95 @@
+@@ -0,0 +1,116 @@
 +package lila.app
 +
 +import play.api.libs.json.*
@@ -23531,6 +23622,27 @@ index 0000000..3772eee
 +    assert(NoSweatBotCatalog.aliasEligible(Some("SignalTrain001"), "SignalTrain001", "Roy Batty"))
 +    assert(NoSweatBotCatalog.aliasEligible(Some("Roy Batty"), "SignalTrain001", "Roy Batty"))
 +    assert(!NoSweatBotCatalog.aliasEligible(Some("ChosenName"), "SignalTrain001", "Roy Batty"))
++
++  test("Wintermute always receives the owner's fixed Circuit Knight flair"):
++    val wintermute = Json.obj("username" -> "Wintermute")
++    assertEquals(NoSweatBotCatalog.chooseFlair(wintermute, Map.empty), "symbols.mute-circuit-knight")
++
++  test("named sci-fi identities and aliases are assigned only original cyberpunk flairs"):
++    val featured = List(
++      Json.obj("username" -> "Pris", "homage" -> "Blade Runner"),
++      Json.obj("username" -> "HAL9000", "name_reference" -> "2001: A Space Odyssey"),
++      Json.obj("username" -> "SignalTrain084")
++    )
++    val aliases = Map("signaltrain084" -> "Roy Batty")
++    for bot <- featured do
++      assert(NoSweatBotCatalog.featuredFlair(bot, aliases))
++      assert(NoSweatBotCatalog.customFlairs.contains(NoSweatBotCatalog.chooseFlair(bot, aliases)))
++    assert(
++      !NoSweatBotCatalog.featuredFlair(
++        Json.obj("username" -> "ordinary", "rating_assignment" -> Json.obj()),
++        aliases
++      )
++    )
 diff --git a/src/test/scala/NoSweatStudyPlanTest.scala b/src/test/scala/NoSweatStudyPlanTest.scala
 new file mode 100644
 index 0000000..806bb5f

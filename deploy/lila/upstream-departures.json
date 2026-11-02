@@ -501,7 +501,7 @@
         },
         {
           "id": "bot-flair-picker",
-          "rationale": "Issues #89/#126 reuse the native flair picker, validation and display. A small Bot flairs group collects existing technology symbols and the requested original cyberpunk artwork; search keywords are additive. Managed bots receive a randomly selected native flair only when no flair exists, preserving existing user identities, ratings and prior flair assignments.",
+          "rationale": "Issues #89/#126 reuse the native flair picker, validation and display. A small Bot flairs group collects existing technology symbols and the requested original cyberpunk artwork; search keywords are additive. Managed bots receive a randomly selected native flair only when no flair exists, preserving existing user identities, ratings and prior flair assignments. The owner explicitly assigns Wintermute the Circuit Knight; named reference/homage/alias bots receive custom flairs once, with a version marker. #201 assigns stable native profile locations matched to character/public names, without a new profile system, human or country-field changes, or an extra UI note.",
           "verification": [
             "Validate every curated ID against list.txt and readable WebP assets; native UI build; gateway real-handler regression permits a 650-image browse independently of the unchanged 600-action limit."
           ],
