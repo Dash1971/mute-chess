@@ -59,6 +59,7 @@ try {
   assert.equal((await request('/.well-known/other.json')).status, 404);
   assert.equal((await request('/metrics')).status, 404);
   for (const [path, method] of [
+    ...['en','de','fr','ru','pt','hi','ja','zh','ko','es'].map(code => ['/' + code, 'GET']),
     ['/translation/select','POST'], ['/player','GET'], ['/player','HEAD'], ['/player/top/blitz?page=2','GET'], ['/player/top/ultraBullet','GET'],
     ['/player/top/correspondence','HEAD'], ['/stat/rating/distribution/blitz','GET'], ['/stat/rating/distribution/correspondence','HEAD'],
     ['/export/fen.gif?fen=test','GET'], ['/embed/analysis?fen=test','GET'], ['/embed/game/abcdefgh/white','HEAD'],
@@ -78,7 +79,7 @@ try {
     ['/run/captcha/00000000?solution=e2e4','GET'], ['/notify','GET'], ['/notify/clear','POST'],
   ]) assert.equal((await request(path, method)).status, 209, `${method} ${path}`);
   for (const [path, method] of [
-    ['/translation/select','GET'], ['/translation/other','POST'], ['/player','POST'], ['/player/bots','GET'], ['/player/top/network','GET'], ['/player/top/blitz','POST'],
+    ['/ja','POST'], ['/ar','GET'], ['/it','GET'], ['/translation/select','GET'], ['/translation/other','POST'], ['/player','POST'], ['/player/bots','GET'], ['/player/top/network','GET'], ['/player/top/blitz','POST'],
     ['/stat/rating/distribution/network','GET'], ['/stat/rating/distribution/blitz','POST'],
     ['/export/fen.gif','POST'], ['/export/other','GET'], ['/embed/analysis','POST'], ['/embed/other','GET'],
     ['/player/search/QuietProxy','POST'], ['/player/search/a/b','GET'],
