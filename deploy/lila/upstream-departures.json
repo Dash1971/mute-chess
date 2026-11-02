@@ -39,7 +39,7 @@
             "Owner-only Nostr page; private key stays browser-local, matching-account checks, explicit reveal/copy, timeout/visibility cleanup and Primal community links (#125)",
             "Native NoSweatBotIdentityTest: unchanged legacy insert document and atomic catalog owner metadata with zero game history; app catalog recovery/collision tests.",
             "Native formatting/compilation and existing public-name fallback tests; actual post-game metadata card shows the chosen display name while its profile href retains the canonical account ID (#210).",
-            "NostrNameTest official NIP-19 vectors plus checksum/type/case/padding negatives; NoSweatUserSearchTest accepts full npub/URI while ordinary display-name rules remain; frontend routing/private-key transport guard tests; native profile copy/layout and same-account redirect, disabled/unknown-key and BOT no-key acceptance (#212)."
+            "NostrNameTest official NIP-19 vectors plus checksum/type/case/padding negatives; NoSweatUserSearchTest accepts full npub/URI while ordinary display-name rules remain; frontend routing/private-key transport guard tests; native profile copy/layout and same-account redirect, disabled/unknown-key and BOT no-key acceptance (#212). Native hovercards expose compact linked npub/full accessible value for focused human accounts only; BOT/native non-Nostr surfaces remain unchanged."
           ],
           "files": [
             "app/controllers/Account.scala",
@@ -82,7 +82,8 @@
             "modules/user/src/test/NoSweatBotIdentityTest.scala",
             "ui/user/css/_header.scss",
             "ui/lib/src/nosweat/identity.ts",
-            "ui/lib/tests/nostrIdentity.test.ts"
+            "ui/lib/tests/nostrIdentity.test.ts",
+            "ui/lib/css/component/_power-tip.scss"
           ]
         },
         {

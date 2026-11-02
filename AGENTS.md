@@ -443,7 +443,8 @@ The owner explicitly chose Nostr semantics: human display names remain editable
 and may repeat; npub is the permanent official public identity. This is the accepted Nostr departure from Lichess: display names are not
 canonical account identifiers, and no uniqueness constraint or identity migration
 is part of this policy. Keep actual npub prominent and
-copyable on public human profiles, with a shareable npub profile URL and full-key
+copyable on public human profiles and linked visibly in native hovercards, with
+a shareable npub profile URL and full-key
 lookup. Preserve native internal user IDs and canonical foreign-key/history
 relationships; decode validated public npub input to the existing stored public
 key, not a new account. Native username parsing remains unchanged. Private nsec

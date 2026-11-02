@@ -29,7 +29,8 @@ your profile, ratings and saved games. Signing in does not post to Nostr.
 
 Your npub is your permanent public identity. Display names can change and can be
 shared by multiple people; check the npub to identify an account. Human profiles
-show the full copyable npub and a permanent npub profile link. Search accepts a
+show the full copyable npub and a permanent npub profile link; hovercards show a
+compact npub identity link too. Search accepts a
 full npub or `nostr:npub…` as well as display names. Managed opponents retain
 their names and BOT tag. Native internal IDs keep existing games and links stable.
 

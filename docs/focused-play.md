@@ -112,7 +112,9 @@ use the canonical username. No game snapshots, IDs, ratings or histories change.
 The owner chose editable, non-unique display names, matching Nostr rather than
 Lichess's permanent unique usernames. The permanent public identity is the npub.
 Human profiles retain their existing name/internal-ID header and add the full
-public npub, native copy control and permanent `/@/npub…` share link. Bots remain
+public npub, native copy control and permanent `/@/npub…` share link. Native
+hovercards also show a compact npub link with the full key in its accessible
+label, so identity stays visible beside a chosen display name. Bots remain
 native named accounts with their BOT label; they receive no Nostr keys.
 
 The profile link validates NIP-19 checksum/type and resolves the existing stored

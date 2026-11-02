@@ -3236,7 +3236,7 @@ index aa2948a..607eadf 100644
        online: List[UserWithPerfs],
        leaderboards: lila.rating.UserPerfs.Leaderboards,
 diff --git a/modules/user/src/main/ui/UserShow.scala b/modules/user/src/main/ui/UserShow.scala
-index 90a91f3..621b36b 100644
+index 90a91f3..198ea83 100644
 --- a/modules/user/src/main/ui/UserShow.scala
 +++ b/modules/user/src/main/ui/UserShow.scala
 @@ -6,7 +6,7 @@ import lila.core.user.Flag
@@ -3248,7 +3248,23 @@ index 90a91f3..621b36b 100644
    import helpers.{ *, given }
  
    def mini(
-@@ -49,25 +49,31 @@ final class UserShow(helpers: Helpers, bits: UserBits):
+@@ -38,6 +38,15 @@ final class UserShow(helpers: Helpers, bits: UserBits):
+           ,
+           ping.map(bits.signalBars)
+         ),
++        u.user.nostrKey
++          .filter(_ => focused && u.user.noBot)
++          .flatMap(lila.core.NostrName.npub)
++          .map: npub =>
++            a(
++              cls := "upt__info__npub",
++              href := s"/@/$npub",
++              ariaTitle(s"Public Nostr identity: $npub")
++            )(s"${npub.take(14)}…${npub.takeRight(10)}"),
+         realName.map(div(cls := "upt__info__realname")(_)),
+         if u.lame && ctx.isnt(u) && !Granter.opt(_.AccountInfo)
+         then div(cls := "upt__info__warning")(trans.site.thisAccountViolatedTos())
+@@ -49,25 +58,31 @@ final class UserShow(helpers: Helpers, bits: UserBits):
          frag(
            (myId.isnt(u.id) && u.enabled.yes).option(
              div(cls := "upt__actions btn-rack")(
@@ -6443,6 +6459,27 @@ index 9d823f0..f5e7b57 100644
  }
 +
 +@import 'engine-settings';
+diff --git a/ui/lib/css/component/_power-tip.scss b/ui/lib/css/component/_power-tip.scss
+index 3276603..17abd5c 100644
+--- a/ui/lib/css/component/_power-tip.scss
++++ b/ui/lib/css/component/_power-tip.scss
+@@ -58,6 +58,16 @@
+       }
+     }
+ 
++    &__npub {
++      display: block;
++      max-width: 100%;
++      margin-top: 0.2em;
++      overflow-wrap: anywhere;
++      color: $c-font-dim;
++      font-family: monospace;
++      font-size: 0.85em;
++    }
++
+     &__realname {
+       background: $c-bg-zebra;
+       padding: 0.1em 0;
 diff --git a/ui/lib/css/theme/board/_boards.scss b/ui/lib/css/theme/board/_boards.scss
 index 22f0a12..d64539e 100644
 --- a/ui/lib/css/theme/board/_boards.scss
