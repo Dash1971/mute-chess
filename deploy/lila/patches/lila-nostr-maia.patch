@@ -5675,17 +5675,19 @@ index fe114f6..134a4be 100644
  export const glyphs = () =>
    xhrJson(`/study/glyphs/${document.documentElement.lang}.json`, { cache: 'default' });
 diff --git a/ui/analyse/src/util.ts b/ui/analyse/src/util.ts
-index f3984e8..4d32efb 100644
+index f3984e8..3d2e824 100644
 --- a/ui/analyse/src/util.ts
 +++ b/ui/analyse/src/util.ts
-@@ -51,7 +51,16 @@ export function mergeReviewData(into: TreeNodeLite, from: TreeNodeLite): void {
+@@ -51,7 +51,18 @@ export function mergeReviewData(into: TreeNodeLite, from: TreeNodeLite): void {
    into.comments = Array.from(comments.values());
  
    const glyphs = new Map(into.glyphs?.filter(g => !g.comp).map(g => [`${g.id}:false`, g]));
 -  from.glyphs?.forEach(g => glyphs.set(`${g.id}:${!!g.comp}`, g));
 +  from.glyphs?.forEach(g => {
 +    if (
-+      (g.source === 'mobile-maia-brilliant-v1' || g.source === 'mute-chess-brilliant-v1') &&
++      (g.source === 'mobile-maia-brilliant-v1' ||
++        g.source === 'mute-chess-brilliant-v1' ||
++        g.source === 'mute-chess-brilliant-v2') &&
 +      [...glyphs.values(), ...(from.glyphs ?? []).filter(other => other !== g)].some(
 +        other => other.id >= 1 && other.id <= 6,
 +      )
@@ -24455,7 +24457,7 @@ index 0000000..c49c61e
 +}
 diff --git a/ui/analyse/src/analyse.nosweatWorker.ts b/ui/analyse/src/analyse.nosweatWorker.ts
 new file mode 100644
-index 0000000..5ce1273
+index 0000000..ea5fec5
 --- /dev/null
 +++ b/ui/analyse/src/analyse.nosweatWorker.ts
 @@ -0,0 +1,21 @@
@@ -24473,8 +24475,8 @@ index 0000000..5ce1273
 +    self.postMessage({
 +      result:
 +        'material' in event.data
-+          ? isMuteSacrifice(...event.data.material, evaluate)
-+          : classify({ ...event.data, policy: 'mute-brilliant-v1' }, evaluate),
++          ? isMuteSacrifice(...event.data.material)
++          : classify({ ...event.data, policy: 'mute-brilliant-v2' }, evaluate),
 +    });
 +  } catch (error) {
 +    self.postMessage({ error: String(error) });
@@ -26236,10 +26238,10 @@ index 0000000..d9843d5
 +}
 diff --git a/ui/analyse/src/noSweatClassify.ts b/ui/analyse/src/noSweatClassify.ts
 new file mode 100644
-index 0000000..9e2a4f9
+index 0000000..dd1b0bf
 --- /dev/null
 +++ b/ui/analyse/src/noSweatClassify.ts
-@@ -0,0 +1,266 @@
+@@ -0,0 +1,267 @@
 +// En Croissant v0.15.0 / Mobile Maia port. GPL-3.0; see analysis/PROVENANCE.md.
 +import type { Chess } from 'chessops/chess';
 +import type { NormalMove } from 'chessops/types';
@@ -26340,7 +26342,7 @@ index 0000000..9e2a4f9
 +  !position(after).isEnd() && evaluateMaterial(before) > -evaluateMaterial(after) + 100;
 +
 +// Mute-only experiment. Keep annotation()/isSacrifice() above as the EC oracle.
-+export const muteBrilliantSource = 'mute-chess-brilliant-v1';
++export const muteBrilliantSource = 'mute-chess-brilliant-v2';
 +export const muteBrilliantRules = {
 +  maxLoss: 5,
 +  minimumCp: -100,
@@ -26379,8 +26381,9 @@ index 0000000..9e2a4f9
 +  return false;
 +}
 +
-+export const isMuteSacrifice = (before: string, after: string, evaluateMaterial = naiveMaterial): boolean =>
-+  hasPieceOffer(before, after) || isSacrifice(before, after, evaluateMaterial);
++// Mute awards require a concrete legal piece offer. The independent EC
++// material probe can mistake foregone gains and quiet tactics for sacrifices.
++export const isMuteSacrifice = hasPieceOffer;
 +
 +export function muteAnnotation(
 +  previous: EvalScore | undefined,
@@ -26393,13 +26396,17 @@ index 0000000..9e2a4f9
 +): Annotation {
 +  const original = annotation(previous, before, after, color, move, ecSacrifice);
 +  if (original === '??' || original === '?' || original === '?!') return original;
++  const sacrifice = sacrificeForMove(move);
++  // Both EC labels depend on a sacrifice. Do not retain an Interesting badge
++  // when the same foregone-gain false positive has just failed the Mute test.
++  if ((original === '!!' || original === '!?') && !sacrifice) return '';
 +  const next = normalized(after, color);
 +  const loss = winChance(normalized(before.lines[0], color)) - winChance(next);
 +  if (
 +    before.lines.length > 1 &&
 +    loss <= muteBrilliantRules.maxLoss &&
 +    next >= muteBrilliantRules.minimumCp &&
-+    sacrificeForMove(move) &&
++    sacrifice &&
 +    !before.lines.some(
 +      line =>
 +        line.moves[0] !== move &&
@@ -26418,7 +26425,7 @@ index 0000000..9e2a4f9
 +  reviews: Review[];
 +  move: string;
 +  confirmation?: Review[];
-+  policy?: 'en-croissant' | 'mute-brilliant-v1';
++  policy?: 'en-croissant' | 'mute-brilliant-v2';
 +}
 +export interface ClassificationResult {
 +  symbol: Annotation;
@@ -26437,17 +26444,13 @@ index 0000000..9e2a4f9
 +  const previous = n > 2 ? reviews[n - 3] : undefined;
 +  const color = position(positions[n - 2]).turn;
 +  const sacrifice = isSacrifice(positions[n - 2], positions[n - 1], evaluateMaterial);
-+  const mute = input.policy === 'mute-brilliant-v1';
++  const mute = input.policy === 'mute-brilliant-v2';
 +  const offers = new Map<string, boolean>();
 +  const sacrificeForMove = (uci: string): boolean => {
 +    if (!offers.has(uci))
 +      offers.set(
 +        uci,
-+        isMuteSacrifice(
-+          positions[n - 2],
-+          uci === move ? positions[n - 1] : afterMove(positions[n - 2], uci),
-+          evaluateMaterial,
-+        ),
++        isMuteSacrifice(positions[n - 2], uci === move ? positions[n - 1] : afterMove(positions[n - 2], uci)),
 +      );
 +    return offers.get(uci)!;
 +  };
@@ -83898,7 +83901,7 @@ index 0000000..e4aceed
 +});
 diff --git a/ui/analyse/tests/noSweatBrilliants.test.ts b/ui/analyse/tests/noSweatBrilliants.test.ts
 new file mode 100644
-index 0000000..6609633
+index 0000000..fc3c334
 --- /dev/null
 +++ b/ui/analyse/tests/noSweatBrilliants.test.ts
 @@ -0,0 +1,135 @@
@@ -84035,7 +84038,7 @@ index 0000000..6609633
 +  assert.equal(into.glyphs?.[0].id, 2);
 +  const clean = { ...nodes[1] } as TreeNodeLite;
 +  mergeReviewData(clean, from);
-+  assert.equal(clean.glyphs?.[0].source, 'mute-chess-brilliant-v1');
++  assert.equal(clean.glyphs?.[0].source, 'mute-chess-brilliant-v2');
 +});
 diff --git a/ui/analyse/tests/noSweatExport.test.ts b/ui/analyse/tests/noSweatExport.test.ts
 new file mode 100644
@@ -84572,10 +84575,10 @@ index 0000000..d6baf70
 +});
 diff --git a/ui/analyse/tests/noSweatMuteBrilliants.test.ts b/ui/analyse/tests/noSweatMuteBrilliants.test.ts
 new file mode 100644
-index 0000000..3872a31
+index 0000000..96c1479
 --- /dev/null
 +++ b/ui/analyse/tests/noSweatMuteBrilliants.test.ts
-@@ -0,0 +1,129 @@
+@@ -0,0 +1,197 @@
 +import assert from 'node:assert/strict';
 +import { readFileSync } from 'node:fs';
 +import { test } from 'node:test';
@@ -84586,6 +84589,8 @@ index 0000000..3872a31
 +  muteAnnotation,
 +  muteBrilliantSource,
 +  isMuteSacrifice,
++  isSacrifice,
++  naiveMaterial,
 +} from '../src/noSweatClassify';
 +import { after as afterMove } from '../src/noSweatCore';
 +import type { Review } from '../src/noSweatFish';
@@ -84606,8 +84611,44 @@ index 0000000..3872a31
 +    { current: before, previous: before, quality: 'test' },
 +    { current: after, previous: after, quality: 'test' },
 +  ];
-+  return { positions: sample.positions, move: sample.move, reviews, policy: 'mute-brilliant-v1' as const };
++  return { positions: sample.positions, move: sample.move, reviews, policy: 'mute-brilliant-v2' as const };
 +};
++
++test('Qf5+ does not sacrifice the optional promotion gain from the previous position', () => {
++  const before = '6r1/p1P3pk/1q1B1b1p/3Q4/8/7P/P4PP1/2R3K1 w - - 9 41';
++  const after = afterMove(before, 'd5f5');
++  assert.equal(naiveMaterial(before), 590, 'the EC root probe includes c8=Q Rxc8 Rxc8');
++  assert.equal(naiveMaterial(after), -180, 'White still holds its original +180 material');
++  assert.equal(isSacrifice(before, after), true, 'retain the independent EC behavior');
++  assert.equal(hasPieceOffer(before, after), false, 'check permits only Kh8 or g6');
++  assert.equal(isMuteSacrifice(before, after), false);
++  const current: Snapshot = {
++    depth: 16,
++    lines: [
++      { cp: 1560, moves: ['d5f5'] },
++      { cp: 1100, moves: ['d5e4'] },
++    ],
++  };
++  const next: Snapshot = { depth: 16, lines: [{ cp: 1560, moves: [] }] };
++  const input = {
++    positions: [before, after],
++    move: 'd5f5',
++    policy: 'mute-brilliant-v2' as const,
++    reviews: [
++      { current, previous: current, quality: 'regression' },
++      { current: next, previous: next, quality: 'regression' },
++    ],
++  };
++  const result = classify(input);
++  assert.equal(result.provisional, '');
++  assert.equal(result.symbol, '', 'do not downgrade the same false sacrifice to Interesting');
++  assert.equal(classify({ ...input, policy: 'en-croissant' }).symbol, '!?');
++
++  const black = '2r3k1/p4pp1/7p/8/3q4/1Q1b1B1P/P1p3PK/6R1 b - - 9 41';
++  const blackAfter = afterMove(black, 'd4f4');
++  assert.equal(isSacrifice(black, blackAfter), true);
++  assert.equal(isMuteSacrifice(black, blackAfter), false, 'same rule from Black’s perspective');
++});
 +
 +test('five fresh-review examples pass Mute eligibility on both recorded budgets', () => {
 +  for (const sample of samples.filter((s: any) => s.freshBrilliant))
@@ -84616,6 +84657,36 @@ index 0000000..3872a31
 +      assert.equal(result.symbol, '!!', sample.name);
 +      assert.equal(result.version, muteBrilliantSource);
 +    }
++});
++
++test('Bf5 is a defended tactic rather than a legal piece offer, while Ndxe5 retains eligibility', () => {
++  const before = 'r5k1/pp2ppbp/1q4p1/4P3/4Q1b1/P2r4/1P4PP/RNB2R1K b - - 1 17';
++  const after = afterMove(before, 'g4f5');
++  assert.equal(isSacrifice(before, after), true, 'the capture-only EC probe misses quiet Rd1+');
++  assert.equal(hasPieceOffer(before, after), false, 'ordinary recaptures defend the offered pieces');
++  assert.equal(isMuteSacrifice(before, after), false);
++  assert.equal(
++    muteAnnotation(
++      undefined,
++      {
++        depth: 16,
++        lines: [
++          { cp: -560, moves: ['g4f5'] },
++          { cp: -540, moves: ['a8d8'] },
++        ],
++      },
++      { cp: -560 },
++      'black',
++      'g4f5',
++      true,
++      () => isMuteSacrifice(before, after),
++    ),
++    '',
++  );
++  const mirror = 'rnb2r1k/1p4pp/p2R4/4q1B1/4p3/1Q4P1/PP2PPBP/R5K1 w - - 1 17';
++  assert.equal(isMuteSacrifice(mirror, afterMove(mirror, 'g5f4')), false);
++  const knight = 'r2r2k1/pp1nppbp/1qn3p1/4P3/5Pb1/P2B1N2/1P4PP/RNB1QR1K b - - 4 14';
++  assert.equal(isMuteSacrifice(knight, afterMove(knight, 'd7e5')), true);
 +});
 +
 +test('an apparent knight offer can qualify when EC sees only a 90-point net material change', () => {

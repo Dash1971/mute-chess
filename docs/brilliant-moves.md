@@ -81,14 +81,14 @@ Stockfish evaluation. It can miss meaningful temporary piece offers because
 later captures restore material. In Hansen's Nd7 example its net change is only
 90 material units, below the strict greater-than-100 test.
 
-## Exact Mute Chess policy: mute-chess-brilliant-v1
+## Exact Mute Chess policy: mute-chess-brilliant-v2
 
 The [README](../README.md#more-chances-to-find-a-brilliant-move) specifies every
 eligibility gate and threshold. The implementation is in the namespaced native
 `ui/analyse/src/noSweatClassify.ts`, carried by our
 [Lila patch](../deploy/lila/patches/lila-nostr-maia.patch). The original
 `annotation()` and `isSacrifice()` remain unchanged for EC compatibility tests.
-The classification worker explicitly selects `mute-brilliant-v1`; Mobile Maia
+The classification worker explicitly selects `mute-brilliant-v2`; Mobile Maia
 and the independent references are not modified.
 
 The exact decision order is:
@@ -99,13 +99,18 @@ The exact decision order is:
    `W(best-before) - W(after) <= 5`, `after >= -100 cp`, and veto any *other
    evaluated* non-sacrificing candidate at `>= +600 cp`. Passing means provisional
    `!!`, even if the played move is second or outside the searched pair.
-3. If those gates fail, retain the EC label, except an EC `!!` becomes `!?`
-   when its sacrifice remains above −200 cp, or blank otherwise.
+3. Clear sacrifice-derived EC `!!`/`!?` when the Mute material test rejects the
+   alleged sacrifice. Otherwise, if the other gates fail, retain the EC label,
+   except an EC `!!` becomes `!?` when its sacrifice remains above −200 cp,
+   or blank otherwise. Native bad-move labels and non-sacrifice `!` are unchanged.
 4. Corroborate every provisional `!!`/`!` through the existing whole-window
    reliability checks before publishing it. A withheld label is not an award.
 
-Material qualification is the OR of the unchanged EC heuristic and a new piece
-offer test. For each mover-owned non-pawn, non-king piece after the move, compute
+Material qualification requires a legal piece offer. The original EC probe is
+not an eligibility fallback: its root moves and capture-only continuations can
+mistake both postponed gains and quiet tactical defenses for sacrifices. The
+independent EC predicate and EC policy mode remain unchanged. For each
+mover-owned non-pawn, non-king piece after the move, compute
 the opponent's best material gain from legal captures on that piece's square.
 After each capture, the other side may capture on that same square or stop;
 the best result is found recursively. Recaptures, legal pins, en passant where
@@ -117,9 +122,38 @@ Credit is `max(0, moverMaterial(after) - moverMaterial(before))` using raw board
 material, so a free capture or promotion cannot masquerade as an equal/lower-value
 piece offer. A local exchange gain must be **strictly greater** than credit plus
 100. An already-attacked piece may remain offered; the opponent need not accept
-it in the played game. The EC branch still permits material sacrifices without
-an immediate non-pawn offer, including some multi-pawn sacrifices. A single
-pawn worth 90 units does not by itself clear its 100-unit threshold.
+it in the played game. Pawn-only sacrifices and offers that become capturable
+only after a quiet continuation are intentionally ineligible. This conservative
+rule does not prove creativity or remove every arguable award.
+
+### Foregone-gain and defended-tactic corrections (#227)
+
+In the reported `41.Qf5+` position, before FEN
+`6r1/p1P3pk/1q1B1b1p/3Q4/8/7P/P4PP1/2R3K1 w - - 9 41`, the old EC probe
+finds `c8=Q Rxc8 Rxc8` and reports +590 material. After `Qf5+`, it reports
++180 from White's perspective, which is also White's actual material balance
+before the move. The old comparison mistook postponing a rook-for-pawn gain
+for sacrificing 410 units. Black can only answer `Kh8` or `g6`; there is no
+immediate legal piece offer. The corrected Mute policy publishes neither `!!`
+nor a sacrifice-derived `!?` for this case. The exact position and its
+Black-to-move mirror are regressions; existing selected positive examples remain.
+
+The second reported case, `17...Bf5` in game186311900336, also has no profitable
+same-square piece offer. The old probe follows `Rxf5 gxf5 Qxd3 Bxe5` and sees a
+material loss, but does not search Black's quiet `...Rd1+` tactical reply after
+`Rxf5`. Even comparing against raw pre-move material would retain that false
+signal. Requiring the legal offer removes this case as well. Exact Bf5 and
+White-to-move mirror regressions protect this behavior. The reported
+`14...Ndxe5` does pass the legal-offer test and remains eligible, subject to
+the unchanged score, safe-alternative and confirmation gates.
+
+Version2 replaces the v1 material qualification and suppresses sacrifice-derived
+EC labels when no legal offer exists. All nine selected historical examples
+still pass the material-offer predicate, including the five fresh-confirmed
+examples in the table above. There is no Stockfish search-budget or Mobile Maia
+change. Existing computed badges are replaced on an explicit fresh full review;
+imported annotations are preserved, including protection against a new v2
+computed badge conflicting with an imported quality annotation.
 
 The +6.00 gate is intentionally generous and limited to the roots already
 searched, normally two. We do not search every possible safe alternative, add
@@ -156,7 +190,7 @@ and at least two depths above baseline, 1800 ms each. Material and exchange work
 stay in the cancellable classification worker, with its existing 10-second
 request watchdog and bounded material cache; a failure publishes no result.
 
-New computed `!!` glyphs carry `mute-chess-brilliant-v1` provenance. Native
+New computed `!!` glyphs carry `mute-chess-brilliant-v2` provenance. Native
 accuracy, evaluations, clocks, game outcomes, imported PGN glyphs and native tree
 ownership are unchanged. Reviews are browser-local; this change does not run a
 historical batch or silently change saved badges. Explicit reanalysis with
