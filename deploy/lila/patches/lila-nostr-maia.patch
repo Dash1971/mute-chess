@@ -34,10 +34,37 @@ index b3d33a8..a9c67c8 100644
    lazy val playApi: PlayApi = wire[PlayApi]
    lazy val challenge: Challenge = wire[Challenge]
 diff --git a/app/controllers/Account.scala b/app/controllers/Account.scala
-index 27a9f7d..8fbd270 100644
+index 27a9f7d..82ae5ca 100644
 --- a/app/controllers/Account.scala
 +++ b/app/controllers/Account.scala
-@@ -232,7 +232,8 @@ final class Account(
+@@ -50,12 +50,20 @@ final class Account(
+                 profile.links.exists(env.security.spam.detect).option("profile.links" -> ~profile.links)
+               .so: (resource, text) =>
+                 env.report.api.autoCommFlag(lila.report.Suspect(me).id, resource, text)
+-            _ <- env.user.repo.setProfile(me, profile)
+-            flairForm = env.user.forms.flair(asMod = isGranted(_.LichessTeam))
+-            _ <- bindForm(flairForm)(_ => funit, env.user.repo.setFlair(me, _))
+-          yield
+-            env.user.lightUserApi.invalidate(me)
+-            Redirect(routes.User.show(me.username)).flashSuccess
++            saved <- env.user.repo.setProfile(me, profile)
++            result <-
++              if !saved then
++                val err = form.fill(profile).withError("displayName", "That username is already taken")
++                negotiate(
++                  BadRequest.page(pages.profile(me, err, realName.isDefined)),
++                  jsonFormError(err)
++                )
++              else
++                val flairForm = env.user.forms.flair(asMod = isGranted(_.LichessTeam))
++                bindForm(flairForm)(_ => funit, env.user.repo.setFlair(me, _)).map: _ =>
++                  env.user.lightUserApi.invalidate(me)
++                  Redirect(routes.User.show(me.username)).flashSuccess
++          yield result
+       )
+   }
+ 
+@@ -232,7 +240,8 @@ final class Account(
          )
  
    def twoFactor = Auth { _ ?=> me ?=>
@@ -1117,7 +1144,7 @@ index 5222d2d..2edd45b 100644
    def apply(
        tourneyWinners: List[lila.tournament.Winner],
 diff --git a/app/views/user/show/header.scala b/app/views/user/show/header.scala
-index 26a6045..85b1983 100644
+index 26a6045..1984d27 100644
 --- a/app/views/user/show/header.scala
 +++ b/app/views/user/show/header.scala
 @@ -10,7 +10,7 @@ import lila.web.ui.bits.splitNumber
@@ -1149,7 +1176,7 @@ index 26a6045..85b1983 100644
          div(cls := "trophies")(
            views.user.bits.perfTrophies(u, info.ranks),
            otherTrophies(info),
-@@ -75,6 +79,30 @@ object header:
+@@ -75,6 +79,17 @@ object header:
          ),
          u.enabled.no.option(span(cls := "closed")("CLOSED"))
        ),
@@ -1158,29 +1185,16 @@ index 26a6045..85b1983 100644
 +        .flatMap(lila.core.NostrName.npub)
 +        .map: npub =>
 +          div(cls := "user-show__nostr")(
-+            label(`for` := "profile-nostr-npub")("Public Nostr identity (npub)"),
-+            div(cls := "copy-me")(
-+              input(
-+                id := "profile-nostr-npub",
-+                cls := "copy-me__target",
-+                tpe := "text",
-+                spellcheck := "false",
-+                readonly,
-+                value := npub
-+              ),
-+              button(
-+                tpe := "button",
-+                cls := "copy-me__button button button-metal",
-+                dataIcon := Icon.Clipboard,
-+                ariaTitle("Copy public npub")
-+              )
-+            ),
-+            a(cls := "user-show__nostr-link", href := s"/@/$npub")("Permanent profile link")
++            a(
++              cls := "user-show__nostr-link",
++              href := s"/@/$npub",
++              ariaTitle("Copy public npub")
++            )(npub)
 +          ),
        div(cls := "user-show__social")(
          div(cls := "number-menu")(
            u.noBot.option(
-@@ -162,6 +190,7 @@ object header:
+@@ -162,6 +177,7 @@ object header:
                    .so(profile.nonEmptyBio)
                    .map: bio =>
                      p(cls := List("bio" -> true, "muted" -> muted))(richText(bio, nl2br = true)),
@@ -2113,7 +2127,7 @@ index 4788182..377bf24 100644
      Theme("wood", "wood.jpg"), // 14/20
      Theme("wood2", "wood2.jpg"), // 7/26
 diff --git a/modules/pref/src/main/ui/AccountPages.scala b/modules/pref/src/main/ui/AccountPages.scala
-index 11cbae2..5377348 100644
+index 11cbae2..8d3c09a 100644
 --- a/modules/pref/src/main/ui/AccountPages.scala
 +++ b/modules/pref/src/main/ui/AccountPages.scala
 @@ -1,6 +1,8 @@
@@ -2133,7 +2147,7 @@ index 11cbae2..5377348 100644
 +            form("displayName"),
 +            I18nKey("mutePublicName").txt(),
 +            help = Some(
-+              "Up to 20 characters. Leave empty to use your username or a shortened Nostr public key. Your account and game history stay the same."
++              "Up to 20 characters. Names are unique without regard to capitalization and can be changed. Leave empty to use your username or a shortened npub. Your identity and game history stay the same."
 +            )
 +          )(form3.input(_)(maxlength := math.max(20, u.profile.flatMap(_.displayName).fold(0)(_.length)))),
            form3.split(
@@ -2912,10 +2926,24 @@ index 947bee6..d3f3a3f 100644
      mapping(
        "text" -> cleanTextWithSymbols(minLength = 3, maxLength = 2000),
 diff --git a/modules/user/src/main/UserRepo.scala b/modules/user/src/main/UserRepo.scala
-index 45fd497..ad0d86b 100644
+index 45fd497..621a09f 100644
 --- a/modules/user/src/main/UserRepo.scala
 +++ b/modules/user/src/main/UserRepo.scala
-@@ -236,6 +236,34 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+@@ -147,8 +147,11 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+           else if i < -2 then Color.white.some
+           else none
+ 
+-  def setProfile(id: UserId, profile: Profile): Funit =
+-    coll.updateField(bid(id), F.profile, profile).void
++  def setProfile(id: UserId, profile: Profile): Fu[Boolean] =
++    coll.update
++      .one(bid(id), set(F.profile -> profile, "nameKeys" -> PublicNameKeys(id.value, profile.displayName)))
++      .map(_.n > 0)
++      .recover(lila.db.recoverDuplicateKey(_ => false))
+ 
+   def setRealName(id: UserId, name: RealName): Funit =
+     coll.updateField(bid(id), s"${F.profile}.realName", name).void
+@@ -236,6 +239,34 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
        coll.insert.one(doc) >> byId(name.id)
  
    def existsPri[U: UserIdOf](u: U): Fu[Boolean] = coll.exists(bid(u.id))
@@ -2950,7 +2978,7 @@ index 45fd497..ad0d86b 100644
    def existsSec[U: UserIdOf](u: U): Fu[Boolean] = coll.secondary.exists(bid(u.id))
  
    def filterExists(ids: Set[UserId]): Fu[List[UserId]] =
-@@ -247,6 +275,25 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+@@ -247,6 +278,25 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
    def userIdsLikeClosed(text: UserSearch, max: Int = 10): Fu[List[UserId]] =
      userIdsLikeFilter(text, bdoc(F.enabled -> false), max)
  
@@ -2976,7 +3004,23 @@ index 45fd497..ad0d86b 100644
    private[user] def userIdsLikeFilter(text: UserSearch, filter: Bdoc, max: Int): Fu[List[UserId]] =
      coll
        .find(
-@@ -589,3 +636,8 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+@@ -383,6 +433,7 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+         bdoc(
+           F.prevEmail -> lockEmail,
+           F.createdAt -> user.createdAt,
++          "nameKeys" -> PublicNameKeys(user.id.value, None),
+           F.deletedAt -> nowInstant
+         )
+       )
+@@ -573,6 +624,7 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+     bdoc(
+       F.id -> name.id,
+       F.username -> name.value,
++      "nameKeys" -> PublicNameKeys(name.id.value, None),
+       F.email -> normalizedEmail,
+       F.mustConfirmEmail -> mustConfirmEmail.option(now),
+       F.bpass -> passwordHash,
+@@ -589,3 +641,8 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
      } ++ {
        kid.yes.so(bdoc(F.kid -> kid))
      }
@@ -8192,44 +8236,24 @@ index fc3e09e..2b2a8be 100644
 +  }
 +}
 diff --git a/ui/user/css/_header.scss b/ui/user/css/_header.scss
-index 9443479..96a3646 100644
+index 9443479..be1c887 100644
 --- a/ui/user/css/_header.scss
 +++ b/ui/user/css/_header.scss
-@@ -1,3 +1,5 @@
-+@import '../../lib/css/component/copy-me';
-+
- .user-show__header {
-   background: $c-bg-zebra;
-   padding: 2em 1.5em 2em 1.5em;
-@@ -23,3 +25,31 @@
+@@ -23,3 +23,17 @@
      vertical-align: top;
    }
  }
 +
 +.user-show__nostr {
 +  min-width: 0;
-+  padding: 0 1.5em 1.5em;
++  padding: 0 1.5em 1em;
 +  background: $c-bg-zebra;
-+
-+  label {
-+    display: block;
-+    margin-bottom: 0.5em;
-+    font-weight: bold;
-+  }
-+
-+  .copy-me {
-+    width: 100%;
-+    max-width: 58em;
-+  }
-+
-+  .copy-me__target {
-+    min-width: 0;
-+    font-family: monospace;
-+  }
 +
 +  &-link {
 +    display: inline-block;
-+    margin-top: 0.5em;
++    color: $c-font-dim;
++    font-family: monospace;
++    font-size: 0.85em;
 +    overflow-wrap: anywhere;
 +  }
 +}
@@ -8264,6 +8288,31 @@ index 48a0e33..4bc93c5 100644
    $('.emoji-details').each(function (this: HTMLElement) {
      flairPickerLoader(this);
    });
+diff --git a/ui/user/src/user.ts b/ui/user/src/user.ts
+index 5b6c2f1..9e32368 100644
+--- a/ui/user/src/user.ts
++++ b/ui/user/src/user.ts
+@@ -11,6 +11,20 @@ export async function initModule(): Promise<void> {
+   makeLinkPopups($('.social_links'));
+   makeLinkPopups($('.user-infos .bio'));
+ 
++  const npubLink = document.querySelector<HTMLAnchorElement>('.user-show__nostr-link');
++  if (npubLink)
++    npubLink.addEventListener('click', e => {
++      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
++      e.preventDefault();
++      navigator.clipboard.writeText(npubLink.innerText.trim()).then(
++        () => {
++          npubLink.title = 'Copied npub';
++          setTimeout(() => (npubLink.title = 'Copy public npub'), 1500);
++        },
++        () => alert('Could not copy the npub. You can select and copy the text instead.'),
++      );
++    });
++
+   tmpRandomTutorLink();
+   updatePackedTrophies();
+   window.addEventListener('resize', updatePackedTrophies);
 diff --git a/app/NoSweatBotCatalog.scala b/app/NoSweatBotCatalog.scala
 new file mode 100644
 index 0000000..8efd4b7
@@ -8458,10 +8507,10 @@ index 0000000..8efd4b7
 +    current.isEmpty || current.contains(username) || current.contains(alias)
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..4017ed4
+index 0000000..ea25ce9
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,906 @@
+@@ -0,0 +1,912 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -8750,7 +8799,10 @@ index 0000000..4017ed4
 +                    bdoc(s"${UserFields.profile}.displayName" -> name.value),
 +                    bdoc(s"${UserFields.profile}.displayName" -> alias)
 +                  ),
-+                  set(s"${UserFields.profile}.displayName" -> alias)
++                  set(
++                    s"${UserFields.profile}.displayName" -> alias,
++                    "nameKeys" -> lila.user.PublicNameKeys(name.id.value, Some(alias))
++                  )
 +                )
 +                .void
 +          else funit
@@ -8863,6 +8915,9 @@ index 0000000..4017ed4
 +                  .createNostr(UserName(name), pubkey)
 +                  .map:
 +                    _.getOrElse(throw NoSweatError(503, "Could not create identity"))
++                  .recover(
++                    lila.db.recoverDuplicateKey(_ => throw NoSweatError(409, "Username already taken"))
++                  )
 +
 +  def isNostr(user: UserModel): Fu[Boolean] =
 +    env.user.repo.withColl(_.exists(bdoc("_id" -> user.id, "nostr" -> bdoc("$exists" -> true))))
@@ -11748,6 +11803,24 @@ index 0000000..ed0e0b5
 +    )(term)
 +
 +  def literalPrefix(term: String): String = "^" + java.util.regex.Pattern.quote(term)
+diff --git a/modules/user/src/main/PublicNameKeys.scala b/modules/user/src/main/PublicNameKeys.scala
+new file mode 100644
+index 0000000..debb18d
+--- /dev/null
++++ b/modules/user/src/main/PublicNameKeys.scala
+@@ -0,0 +1,12 @@
++package lila.user
++
++import java.text.Normalizer
++import java.util.Locale
++
++/** Shared uniqueness keys; canonical account identity always remains reserved. */
++object PublicNameKeys:
++  def normalize(name: String): String =
++    Normalizer.normalize(name, Normalizer.Form.NFKC).trim.toLowerCase(Locale.ROOT)
++
++  def apply(canonical: String, display: Option[String]): List[String] =
++    (normalize(canonical) :: display.map(normalize).filter(_.nonEmpty).toList).distinct
 diff --git a/modules/user/src/test/NoSweatBotIdentityTest.scala b/modules/user/src/test/NoSweatBotIdentityTest.scala
 new file mode 100644
 index 0000000..443ecc5
@@ -11836,6 +11909,43 @@ index 0000000..c58d0f4
 +    assertEquals(NoSweatUserSearch.read(" NOSTR:NSEC1partial"), None)
 +    assertEquals(NoSweatUserSearch.read(npub.dropRight(1) + "q"), None)
 +    assertEquals(NoSweatUserSearch.read("npub1" + "q" * 58), None)
+diff --git a/modules/user/src/test/PublicNameKeysTest.scala b/modules/user/src/test/PublicNameKeysTest.scala
+new file mode 100644
+index 0000000..21aedf5
+--- /dev/null
++++ b/modules/user/src/test/PublicNameKeysTest.scala
+@@ -0,0 +1,31 @@
++package lila.user
++
++class PublicNameKeysTest extends munit.FunSuite:
++  test("case-insensitive keys retain the canonical reservation"):
++    assertEquals(PublicNameKeys("AccountOne", Some("Chosen Name")), List("accountone", "chosen name"))
++    assertEquals(PublicNameKeys.normalize("I"), "i")
++    assertEquals(PublicNameKeys.normalize("İ"), "i\u0307")
++
++  test("NFKC compatibility normalization and trimming precede case conversion"):
++    assertEquals(PublicNameKeys.normalize("  ＡＬＩＣＥ  "), "alice")
++    assertEquals(PublicNameKeys.normalize("\u00a0Kelvin\u00a0"), "kelvin")
++    assertEquals(PublicNameKeys.normalize("E\u0301lodie"), "élodie")
++
++  test("absent and normalized blank display names add no reservation"):
++    assertEquals(PublicNameKeys("account", None), List("account"))
++    assertEquals(PublicNameKeys("account", Some(" \t ")), List("account"))
++    assertEquals(PublicNameKeys("account", Some("\u00a0")), List("account"))
++
++  test("a chosen name equal to the canonical key is stored only once"):
++    assertEquals(PublicNameKeys("Alice", Some(" ＡＬＩＣＥ ")), List("alice"))
++
++  test("renaming and clearing release the old chosen key while keeping the canonical key"):
++    assertEquals(PublicNameKeys("account", Some("Old Name")), List("account", "old name"))
++    assertEquals(PublicNameKeys("account", Some("New Name")), List("account", "new name"))
++    assertEquals(PublicNameKeys("account", None), List("account"))
++
++  test("bot display aliases reserve their full normalized spaced name"):
++    assertEquals(
++      PublicNameKeys("SignalTrain001", Some("Major Motoko")),
++      List("signaltrain001", "major motoko")
++    )
 diff --git a/modules/user/src/test/PublicNameTest.scala b/modules/user/src/test/PublicNameTest.scala
 new file mode 100644
 index 0000000..9869ce0

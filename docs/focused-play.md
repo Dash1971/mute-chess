@@ -109,10 +109,11 @@ use the canonical username. No game snapshots, IDs, ratings or histories change.
 
 ## Nostr as the public human identity (#212)
 
-The owner chose editable, non-unique display names, matching Nostr rather than
-Lichess's permanent unique usernames. The permanent public identity is the npub.
+The owner subsequently chose editable, case-insensitively unique public names
+(#217), superseding the earlier duplicate-name policy. The permanent public identity is the npub.
 Human profiles retain their existing name/internal-ID header and add the full
-public npub, native copy control and permanent `/@/npub…` share link. Native
+public npub as subtle text: ordinary activation copies the npub, while its
+permanent `/@/npub…` href retains native copy-link and modified-click behavior (#216). Native
 hovercards also show a compact npub link with the full key in its accessible
 label, so identity stays visible beside a chosen display name. Bots remain
 native named accounts with their BOT label; they receive no Nostr keys.
@@ -124,8 +125,25 @@ not exposed. Header search accepts full npub and NIP-21 `nostr:npub…` input;
 ordinary display-name/canonical-account search remains unchanged. Frontend search
 blocks nsec-prefixed input locally, including partial private keys, while server public lookup rejects private
 keys, invalid checksums and other entity types. Native account IDs, URLs, perfs,
-sessions, game histories and Nostr sign-in remain unchanged. No new namespace,
-uniqueness index, database migration or cooldown is introduced.
+sessions, game histories and Nostr sign-in remain unchanged. No cooldown is introduced.
+
+Names reserve a normalized NFKC/trim/lowercase key alongside the canonical
+account ID. A unique multikey index on `user4.nameKeys` arbitrates simultaneous
+claims; profile and keys update atomically in the same document. Renaming or
+clearing a name releases its former chosen key and retains the canonical key.
+Bot aliases and canonical names are reserved too. Account creation and native
+deletion tombstones retain their canonical reservation. Conflicts return a
+native profile-form error without saving the rejected profile.
+
+For the existing population, `deploy/public/reserve-usernames.js` audits all
+claims before writing and backfills only this derived field, then creates the
+unique index. Run it with admissions paused and the native app stopped as part
+of the existing release cutover, before the new app starts. It does not rename
+users or modify keys, perfs, histories or games. The pre-release read-only audit
+found no collisions across all 10,026 accounts. Preserve the index and derived
+keys on subsequent releases; an old app that does not maintain these keys must
+not be used for ordinary profile writes after rollback without resolving that
+specific compatibility issue.
 
 References: [NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md)
 defines public-key encoding and hex storage; [NIP-21](https://github.com/nostr-protocol/nips/blob/master/21.md)

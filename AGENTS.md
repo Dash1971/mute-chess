@@ -437,17 +437,20 @@ unchanged. Reuse pinned runtime assets and existing preparation; no general
 benchmarking/deployment framework is part of this change.
 
 
-## Nostr public identity and non-unique display names (November 2, #212)
+## Nostr public identity and editable unique names (November 2, #212/#217)
 
-The owner explicitly chose Nostr semantics: human display names remain editable
-and may repeat; npub is the permanent official public identity. This is the accepted Nostr departure from Lichess: display names are not
-canonical account identifiers, and no uniqueness constraint or identity migration
-is part of this policy. Keep actual npub prominent and
-copyable on public human profiles and linked visibly in native hovercards, with
+The owner subsequently reversed the duplicate-name decision and explicitly
+authorized case-insensitively unique chosen names, remaining editable. Npub is
+the permanent official public identity; chosen names are not canonical account
+identifiers. Preserve atomic normalized name reservations and their unique index
+while retaining all native IDs, keys and history. No silent renaming, cooldown or
+account migration is authorized. Keep actual npub subtle and click-to-copy on
+public human profiles (#216) and linked visibly in native hovercards, with
 a shareable npub profile URL and full-key
 lookup. Preserve native internal user IDs and canonical foreign-key/history
 relationships; decode validated public npub input to the existing stored public
 key, not a new account. Native username parsing remains unchanged. Private nsec
 never belongs on a public profile or in search transport. Managed bots keep
 native names and BOT labels and have no Nostr identities. No bot keys, social
-publishing, account migrations or uniqueness namespace are part of this work.
+publishing or account migrations are part of this work. Bot names and canonical
+handles participate in the same uniqueness reservation as chosen human names.

@@ -27,9 +27,10 @@ No email or password to remember. Create a Nostr key in your browser, bring an
 existing nsec, or sign in with a NIP-07 browser signer. The same identity connects
 your profile, ratings and saved games. Signing in does not post to Nostr.
 
-Your npub is your permanent public identity. Display names can change and can be
-shared by multiple people; check the npub to identify an account. Human profiles
-show the full copyable npub and a permanent npub profile link; hovercards show a
+Your npub is your permanent public identity. Chosen usernames can change and are
+unique without regard to capitalization; existing account and bot names are reserved.
+Human profiles show a subtle npub link: click to copy the npub, or use the browser's
+copy-link action for its permanent profile URL. Hovercards show a
 compact npub identity link too. Search accepts a
 full npub or `nostr:npub…` as well as display names. Managed opponents retain
 their names and BOT tag. Native internal IDs keep existing games and links stable.
