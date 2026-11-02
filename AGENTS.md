@@ -1,5 +1,15 @@
 # Mute Chess implementation direction
 
+## Mute-only brilliant experiment (owner request, November 2, 2026)
+
+Issue #221 authorizes a draft PR for more generous, transparent brilliant-move
+awards in Mute Chess. Keep Mobile Maia on the En Croissant rules. This supersedes
+EC fidelity only for Mute's `!!` eligibility: retain the independent EC references,
+other annotation rules, whole-window confirmation and native analysis contracts.
+Document the exact experimental gates in README and the source comparison in
+`docs/brilliant-moves.md`. No merge, deployment or general tooling change is
+authorized by this draft request.
+
 ## Upstream alignment (owner decision, October 30, 2026)
 
 Read `docs/upstream-alignment.md` before changing native behavior. Stay as close

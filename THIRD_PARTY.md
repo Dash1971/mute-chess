@@ -63,3 +63,5 @@ The CC0 opening table follows Mobile Maia's bundled dataset at
 `public/nosweat/openings.json` and `OPENINGS_CC0.txt`. See
 [analysis presentation](docs/analysis-presentation.md) for reproduction and the
 AGPL Mobile Maia opening/phase presentation references.
+
+The Mute-only `mute-chess-brilliant-v1` experiment intentionally changes `!!` eligibility from the retained EC baseline. Mobile Maia and the independent En Croissant references remain unchanged; see [the exact algorithm and comparison](docs/brilliant-moves.md). Existing licenses and attribution continue to apply.
