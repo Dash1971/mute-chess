@@ -88,3 +88,13 @@ server pairing, capacity, clocks, ratings and game completion unchanged. The
 regression runs the real controller, initial Snabbdom render and pool view for
 signed-in, anonymous and initially-now-playing cases, then verifies the existing
 request and redirect. No public games are created by these tests.
+
+## Native Maia game-start sound (#206)
+
+Successful Maia pairing now passes the same sound flag to `site.redirect` as
+Lichess's native lobby socket redirect. The original Maia adapter omitted it.
+Quick pairing, the native New opponent homepage flow and Custom Play all reuse
+this call. Native themes, volume, autoplay checks and the existing one-second
+sound timeout remain unchanged; pairing requests, clocks and ratings are intact.
+The real lobby regression covers signed-in, anonymous, initially-now-playing and
+custom-clock entry, verifying the existing request and the sound-enabled redirect.
