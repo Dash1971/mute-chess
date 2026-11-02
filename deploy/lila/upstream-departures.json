@@ -525,6 +525,16 @@
             "public/flair/img/symbols.mute-origami-crane.webp",
             "public/flair/img/symbols.mute-ghost-terminal.webp"
           ]
+        },
+        {
+          "id": "frontend-build-completion",
+          "rationale": "Issue #214 fixes the native non-watch build's manifest completion race: retry the existing manifest update after all existing build tasks settle. Preserve the upstream manifest format, success checks, asset hashes, and build tasks. Remove this one-line patch when upstream provides equivalent finalization.",
+          "verification": [
+            "Exercise a manifest update while the bundle task is pending, then finalize after task completion; the actual native writer must emit a complete manifest and its referenced assets before release selection. See docs/rca-2026-11-02-missing-frontend-manifest.md."
+          ],
+          "files": [
+            "ui/.build/src/build.ts"
+          ]
         }
       ]
     },

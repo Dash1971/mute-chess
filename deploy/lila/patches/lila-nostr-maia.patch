@@ -4386,6 +4386,18 @@ index 8b5a6a1..5503e30 100644
 +    <string name="muteMovesByRating">Moves by Rating</string>
 +    <string name="muteLeadingMoves">Leading moves</string>
  </resources>
+diff --git a/ui/.build/src/build.ts b/ui/.build/src/build.ts
+index 7d6adeb..b433f0c 100644
+--- a/ui/.build/src/build.ts
++++ b/ui/.build/src/build.ts
+@@ -47,6 +47,7 @@ export async function build(pkgs: string[]): Promise<void> {
+       monitor(pkgs);
+     }
+     await Promise.all([i18n(), sync().then(hash).then(sass), tsc(), esbuild()]);
++    updateManifest();
+   } catch (e) {
+     env.log(`${errorMark} ${e instanceof Error ? (e.stack ?? e.message) : String(e)}`);
+     if (env.watch) env.log(pc.gray('Watching...'));
 diff --git a/ui/@types/lichess/index.d.ts b/ui/@types/lichess/index.d.ts
 index 818aaae..901eb6e 100644
 --- a/ui/@types/lichess/index.d.ts
