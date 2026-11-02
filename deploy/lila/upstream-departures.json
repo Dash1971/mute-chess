@@ -147,7 +147,8 @@
             "Profile & settings menu opens the shared dialog without navigating; existing gear and browser-local persistence retained; shared native CSS compiles for account, analysis and puzzle contexts",
             "Account Engine Analysis navigation renders a native settings page; shared actual-DOM radio controls persist browser preferences without a dialog or server writes (#180)",
             "WikiBook natural-height article/scrolling with fixed underboard; browser worker GPU/CPU initialization and execution fallback, original inputs/output heads and watchdogs (#183/#184)",
-            "Complete all-root protocol iterations; Others schedules no search; castling normalization; merged-vector chart roots; exact mate/Black/threshold parity; tooltip metric signs and redraw/Escape cleanup; timeout recovery including aborted phases (#190)."
+            "Complete all-root protocol iterations; Others schedules no search; castling normalization; merged-vector chart roots; exact mate/Black/threshold parity; tooltip metric signs and redraw/Escape cleanup; timeout recovery including aborted phases (#190).",
+            "Inline browser review (#208): real LocalAnalysisDialog runner retains native saves/merges and graph ownership, with duplicate-start, progress, Stop, retry, error, pagehide/unmount and completion regressions. Standalone and post-game entry points select the existing panel; non-Mute/study editor and advanced settings remain native."
           ],
           "files": [
             "app/controllers/Export.scala",
@@ -168,6 +169,7 @@
             "ui/analyse/src/idbTree.ts",
             "ui/analyse/src/interfaces.ts",
             "ui/analyse/src/local/analyse.local.ts",
+            "ui/analyse/src/local/inlineAnalysis.tsx",
             "ui/analyse/src/local/localAnalysisDialog.tsx",
             "ui/analyse/src/local/localAnalysisEngine.ts",
             "ui/analyse/src/noSweatAnalysis.ts",
@@ -264,7 +266,8 @@
             "ui/analyse/src/noSweatMoveTooltip.ts",
             "ui/analyse/tests/moveTooltip.test.ts",
             "ui/analyse/css/_analyse.base.scss",
-            "ui/analyse/css/_move-tooltip.scss"
+            "ui/analyse/css/_move-tooltip.scss",
+            "ui/analyse/tests/inlineAnalysis.test.ts"
           ]
         },
         {
