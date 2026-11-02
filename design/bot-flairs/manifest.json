@@ -1,0 +1,62 @@
+[
+  {
+    "id": "symbols.mute-circuit-knight",
+    "original": "originals/circuit-knight.png",
+    "sha256": "ea1034d11910eed6728ae471229064ab74857b88cb45e9f3c9b7613032f27ca7",
+    "size": [
+      60,
+      60
+    ],
+    "bytes": 4848
+  },
+  {
+    "id": "symbols.mute-synthetic-eye",
+    "original": "originals/synthetic-eye.png",
+    "sha256": "d021354be3a71304d2587cbb9ca5c8cd0ce2fa87100fef7b7419939ef054ac9b",
+    "size": [
+      60,
+      60
+    ],
+    "bytes": 3506
+  },
+  {
+    "id": "symbols.mute-neural-chip",
+    "original": "originals/neural-chip.png",
+    "sha256": "4fac657bf81cbfd5dbf526d7c6d5b40efa5bd6643dda6bdd333929beb49cb8df",
+    "size": [
+      60,
+      60
+    ],
+    "bytes": 6158
+  },
+  {
+    "id": "symbols.mute-neon-fox",
+    "original": "originals/neon-fox.png",
+    "sha256": "e2931c616e7bfa1ad3bc4f33964f2242ac3374626ecbcbe2408e089443cc55b8",
+    "size": [
+      60,
+      60
+    ],
+    "bytes": 4382
+  },
+  {
+    "id": "symbols.mute-origami-crane",
+    "original": "originals/origami-crane.png",
+    "sha256": "bb3e8ad909b0ea5244b61b708c6cf2d6afa965c7cb51c0852ef84afde733b31c",
+    "size": [
+      60,
+      60
+    ],
+    "bytes": 4142
+  },
+  {
+    "id": "symbols.mute-ghost-terminal",
+    "original": "originals/ghost-terminal.png",
+    "sha256": "352a7ac89a1e6589b6b78119ca48c9740587bb9ab5762b9fefb2e4584d500b32",
+    "size": [
+      60,
+      60
+    ],
+    "bytes": 4390
+  }
+]

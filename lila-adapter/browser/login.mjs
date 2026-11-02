@@ -99,7 +99,7 @@ if (element('extension')) {
     resetFactor(); generated?.fill(0); generated = generateSecretKey();
     element('backup').value = nsecEncode(generated);
     element('backup').type = 'password';
-    element('reveal').textContent = 'Show key';
+    element('reveal').textContent = element('reveal').dataset.showKey || 'Show key';
     element('created').hidden = false;
     element('created').scrollIntoView({ block: 'nearest' });
     element('copy').focus();
@@ -107,7 +107,7 @@ if (element('extension')) {
   action('reveal', () => {
     const hidden = element('backup').type === 'password';
     element('backup').type = hidden ? 'text' : 'password';
-    element('reveal').textContent = hidden ? 'Hide key' : 'Show key';
+    element('reveal').textContent = hidden ? element('reveal').dataset.hideKey || 'Hide key' : element('reveal').dataset.showKey || 'Show key';
   });
   action('copy', async () => {
     if (!generated) throw Error('Create a key first');
