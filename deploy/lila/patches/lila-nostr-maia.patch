@@ -6550,6 +6550,22 @@ index 22f0a12..d64539e 100644
    'blue': (
      file-ext: 'png',
      coord-color-white: #dee3e6,
+diff --git a/ui/lib/css/theme/board/_chessground.scss b/ui/lib/css/theme/board/_chessground.scss
+index da8977b..efc1a8c 100644
+--- a/ui/lib/css/theme/board/_chessground.scss
++++ b/ui/lib/css/theme/board/_chessground.scss
+@@ -200,6 +200,11 @@ cg-container .cg-custom-below {
+   z-index: $z-cg-below-pieces-1;
+ }
+ 
++// Lift only our custom arrow plane above pieces, while native glyphs stay above it.
++cg-container .cg-custom-below:has(.nosweat-engine-arrow) {
++  z-index: 3;
++}
++
+ cg-container .cg-custom-svgs svg,
+ cg-container .cg-custom-below svg {
+   overflow: visible;
 diff --git a/ui/lib/src/ceval/ctrl.ts b/ui/lib/src/ceval/ctrl.ts
 index b00837d..e173701 100644
 --- a/ui/lib/src/ceval/ctrl.ts
@@ -84315,10 +84331,10 @@ index 0000000..d607d68
 +}
 diff --git a/ui/lib/src/nosweat/arrows.ts b/ui/lib/src/nosweat/arrows.ts
 new file mode 100644
-index 0000000..413a380
+index 0000000..204d2bb
 --- /dev/null
 +++ b/ui/lib/src/nosweat/arrows.ts
-@@ -0,0 +1,84 @@
+@@ -0,0 +1,85 @@
 +// Mobile Maia review.dart / ReviewBoardOverlayPainter, AGPL-3.0.
 +import type { DrawShape } from '@lichess-org/chessground/draw';
 +export const engineColors = {
@@ -84397,6 +84413,7 @@ index 0000000..413a380
 +    return {
 +      orig: uci.slice(0, 2) as Key,
 +      dest: uci.slice(2, 4) as Key,
++      below: true,
 +      customSvg: {
 +        html: `<g class="nosweat-engine-arrow" data-move="${uci}" data-tail="${tail.join(',')}" data-head="${head.join(',')}" transform="translate(50,50) rotate(${angle})" fill="none">${shaft}${tip}</g>`,
 +      },

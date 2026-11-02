@@ -315,3 +315,18 @@ hands off to the inline panel. Native non-Mute and study editor behavior is
 retained. Engine settings, search budgets, accuracy, glyph classification and
 server review semantics are unchanged. Focused regressions cover both existing
 graph ownership and job preparation, progress, completion, retry and cancellation.
+
+## Arrow and annotation layering (#219)
+
+Native Lichess arrows use a lower SVG layer than move-annotation badges. Mute's
+split-color engine arrows retain their custom geometry but now use Chessground's
+existing lower custom-SVG plane. Only a plane containing our owned engine arrows
+is raised above pieces to layer 3; native classification badges remain at layer 4.
+This keeps badges readable even when engine arrows arrive asynchronously or are
+replaced, without relying on retained SVG sibling order. Analysis and puzzle
+review share the same arrow helper and board stylesheet.
+
+Native lower brush/variation shapes remain in their separate layer. On upstream
+updates, check for any new custom SVG producers using the lower custom plane:
+they would share layer 3 while our engine arrows are present. Arrow geometry,
+split heads, colors, visibility settings and classification rules are unchanged.
