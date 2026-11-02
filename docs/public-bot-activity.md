@@ -66,14 +66,32 @@ explicit resume POST with `{"paused":false}`. An enabled start without a saved
 pause document defaults to unpaused and can create games on the first adapter
 poll, so do not enable the setting before initializing that control.
 
-Pause persists in the `nosweat_activity` control document. It prevents only new
-automatic admissions: current games continue receiving moves, finish naturally
-and keep their ordinary results. Status identifies its `scope` as `maia-pool` and reports `enabled`, `paused`, `active`,
-`target`, `totalActive`, `capacity`, `draining` and `drained`. Wait until `drained`
-is true before the existing maintenance procedure; that field concerns automatic
-games, so human/friend games still require the existing active-game checks.
-Resume with the same POST and `{"paused":false}` after maintenance. There is no
-scheduled window or automatic restart of paused activity.
+Pause persists in the existing `nosweat_activity` control document, including
+across application restarts. The same authenticated POST now pauses **all new
+playable native games**, not just automatic Maia games. Human-versus-Maia starts,
+friend invitations, rematches and enabled study starts share the native insertion
+guard. A pause waits for an insertion already in progress before acknowledging;
+future insertions fail without creating or aborting a game. Existing games keep
+receiving moves and finish with their native clocks, results and ratings. Returning
+to an already active Maia game and importing a finished/replay PGN remain allowed.
+
+Status now reports `scope: "all-games"`. `active` remains the automatic-game count
+for compatibility; `totalActive` is the primary database count of all unfinished
+native games, excluding PGN imports. `poolPending` and `studyPending` include their
+reserved/active records. Require `paused: true` and `drained: true` before rebooting;
+`drained` is true only when all three counts are zero. `draining` identifies a
+saved pause with remaining games/records. A database read failure is an error,
+not an empty/healthy drain. Stale reservations require investigation, not fabricated
+results or automatic deletion.
+
+For the owner's small preproduction deployment, keep security updates prompt.
+When Ubuntu reports `/var/run/reboot-required`, OpenClaw can save the pause, poll
+until games finish, reboot, check ordinary service/site health, then POST
+`{"paused":false}`. The saved pause stays in effect after boot until resumed.
+Package updates can independently restart services without requiring a reboot;
+brief interruptions are accepted. There is no backup requirement, scheduled window
+or automatic reboot implemented by this admission control. General updater and
+backup jobs remain separate operations work.
 
 Enabling automatic play and bounded studies together is rejected. Existing
 application/adapter failure handling still voids unfinished games instead of

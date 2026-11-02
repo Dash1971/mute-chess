@@ -678,6 +678,22 @@ index 8ce37a2..89c9561 100644
  
    def pgn(pgn: String) = Open:
      val pov = makePov(none, Standard)
+diff --git a/app/http/ErrorHandler.scala b/app/http/ErrorHandler.scala
+index efaa98c..4b6b8e5 100644
+--- a/app/http/ErrorHandler.scala
++++ b/app/http/ErrorHandler.scala
+@@ -20,6 +20,11 @@ final class ErrorHandler(
+     extends DefaultHttpErrorHandler(environment, config, router.some)
+     with lila.web.ResponseWriter:
+ 
++  override def onServerError(req: RequestHeader, exception: Throwable): Fu[Result] = exception match
++    case lila.game.NoSweatGameAdmission.Paused =>
++      fuccess(ServiceUnavailable(exception.getMessage).withHeaders("Cache-Control" -> "no-store"))
++    case _ => super.onServerError(req, exception)
++
+   override def onProdServerError(req: RequestHeader, exception: UsefulException) =
+     Future {
+       val actionName = HTTPRequest.actionName(req)
 diff --git a/app/http/HttpRequestHandler.scala b/app/http/HttpRequestHandler.scala
 index a6875eb..cb26269 100644
 --- a/app/http/HttpRequestHandler.scala
@@ -1519,10 +1535,10 @@ index 6fa1cc3..bdf092f 100644
    def authorLink(post: ForumPost, cssClass: Option[String] = None, withOnline: Boolean = true)(using
        Context
 diff --git a/modules/game/src/main/Env.scala b/modules/game/src/main/Env.scala
-index 43d76ae..344d065 100644
+index 43d76ae..ccbf972 100644
 --- a/modules/game/src/main/Env.scala
 +++ b/modules/game/src/main/Env.scala
-@@ -34,7 +34,82 @@ final class Env(
+@@ -34,7 +34,93 @@ final class Env(
  )(using scheduler: Scheduler)(using Executor, Materializer):
    private val config = appConfig.get[GameConfig]("game")(using AutoConfig.loader)
  
@@ -1602,25 +1618,40 @@ index 43d76ae..344d065 100644
 +        else if allowed then funit
 +        else fufail("Game has no Maia pool reservation")
 +
-+  val gameRepo = GameRepo(db(config.gameColl), admitNoSweat)
++  private val noSweatActivity = db(CollName("nosweat_activity"))
++  val noSweatAdmission = new NoSweatGameAdmission(
++    () =>
++      import lila.db.dsl.{ *, given }
++      noSweatActivity.byId[Bdoc]("public").map(_.flatMap(_.getAsOpt[Boolean]("paused")).getOrElse(false))
++    ,
++    paused =>
++      import lila.db.dsl.{ *, given }
++      noSweatActivity.update.one(bid("public"), set("paused" -> paused), upsert = true).void
++  )
++
++  val gameRepo = GameRepo(db(config.gameColl), admitNoSweat, Option.when(noSweatOnly)(noSweatAdmission))
  
    given idGenerator: IdGenerator = wire[IdGenerator]
  
 diff --git a/modules/game/src/main/GameRepo.scala b/modules/game/src/main/GameRepo.scala
-index 45a3103..6fb1b4b 100644
+index 45a3103..a927c10 100644
 --- a/modules/game/src/main/GameRepo.scala
 +++ b/modules/game/src/main/GameRepo.scala
-@@ -15,7 +15,8 @@ import lila.db.dsl.{ *, given }
+@@ -15,7 +15,12 @@ import lila.db.dsl.{ *, given }
  import lila.db.isDuplicateKey
  import lila.game.GameExt.*
  
 -final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c):
-+final class GameRepo(c: Coll, admit: Game => Funit = _ => funit)(using Executor)
++final class GameRepo(
++    c: Coll,
++    admit: Game => Funit = _ => funit,
++    admission: Option[NoSweatGameAdmission] = None
++)(using Executor)
 +    extends lila.core.game.GameRepo(c):
  
    export BSONHandlers.{ statusHandler, gameHandler }
    import BSONHandlers.given
-@@ -428,11 +429,12 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
+@@ -428,11 +433,13 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
        F.checkAt -> checkInHours.map(nowInstant.plusHours(_)),
        F.playingUids -> (g2.started && userIds.nonEmpty).option(userIds)
      )
@@ -1629,12 +1660,13 @@ index 45a3103..6fb1b4b 100644
 -      .addFailureEffect:
 -        case wr: WriteResult if isDuplicateKey(wr) => lila.mon.game.idCollision.increment()
 -      .void
-+    admit(g2).flatMap: _ =>
++    def insert = admit(g2).flatMap: _ =>
 +      coll.insert
 +        .one(bson)
 +        .addFailureEffect:
 +          case wr: WriteResult if isDuplicateKey(wr) => lila.mon.game.idCollision.increment()
 +        .void
++    admission.filter(_ => g2.playable).fold(insert)(_.insert(insert))
  
    def removeRecentChallengesOf(userId: UserId) =
      coll.delete.one:
@@ -6863,10 +6895,10 @@ index 0000000..48dc736
 +    current.isEmpty || current.contains(username) || current.contains(alias)
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..4eb7fea
+index 0000000..e1cc47f
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,875 @@
+@@ -0,0 +1,880 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -7429,6 +7461,7 @@ index 0000000..4eb7fea
 +          val rated = user.isDefined && mode != "unlimited" && (data \ "rated").asOpt[Boolean].getOrElse(true)
 +          val busy = games.flatMap(g => occupied(g._1)).toSet ++ studyBusy._2
 +          for
++            _ <- env.game.noSweatAdmission.check
 +            human <- user.traverse(u => env.user.api.byIdWithPerf(u.id, perfKey)).map(_.flatten)
 +            rating = human.fold(1500)(_.perf.intRating.value)
 +            opponent <- poolOpponent(perfKey, rating, busy)
@@ -7494,35 +7527,39 @@ index 0000000..4eb7fea
 +    )
 +
 +  private def activityPaused: Fu[Boolean] =
-+    if !activityEnabled then fuTrue
-+    else activityState.byId[Bdoc]("public").map(_.flatMap(_.getAsOpt[Boolean]("paused")).getOrElse(false))
++    env.game.noSweatAdmission.paused
 +
 +  def activityStatus: Fu[JsObject] =
 +    for
 +      _ <- ready
 +      paused <- activityPaused
 +      games <- current()
++      nativeActive <- env.game.gameRepo.count(q =>
++        q.notFinished ++ bdoc(lila.game.Game.BSONFields.source -> bdoc("$ne" -> Source.Import.id))
++      )
++      poolPending <- records.countSel(bdoc("state" -> bdoc("$in" -> List("reserved", "active"))))
++      studyPending <- env.mongo
++        .mainDb(CollName("nosweat_study_game"))
++        .countSel(bdoc("state" -> bdoc("$in" -> List("reserved", "active"))))
 +    yield Json.obj(
 +      "enabled" -> activityEnabled,
-+      "scope" -> "maia-pool",
++      "scope" -> "all-games",
 +      "paused" -> paused,
 +      "active" -> games.count(g => automatic(g._1)),
 +      "target" -> lila.bot.PublicBotActivity.target,
-+      "totalActive" -> games.size,
++      "totalActive" -> nativeActive,
++      "poolPending" -> poolPending,
++      "studyPending" -> studyPending,
 +      "capacity" -> normalCapacity,
-+      "drained" -> !games.exists(g => automatic(g._1)),
-+      "draining" -> (paused && games.exists(g => automatic(g._1)))
++      "drained" -> (nativeActive == 0 && poolPending == 0 && studyPending == 0),
++      "draining" -> (paused && (nativeActive > 0 || poolPending > 0 || studyPending > 0))
 +    )
 +
-+  // Pausing closes only future automatic admissions. Existing native clocks,
-+  // moves and results continue normally, even across adapter polling cycles.
++  // Close every native start, sharing its insertion barrier. Existing native
++  // clocks, moves and results continue normally, including while draining.
 +  def pauseActivity(paused: Boolean): Fu[JsObject] = queue:
-+    activityState.update
-+      .one(
-+        bid("public"),
-+        set("paused" -> paused),
-+        upsert = true
-+      )
++    env.game.noSweatAdmission
++      .pause(paused)
 +      .flatMap(_ => activityStatus)
 +
 +  private def replenishActivity(): Funit =
@@ -7744,10 +7781,10 @@ index 0000000..4eb7fea
 +        )
 diff --git a/app/NoSweatStudy.scala b/app/NoSweatStudy.scala
 new file mode 100644
-index 0000000..3fac5df
+index 0000000..3005300
 --- /dev/null
 +++ b/app/NoSweatStudy.scala
-@@ -0,0 +1,330 @@
+@@ -0,0 +1,331 @@
 +package lila.app
 +
 +import play.api.libs.json.*
@@ -7977,6 +8014,7 @@ index 0000000..3fac5df
 +      )
 +    for
 +      _ <- env.noSweat.ready
++      _ <- env.game.noSweatAdmission.check
 +      docs <- documents
 +      _ = check(!continuation || docs.size >= continuationAdmitted, 409, "Continuation predecessor missing")
 +      _ = check(
@@ -8122,10 +8160,10 @@ index 0000000..703a031
 +  def find(key: String): Option[NoSweatStudyPlan] = plans.find(_.key == key)
 diff --git a/app/controllers/NoSweat.scala b/app/controllers/NoSweat.scala
 new file mode 100644
-index 0000000..c20bd3d
+index 0000000..b56f4c6
 --- /dev/null
 +++ b/app/controllers/NoSweat.scala
-@@ -0,0 +1,253 @@
+@@ -0,0 +1,255 @@
 +package controllers
 +
 +import play.api.libs.json.*
@@ -8138,6 +8176,8 @@ index 0000000..c20bd3d
 +  private val club = env.noSweat
 +  private def handle(f: => Fu[Result]): Fu[Result] =
 +    def error(e: Throwable): Result = e match
++      case lila.game.NoSweatGameAdmission.Paused =>
++        ServiceUnavailable(Json.obj("error" -> e.getMessage)).withHeaders("Cache-Control" -> "no-store")
 +      case NoSweatError(status, reason, code) =>
 +        Status(status)(Json.obj("error" -> reason) ++ code.fold(Json.obj())(c => Json.obj("code" -> c)))
 +          .withHeaders("Cache-Control" -> "no-store")
@@ -9508,6 +9548,38 @@ index 0000000..a4729c5
 +          ErrorStr("PGN must contain a legal standard chess mainline of 1 to 600 plies")
 +        )
 +        .flatMap(_ => importer.parseImport(pgn, none))
+diff --git a/modules/game/src/main/NoSweatGameAdmission.scala b/modules/game/src/main/NoSweatGameAdmission.scala
+new file mode 100644
+index 0000000..cf45ee5
+--- /dev/null
++++ b/modules/game/src/main/NoSweatGameAdmission.scala
+@@ -0,0 +1,26 @@
++package lila.game
++
++/** Serialize maintenance changes with native insertion, never with moves or finishing games. */
++final class NoSweatGameAdmission(readPaused: () => Fu[Boolean], writePaused: Boolean => Funit)(using
++    Executor
++):
++  private var tail: Funit = funit
++
++  // Keep the slot until the actual database write settles, even if a caller times out.
++  private def serial[A](operation: => Fu[A]): Fu[A] = synchronized:
++    val result = tail.transformWith(_ => operation)
++    tail = result.transform(_ => scala.util.Success(()))
++    result
++
++  def paused: Fu[Boolean] = readPaused()
++
++  def check: Funit = paused.flatMap:
++    case true => fufail(NoSweatGameAdmission.Paused)
++    case false => funit
++
++  def insert[A](operation: => Fu[A]): Fu[A] = serial(check.flatMap(_ => operation))
++
++  def pause(value: Boolean): Funit = serial(writePaused(value))
++
++object NoSweatGameAdmission:
++  case object Paused extends RuntimeException("Server maintenance: new games are temporarily paused")
 diff --git a/modules/game/src/main/NoSweatStudyScope.scala b/modules/game/src/main/NoSweatStudyScope.scala
 new file mode 100644
 index 0000000..b3ca768
@@ -9591,6 +9663,98 @@ index 0000000..efe2bb3
 +      assertEquals(game.sloppy.startedAtPly.value, 39)
 +      assertEquals(game.sloppy.sans.map(_.value).toList, List("Kd7", "Rh7+"))
 +      assertEquals(game.sloppy.turnColor, Color.Black)
+diff --git a/modules/game/src/test/NoSweatGameAdmissionTest.scala b/modules/game/src/test/NoSweatGameAdmissionTest.scala
+new file mode 100644
+index 0000000..b5a866e
+--- /dev/null
++++ b/modules/game/src/test/NoSweatGameAdmissionTest.scala
+@@ -0,0 +1,86 @@
++package lila.game
++
++import java.util.concurrent.atomic.AtomicBoolean
++import scala.concurrent.{ Future, Promise }
++
++class NoSweatGameAdmissionTest extends munit.FunSuite:
++  private given Executor = scala.concurrent.ExecutionContext.global
++
++  private def gate(state: AtomicBoolean) = new NoSweatGameAdmission(
++    () => Future.successful(state.get()),
++    paused => Future.successful(state.set(paused))
++  )
++
++  test("pausing rejects insertion without running its side effects, and reopening restores it"):
++    val state = new AtomicBoolean(false)
++    val admission = gate(state)
++    var inserts = 0
++    def insert = admission.insert:
++      inserts += 1
++      Future.successful(inserts)
++    for
++      first <- insert
++      _ <- admission.pause(true)
++      rejected <- insert.failed
++      _ = assertEquals(rejected, NoSweatGameAdmission.Paused)
++      _ = assertEquals(inserts, 1)
++      _ <- admission.pause(false)
++      next <- insert
++    yield assertEquals((first, next), (1, 2))
++
++  test("pause waits for an actual in-flight insertion, then rejects a racing new start"):
++    val admission = gate(new AtomicBoolean(false))
++    val started = Promise[Unit]()
++    val finish = Promise[Unit]()
++    val first = admission.insert:
++      started.success(())
++      finish.future
++    for
++      _ <- started.future
++      paused = admission.pause(true)
++      next = admission.insert(Future.successful("must not start"))
++      _ = assert(!paused.isCompleted)
++      _ = finish.success(())
++      _ <- first
++      _ <- paused
++      rejected <- next.failed
++    yield assertEquals(rejected, NoSweatGameAdmission.Paused)
++
++  test("a saved pause applies to a newly constructed gate after restart"):
++    val state = new AtomicBoolean(false)
++    for
++      _ <- gate(state).pause(true)
++      restarted = gate(state)
++      paused <- restarted.paused
++      rejected <- restarted.insert(Future.successful(())).failed
++    yield
++      assert(paused)
++      assertEquals(rejected, NoSweatGameAdmission.Paused)
++
++  test("a failed insertion does not prevent the following pause or reopening"):
++    val admission = gate(new AtomicBoolean(false))
++    for
++      _ <- admission.insert(Future.failed(new RuntimeException("database write failed"))).failed
++      _ <- admission.pause(true)
++      rejected <- admission.insert(Future.successful(())).failed
++      _ = assertEquals(rejected, NoSweatGameAdmission.Paused)
++      _ <- admission.pause(false)
++      result <- admission.insert(Future.successful("ok"))
++    yield assertEquals(result, "ok")
++
++  test("unavailable persisted state refuses new games rather than silently opening admission"):
++    val unavailable = new AtomicBoolean(true)
++    val admission = new NoSweatGameAdmission(
++      () =>
++        if unavailable.get() then Future.failed(new RuntimeException("pause state unavailable"))
++        else Future.successful(false),
++      _ => Future.successful(())
++    )
++    var inserted = false
++    for
++      error <- admission.insert { inserted = true; Future.successful(()) }.failed
++      _ = assertEquals(error.getMessage, "pause state unavailable")
++      _ = assert(!inserted)
++      _ = unavailable.set(false)
++      _ <- admission.insert { inserted = true; Future.successful(()) }
++    yield assert(inserted)
 diff --git a/modules/game/src/test/NoSweatStudyScopeTest.scala b/modules/game/src/test/NoSweatStudyScopeTest.scala
 new file mode 100644
 index 0000000..376f9b7
