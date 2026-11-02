@@ -1,5 +1,24 @@
 # Native analysis and premove extensions
 
+## November 2 Mute-only brilliant experiment (#221)
+
+The owner chose a more generous Mute Chess `!!` policy while keeping Mobile Maia
+on En Croissant. `mute-chess-brilliant-v1` removes the unique-first-choice gate,
+adds legal same-square piece-offer exchange detection with capture/promotion
+credit, and applies explicit soundness and evaluated-safe-alternative gates.
+The [README](../README.md#more-chances-to-find-a-brilliant-move) defines every
+threshold; [the comparison](../docs/brilliant-moves.md) preserves the Chess.com
+observations, source pins, limitations and confirmation budgets.
+
+The EC `annotation()`/material predicates, 3,075 boundary vectors and reference
+corpora remain unchanged. The native classification worker explicitly selects
+the Mute policy. Both the full review and legacy additive verifier retain their
+existing cancellation/corroboration and search budgets. Only newly computed
+`!!` glyphs receive the Mute policy source; imported annotations and native
+evaluations/accuracy remain authoritative. No Mobile Maia files or releases
+change. Earlier sections describe the inherited EC baseline and its history;
+this owner decision supersedes their EC-fidelity promise only for Mute `!!`.
+
 Codex-assisted implementation for the Mute Chess fork; no upstream contribution or human manual testing is claimed.
 
 Stacked premove projection follows Mobile Maia `lib/src/premoves.dart`, revision `78d45c2563bdd565614e776212254d2eb33fee59` (AGPL-3.0). Native Lila/Chessground remain the input, legal-destination, round, clock and server authority.

@@ -74,6 +74,53 @@ different things; a popular human move is not automatically the best move.
   <img src="docs/screenshots/2026-11-02-maia-analysis.jpg" width="1100" alt="Ruy Lopez analysis with Maia 1500 and Maia 2400 probability cards, the Moves by Rating chart, Stockfish and board arrows">
 </p>
 
+### More chances to find a brilliant move
+
+Brillies are part of the fun. Mute Chess experiments with a more generous `!!`
+award for sound sacrifices, inspired by Chess.com's published definition. This
+is our own open algorithm, not a reproduction of Chess.com's private code.
+**Mobile Maia remains on the En Croissant rules.**
+
+For newly computed Mute Chess reviews, `mute-chess-brilliant-v1` awards `!!` when
+all of these conditions hold:
+
+- There are at least two complete, distinct Stockfish candidate lines. The
+  move need not rank first or be uniquely best.
+- The move loses **at most 5 percentage points** under the fixed mapping
+  `W(cp) = 100 / (1 + exp(-0.00368208 × cp))`, comparing the best score before
+  the move with the position after it. Scores are from the mover's perspective,
+  clamped to −1000…+1000 centipawns; forced wins/losses map to +1000/−1000.
+- The resulting evaluation is **at least −100 centipawns (−1.00 pawn)**, and
+  the position is not terminal.
+- A sacrifice qualifies by either the retained En Croissant material heuristic
+  (a deterioration greater than 100 material units) or a legal capture of an
+  offered non-pawn piece. For a piece offer, the opponent's best capture sequence
+  on that square must gain **more than 100 units plus the material already gained
+  by the played move**. The piece may have been left attacked while another piece
+  moves. Material units are pawn 90, knight/bishop 300, rook 500 and queen 1000;
+  promotions are credited. Ordinary equal exchanges do not pass the piece-offer
+  test. The retained heuristic can also recognize multi-pawn sacrifices.
+- No **other evaluated candidate** already scores **+600 centipawns (+6.00 pawns)
+  or more** without a qualifying sacrifice. This check normally sees only the
+  two searched candidates; it does not prove that every unsearched alternative
+  is worse. Two good sacrifices can both qualify.
+- The **whole award agrees** with an earlier complete evidence window or an
+  independent confirmation window. Missing, contradictory, wrong-quality,
+  canceled or insufficient confirmation withholds the badge. Existing search
+  budgets and imported-annotation protections still apply.
+
+These fixed thresholds are deliberate, generous experimental choices. They are
+not Chess.com thresholds, measured outcome probabilities, or a rating-adjusted
+model. Maia move likelihood does not determine the award. Native Stockfish
+evaluations, Lichess accuracy and mistake-review controls retain their meanings.
+Moves not awarded `!!` continue to use the En Croissant rules; an old EC `!!` that
+fails these new gates can become `!?` on a new review. Imported PGN annotations
+remain authoritative. Engine versions, search settings and reanalysis can change
+computed badges; historical results are not silently recalculated.
+
+Read the [full algorithm, evidence and Chess.com/En Croissant/Mobile Maia comparison](docs/brilliant-moves.md),
+including the small sample's limits and the exact confirmation budgets.
+
 ### Opponents with an identity
 
 Meet a persistent cast of [10,000 Maia opponents](docs/catalog-roster.md), from

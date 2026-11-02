@@ -5674,7 +5674,7 @@ index fe114f6..134a4be 100644
  export const glyphs = () =>
    xhrJson(`/study/glyphs/${document.documentElement.lang}.json`, { cache: 'default' });
 diff --git a/ui/analyse/src/util.ts b/ui/analyse/src/util.ts
-index f3984e8..2f09f52 100644
+index f3984e8..4d32efb 100644
 --- a/ui/analyse/src/util.ts
 +++ b/ui/analyse/src/util.ts
 @@ -51,7 +51,16 @@ export function mergeReviewData(into: TreeNodeLite, from: TreeNodeLite): void {
@@ -5684,7 +5684,7 @@ index f3984e8..2f09f52 100644
 -  from.glyphs?.forEach(g => glyphs.set(`${g.id}:${!!g.comp}`, g));
 +  from.glyphs?.forEach(g => {
 +    if (
-+      g.source === 'mobile-maia-brilliant-v1' &&
++      (g.source === 'mobile-maia-brilliant-v1' || g.source === 'mute-chess-brilliant-v1') &&
 +      [...glyphs.values(), ...(from.glyphs ?? []).filter(other => other !== g)].some(
 +        other => other.id >= 1 && other.id <= 6,
 +      )
@@ -24408,11 +24408,11 @@ index 0000000..c49c61e
 +}
 diff --git a/ui/analyse/src/analyse.nosweatWorker.ts b/ui/analyse/src/analyse.nosweatWorker.ts
 new file mode 100644
-index 0000000..ec4cc78
+index 0000000..5ce1273
 --- /dev/null
 +++ b/ui/analyse/src/analyse.nosweatWorker.ts
 @@ -0,0 +1,21 @@
-+import { classify, naiveMaterial, isSacrifice, type ClassificationInput } from './noSweatClassify';
++import { classify, naiveMaterial, isMuteSacrifice, type ClassificationInput } from './noSweatClassify';
 +const material = new Map<string, number>();
 +const evaluate = (fen: string): number => {
 +  if (material.has(fen)) return material.get(fen)!;
@@ -24426,8 +24426,8 @@ index 0000000..ec4cc78
 +    self.postMessage({
 +      result:
 +        'material' in event.data
-+          ? isSacrifice(...event.data.material, evaluate)
-+          : classify(event.data, evaluate),
++          ? isMuteSacrifice(...event.data.material, evaluate)
++          : classify({ ...event.data, policy: 'mute-brilliant-v1' }, evaluate),
 +    });
 +  } catch (error) {
 +    self.postMessage({ error: String(error) });
@@ -25764,7 +25764,7 @@ index 0000000..e51a91d
 +}
 diff --git a/ui/analyse/src/noSweatBrilliants.ts b/ui/analyse/src/noSweatBrilliants.ts
 new file mode 100644
-index 0000000..d1a01b5
+index 0000000..ecb9e8c
 --- /dev/null
 +++ b/ui/analyse/src/noSweatBrilliants.ts
 @@ -0,0 +1,93 @@
@@ -25772,11 +25772,11 @@ index 0000000..d1a01b5
 +
 +import type { TreeNodeBase, Glyph } from 'lib/tree/types';
 +
-+import type { ClassificationInput, ClassificationResult } from './noSweatClassify';
++import { muteBrilliantSource, type ClassificationInput, type ClassificationResult } from './noSweatClassify';
 +import { position, standardUci } from './noSweatCore';
 +import type { Review } from './noSweatFish';
 +
-+export const brilliantSource = 'mobile-maia-brilliant-v1';
++export const brilliantSource = muteBrilliantSource;
 +export const mainlineKey = (nodes: TreeNodeBase[]): string =>
 +  JSON.stringify(nodes.map(n => [n.ply, n.fen, n.uci]));
 +export const hasQualityGlyph = (node: TreeNodeBase): boolean =>
@@ -26189,15 +26189,15 @@ index 0000000..d9843d5
 +}
 diff --git a/ui/analyse/src/noSweatClassify.ts b/ui/analyse/src/noSweatClassify.ts
 new file mode 100644
-index 0000000..e97c9a9
+index 0000000..9e2a4f9
 --- /dev/null
 +++ b/ui/analyse/src/noSweatClassify.ts
-@@ -0,0 +1,175 @@
+@@ -0,0 +1,266 @@
 +// En Croissant v0.15.0 / Mobile Maia port. GPL-3.0; see analysis/PROVENANCE.md.
 +import type { Chess } from 'chessops/chess';
 +import type { NormalMove } from 'chessops/types';
 +
-+import { legalMoves, position } from './noSweatCore';
++import { after as afterMove, legalMoves, position } from './noSweatCore';
 +import type { Review } from './noSweatFish';
 +import type { Snapshot } from './noSweatSnapshots';
 +
@@ -26292,11 +26292,86 @@ index 0000000..e97c9a9
 +export const isSacrifice = (before: string, after: string, evaluateMaterial = naiveMaterial): boolean =>
 +  !position(after).isEnd() && evaluateMaterial(before) > -evaluateMaterial(after) + 100;
 +
++// Mute-only experiment. Keep annotation()/isSacrifice() above as the EC oracle.
++export const muteBrilliantSource = 'mute-chess-brilliant-v1';
++export const muteBrilliantRules = {
++  maxLoss: 5,
++  minimumCp: -100,
++  routineWinCp: 600,
++  minimumMaterialLoss: 100,
++} as const;
++
++// Static exchange on one square, with legal captures and either side free to
++// stop. Quiet tactical compensation is deliberately left to Stockfish.
++function exchangeGain(pos: Chess, target: number): number {
++  let best = 0;
++  for (const move of legalMoves(pos)) {
++    if (move.to !== target || !capturedValue(pos, move)) continue;
++    const gain = capturedValue(pos, move) + (move.promotion ? pieceValue(move.promotion) - 90 : 0);
++    const child = pos.clone();
++    child.play(move);
++    best = Math.max(best, gain - exchangeGain(child, target));
++  }
++  return best;
++}
++
++export function hasPieceOffer(before: string, after: string): boolean {
++  const pos = position(after);
++  if (pos.isEnd()) return false;
++  // Credit material already gained on this move, including promotion. Taking
++  // a free rook while leaving a less valuable piece attacked is not a sacrifice.
++  const credit = Math.max(0, -material(pos) - material(position(before)));
++  for (const [square, piece] of pos.board)
++    if (
++      piece.color !== pos.turn &&
++      piece.role !== 'pawn' &&
++      piece.role !== 'king' &&
++      exchangeGain(pos, square) > credit + muteBrilliantRules.minimumMaterialLoss
++    )
++      return true;
++  return false;
++}
++
++export const isMuteSacrifice = (before: string, after: string, evaluateMaterial = naiveMaterial): boolean =>
++  hasPieceOffer(before, after) || isSacrifice(before, after, evaluateMaterial);
++
++export function muteAnnotation(
++  previous: EvalScore | undefined,
++  before: Snapshot,
++  after: EvalScore,
++  color: Color,
++  move: string,
++  ecSacrifice: boolean,
++  sacrificeForMove: (uci: string) => boolean,
++): Annotation {
++  const original = annotation(previous, before, after, color, move, ecSacrifice);
++  if (original === '??' || original === '?' || original === '?!') return original;
++  const next = normalized(after, color);
++  const loss = winChance(normalized(before.lines[0], color)) - winChance(next);
++  if (
++    before.lines.length > 1 &&
++    loss <= muteBrilliantRules.maxLoss &&
++    next >= muteBrilliantRules.minimumCp &&
++    sacrificeForMove(move) &&
++    !before.lines.some(
++      line =>
++        line.moves[0] !== move &&
++        normalized(line, color) >= muteBrilliantRules.routineWinCp &&
++        !sacrificeForMove(line.moves[0]),
++    )
++  )
++    return '!!';
++  // The soundness/relevance gates apply to old EC brilliants as well. All other
++  // original labels retain their semantics; an EC sacrifice may stay Interesting.
++  return original === '!!' ? (ecSacrifice && next > -200 ? '!?' : '') : original;
++}
++
 +export interface ClassificationInput {
 +  positions: string[];
 +  reviews: Review[];
 +  move: string;
 +  confirmation?: Review[];
++  policy?: 'en-croissant' | 'mute-brilliant-v1';
 +}
 +export interface ClassificationResult {
 +  symbol: Annotation;
@@ -26315,8 +26390,24 @@ index 0000000..e97c9a9
 +  const previous = n > 2 ? reviews[n - 3] : undefined;
 +  const color = position(positions[n - 2]).turn;
 +  const sacrifice = isSacrifice(positions[n - 2], positions[n - 1], evaluateMaterial);
++  const mute = input.policy === 'mute-brilliant-v1';
++  const offers = new Map<string, boolean>();
++  const sacrificeForMove = (uci: string): boolean => {
++    if (!offers.has(uci))
++      offers.set(
++        uci,
++        isMuteSacrifice(
++          positions[n - 2],
++          uci === move ? positions[n - 1] : afterMove(positions[n - 2], uci),
++          evaluateMaterial,
++        ),
++      );
++    return offers.get(uci)!;
++  };
 +  const predicate = (b: Snapshot, a: Snapshot, p?: Snapshot): Annotation =>
-+    annotation(p?.lines[0], b, a.lines[0], color, move, sacrifice);
++    mute
++      ? muteAnnotation(p?.lines[0], b, a.lines[0], color, move, sacrifice, sacrificeForMove)
++      : annotation(p?.lines[0], b, a.lines[0], color, move, sacrifice);
 +  let symbol = predicate(before.current, after.current, previous?.current);
 +  const provisional = symbol;
 +  let withheld = false;
@@ -26365,7 +26456,7 @@ index 0000000..e97c9a9
 +      0,
 +      normalized(before.current.lines[0], color) - normalized(after.current.lines[0], color),
 +    ),
-+    version: 'ec015-mobilemaia-window-v2',
++    version: mute ? muteBrilliantSource : 'ec015-mobilemaia-window-v2',
 +  };
 +}
 diff --git a/ui/analyse/src/noSweatCore.ts b/ui/analyse/src/noSweatCore.ts
@@ -26730,10 +26821,10 @@ index 0000000..f60f15b
 +}
 diff --git a/ui/analyse/src/noSweatFullReview.ts b/ui/analyse/src/noSweatFullReview.ts
 new file mode 100644
-index 0000000..18c2480
+index 0000000..d0c50e7
 --- /dev/null
 +++ b/ui/analyse/src/noSweatFullReview.ts
-@@ -0,0 +1,144 @@
+@@ -0,0 +1,157 @@
 +// Mobile Maia / En Croissant annotations over native Lichess analysis.
 +// Accuracy, ACPL, best lines and Learn from your mistakes stay native.
 +import { parseUci } from 'chessops/util';
@@ -26741,7 +26832,12 @@ index 0000000..18c2480
 +import { gameReviewQualities } from 'lib/nosweat/reviewQuality';
 +import type { Glyph, TreeNodeBase } from 'lib/tree/types';
 +
-+import { type Annotation, type ClassificationInput, type ClassificationResult } from './noSweatClassify';
++import {
++  muteBrilliantSource,
++  type Annotation,
++  type ClassificationInput,
++  type ClassificationResult,
++} from './noSweatClassify';
 +import { legalUcis, position, standardUci, terminalScore } from './noSweatCore';
 +import type { Review } from './noSweatFish';
 +
@@ -26756,7 +26852,15 @@ index 0000000..18c2480
 +] as const;
 +export const qualityGlyph = (symbol: Annotation): Glyph | undefined => {
 +  const c = moveClasses.find(c => c.symbol === symbol);
-+  return c && { id: c.id, name: c.name, symbol, comp: true, source: reviewSource };
++  return (
++    c && {
++      id: c.id,
++      name: c.name,
++      symbol,
++      comp: true,
++      source: symbol === '!!' ? muteBrilliantSource : reviewSource,
++    }
++  );
 +};
 +
 +export { gameReviewQualities, gameReviewQuality } from 'lib/nosweat/reviewQuality';
@@ -32462,6 +32566,1508 @@ index 0000000..e30a560
 +    ]
 +  ]
 +}
+diff --git a/ui/analyse/tests/fixtures/noSweat/chesscom-brilliants.json b/ui/analyse/tests/fixtures/noSweat/chesscom-brilliants.json
+new file mode 100644
+index 0000000..baa345e
+--- /dev/null
++++ b/ui/analyse/tests/fixtures/noSweat/chesscom-brilliants.json
+@@ -0,0 +1,1496 @@
++[
++  {
++    "name": "Juwen KaterynaLagno Rxd5",
++    "game": "119215241095",
++    "ply": 37,
++    "positions": [
++      "3q1rk1/p1r1bpp1/bp1Np2p/2nnP3/6QP/1P3NP1/PB3PB1/3R1RK1 w - - 2 19",
++      "3q1rk1/p1r1bpp1/bp1Np2p/2nRP3/6QP/1P3NP1/PB3PB1/5RK1 b - - 0 19"
++    ],
++    "move": "d1d5",
++    "freshBrilliant": false,
++    "runs": [
++      {
++        "prevprev": {
++          "type": "cp",
++          "value": 89
++        },
++        "prev": {
++          "type": "cp",
++          "value": 80
++        },
++        "next": {
++          "type": "cp",
++          "value": 31
++        },
++        "color": "white",
++        "prevMoves": [
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 80
++              }
++            },
++            "sanMoves": [
++              "f3d4",
++              "a6f1",
++              "d4f5",
++              "g7g6",
++              "g2d5",
++              "g8h7",
++              "f5e7",
++              "d8e7",
++              "d5e4",
++              "c5e4",
++              "d6e4",
++              "f1a6",
++              "e4f6",
++              "h7g7"
++            ]
++          },
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 70
++              }
++            },
++            "sanMoves": [
++              "f1e1",
++              "c5d3",
++              "f3d4",
++              "d3e5",
++              "e1e5",
++              "d5f6",
++              "d6f7",
++              "f6g4",
++              "f7d8",
++              "f8d8",
++              "e5e6",
++              "e7c5",
++              "g2f3",
++              "h6h5",
++              "b3b4",
++              "c5b4",
++              "d4c6",
++              "d8d1",
++              "f3d1",
++              "b4c5",
++              "d1b3",
++              "g8h8",
++              "b2d4",
++              "c5d4",
++              "c6d4"
++            ]
++          }
++        ],
++        "is_sacrifice": true,
++        "move": "d1d5"
++      },
++      {
++        "prevprev": {
++          "type": "cp",
++          "value": 82
++        },
++        "prev": {
++          "type": "cp",
++          "value": 92
++        },
++        "next": {
++          "type": "cp",
++          "value": 0
++        },
++        "color": "white",
++        "prevMoves": [
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 92
++              }
++            },
++            "sanMoves": [
++              "f3d4",
++              "a6f1",
++              "d4f5",
++              "e7g5",
++              "g2f1",
++              "e6f5",
++              "d6f5",
++              "g7g6",
++              "f5d6",
++              "d5e3",
++              "f2e3",
++              "g5e3",
++              "g1h1",
++              "h6h5"
++            ]
++          },
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 40
++              }
++            },
++            "sanMoves": [
++              "d1d5",
++              "a6f1",
++              "g2f1",
++              "e6d5",
++              "d6f5",
++              "g7g6",
++              "f5h6",
++              "g8h7",
++              "h6f5",
++              "c5e4",
++              "g4f4",
++              "g6f5",
++              "f4f5",
++              "h7g8",
++              "f5g4",
++              "g8h8",
++              "g4h5",
++              "h8g8",
++              "f1h3",
++              "f8e8",
++              "h3f5",
++              "e7c5",
++              "f3g5",
++              "e4g5",
++              "h4g5",
++              "e8e6",
++              "h5h7",
++              "g8f8"
++            ]
++          }
++        ],
++        "is_sacrifice": true,
++        "move": "d1d5"
++      }
++    ]
++  },
++  {
++    "name": "Juwen KaterynaLagno Nf5",
++    "game": "119215241095",
++    "ply": 39,
++    "positions": [
++      "3q1rk1/p1r1bpp1/bp1N3p/2npP3/6QP/1P3NP1/PB3PB1/5RK1 w - - 0 20",
++      "3q1rk1/p1r1bpp1/bp5p/2npPN2/6QP/1P3NP1/PB3PB1/5RK1 b - - 1 20"
++    ],
++    "move": "d6f5",
++    "freshBrilliant": false,
++    "runs": [
++      {
++        "prevprev": {
++          "type": "cp",
++          "value": 42
++        },
++        "prev": {
++          "type": "cp",
++          "value": 114
++        },
++        "next": {
++          "type": "cp",
++          "value": 115
++        },
++        "color": "white",
++        "prevMoves": [
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 114
++              }
++            },
++            "sanMoves": [
++              "d6f5",
++              "g7g6",
++              "e5e6",
++              "c5e6",
++              "f5h6",
++              "g8h7",
++              "h6f7",
++              "f8f7",
++              "g4e6",
++              "f7f8",
++              "f1d1",
++              "e7f6",
++              "f3g5",
++              "f6g5",
++              "h4g5",
++              "d8g5",
++              "d1d5",
++              "c7c1",
++              "b2c1",
++              "g5c1",
++              "g1h2",
++              "f8f2"
++            ]
++          },
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 69
++              }
++            },
++            "sanMoves": [
++              "f1e1",
++              "h6h5",
++              "g4h5",
++              "c5d3",
++              "f3g5",
++              "e7g5",
++              "h4g5",
++              "d3e1",
++              "g5g6",
++              "f7g6",
++              "g2d5",
++              "f8f7",
++              "h5g6",
++              "e1f3",
++              "g1h1",
++              "d8g5",
++              "d5f7",
++              "g8f8",
++              "g6g5",
++              "f3g5"
++            ]
++          }
++        ],
++        "is_sacrifice": false,
++        "move": "d6f5"
++      },
++      {
++        "prevprev": {
++          "type": "cp",
++          "value": 63
++        },
++        "prev": {
++          "type": "cp",
++          "value": 92
++        },
++        "next": {
++          "type": "cp",
++          "value": 54
++        },
++        "color": "white",
++        "prevMoves": [
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 92
++              }
++            },
++            "sanMoves": [
++              "f1e1",
++              "h6h5",
++              "g4h5",
++              "c5d3",
++              "f3g5",
++              "e7g5",
++              "h4g5",
++              "d3e1",
++              "g5g6",
++              "f7g6",
++              "g2d5",
++              "f8f7",
++              "h5g6",
++              "e1f3",
++              "g1h1",
++              "d8f8",
++              "d5e4",
++              "f3g5",
++              "g6g5",
++              "f7f2",
++              "e4d5",
++              "f2f7",
++              "b2a3"
++            ]
++          },
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 68
++              }
++            },
++            "sanMoves": [
++              "d6f5",
++              "g7g6",
++              "e5e6",
++              "c5e6",
++              "f5h6",
++              "g8h7",
++              "h6f7",
++              "f8f7",
++              "g4e6",
++              "e7f6",
++              "f3g5",
++              "f6g5",
++              "h4g5",
++              "d8c8",
++              "e6e5",
++              "f7f5",
++              "e5d4",
++              "a6f1",
++              "d4h4",
++              "h7g8",
++              "h4h8",
++              "g8f7",
++              "h8g7",
++              "f7e8",
++              "g7g6",
++              "c7f7"
++            ]
++          }
++        ],
++        "is_sacrifice": false,
++        "move": "d6f5"
++      }
++    ]
++  },
++  {
++    "name": "Juwen KaterynaLagno Nxf7+",
++    "game": "119215241095",
++    "ply": 53,
++    "positions": [
++      "3q1r1k/pb1r1p2/1p1Nn1p1/3pP3/3B2QP/1P4P1/P4PB1/4R1K1 w - - 1 27",
++      "3q1r1k/pb1r1N2/1p2n1p1/3pP3/3B2QP/1P4P1/P4PB1/4R1K1 b - - 0 27"
++    ],
++    "move": "d6f7",
++    "freshBrilliant": false,
++    "runs": [
++      {
++        "prevprev": {
++          "type": "cp",
++          "value": 131
++        },
++        "prev": {
++          "type": "cp",
++          "value": 375
++        },
++        "next": {
++          "type": "cp",
++          "value": 389
++        },
++        "color": "white",
++        "prevMoves": [
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 375
++              }
++            },
++            "sanMoves": [
++              "d6f7",
++              "d7f7",
++              "g4e6",
++              "h8h7",
++              "e6g4",
++              "f7f5",
++              "e5e6",
++              "f8e8",
++              "g2h3",
++              "b7c8",
++              "g4d1",
++              "e8e6",
++              "h3f5",
++              "e6e1",
++              "d1e1",
++              "h7h6"
++            ]
++          },
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 254
++              }
++            },
++            "sanMoves": [
++              "d4b2",
++              "h8h7",
++              "b2a3",
++              "b7a8",
++              "f2f4",
++              "f8g8",
++              "d6f7",
++              "d7f7",
++              "g4e6",
++              "f7c7"
++            ]
++          }
++        ],
++        "is_sacrifice": false,
++        "move": "d6f7"
++      },
++      {
++        "prevprev": {
++          "type": "cp",
++          "value": 153
++        },
++        "prev": {
++          "type": "cp",
++          "value": 420
++        },
++        "next": {
++          "type": "cp",
++          "value": 446
++        },
++        "color": "white",
++        "prevMoves": [
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 420
++              }
++            },
++            "sanMoves": [
++              "d6f7",
++              "d7f7",
++              "g4e6",
++              "h8h7",
++              "e6g4",
++              "f7f5",
++              "e5e6",
++              "f8e8",
++              "d4b2",
++              "d8e7",
++              "g4d4",
++              "e8f8",
++              "e1e2",
++              "b7a6",
++              "e2c2",
++              "f8g8",
++              "d4g4"
++            ]
++          },
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 284
++              }
++            },
++            "sanMoves": [
++              "d4e3",
++              "d7c7",
++              "e3h6",
++              "f8g8",
++              "d6f7",
++              "c7f7",
++              "g4e6",
++              "d8e7",
++              "e6g4",
++              "h8h7",
++              "h6g5",
++              "e7c5",
++              "g4e2",
++              "g8e8",
++              "e5e6",
++              "d5d4",
++              "e6f7",
++              "e8e2",
++              "e1e2",
++              "b7g2",
++              "e2e8",
++              "g2f3",
++              "f7f8r"
++            ]
++          }
++        ],
++        "is_sacrifice": false,
++        "move": "d6f7"
++      }
++    ]
++  },
++  {
++    "name": "hansen Fedor_AntipovSPB Nd7",
++    "game": "183990510823",
++    "ply": 61,
++    "positions": [
++      "3r1q1k/2p3pp/3bR3/4Nr2/1nQP4/6BP/1P3PP1/4R1K1 w - - 7 31",
++      "3r1q1k/2pN2pp/3bR3/5r2/1nQP4/6BP/1P3PP1/4R1K1 b - - 8 31"
++    ],
++    "move": "e5d7",
++    "freshBrilliant": true,
++    "runs": [
++      {
++        "prevprev": {
++          "type": "cp",
++          "value": 371
++        },
++        "prev": {
++          "type": "cp",
++          "value": 420
++        },
++        "next": {
++          "type": "cp",
++          "value": 408
++        },
++        "color": "white",
++        "prevMoves": [
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 420
++              }
++            },
++            "sanMoves": [
++              "g3h4",
++              "d8a8",
++              "g2g4",
++              "f5f4",
++              "h4g3",
++              "g7g6",
++              "g1g2",
++              "h8g7",
++              "g3f4",
++              "f8f4",
++              "e6d6",
++              "c7d6",
++              "c4b4",
++              "d6e5",
++              "b4e7",
++              "g7g8",
++              "e1e5"
++            ]
++          },
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 395
++              }
++            },
++            "sanMoves": [
++              "e5d7",
++              "f8f7",
++              "g3d6",
++              "c7d6",
++              "c4b4",
++              "f7d7",
++              "b4d6",
++              "h8g8",
++              "d6b4",
++              "f5d5",
++              "e6e7",
++              "d7c6",
++              "e1e4",
++              "h7h6",
++              "b2b3",
++              "c6c1",
++              "g1h2"
++            ]
++          }
++        ],
++        "is_sacrifice": false,
++        "move": "e5d7"
++      },
++      {
++        "prevprev": {
++          "type": "cp",
++          "value": 426
++        },
++        "prev": {
++          "type": "cp",
++          "value": 426
++        },
++        "next": {
++          "type": "cp",
++          "value": 457
++        },
++        "color": "white",
++        "prevMoves": [
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 426
++              }
++            },
++            "sanMoves": [
++              "e5d7",
++              "d8d7",
++              "e6e8",
++              "d6g3",
++              "f2g3",
++              "b4d5",
++              "g3g4",
++              "f5f7",
++              "e1e5",
++              "d5f6",
++              "e8f8",
++              "f7f8",
++              "g4g5",
++              "f6h5",
++              "c4b5",
++              "d7f7",
++              "e5e4"
++            ]
++          },
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 394
++              }
++            },
++            "sanMoves": [
++              "g3h4",
++              "d8a8",
++              "h4g3",
++              "f8g8",
++              "d4d5",
++              "a8d8",
++              "c4h4",
++              "d6e5",
++              "e1e5",
++              "f5e5",
++              "g3e5",
++              "b4d3",
++              "h4c4",
++              "d3e5",
++              "e6e5",
++              "g8f8",
++              "c4e4"
++            ]
++          }
++        ],
++        "is_sacrifice": false,
++        "move": "e5d7"
++      }
++    ]
++  },
++  {
++    "name": "hansen Fedor_AntipovSPB Rxd6",
++    "game": "183990510823",
++    "ply": 67,
++    "positions": [
++      "3r3k/3q2pp/3pR3/5r2/1Q1P4/7P/1P3PP1/4R1K1 w - - 0 34",
++      "3r3k/3q2pp/3R4/5r2/1Q1P4/7P/1P3PP1/4R1K1 b - - 0 34"
++    ],
++    "move": "e6d6",
++    "freshBrilliant": false,
++    "runs": [
++      {
++        "prevprev": {
++          "type": "cp",
++          "value": 338
++        },
++        "prev": {
++          "type": "cp",
++          "value": 364
++        },
++        "next": {
++          "type": "cp",
++          "value": 473
++        },
++        "color": "white",
++        "prevMoves": [
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 364
++              }
++            },
++            "sanMoves": [
++              "d4d5",
++              "d7a7",
++              "e6e8",
++              "f5f8",
++              "e8f8",
++              "d8f8",
++              "e1e2",
++              "a7b8",
++              "b4d4",
++              "b8c7",
++              "g1h2",
++              "f8f7"
++            ]
++          },
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 334
++              }
++            },
++            "sanMoves": [
++              "e6e7",
++              "d7c6",
++              "b4c3",
++              "c6b5",
++              "b2b4",
++              "d8g8",
++              "e7e6",
++              "f5d5",
++              "f2f3",
++              "h7h6",
++              "e6e7"
++            ]
++          }
++        ],
++        "is_sacrifice": true,
++        "move": "e6d6"
++      },
++      {
++        "prevprev": {
++          "type": "cp",
++          "value": 456
++        },
++        "prev": {
++          "type": "cp",
++          "value": 480
++        },
++        "next": {
++          "type": "cp",
++          "value": 486
++        },
++        "color": "white",
++        "prevMoves": [
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 480
++              }
++            },
++            "sanMoves": [
++              "e6d6",
++              "d7c7",
++              "d6d8",
++              "c7d8",
++              "e1e5",
++              "f5f6",
++              "b4e1",
++              "f6f8",
++              "b2b4",
++              "h8g8",
++              "e1e4",
++              "d8a8",
++              "d4d5",
++              "a8b8",
++              "f2f4",
++              "b8d6",
++              "e5e8",
++              "h7h6",
++              "e8f8",
++              "g8f8",
++              "g1h2"
++            ]
++          },
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 384
++              }
++            },
++            "sanMoves": [
++              "b4d6",
++              "h7h6",
++              "d6d7",
++              "d8d7",
++              "e1d1",
++              "f5b5",
++              "e6e8",
++              "h8h7",
++              "d1d2",
++              "h7g6",
++              "g1f1",
++              "g6f7",
++              "e8e2",
++              "b5b4",
++              "d4d5",
++              "b4b5",
++              "f1e1"
++            ]
++          }
++        ],
++        "is_sacrifice": true,
++        "move": "e6d6"
++      }
++    ]
++  },
++  {
++    "name": "hansen Achuvettan Rxa1",
++    "game": "184007910437",
++    "ply": 57,
++    "positions": [
++      "6k1/5ppp/2N1pb2/1pPq4/3PQ3/1P5P/5PP1/r3R1K1 w - - 3 29",
++      "6k1/5ppp/2N1pb2/1pPq4/3PQ3/1P5P/5PP1/R5K1 b - - 0 29"
++    ],
++    "move": "e1a1",
++    "freshBrilliant": true,
++    "runs": [
++      {
++        "prevprev": {
++          "type": "cp",
++          "value": 82
++        },
++        "prev": {
++          "type": "cp",
++          "value": 711
++        },
++        "next": {
++          "type": "cp",
++          "value": 770
++        },
++        "color": "white",
++        "prevMoves": [
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 711
++              }
++            },
++            "sanMoves": [
++              "e1a1",
++              "d5c5",
++              "a1a8",
++              "c5f8",
++              "a8f8",
++              "g8f8",
++              "g2g4",
++              "g7g6",
++              "g1g2",
++              "f8g7",
++              "c6e5",
++              "h7h5",
++              "e4b7",
++              "f6e5",
++              "d4e5",
++              "h5g4",
++              "h3g4"
++            ]
++          },
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": -244
++              }
++            },
++            "sanMoves": [
++              "c6b8",
++              "f6d4",
++              "e4e2",
++              "a1e1",
++              "e2e1",
++              "d4c5",
++              "e1c3",
++              "d5d1",
++              "g1h2",
++              "c5f2"
++            ]
++          }
++        ],
++        "is_sacrifice": true,
++        "move": "e1a1"
++      },
++      {
++        "prevprev": {
++          "type": "cp",
++          "value": 80
++        },
++        "prev": {
++          "type": "cp",
++          "value": 785
++        },
++        "next": {
++          "type": "cp",
++          "value": 821
++        },
++        "color": "white",
++        "prevMoves": [
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 785
++              }
++            },
++            "sanMoves": [
++              "e1a1",
++              "g7g5",
++              "e4d5",
++              "e6d5",
++              "a1a8",
++              "g8g7",
++              "g1f1",
++              "g7g6",
++              "f1e2",
++              "g6f5",
++              "a8a7",
++              "f5e6",
++              "g2g4",
++              "h7h6",
++              "e2d3",
++              "h6h5",
++              "g4h5",
++              "g5g4",
++              "h3g4",
++              "f6h4",
++              "f2f4",
++              "f7f5",
++              "g4g5",
++              "h4e1"
++            ]
++          },
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": -371
++              }
++            },
++            "sanMoves": [
++              "c6e5",
++              "d5e4",
++              "e1a1",
++              "f6e5",
++              "d4e5",
++              "g7g5",
++              "a1c1",
++              "e4f4",
++              "c1d1",
++              "f4e5",
++              "c5c6",
++              "e5c7",
++              "d1c1",
++              "f7f6",
++              "b3b4",
++              "h7h5",
++              "c1c5",
++              "h5h4",
++              "g2g4"
++            ]
++          }
++        ],
++        "is_sacrifice": true,
++        "move": "e1a1"
++      }
++    ]
++  },
++  {
++    "name": "nelsi penetrators666 f5",
++    "game": "186399008010",
++    "ply": 37,
++    "positions": [
++      "5rk1/p1p1bp1p/qp4p1/3pP3/P2P1PQ1/7P/1Pn3P1/R1B2RK1 w - - 0 19",
++      "5rk1/p1p1bp1p/qp4p1/3pPP2/P2P2Q1/7P/1Pn3P1/R1B2RK1 b - - 0 19"
++    ],
++    "move": "f4f5",
++    "freshBrilliant": true,
++    "runs": [
++      {
++        "prevprev": {
++          "type": "cp",
++          "value": 164
++        },
++        "prev": {
++          "type": "cp",
++          "value": 165
++        },
++        "next": {
++          "type": "cp",
++          "value": 204
++        },
++        "color": "white",
++        "prevMoves": [
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 165
++              }
++            },
++            "sanMoves": [
++              "f4f5",
++              "c2a1",
++              "f5g6",
++              "h7g6",
++              "g4d7",
++              "a1b3",
++              "c1h6",
++              "e7g5",
++              "h6g5",
++              "a6e2",
++              "d7d5",
++              "b3d2",
++              "g5d2",
++              "e2d2",
++              "d5e4",
++              "f8e8",
++              "g1h2",
++              "c7c5",
++              "e5e6",
++              "e8e6",
++              "e4a8",
++              "g8g7",
++              "a8a7",
++              "e6f6",
++              "f1f6"
++            ]
++          },
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 113
++              }
++            },
++            "sanMoves": [
++              "g4d7",
++              "e7h4",
++              "d7g4",
++              "a6c4",
++              "a1b1",
++              "h4e7",
++              "b2b3",
++              "c4d4",
++              "g1h1",
++              "d4e4",
++              "f4f5",
++              "e4e5",
++              "c1f4",
++              "e5e4",
++              "b1c1",
++              "c2e3",
++              "f4e3",
++              "e4e3",
++              "f5g6"
++            ]
++          }
++        ],
++        "is_sacrifice": true,
++        "move": "f4f5"
++      },
++      {
++        "prevprev": {
++          "type": "cp",
++          "value": 214
++        },
++        "prev": {
++          "type": "cp",
++          "value": 211
++        },
++        "next": {
++          "type": "cp",
++          "value": 235
++        },
++        "color": "white",
++        "prevMoves": [
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 211
++              }
++            },
++            "sanMoves": [
++              "f4f5",
++              "h7h5",
++              "g4d1",
++              "c2a1",
++              "c1h6",
++              "f8c8",
++              "d1f3",
++              "b6b5",
++              "e5e6",
++              "a1c2",
++              "e6f7",
++              "g8h7",
++              "f7f8r",
++              "e7f8",
++              "h6f8",
++              "c2d4",
++              "f3e3",
++              "h7g8",
++              "f8c5",
++              "d4f5",
++              "f1f5",
++              "g6f5",
++              "e3g5",
++              "g8f7",
++              "g5f5",
++              "f7g8",
++              "f5d5"
++            ]
++          },
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 90
++              }
++            },
++            "sanMoves": [
++              "g4d7",
++              "e7h4",
++              "d7g4",
++              "f7f5",
++              "g4h4",
++              "c2a1",
++              "f1f3",
++              "a6e2",
++              "h4e7",
++              "e2d1",
++              "g1h2",
++              "d1c1",
++              "e7e6",
++              "g8g7",
++              "e6d5",
++              "a1c2",
++              "e5e6",
++              "c2e3"
++            ]
++          }
++        ],
++        "is_sacrifice": true,
++        "move": "f4f5"
++      }
++    ]
++  },
++  {
++    "name": "Juwen powerofapoint Bb2",
++    "game": "172016241890",
++    "ply": 37,
++    "positions": [
++      "r1bq2k1/pp3pBp/2p3p1/8/4r1n1/1P1P2P1/P2QPRKP/2RN4 w - - 0 19",
++      "r1bq2k1/pp3p1p/2p3p1/8/4r1n1/1P1P2P1/PB1QPRKP/2RN4 b - - 1 19"
++    ],
++    "move": "g7b2",
++    "freshBrilliant": true,
++    "runs": [
++      {
++        "prevprev": {
++          "type": "cp",
++          "value": 1
++        },
++        "prev": {
++          "type": "cp",
++          "value": 110
++        },
++        "next": {
++          "type": "cp",
++          "value": 109
++        },
++        "color": "white",
++        "prevMoves": [
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 110
++              }
++            },
++            "sanMoves": [
++              "g7a1",
++              "g4f2",
++              "d1f2",
++              "e4e8",
++              "d2h6",
++              "f7f6",
++              "f2e4",
++              "e8e4",
++              "d3e4",
++              "c8g4",
++              "c1f1",
++              "g4e2",
++              "f1f6",
++              "d8d7",
++              "a1c3",
++              "d7e7",
++              "h6e3",
++              "e2a6",
++              "e3d4"
++            ]
++          },
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 95
++              }
++            },
++            "sanMoves": [
++              "g7b2",
++              "g4f2",
++              "d1f2",
++              "e4e8",
++              "d2h6",
++              "f7f6",
++              "f2e4",
++              "e8e4",
++              "d3e4",
++              "c8g4",
++              "c1f1",
++              "d8e7",
++              "b2f6",
++              "e7d7",
++              "f6a1",
++              "g4e2"
++            ]
++          }
++        ],
++        "is_sacrifice": true,
++        "move": "g7b2"
++      },
++      {
++        "prevprev": {
++          "type": "cp",
++          "value": -5
++        },
++        "prev": {
++          "type": "cp",
++          "value": 115
++        },
++        "next": {
++          "type": "cp",
++          "value": 93
++        },
++        "color": "white",
++        "prevMoves": [
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 115
++              }
++            },
++            "sanMoves": [
++              "g7b2",
++              "g4f2",
++              "d1f2",
++              "e4e8",
++              "d2h6",
++              "f7f6",
++              "f2e4",
++              "e8f8",
++              "h6h4",
++              "c8f5",
++              "e4f6",
++              "f8f6",
++              "b2f6",
++              "d8d5",
++              "g2g1",
++              "d5e6",
++              "e2e4",
++              "f5h3",
++              "f6a1",
++              "a8f8",
++              "h4g5",
++              "h3g4"
++            ]
++          },
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 106
++              }
++            },
++            "sanMoves": [
++              "g7a1",
++              "g4f2",
++              "d1f2",
++              "e4e8",
++              "d2h6",
++              "f7f6",
++              "f2e4",
++              "e8f8",
++              "h6h4",
++              "c8f5",
++              "e4f6",
++              "f8f6",
++              "h4f6",
++              "d8f6",
++              "a1f6",
++              "f5g4",
++              "c1c2",
++              "g4d7"
++            ]
++          }
++        ],
++        "is_sacrifice": true,
++        "move": "g7b2"
++      }
++    ]
++  },
++  {
++    "name": "KNVB Cirky Bxh7+",
++    "game": "186066291740",
++    "ply": 21,
++    "positions": [
++      "r2q1rk1/pp1b1ppp/2nbp3/3p3n/3P4/2PBBNP1/PP1N1P1P/R2QK2R w KQ - 3 11",
++      "r2q1rk1/pp1b1ppB/2nbp3/3p3n/3P4/2P1BNP1/PP1N1P1P/R2QK2R b KQ - 0 11"
++    ],
++    "move": "d3h7",
++    "freshBrilliant": true,
++    "runs": [
++      {
++        "prevprev": {
++          "type": "cp",
++          "value": -13
++        },
++        "prev": {
++          "type": "cp",
++          "value": 125
++        },
++        "next": {
++          "type": "cp",
++          "value": 130
++        },
++        "color": "white",
++        "prevMoves": [
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 125
++              }
++            },
++            "sanMoves": [
++              "d3h7",
++              "g8h7",
++              "f3g5",
++              "h7g6",
++              "d2f3",
++              "g6f6",
++              "f3e5",
++              "g7g6",
++              "g3g4",
++              "c6e5",
++              "d4e5",
++              "d6e5",
++              "g5h7",
++              "f6g7",
++              "h7f8",
++              "d7b5"
++            ]
++          },
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 44
++              }
++            },
++            "sanMoves": [
++              "f3e5",
++              "h5f6",
++              "e3f4",
++              "d7e8",
++              "e1g1",
++              "d6e5",
++              "d4e5",
++              "f6d7",
++              "d1e2",
++              "h7h6",
++              "d3c2",
++              "f7f5",
++              "d2b3",
++              "a7a5"
++            ]
++          }
++        ],
++        "is_sacrifice": true,
++        "move": "d3h7"
++      },
++      {
++        "prevprev": {
++          "type": "cp",
++          "value": -3
++        },
++        "prev": {
++          "type": "cp",
++          "value": 115
++        },
++        "next": {
++          "type": "cp",
++          "value": 98
++        },
++        "color": "white",
++        "prevMoves": [
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 115
++              }
++            },
++            "sanMoves": [
++              "d3h7",
++              "g8h7",
++              "f3g5",
++              "h7g6",
++              "d2f3",
++              "g6f6",
++              "f3e5",
++              "g7g6",
++              "g3g4",
++              "f6g7",
++              "g4h5",
++              "c6e5",
++              "d4e5",
++              "d6e5",
++              "d1d2",
++              "d5d4",
++              "c3d4",
++              "e5c7",
++              "h5g6",
++              "f7g6",
++              "h2h4",
++              "d8f6",
++              "h4h5",
++              "f6f5",
++              "h5g6",
++              "f8h8",
++              "h1h7",
++              "h8h7",
++              "g6h7",
++              "c7a5"
++            ]
++          },
++          {
++            "score": {
++              "value": {
++                "type": "cp",
++                "value": 68
++              }
++            },
++            "sanMoves": [
++              "f3e5",
++              "h5f6",
++              "e3f4",
++              "d7e8",
++              "d1e2",
++              "a7a5",
++              "e1g1",
++              "a5a4",
++              "a2a3",
++              "d6e5",
++              "d4e5",
++              "f6d7",
++              "f1e1",
++              "f7f6"
++            ]
++          }
++        ],
++        "is_sacrifice": true,
++        "move": "d3h7"
++      }
++    ]
++  }
++]
 diff --git a/ui/analyse/tests/fixtures/noSweat/maia-5m.json b/ui/analyse/tests/fixtures/noSweat/maia-5m.json
 new file mode 100644
 index 0000000..031774c
@@ -82251,7 +83857,7 @@ index 0000000..e4aceed
 +});
 diff --git a/ui/analyse/tests/noSweatBrilliants.test.ts b/ui/analyse/tests/noSweatBrilliants.test.ts
 new file mode 100644
-index 0000000..e9340bd
+index 0000000..6609633
 --- /dev/null
 +++ b/ui/analyse/tests/noSweatBrilliants.test.ts
 @@ -0,0 +1,135 @@
@@ -82388,7 +83994,7 @@ index 0000000..e9340bd
 +  assert.equal(into.glyphs?.[0].id, 2);
 +  const clean = { ...nodes[1] } as TreeNodeLite;
 +  mergeReviewData(clean, from);
-+  assert.equal(clean.glyphs?.[0].source, 'mobile-maia-brilliant-v1');
++  assert.equal(clean.glyphs?.[0].source, 'mute-chess-brilliant-v1');
 +});
 diff --git a/ui/analyse/tests/noSweatExport.test.ts b/ui/analyse/tests/noSweatExport.test.ts
 new file mode 100644
@@ -82455,17 +84061,17 @@ index 0000000..e5379b5
 +});
 diff --git a/ui/analyse/tests/noSweatFullGame.test.ts b/ui/analyse/tests/noSweatFullGame.test.ts
 new file mode 100644
-index 0000000..f786836
+index 0000000..469902a
 --- /dev/null
 +++ b/ui/analyse/tests/noSweatFullGame.test.ts
-@@ -0,0 +1,204 @@
+@@ -0,0 +1,203 @@
 +import assert from 'node:assert/strict';
 +import { readFileSync } from 'node:fs';
 +import { test } from 'node:test';
 +
 +import type { TreeNodeBase } from 'lib/tree/types';
 +
-+import { classify } from '../src/noSweatClassify';
++import { classify, muteBrilliantSource } from '../src/noSweatClassify';
 +import { legalUcis, position } from '../src/noSweatCore';
 +import {
 +  classificationCounts,
@@ -82473,7 +84079,6 @@ index 0000000..f786836
 +  gameReviewQuality,
 +  nativeReview,
 +  qualityGlyph,
-+  reviewSource,
 +} from '../src/noSweatFullReview';
 +import { SearchSnapshots } from '../src/noSweatSnapshots';
 +
@@ -82575,7 +84180,7 @@ index 0000000..f786836
 +    { depth: 14, time: 500 },
 +    { depth: 14, time: 500 },
 +  ]);
-+  assert.equal(qualityGlyph(result.get(19)!)?.source, reviewSource);
++  assert.equal(qualityGlyph(result.get(19)!)?.source, muteBrilliantSource);
 +});
 +test('a stronger-window veto withholds a standout; cancellation prevents publication', async () => {
 +  const nodes = [node(18), node(19)];
@@ -82923,6 +84528,141 @@ index 0000000..d6baf70
 +  assert.equal(shapes[0].dest, 'e4');
 +  assert.ok(shapes[0].customSvg!.html.includes('#778899'));
 +  assert.ok(shapes[0].customSvg!.html.includes('#aabbcc'));
++});
+diff --git a/ui/analyse/tests/noSweatMuteBrilliants.test.ts b/ui/analyse/tests/noSweatMuteBrilliants.test.ts
+new file mode 100644
+index 0000000..3872a31
+--- /dev/null
++++ b/ui/analyse/tests/noSweatMuteBrilliants.test.ts
+@@ -0,0 +1,129 @@
++import assert from 'node:assert/strict';
++import { readFileSync } from 'node:fs';
++import { test } from 'node:test';
++
++import {
++  classify,
++  hasPieceOffer,
++  muteAnnotation,
++  muteBrilliantSource,
++  isMuteSacrifice,
++} from '../src/noSweatClassify';
++import { after as afterMove } from '../src/noSweatCore';
++import type { Review } from '../src/noSweatFish';
++import type { Snapshot } from '../src/noSweatSnapshots';
++
++const samples = JSON.parse(
++  readFileSync(new URL('./fixtures/noSweat/chesscom-brilliants.json', import.meta.url), 'utf8'),
++);
++const score = (s: { type: string; value: number }): EvalScore =>
++  s.type === 'mate' ? { mate: s.value } : { cp: s.value };
++const inputFor = (sample: any, run: any) => {
++  const before: Snapshot = {
++    depth: 16,
++    lines: run.prevMoves.map((line: any) => ({ ...score(line.score.value), moves: line.sanMoves })),
++  };
++  const after: Snapshot = { depth: 16, lines: [{ ...score(run.next), moves: [] }] };
++  const reviews: Review[] = [
++    { current: before, previous: before, quality: 'test' },
++    { current: after, previous: after, quality: 'test' },
++  ];
++  return { positions: sample.positions, move: sample.move, reviews, policy: 'mute-brilliant-v1' as const };
++};
++
++test('five fresh-review examples pass Mute eligibility on both recorded budgets', () => {
++  for (const sample of samples.filter((s: any) => s.freshBrilliant))
++    for (const run of sample.runs) {
++      const result = classify(inputFor(sample, run));
++      assert.equal(result.symbol, '!!', sample.name);
++      assert.equal(result.version, muteBrilliantSource);
++    }
++});
++
++test('an apparent knight offer can qualify when EC sees only a 90-point net material change', () => {
++  const sample = samples.find((s: any) => s.game === '183990510823' && s.ply === 61);
++  assert.equal(hasPieceOffer(...(sample.positions as [string, string])), true);
++  assert.equal(classify({ ...inputFor(sample, sample.runs[1]), policy: 'en-croissant' }).symbol, '');
++});
++
++test('legal exchange search excludes ordinary trades, pinned attackers, and captures with greater immediate gain', () => {
++  const trade = '3rk3/8/8/8/8/8/8/3RK1B1 w - - 0 1';
++  assert.equal(hasPieceOffer(trade, afterMove(trade, 'd1d4')), false, 'equal rook exchange');
++  const pinned = '4k3/4n3/1R6/8/8/8/8/K3R3 w - - 0 1';
++  assert.equal(hasPieceOffer(pinned, afterMove(pinned, 'b6c6')), false, 'pinned knight cannot capture');
++  const gain = '4k3/8/8/8/8/2b5/1N5r/6KR w - - 0 1';
++  assert.equal(hasPieceOffer(gain, afterMove(gain, 'h1h2')), false, 'rook gain exceeds offered knight');
++});
++
++test('Black, capture/promotion credit, pawn-only offers and terminal positions have explicit material semantics', () => {
++  const black = '2rn4/p2qprkp/1p1p2p1/4R1N1/8/2P3P1/PP3PbP/R1BQ2K1 b - - 0 19';
++  assert.equal(hasPieceOffer(black, afterMove(black, 'g2b7')), true, 'mirrored Bb2 exchange offer');
++  const pawn = '4k3/8/8/8/1p6/P7/8/4K3 w - - 0 1';
++  assert.equal(hasPieceOffer(pawn, afterMove(pawn, 'a3a4')), false);
++  const promo = '7r/P3k3/8/8/8/8/8/4K3 w - - 0 1';
++  assert.equal(hasPieceOffer(promo, afterMove(promo, 'a7a8q')), false, 'promotion is credited');
++  const mate = '7k/5Q2/5K2/8/8/8/8/8 w - - 0 1';
++  assert.equal(isMuteSacrifice(mate, afterMove(mate, 'f7g7')), false, 'mate is terminal');
++});
++
++const snapshot = (best: number, second: number, playedFirst = true): Snapshot => ({
++  depth: 16,
++  lines: [
++    { cp: best, moves: [playedFirst ? 'offer' : 'other'] },
++    { cp: second, moves: [playedFirst ? 'other' : 'offer'] },
++  ],
++});
++test('soundness, near-best tolerance and a clearly winning safe alternative gate the award', () => {
++  const label = (before: Snapshot, after: EvalScore, offers: string[] = ['offer'], color: Color = 'white') =>
++    muteAnnotation(undefined, before, after, color, 'offer', false, move => offers.includes(move));
++  assert.equal(label(snapshot(50, 40), { cp: 45 }), '!!');
++  assert.equal(label(snapshot(50, 40, false), { cp: 40 }), '!!', 'near-best second choice');
++  assert.notEqual(label(snapshot(-150, -160), { cp: -150 }), '!!', 'losing position');
++  assert.notEqual(label(snapshot(50, 40), { cp: -50 }), '!!', 'too much score loss');
++  assert.notEqual(label(snapshot(800, 600), { cp: 800 }), '!!', 'safe alternative at +6');
++  assert.equal(label(snapshot(800, 599), { cp: 800 }), '!!', 'strictly below the routine-win cutoff');
++  assert.equal(label(snapshot(800, 700), { cp: 800 }, ['offer', 'other']), '!!', 'two winning sacrifices');
++  assert.notEqual(label(snapshot(800, 700), { mate: -2 }), '!!', 'forced loss');
++  assert.equal(label(snapshot(-50, -60), { cp: -50 }, ['offer'], 'black'), '!!', 'Black perspective');
++  assert.notEqual(label({ depth: 16, lines: [{ cp: 50, moves: ['offer'] }] }, { cp: 50 }), '!!');
++});
++
++test('a current award still needs whole-window corroboration, and a contradictory window vetoes it', () => {
++  const sample = samples.find((s: any) => s.game === '172016241890');
++  const input = inputFor(sample, sample.runs[1]);
++  const bare = { ...input, reviews: input.reviews.map(r => ({ ...r, previous: undefined })) };
++  assert.equal(classify(bare).withheld, true);
++  const contradiction = input.reviews.map(r => ({ ...r, current: { ...r.current, depth: 18 } }));
++  contradiction[1].current = { depth: 18, lines: [{ cp: -200, moves: [] }] };
++  assert.equal(classify({ ...input, confirmation: contradiction }).withheld, true);
++  const wrongQuality = input.reviews.map(r => ({ ...r, quality: 'wrong' }));
++  assert.equal(classify({ ...input, confirmation: wrongQuality }).withheld, true);
++});
++
++test('the historical Rxd5 gallery label is withheld when the two recorded score windows disagree', () => {
++  const sample = samples.find((s: any) => s.game === '119215241095' && s.ply === 37);
++  const baseline = inputFor(sample, sample.runs[0]);
++  const confirmation = inputFor(sample, sample.runs[1]).reviews;
++  const result = classify({ ...baseline, confirmation });
++  assert.equal(result.provisional, '!!');
++  assert.equal(result.symbol, '');
++  assert.equal(result.withheld, true);
++});
++
++test('the actual worker selects Mute policy and broadens the legacy brilliant prefilter', async () => {
++  const original = globalThis.self;
++  const results: any[] = [];
++  const worker: any = { postMessage: (value: unknown) => results.push(value) };
++  (globalThis as any).self = worker;
++  try {
++    await import('../src/analyse.nosweatWorker');
++    const sample = samples.find((s: any) => s.game === '183990510823' && s.ply === 61);
++    worker.onmessage({ data: inputFor(sample, sample.runs[1]) });
++    assert.equal(results[0].result.symbol, '!!');
++    assert.equal(results[0].result.version, muteBrilliantSource);
++    worker.onmessage({ data: { material: sample.positions } });
++    assert.equal(results[1].result, true);
++  } finally {
++    (globalThis as any).self = original;
++  }
 +});
 diff --git a/ui/analyse/tests/noSweatPgn.test.ts b/ui/analyse/tests/noSweatPgn.test.ts
 new file mode 100644

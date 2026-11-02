@@ -4,6 +4,12 @@
 
 # Confirmed foundation: Lichess chess, augmented analysis, desktop club wrapper
 
+> **November 2 brilliant experiment (#221):** the owner explicitly authorizes
+> Mute-only `!!` eligibility that is more generous than En Croissant. Mobile Maia
+> remains unchanged. Keep native metrics, imported glyphs and confirmation checks;
+> retain the original independent references. See [the exact rules and comparison](brilliant-moves.md).
+> This supersedes earlier EC-fidelity requirements only for Mute's brilliant awards.
+
 Decision confirmed by the owner on 28 October 2026. This supersedes the provisional focused-service direction in `docs/architecture.md` and the earlier proposal to choose between a custom chess service and Lila.
 
 ## Product boundary
