@@ -81,13 +81,14 @@
         },
         {
           "id": "maia-bot-pool",
-          "rationale": "Restrict quick pairing to managed Maia bots and validate admissions, while retaining native games, clocks, Glicko and completion. Add a derived rating index and a roster-level presence bridge without changing ordinary user/API-bot presence. Issue #172 adds namespaced seed validation and research-seeded profile provenance for the 10,000-identity catalog; native Glicko calculations/provisional criteria and uniform eligible matching remain unchanged. Sci-fi aliases apply only to managed placeholder accounts with absent/default display names. Issue #176 updates bot profile disclosure: self input remains fixed; opponent input follows the human rating at game start. Automatic public game reservations require exact white/black BOT seats and explicit enabled configuration; native rules, clocks, ratings and history remain authoritative. Both seats participate in the same busy-account exclusion as human matchmaking.",
+          "rationale": "Restrict quick pairing to managed Maia bots and validate admissions, while retaining native games, clocks, Glicko and completion. Add a derived rating index and a roster-level presence bridge without changing ordinary user/API-bot presence. Issue #172 adds namespaced seed validation and research-seeded profile provenance for the 10,000-identity catalog; native Glicko calculations/provisional criteria and uniform eligible matching remain unchanged. Sci-fi aliases apply only to managed placeholder accounts with absent/default display names. Issue #176 updates bot profile disclosure: self input remains fixed; opponent input follows the human rating at game start. Automatic public game reservations require exact white/black BOT seats and explicit enabled configuration; native rules, clocks, ratings and history remain authoritative. Both seats participate in the same busy-account exclusion as human matchmaking. Issue #198 extends the existing persistent activity pause to every playable native game insertion, serializing the control write with insertion while preserving imports, moves, clocks, results and native friend/rematch rules. Drain status counts all non-import native games and pool/study pending records.",
           "verification": [
             "Native PoolCatalogTest/ManagedPresenceTest",
             "Adapter policy/personality tests",
             "Private pool, timing and presence integration",
             "Native NoSweatBotCatalogTest and exact source/catalog agreement; zero fabricated games/history, persistent per-speed assignments, default-only aliases and managed-account collision rejection.",
-            "PublicBotActivityTest covers shared ten-game capacity, five-auto target, pause boundaries and successful-admission Blitz/Rapid alternation; adapter queue/policy regressions cover bounded inference and immutable automatic timing overrides."
+            "PublicBotActivityTest covers shared ten-game capacity, five-auto target, pause boundaries and successful-admission Blitz/Rapid alternation; adapter queue/policy regressions cover bounded inference and immutable automatic timing overrides.",
+            "NoSweatGameAdmissionTest covers pause/reopen, persistence across reconstruction, in-flight insertion/pause ordering, failed writes and unavailable control state. Native insertion is the shared guard for pool, friend invitations, rematches and study starts; internal authentication remains unchanged."
           ],
           "files": [
             "app/controllers/Setup.scala",
@@ -108,7 +109,10 @@
             "src/test/scala/NoSweatBotCatalogTest.scala",
             "public/nosweat-bot-aliases.json",
             "modules/bot/src/main/PublicBotActivity.scala",
-            "modules/bot/src/test/PublicBotActivityTest.scala"
+            "modules/bot/src/test/PublicBotActivityTest.scala",
+            "modules/game/src/main/NoSweatGameAdmission.scala",
+            "modules/game/src/test/NoSweatGameAdmissionTest.scala",
+            "app/http/ErrorHandler.scala"
           ]
         },
         {
