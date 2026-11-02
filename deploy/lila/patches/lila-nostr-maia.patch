@@ -6705,6 +6705,35 @@ index a571135..695c8a3 100644
  export type Search = { by: SearchBy; multiPv: number; indeterminate?: boolean };
  export type NodeEfficiencyVsFishnet = Partial<Record<'chess' | 'variant', number>>;
  
+diff --git a/ui/lib/src/game/glyphs.ts b/ui/lib/src/game/glyphs.ts
+index f565ff3..368d53c 100644
+--- a/ui/lib/src/game/glyphs.ts
++++ b/ui/lib/src/game/glyphs.ts
+@@ -2,6 +2,7 @@ import type { DrawShape } from '@lichess-org/chessground/draw';
+ import * as cgGlyphs from '@lichess-org/chessground/glyph';
+ import { parseUci, makeSquare, squareRank } from 'chessops/util';
+ 
++import { moveClasses } from '@/nosweat/moveClasses';
+ import type { Glyph, TreeNode } from '@/tree/types';
+ 
+ // maximum number of glyphs to show for a given move
+@@ -27,7 +28,15 @@ export function annotationShapes(node: TreeNode, existingShapes: DrawShape[] = [
+           const symbol = glyph.symbol;
+           const stackedNumber =
+             idx + existingShapes.filter(shape => shape.orig === destSquare && shape.customSvg).length;
+-          const prerendered = glyphToSvg[symbol] ? glyphToSvg[symbol](stackedNumber) : undefined;
++          const nativeSvg = glyphToSvg[symbol] ? glyphToSvg[symbol](stackedNumber) : undefined;
++          const color =
++            typeof document !== 'undefined' && document.documentElement.dataset.brand === 'mutechess'
++              ? moveClasses.find(category => category.symbol === symbol)?.color
++              : undefined;
++          const prerendered =
++            nativeSvg && color
++              ? nativeSvg.replace(/(<circle\b[^>]*\bfill=")[^"]*(")/, `$1${color}$2`)
++              : nativeSvg;
+           return {
+             orig: destSquare,
+             brush: prerendered ? '' : undefined,
 diff --git a/ui/lib/src/game/interfaces.ts b/ui/lib/src/game/interfaces.ts
 index 1892379..c353f9e 100644
 --- a/ui/lib/src/game/interfaces.ts
@@ -26839,14 +26868,15 @@ index 0000000..f60f15b
 +}
 diff --git a/ui/analyse/src/noSweatFullReview.ts b/ui/analyse/src/noSweatFullReview.ts
 new file mode 100644
-index 0000000..d0c50e7
+index 0000000..2f0a466
 --- /dev/null
 +++ b/ui/analyse/src/noSweatFullReview.ts
-@@ -0,0 +1,157 @@
+@@ -0,0 +1,151 @@
 +// Mobile Maia / En Croissant annotations over native Lichess analysis.
 +// Accuracy, ACPL, best lines and Learn from your mistakes stay native.
 +import { parseUci } from 'chessops/util';
 +
++import { moveClasses } from 'lib/nosweat/moveClasses';
 +import { gameReviewQualities } from 'lib/nosweat/reviewQuality';
 +import type { Glyph, TreeNodeBase } from 'lib/tree/types';
 +
@@ -26860,14 +26890,7 @@ index 0000000..d0c50e7
 +import type { Review } from './noSweatFish';
 +
 +export const reviewSource = 'mobile-maia-full-review-v2';
-+export const moveClasses = [
-+  { symbol: '!!', id: 3, name: 'Brilliant', color: '#15aabf' },
-+  { symbol: '!', id: 1, name: 'Good', color: '#12b886' },
-+  { symbol: '!?', id: 5, name: 'Interesting', color: '#82c91e' },
-+  { symbol: '?!', id: 6, name: 'Dubious', color: '#fab005' },
-+  { symbol: '?', id: 2, name: 'Mistake', color: '#fd7e14' },
-+  { symbol: '??', id: 4, name: 'Blunder', color: '#fa5252' },
-+] as const;
++export { moveClasses } from 'lib/nosweat/moveClasses';
 +export const qualityGlyph = (symbol: Annotation): Glyph | undefined => {
 +  const c = moveClasses.find(c => c.symbol === symbol);
 +  return (
@@ -86548,6 +86571,20 @@ index 0000000..900a6ad
 +export function isPrivateNostrInput(value: string): boolean {
 +  return /^(?:nostr:)?nsec1/i.test(value.trim());
 +}
+diff --git a/ui/lib/src/nosweat/moveClasses.ts b/ui/lib/src/nosweat/moveClasses.ts
+new file mode 100644
+index 0000000..230f30f
+--- /dev/null
++++ b/ui/lib/src/nosweat/moveClasses.ts
+@@ -0,0 +1,8 @@
++export const moveClasses = [
++  { symbol: '!!', id: 3, name: 'Brilliant', color: '#15aabf' },
++  { symbol: '!', id: 1, name: 'Good', color: '#12b886' },
++  { symbol: '!?', id: 5, name: 'Interesting', color: '#82c91e' },
++  { symbol: '?!', id: 6, name: 'Dubious', color: '#fab005' },
++  { symbol: '?', id: 2, name: 'Mistake', color: '#fd7e14' },
++  { symbol: '??', id: 4, name: 'Blunder', color: '#fa5252' },
++] as const;
 diff --git a/ui/lib/src/nosweat/phases.ts b/ui/lib/src/nosweat/phases.ts
 new file mode 100644
 index 0000000..44504e3
@@ -87121,6 +87158,101 @@ index 0000000..7d0511b
 +  assert.equal(loadEnginePreferences().selfElo, 1800);
 +  assert.equal(loadEnginePreferences().opponentElo, 1800);
 +  assert.deepEqual(updates, [false, false]);
++});
+diff --git a/ui/lib/tests/noSweatGlyphs.test.ts b/ui/lib/tests/noSweatGlyphs.test.ts
+new file mode 100644
+index 0000000..c375e39
+--- /dev/null
++++ b/ui/lib/tests/noSweatGlyphs.test.ts
+@@ -0,0 +1,89 @@
++import * as cgGlyphs from '@lichess-org/chessground/glyph';
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++
++import { annotationShapes } from '../src/game/glyphs';
++import { moveClasses } from '../src/nosweat/moveClasses';
++import type { TreeNode } from '../src/tree/types';
++
++const nativeGlyphs = cgGlyphs.glyphToSvg(4);
++
++function badge(symbol: string, stackedNumber: number): string {
++  const node = { uci: 'e2e4', san: 'e4', glyphs: [{ id: 1, symbol, name: 'Test glyph' }] } as TreeNode;
++  const existing = Array.from({ length: stackedNumber }, () => ({
++    orig: 'e4' as Key,
++    customSvg: { html: '<path/>' },
++  }));
++  return annotationShapes(node, existing)[0].customSvg!.html;
++}
++
++function withBrand(brand: string | undefined, action: () => void): void {
++  const original = document.documentElement.dataset.brand;
++  if (brand === undefined) delete document.documentElement.dataset.brand;
++  else document.documentElement.dataset.brand = brand;
++  try {
++    action();
++  } finally {
++    if (original === undefined) delete document.documentElement.dataset.brand;
++    else document.documentElement.dataset.brand = original;
++  }
++}
++
++function svg(html: string): SVGSVGElement {
++  const element = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
++  element.innerHTML = html;
++  return element;
++}
++
++test('Mute Chess board badges match every summary color at each native stack position', () => {
++  withBrand('mutechess', () => {
++    for (const category of moveClasses) {
++      for (let stack = 0; stack < 4; stack++) {
++        const actual = svg(badge(category.symbol, stack));
++        const native = svg(nativeGlyphs[category.symbol](stack));
++        const background = actual.querySelector('circle')!;
++        assert.equal(background.getAttribute('fill'), category.color, `${category.symbol} stack ${stack}`);
++        assert.ok([...actual.querySelectorAll('path')].every(path => path.getAttribute('fill') === '#fff'));
++        // Restore only the original background color: every other SVG byte after
++        // DOM parsing must retain native geometry, stacking, white paths and shadow.
++        background.setAttribute('fill', native.querySelector('circle')!.getAttribute('fill')!);
++        assert.equal(actual.outerHTML, native.outerHTML);
++      }
++    }
++  });
++});
++
++test('unbranded and non-Mute boards retain the exact upstream classification SVGs', () => {
++  for (const brand of [undefined, '', 'lichess']) {
++    withBrand(brand, () => {
++      for (const category of moveClasses)
++        for (let stack = 0; stack < 4; stack++)
++          assert.equal(badge(category.symbol, stack), nativeGlyphs[category.symbol](stack));
++    });
++  }
++});
++
++test('Mute Chess preserves other native badges and unknown glyph labels', () => {
++  withBrand('mutechess', () => {
++    for (const symbol of ['∞', '✓', '✗', '①', '□'])
++      for (let stack = 0; stack < 4; stack++) assert.equal(badge(symbol, stack), nativeGlyphs[symbol](stack));
++    const unknown = annotationShapes({
++      uci: 'e2e4',
++      san: 'e4',
++      glyphs: [{ id: 999, symbol: 'unknown', name: 'Unknown' }],
++    } as TreeNode)[0];
++    assert.equal(unknown.customSvg, undefined);
++    assert.deepEqual(unknown.label, { text: 'unknown', fill: 'purple' });
++  });
++});
++
++test('glyph rendering without a document retains upstream SVGs', () => {
++  const original = Object.getOwnPropertyDescriptor(globalThis, 'document')!;
++  try {
++    Reflect.deleteProperty(globalThis, 'document');
++    for (const category of moveClasses)
++      assert.equal(badge(category.symbol, 0), nativeGlyphs[category.symbol](0));
++  } finally {
++    Object.defineProperty(globalThis, 'document', original);
++  }
 +});
 diff --git a/ui/lib/tests/noSweatReviewMaia.test.ts b/ui/lib/tests/noSweatReviewMaia.test.ts
 new file mode 100644
