@@ -300,7 +300,7 @@
             "Private community integration: immediate topic and reply, invalid captcha rejection",
             "Native header hides on downward scroll and reappears upward even without search; restored header search stays native (#122/#124)",
             "Account sidebar Engine Analysis action opens shared settings in place; signed-out/native upstream menu remains unchanged (#173)",
-            "maiaPoolBootstrap.test.ts exercises the real lobby constructor, Snabbdom bootstrap and pool view: signed-in, anonymous and initially-now-playing hash joins send one correctly configured pairing request after initial render and redirect normally. The unfixed source reproduces appVNode-before-initialization failures; full UI format, typed lint, tests and build pass."
+            "maiaPoolBootstrap.test.ts exercises the real lobby constructor, Snabbdom bootstrap and pool view: signed-in, anonymous and initially-now-playing hash joins send one correctly configured pairing request after initial render and redirect with the native game-start sound enabled; Custom Play exercises the same sound-on-redirect contract (#206). The unfixed source reproduces appVNode-before-initialization failures; full UI format, typed lint, tests and build pass."
           ],
           "files": [
             "app/controllers/Cms.scala",
