@@ -1,5 +1,7 @@
 # Private Lichess foundation
 
+For a fresh Ubuntu installation, start with the [installation guide](../../docs/installation.md). The notes below describe the existing native development environment.
+
 This is the separate development environment for the native Lila application.
 The old Node/Fastify prototype is retired. Maia and NIP-07/NIP-98 Nostr adapters
 now connect to native Lila accounts, rounds, clocks and analysis. The separate

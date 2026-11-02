@@ -8,6 +8,96 @@ Mute Chess is a free, open-source chess project built on Lichess. It combines
 human-like Maia opponents, multiple stacked premoves, and Maia alongside Stockfish
 analysis, with a familiar interface for desktop and mobile browsers.
 
+## Install and self-host
+
+**Want to play?** Open [mutechess.org](https://mutechess.org/); no app installation
+is needed.
+
+**Want to run your own instance?** Follow the [installation guide](docs/installation.md)
+for a fresh Ubuntu 24.04 x86-64 machine: prerequisites, pinned Lichess sources,
+Maia models, configuration, build commands, local services and verification.
+The current helpers use systemd and a few fixed paths; public hosting on your own
+domain requires additional configuration. The root Node app is a retired prototype.
+
+## Feature guide
+
+### Your key, your chess identity
+
+No email or password to remember. Create a Nostr key in your browser, bring an
+existing nsec, or sign in with a NIP-07 browser signer. The same identity connects
+your profile, ratings and saved games. Signing in does not post to Nostr.
+
+Your secret key stays with you. Keep a separate backup: browser storage alone
+is not a recovery plan. An optional authenticator adds a second factor to sign-in.
+
+<p align="center">
+  <img src="docs/screenshots/2026-11-02-nostr-login.jpg" width="760" alt="Mute Chess sign-in with create-a-key, browser signer and existing nsec options; no secret key is entered">
+</p>
+
+### Plan more than one move ahead
+
+Queue a sequence of premoves while your opponent is thinking. Projected pieces
+and square highlights show your plan; each move still has to be legal when its
+turn arrives. Escape or right-click clears the queue, and reconnecting or ending
+the game clears it too.
+
+Use **Allow multiple premoves** in the game board's menu to choose between the
+stacked behavior and native single premoves.
+
+<p align="center">
+  <img src="docs/screenshots/2026-11-02-stacked-premoves.jpg" width="1000" alt="An anonymous casual game with the native board menu open and Allow multiple premoves enabled">
+</p>
+
+*The board menu in a casual game; this capture shows the option, not a queued sequence.*
+
+### See the human move as well as the engine move
+
+Stockfish looks for strong moves. Maia predicts what people might play. Put both
+beside the same board, with two independently rated Maia channels, move
+probabilities and shared board arrows. Click a candidate to explore it in the
+native analysis tree.
+
+**Moves by Rating** shows how a move's likelihood changes from Maia 600 to 2600.
+Review a whole game with the familiar Lichess graph, accuracy and mistake-review
+controls. Maia likelihood, expected score and Stockfish evaluation describe
+different things; a popular human move is not automatically the best move.
+
+<p align="center">
+  <img src="docs/screenshots/2026-11-02-maia-analysis.jpg" width="1100" alt="Ruy Lopez analysis with Maia 1500 and Maia 2400 probability cards, the Moves by Rating chart, Stockfish and board arrows">
+</p>
+
+### Opponents with an identity
+
+Meet a persistent cast of [10,000 Maia opponents](docs/catalog-roster.md), from
+quiet circuit dwellers to familiar cyberpunk and science-fiction homages. Their
+profiles show ratings, game histories, locations, flairs and the settings behind
+their play: Maia input, sampling, move history and timing style.
+
+Wintermute lives in Villa Straylight, Freeside, and wears the Circuit Knight.
+Other opponents have their own combination of identity and playing settings.
+Quick pairing finds an available bot near your rating; model rating inputs and
+the bot's earned playing rating are kept distinct.
+
+<p align="center">
+  <img src="docs/screenshots/2026-11-02-bot-profile.jpg" width="1000" alt="Wintermute’s real bot profile with Circuit Knight flair, native speed ratings, fixed Maia settings and game history">
+</p>
+
+### A little flair of your own
+
+Our six original cyberpunk flairs are available to human profiles as well as bots.
+Open **Edit profile**, choose a flair and look in **Bot flairs**. Keep a favourite
+beside your name, whether you prefer circuitry, a neon fox or a mischievous ghost.
+
+| Circuit Knight | Synthetic Eye | Neural Chip |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/flairs/symbols.mute-circuit-knight.webp" width="60" alt="Circuit Knight flair"> | <img src="docs/screenshots/flairs/symbols.mute-synthetic-eye.webp" width="60" alt="Synthetic Eye flair"> | <img src="docs/screenshots/flairs/symbols.mute-neural-chip.webp" width="60" alt="Neural Chip flair"> |
+| **Neon Fox** | **Origami Crane** | **Ghost Terminal** |
+| <img src="docs/screenshots/flairs/symbols.mute-neon-fox.webp" width="60" alt="Neon Fox flair"> | <img src="docs/screenshots/flairs/symbols.mute-origami-crane.webp" width="60" alt="Origami Crane flair"> | <img src="docs/screenshots/flairs/symbols.mute-ghost-terminal.webp" width="60" alt="Ghost Terminal flair"> |
+
+[Original artwork and credits](design/bot-flairs/README.md).
+The screenshots above were captured from the real site on 2 November 2026;
+see [capture details](docs/screenshots/README.md).
+
 ## Rating goal
 
 We aim for a player's established Mute Chess rating, earned against Maia bots,
@@ -29,26 +119,6 @@ The 9,750 new identities reuse measured playing policies and start with assigned
 nonprovisional ratings labeled **Research-seeded**, with zero completed games.
 Native Glicko-2 updates those ratings as they play. Keeping playing strength close
 to Lichess remains a goal we will monitor over time.
-
-## The chess
-
-- **Lichess with our name and logo.** Familiar boards, clocks, game history,
-  variations, and analysis, with mouse and touch controls.
-- **Human-like opponents only.** Join the pool and play a clearly identified Maia
-  bot. Every opponent has a persistent identity; there is no human-versus-human
-  matchmaking.
-- **Multiple stacked premoves.** Queue a sequence of moves with board highlights,
-  cancellation, and promotion support.
-- **Maia and Stockfish together.** Compare Stockfish's evaluations and best lines
-  with the moves Maia predicts humans would play at different rating levels.
-- **Game review.** Explore candidate moves, compare moves by rating, and review
-  move classifications, accuracy, and the evaluation graph.
-- **Nostr accounts.** Use a Nostr identity for your account and saved games, or
-  play casual games anonymously.
-
-Play at [mutechess.org](https://mutechess.org/).
-We're building in public, and feedback from players helps shape the project.
-The Quiet Signal visual identity is documented in [the brand guide](design/quiet-signal/README.md).
 
 ## Engine settings
 
