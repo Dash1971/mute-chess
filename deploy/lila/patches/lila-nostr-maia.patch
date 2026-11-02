@@ -8507,10 +8507,10 @@ index 0000000..8efd4b7
 +    current.isEmpty || current.contains(username) || current.contains(alias)
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..9a899b9
+index 0000000..ea25ce9
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,909 @@
+@@ -0,0 +1,912 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -8915,6 +8915,9 @@ index 0000000..9a899b9
 +                  .createNostr(UserName(name), pubkey)
 +                  .map:
 +                    _.getOrElse(throw NoSweatError(503, "Could not create identity"))
++                  .recover(
++                    lila.db.recoverDuplicateKey(_ => throw NoSweatError(409, "Username already taken"))
++                  )
 +
 +  def isNostr(user: UserModel): Fu[Boolean] =
 +    env.user.repo.withColl(_.exists(bdoc("_id" -> user.id, "nostr" -> bdoc("$exists" -> true))))
