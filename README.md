@@ -81,7 +81,7 @@ award for sound sacrifices, inspired by Chess.com's published definition. This
 is our own open algorithm, not a reproduction of Chess.com's private code.
 **Mobile Maia remains on the En Croissant rules.**
 
-For newly computed Mute Chess reviews, `mute-chess-brilliant-v1` awards `!!` when
+For newly computed Mute Chess reviews, `mute-chess-brilliant-v2` awards `!!` when
 all of these conditions hold:
 
 - There are at least two complete, distinct Stockfish candidate lines. The
@@ -92,14 +92,15 @@ all of these conditions hold:
   clamped to −1000…+1000 centipawns; forced wins/losses map to +1000/−1000.
 - The resulting evaluation is **at least −100 centipawns (−1.00 pawn)**, and
   the position is not terminal.
-- A sacrifice qualifies by either the retained En Croissant material heuristic
-  (a deterioration greater than 100 material units) or a legal capture of an
-  offered non-pawn piece. For a piece offer, the opponent's best capture sequence
+- A sacrifice requires a legal capture of an offered non-pawn piece.
+  The opponent's best capture sequence
   on that square must gain **more than 100 units plus the material already gained
   by the played move**. The piece may have been left attacked while another piece
   moves. Material units are pawn 90, knight/bishop 300, rook 500 and queen 1000;
   promotions are credited. Ordinary equal exchanges do not pass the piece-offer
-  test. The retained heuristic can also recognize multi-pawn sacrifices.
+  test. The older material-probe fallback is excluded: it can mistake foregone
+  gains and quiet tactical defenses for sacrifices. Pawn-only and delayed
+  offers do not qualify under this more conservative rule (#227).
 - No **other evaluated candidate** already scores **+600 centipawns (+6.00 pawns)
   or more** without a qualifying sacrifice. This check normally sees only the
   two searched candidates; it does not prove that every unsearched alternative
@@ -113,8 +114,9 @@ These fixed thresholds are deliberate, generous experimental choices. They are
 not Chess.com thresholds, measured outcome probabilities, or a rating-adjusted
 model. Maia move likelihood does not determine the award. Native Stockfish
 evaluations, Lichess accuracy and mistake-review controls retain their meanings.
-Moves not awarded `!!` continue to use the En Croissant rules; an old EC `!!` that
-fails these new gates can become `!?` on a new review. Imported PGN annotations
+Moves not awarded `!!` continue to use the En Croissant rules, except a
+sacrifice-derived `!!`/`!?` is cleared when actual sacrifice qualification fails.
+An old EC `!!` that fails the other gates can become `!?` on a new review. Imported PGN annotations
 remain authoritative. Engine versions, search settings and reanalysis can change
 computed badges; historical results are not silently recalculated.
 
