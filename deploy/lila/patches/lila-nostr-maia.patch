@@ -11721,7 +11721,7 @@ index 0000000..28ad57d
 +    (400 to 4000 by 25).map(r => counts.getOrElse(r, 0)).toList
 diff --git a/modules/user/src/main/NoSweatUserSearch.scala b/modules/user/src/main/NoSweatUserSearch.scala
 new file mode 100644
-index 0000000..400909f
+index 0000000..ed0e0b5
 --- /dev/null
 +++ b/modules/user/src/main/NoSweatUserSearch.scala
 @@ -0,0 +1,11 @@
@@ -11731,7 +11731,7 @@ index 0000000..400909f
 +  def read(raw: String): Option[String] =
 +    val term = raw.trim
 +    Option.when(
-+      !term.exists(_.isControl) &&
++      !term.exists(_.isControl) && !term.matches("(?i)(nostr:)?nsec1.*") &&
 +        ((term.length >= 2 && term.length <= 30) || lila.core.NostrName.pubkeyFromNpub(term).isDefined)
 +    )(term)
 +
@@ -11791,10 +11791,10 @@ index 0000000..2560107
 +    assertEquals(counts.sum, 2)
 diff --git a/modules/user/src/test/NoSweatUserSearchTest.scala b/modules/user/src/test/NoSweatUserSearchTest.scala
 new file mode 100644
-index 0000000..6b27672
+index 0000000..c58d0f4
 --- /dev/null
 +++ b/modules/user/src/test/NoSweatUserSearchTest.scala
-@@ -0,0 +1,27 @@
+@@ -0,0 +1,29 @@
 +package lila.user
 +
 +class NoSweatUserSearchTest extends munit.FunSuite:
@@ -11820,6 +11820,8 @@ index 0000000..6b27672
 +      Some(npub.toUpperCase(java.util.Locale.ROOT))
 +    )
 +    assertEquals(NoSweatUserSearch.read("nsec" + npub.drop(4)), None)
++    assertEquals(NoSweatUserSearch.read("nsec1partial"), None)
++    assertEquals(NoSweatUserSearch.read(" NOSTR:NSEC1partial"), None)
 +    assertEquals(NoSweatUserSearch.read(npub.dropRight(1) + "q"), None)
 +    assertEquals(NoSweatUserSearch.read("npub1" + "q" * 58), None)
 diff --git a/modules/user/src/test/PublicNameTest.scala b/modules/user/src/test/PublicNameTest.scala
@@ -84632,7 +84634,7 @@ index 0000000..bc87c84
 +}
 diff --git a/ui/lib/src/nosweat/identity.ts b/ui/lib/src/nosweat/identity.ts
 new file mode 100644
-index 0000000..00677f2
+index 0000000..900a6ad
 --- /dev/null
 +++ b/ui/lib/src/nosweat/identity.ts
 @@ -0,0 +1,13 @@
@@ -84640,14 +84642,14 @@ index 0000000..00677f2
 +const npubInput = /^(?:nostr:)?(npub1[023456789acdefghjklmnpqrstuvwxyz]{58})$/i;
 +
 +export const publicIdentitySearch: RegExp =
-+  /^(?:[^\u0000-\u001f\u007f]{2,30}|(?:nostr:)?npub1[023456789acdefghjklmnpqrstuvwxyz]{58})$/iu;
++  /^(?!\s*(?:nostr:)?nsec1)(?:[^\u0000-\u001f\u007f]{2,30}|(?:nostr:)?npub1[023456789acdefghjklmnpqrstuvwxyz]{58})$/iu;
 +
 +export function npubFromInput(value: string): string | undefined {
 +  return npubInput.exec(value.trim())?.[1];
 +}
 +
 +export function isPrivateNostrInput(value: string): boolean {
-+  return /^(?:nostr:)?nsec1[023456789acdefghjklmnpqrstuvwxyz]{58}$/i.test(value.trim());
++  return /^(?:nostr:)?nsec1/i.test(value.trim());
 +}
 diff --git a/ui/lib/src/nosweat/phases.ts b/ui/lib/src/nosweat/phases.ts
 new file mode 100644
@@ -85400,10 +85402,10 @@ index 0000000..6fe5688
 +});
 diff --git a/ui/lib/tests/nostrIdentity.test.ts b/ui/lib/tests/nostrIdentity.test.ts
 new file mode 100644
-index 0000000..db2c117
+index 0000000..43814f5
 --- /dev/null
 +++ b/ui/lib/tests/nostrIdentity.test.ts
-@@ -0,0 +1,37 @@
+@@ -0,0 +1,41 @@
 +import assert from 'node:assert/strict';
 +import { test } from 'node:test';
 +
@@ -85440,6 +85442,10 @@ index 0000000..db2c117
 +  assert.equal(isPrivateNostrInput(`nostr:${secretFixture}`), true);
 +  assert.equal(isPrivateNostrInput(npub), false);
 +  assert.equal(isPrivateNostrInput('nsec'), false);
++  for (const value of ['nsec1partial', ' NOSTR:NSEC1partial']) {
++    assert.equal(publicIdentitySearch.test(value), false);
++    assert.equal(isPrivateNostrInput(value), true);
++  }
 +});
 diff --git a/ui/lib/tests/publicNameSearch.test.ts b/ui/lib/tests/publicNameSearch.test.ts
 new file mode 100644

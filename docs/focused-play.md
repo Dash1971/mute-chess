@@ -122,7 +122,7 @@ public key through its existing unique index, then redirects to the native
 profile. No account is created by lookup. Closed accounts and unknown keys are
 not exposed. Header search accepts full npub and NIP-21 `nostr:npub…` input;
 ordinary display-name/canonical-account search remains unchanged. Frontend search
-blocks full nsec-shaped input locally, while server public lookup rejects private
+blocks nsec-prefixed input locally, including partial private keys, while server public lookup rejects private
 keys, invalid checksums and other entity types. Native account IDs, URLs, perfs,
 sessions, game histories and Nostr sign-in remain unchanged. No new namespace,
 uniqueness index, database migration or cooldown is introduced.
