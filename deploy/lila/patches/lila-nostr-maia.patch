@@ -84595,14 +84595,14 @@ index 0000000..bc87c84
 +}
 diff --git a/ui/lib/src/nosweat/identity.ts b/ui/lib/src/nosweat/identity.ts
 new file mode 100644
-index 0000000..65f2ac7
+index 0000000..00677f2
 --- /dev/null
 +++ b/ui/lib/src/nosweat/identity.ts
 @@ -0,0 +1,13 @@
 +// The server validates the NIP-19 checksum; these patterns only route public input.
 +const npubInput = /^(?:nostr:)?(npub1[023456789acdefghjklmnpqrstuvwxyz]{58})$/i;
 +
-+export const publicIdentitySearch =
++export const publicIdentitySearch: RegExp =
 +  /^(?:[^\u0000-\u001f\u007f]{2,30}|(?:nostr:)?npub1[023456789acdefghjklmnpqrstuvwxyz]{58})$/iu;
 +
 +export function npubFromInput(value: string): string | undefined {
