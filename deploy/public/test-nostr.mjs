@@ -24,8 +24,8 @@ try {
   ({ server } = await import(join(root, 'gateway.mjs')));
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const origin = `http://127.0.0.1:${server.address().port}`;
-  const request = (path, method = 'GET', host = 'mutechess.org') => new Promise((resolve, reject) => {
-    const req = http.request(origin + path, { method, headers: { Host: host, Origin: 'https://primal.net' } }, res => {
+  const request = (path, method = 'GET', host = 'mutechess.org', ip = '127.0.0.1') => new Promise((resolve, reject) => {
+    const req = http.request(origin + path, { method, headers: { Host: host, Origin: 'https://primal.net', 'CF-Connecting-IP': ip } }, res => {
       const chunks = [];
       res.on('data', chunk => chunks.push(chunk));
       res.on('end', () => resolve({ status: res.statusCode, headers: new Headers(res.headers),
@@ -34,6 +34,13 @@ try {
     });
     req.on('error', reject); req.end();
   });
+  // Real handler regression: a catalog browse must neither break images nor exhaust page actions.
+  for (let i = 0; i < 650; i++)
+    assert.equal((await request('/assets/nosweat/favicon-32.png', 'HEAD', 'mutechess.org', '192.0.2.126')).status, 200);
+  assert.equal((await request('/account/profile', 'GET', 'mutechess.org', '192.0.2.126')).status, 209);
+  for (let i = 0; i < 599; i++)
+    assert.equal((await request('/account/profile', 'GET', 'mutechess.org', '192.0.2.126')).status, 209);
+  assert.equal((await request('/account/profile', 'GET', 'mutechess.org', '192.0.2.126')).status, 429);
   const response = await request('/.well-known/nostr.json?name=mutechess');
   assert.equal(response.status, 200);
   assert.match(response.headers.get('content-type'), /^application\/json/);
@@ -52,7 +59,7 @@ try {
   assert.equal((await request('/.well-known/other.json')).status, 404);
   assert.equal((await request('/metrics')).status, 404);
   for (const [path, method] of [
-    ['/player','GET'], ['/player','HEAD'], ['/player/top/blitz?page=2','GET'], ['/player/top/ultraBullet','GET'],
+    ['/translation/select','POST'], ['/player','GET'], ['/player','HEAD'], ['/player/top/blitz?page=2','GET'], ['/player/top/ultraBullet','GET'],
     ['/player/top/correspondence','HEAD'], ['/stat/rating/distribution/blitz','GET'], ['/stat/rating/distribution/correspondence','HEAD'],
     ['/export/fen.gif?fen=test','GET'], ['/embed/analysis?fen=test','GET'], ['/embed/game/abcdefgh/white','HEAD'],
     ['/player/search/QuietProxy','GET'], ['/api/player/autocomplete?term=Alice%20Smith&publicName=1','GET'], ['/club/nostr','GET'],
@@ -71,7 +78,7 @@ try {
     ['/run/captcha/00000000?solution=e2e4','GET'], ['/notify','GET'], ['/notify/clear','POST'],
   ]) assert.equal((await request(path, method)).status, 209, `${method} ${path}`);
   for (const [path, method] of [
-    ['/player','POST'], ['/player/bots','GET'], ['/player/top/network','GET'], ['/player/top/blitz','POST'],
+    ['/translation/select','GET'], ['/translation/other','POST'], ['/player','POST'], ['/player/bots','GET'], ['/player/top/network','GET'], ['/player/top/blitz','POST'],
     ['/stat/rating/distribution/network','GET'], ['/stat/rating/distribution/blitz','POST'],
     ['/export/fen.gif','POST'], ['/export/other','GET'], ['/embed/analysis','POST'], ['/embed/other','GET'],
     ['/player/search/QuietProxy','POST'], ['/player/search/a/b','GET'],

@@ -80,12 +80,16 @@ index 6d2fee0..06daf05 100644
    def lonePage(key: CmsPageKey) = Open:
      orCreateOrNotFound(key): page =>
 diff --git a/app/controllers/Dasher.scala b/app/controllers/Dasher.scala
-index 6209054..b14132d 100644
+index 6209054..af859ef 100644
 --- a/app/controllers/Dasher.scala
 +++ b/app/controllers/Dasher.scala
-@@ -31,5 +31,6 @@ final class Dasher(env: Env) extends LilaController(env):
+@@ -29,7 +29,9 @@ final class Dasher(env: Env) extends LilaController(env):
+               "lang" -> Json.obj(
+                 "current" -> ctx.lang.code,
                  "accepted" -> LangPicker.allFromRequestHeaders(ctx.req).map(_.code),
-                 "list" -> LangList.allChoices
+-                "list" -> LangList.allChoices
++                "list" -> (if env.noSweat.enabled then lila.i18n.NoSweatLanguages.choices
++                           else LangList.allChoices)
                ),
 -              "streamer" -> isStreamer
 +              "streamer" -> isStreamer,
@@ -164,6 +168,24 @@ index e1bd4a5..ce70211 100644
    def legacyGameThumbnail(id: GameId, theme: Option[String], piece: Option[String]) = Anon:
      MovedPermanently(routes.Export.gameThumbnail(id, theme, piece).url).publicCache(1.day)
  
+diff --git a/app/controllers/I18n.scala b/app/controllers/I18n.scala
+index 713f452..583812e 100644
+--- a/app/controllers/I18n.scala
++++ b/app/controllers/I18n.scala
+@@ -7,7 +7,12 @@ import lila.app.{ *, given }
+ final class I18n(env: Env) extends LilaController(env):
+ 
+   def select = OpenBody:
+-    bindForm(lila.i18n.LangForm.select)(
++    val form = if env.noSweat.enabled then
++      play.api.data.Form(
++        lila.i18n.LangForm.select.mapping.verifying(lila.i18n.NoSweatLanguages.codes.contains)
++      )
++    else lila.i18n.LangForm.select
++    bindForm(form)(
+       _ => notFound,
+       code =>
+         val lang = lila.i18n.LangPicker.byStr(code).err("Universe is collapsing")
 diff --git a/app/controllers/Importer.scala b/app/controllers/Importer.scala
 index ede74af..51e2daa 100644
 --- a/app/controllers/Importer.scala
@@ -354,6 +376,23 @@ index e78c3a3..1c7c4ab 100644
        case None if categSlug == "notification" =>
          Ok.async:
            env.notifyM.api.prefs
+diff --git a/app/controllers/Round.scala b/app/controllers/Round.scala
+index af2f389..0519934 100644
+--- a/app/controllers/Round.scala
++++ b/app/controllers/Round.scala
+@@ -213,10 +213,11 @@ final class Round(
+           for
+             chat <- env.chat.api.playerChat.findIf(game.id.into(ChatId), !game.justCreated)
+             lines <- env.chat.json.asyncLines(chat)
++            maia <- env.round.noSweatPresetChat.restricted(game)
+           yield Chat
+             .GameOrEvent:
+               Left:
+-                Chat.Restricted(chat, lines, restricted = game.sourceIs(_.Lobby) && ctx.isAnon)
++                Chat.Restricted(chat, lines, restricted = maia || (game.sourceIs(_.Lobby) && ctx.isAnon))
+             .some
+ 
+   def sides(gameId: GameId, color: Color) = Open:
 diff --git a/app/controllers/Setup.scala b/app/controllers/Setup.scala
 index 7d5ec39..0600592 100644
 --- a/app/controllers/Setup.scala
@@ -730,6 +769,20 @@ index a6875eb..cb26269 100644
 +    else if request.method == "OPTIONS"
      then optionsHandler.some
      else router.handlerFor(request)
+ 
+diff --git a/app/http/RequestContext.scala b/app/http/RequestContext.scala
+index aca6782..525ec4d 100644
+--- a/app/http/RequestContext.scala
++++ b/app/http/RequestContext.scala
+@@ -43,7 +43,8 @@ trait RequestContext(using Executor):
+         BodyContext(req, lang, userCtx, _)
+ 
+   private def getAndSaveLang(req: RequestHeader, me: Option[Me]): Lang =
+-    val lang = LangPicker(req, me.flatMap(_.lang))
++    val lang = if env.noSweat.enabled then lila.i18n.NoSweatLanguages.pick(req, me.flatMap(_.lang))
++    else LangPicker(req, me.flatMap(_.lang))
+     me.filter(_.lang.forall(_ != lang.toTag)).foreach { env.user.repo.setLang(_, lang) }
+     LangPicker.pageOverride.get(req) | lang
  
 diff --git a/app/views/activity.scala b/app/views/activity.scala
 index 5cfaafd..bf5591c 100644
@@ -1357,6 +1410,111 @@ index 365892c..3b6f6c2 100644
  
    def getUsers = usersCache.get({})
  
+diff --git a/modules/chat/src/main/ChatApi.scala b/modules/chat/src/main/ChatApi.scala
+index 7e5965e..2df0c1d 100644
+--- a/modules/chat/src/main/ChatApi.scala
++++ b/modules/chat/src/main/ChatApi.scala
+@@ -74,29 +74,54 @@ final class ChatApi(
+         busChan: BusChan.Select,
+         persist: Boolean = true
+     ): Funit =
+-      makeLine(chatId, userId, text).flatMapz: line =>
+-        isChatFresh(publicSource).flatMap:
+-          if _ then
+-            linkCheck(line, publicSource).flatMap:
+-              if _ then
+-                val actuallyPersist = persist && (publicSource.isEmpty || !GarbageDetector(text))
+-                for _ <- actuallyPersist.so(persistLine(chatId, line))
+-                yield
+-                  if actuallyPersist then
+-                    if publicSource.isDefined then cached.invalidate(chatId)
+-                    publicSource.match
+-                      case Some(source) => shutupApi.publicText(userId, text, source)
+-                      case _ => shutupApi.privateChat(chatId.value, userId, text)
+-                    lila.mon.chat
+-                      .message(publicSource.fold("player")(_.typeName), line.troll)
+-                      .increment()
+-                  publishLine(chatId, line, busChan)
+-              else
+-                logger.info(s"Link check rejected $line in $publicSource")
+-                funit
+-          else
+-            logger.info(s"Can't post $line in $publicSource: chat is closed")
+-            funit
++      writeAccepted(chatId, userId, text, publicSource, busChan, persist).void
++
++    def writeAccepted(
++        chatId: ChatId,
++        userId: UserId,
++        text: String,
++        publicSource: Option[PublicSource],
++        busChan: BusChan.Select,
++        persist: Boolean = true
++    ): Fu[Boolean] =
++      makeLine(chatId, userId, text).flatMap:
++        case None => fuccess(false)
++        case Some(line) =>
++          acceptedLine(chatId, userId, text, publicSource, busChan, persist, line)
++
++    private def acceptedLine(
++        chatId: ChatId,
++        userId: UserId,
++        text: String,
++        publicSource: Option[PublicSource],
++        busChan: BusChan.Select,
++        persist: Boolean,
++        line: UserLine
++    ): Fu[Boolean] =
++      isChatFresh(publicSource).flatMap:
++        if _ then
++          linkCheck(line, publicSource).flatMap:
++            if _ then
++              val actuallyPersist = persist && (publicSource.isEmpty || !GarbageDetector(text))
++              for
++                _ <- actuallyPersist.so(persistLine(chatId, line))
++                _ <- publishLine(chatId, line, busChan)
++              yield
++                if actuallyPersist then
++                  if publicSource.isDefined then cached.invalidate(chatId)
++                  publicSource.match
++                    case Some(source) => shutupApi.publicText(userId, text, source)
++                    case _ => shutupApi.privateChat(chatId.value, userId, text)
++                  lila.mon.chat
++                    .message(publicSource.fold("player")(_.typeName), line.troll)
++                    .increment()
++                !line.troll
++            else
++              logger.info(s"Link check rejected $line in $publicSource")
++              fuccess(false)
++        else
++          logger.info(s"Can't post $line in $publicSource: chat is closed")
++          fuccess(false)
+ 
+     private def linkCheck(line: UserLine, source: Option[PublicSource]) =
+       source.fold(fuccess(true)): s =>
+@@ -276,10 +301,18 @@ final class ChatApi(
+       coll.optionsByOrderedIds[MixedChat, ChatId](chatIds, none, _.sec)(_.id)
+ 
+     def write(chatId: ChatId, color: Color, text: String, busChan: BusChan.Select): Funit =
+-      makeLine(chatId, color, text).so: line =>
+-        for _ <- persistLine(chatId, line) yield
+-          publishLine(chatId, line, busChan)
+-          lila.mon.chat.message("anonPlayer", troll = false).increment()
++      writeAccepted(chatId, color, text, busChan).void
++
++    def writeAccepted(chatId: ChatId, color: Color, text: String, busChan: BusChan.Select): Fu[Boolean] =
++      makeLine(chatId, color, text) match
++        case None => fuccess(false)
++        case Some(line) =>
++          for
++            _ <- persistLine(chatId, line)
++            _ <- publishLine(chatId, line, busChan)
++          yield
++            lila.mon.chat.message("anonPlayer", troll = false).increment()
++            true
+ 
+     private def makeLine(chatId: ChatId, color: Color, t1: String): Option[Line] =
+       Writer
 diff --git a/modules/common/src/main/Json.scala b/modules/common/src/main/Json.scala
 index 9eaae2b..60120b9 100644
 --- a/modules/common/src/main/Json.scala
@@ -1916,16 +2074,25 @@ index 4788182..377bf24 100644
      Theme("wood", "wood.jpg"), // 14/20
      Theme("wood2", "wood2.jpg"), // 7/26
 diff --git a/modules/pref/src/main/ui/AccountPages.scala b/modules/pref/src/main/ui/AccountPages.scala
-index 11cbae2..e7be391 100644
+index 11cbae2..5377348 100644
 --- a/modules/pref/src/main/ui/AccountPages.scala
 +++ b/modules/pref/src/main/ui/AccountPages.scala
-@@ -137,6 +137,13 @@ final class AccountPages(helpers: Helpers, ui: AccountUi, flagApi: lila.core.use
+@@ -1,6 +1,8 @@
+ package lila.pref
+ package ui
+ 
++import lila.core.i18n.I18nKey
++
+ import play.api.data.Form
+ 
+ import lila.core.security.TurnstilePublicConfig
+@@ -137,6 +139,13 @@ final class AccountPages(helpers: Helpers, ui: AccountUi, flagApi: lila.core.use
          standardFlash,
          postForm(cls := "form3 dirty-alert", action := routes.Account.profileApply)(
            div(cls := "form-group")(trans.site.allInformationIsPublicAndOptional()),
 +          form3.group(
 +            form("displayName"),
-+            "Public name",
++            I18nKey("mutePublicName").txt(),
 +            help = Some(
 +              "Up to 20 characters. Leave empty to use your username or a shortened Nostr public key. Your account and game history stay the same."
 +            )
@@ -1934,10 +2101,19 @@ index 11cbae2..e7be391 100644
              ctx.kid.no.option(
                form3
 diff --git a/modules/pref/src/main/ui/AccountPref.scala b/modules/pref/src/main/ui/AccountPref.scala
-index 468bba6..2065dab 100644
+index 468bba6..b25e2d3 100644
 --- a/modules/pref/src/main/ui/AccountPref.scala
 +++ b/modules/pref/src/main/ui/AccountPref.scala
-@@ -16,7 +16,17 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
+@@ -1,6 +1,8 @@
+ package lila.pref
+ package ui
+ 
++import lila.core.i18n.I18nKey
++
+ import play.api.data.Form
+ 
+ import lila.ui.*
+@@ -16,7 +18,17 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
      div(cls := List("none" -> (categ != active)))
  
    private def setting(name: Frag, body: Frag, settingId: String) =
@@ -1956,14 +2132,14 @@ index 468bba6..2065dab 100644
  
    def apply(u: User, form: play.api.data.Form[?], categ: lila.pref.PrefCateg)(using Context) =
      AccountPage(
-@@ -223,6 +233,17 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
+@@ -223,6 +235,17 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
          )
        )
  
 +  def engineAnalysis(u: User)(using Context) =
 +    AccountPage(s"Engine Analysis - ${u.username}", "engine-analysis"):
 +      div(cls := "box box-pad")(
-+        h1(cls := "box__top")("Engine Analysis"),
++        h1(cls := "box__top")(I18nKey("muteEngineAnalysis").txt()),
 +        form(cls := "nosweat-engine-preferences")(
 +          div(id := "nosweat-engine-settings-page"),
 +          p(cls := "help")("Settings are saved automatically in this browser."),
@@ -1974,7 +2150,7 @@ index 468bba6..2065dab 100644
    object notification:
  
      def apply(form: Form[?])(using Context) =
-@@ -239,7 +260,7 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
+@@ -239,7 +262,7 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
                    tr(
                      th,
                      th(trp.notifyBell(), iconTag(Icon.BellOutline)),
@@ -1983,7 +2159,7 @@ index 468bba6..2065dab 100644
                    )
                  ),
                  tbody(
-@@ -253,10 +274,21 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
+@@ -253,10 +276,21 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
                      trp.notifyBroadcasts() -> "broadcastRound",
                      trp.notifyGameEvent() -> "gameEvent",
                      trans.team.teamUpdates() -> "teamUpdate"
@@ -2006,7 +2182,7 @@ index 468bba6..2065dab 100644
                  id := "correspondence-email-notif"
                )( // id is set to allow direct unsubcribe link in correspondence emails
                  bits.setting(
-@@ -279,8 +311,9 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
+@@ -279,8 +313,9 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
          Seq("bell", "push").map: allow =>
            val name = s"$filterName.$allow"
            val checked = form.data(name).contains("true")
@@ -2019,10 +2195,18 @@ index 468bba6..2065dab 100644
              else if !checked then div(iconTag(Icon.X))
              else
 diff --git a/modules/pref/src/main/ui/AccountUi.scala b/modules/pref/src/main/ui/AccountUi.scala
-index 6568e7b..32cd057 100644
+index 6568e7b..ca35dc4 100644
 --- a/modules/pref/src/main/ui/AccountUi.scala
 +++ b/modules/pref/src/main/ui/AccountUi.scala
-@@ -84,50 +84,28 @@ final class AccountUi(helpers: Helpers):
+@@ -1,5 +1,7 @@
+ package lila.pref
+ package ui
++import lila.core.i18n.I18nKey
++
+ import lila.ui.*
+ import lila.ui.ScalatagsTemplate.{ *, given }
+ 
+@@ -84,50 +86,28 @@ final class AccountUi(helpers: Helpers):
              a(activeCls(categ.slug), href := routes.Pref.form(categ.slug))(
                categName(categ)
              ),
@@ -2032,7 +2216,7 @@ index 6568e7b..32cd057 100644
 +              a(
 +                activeCls("engine-analysis"),
 +                href := routes.Pref.form("engine-analysis")
-+              )("Engine Analysis")
++              )(I18nKey("muteEngineAnalysis").txt())
 +            ),
            a(activeCls("notification"), href := routes.Pref.form("notification"))(
              trans.site.notifications()
@@ -2213,6 +2397,103 @@ index 07b5211..4e34c7e 100644
                val url = if me.isPatron then routes.Plan.list else routes.Plan.index()
                MenuItem(
                  trans.patron.giftPatronWingsShort.txt(),
+diff --git a/modules/round/src/main/Env.scala b/modules/round/src/main/Env.scala
+index eb05514..c047bcf 100644
+--- a/modules/round/src/main/Env.scala
++++ b/modules/round/src/main/Env.scala
+@@ -146,6 +146,12 @@ final class Env(
+ 
+   private lazy val drawer = wire[Drawer]
+ 
++  lazy val noSweatPresetChat = NoSweatPresetChat(
++    db(CollName("nosweat_game")),
++    proxyRepo.game,
++    chatApi
++  )
++
+   lazy val messenger = wire[Messenger]
+ 
+   val getSocketStatus: Game => Future[SocketStatus] = (game: Game) =>
+diff --git a/modules/round/src/main/Messenger.scala b/modules/round/src/main/Messenger.scala
+index c67559c..a20eec6 100644
+--- a/modules/round/src/main/Messenger.scala
++++ b/modules/round/src/main/Messenger.scala
+@@ -3,7 +3,7 @@ package lila.round
+ import lila.chat.{ ChatApi, ChatTimeout }
+ import lila.core.chat.PublicSource
+ 
+-final class Messenger(api: ChatApi):
++final class Messenger(api: ChatApi, noSweatPresetChat: NoSweatPresetChat)(using Executor):
+ 
+   def system(game: Game, message: String): Unit =
+     system(persistent = true)(game, message)
+@@ -27,6 +27,13 @@ final class Messenger(api: ChatApi):
+   private val whisperCommands = List("/whisper ", "/w ", "/W ")
+ 
+   def owner(gameId: GameId, userId: UserId, text: String): Funit =
++    noSweatPresetChat
++      .post(gameId, Left(userId), text)
++      .flatMap:
++        case Some(_) => funit
++        case None => nativeOwner(gameId, userId, text)
++
++  private def nativeOwner(gameId: GameId, userId: UserId, text: String): Funit =
+     whisperCommands
+       .collectFirst:
+         case command if text.startsWith(command) =>
+@@ -37,8 +44,13 @@ final class Messenger(api: ChatApi):
+           api.userChat.write(gameId.into(ChatId), userId, text, publicSource = none, _.round)
+ 
+   def owner(game: Game, anonColor: Color, text: String): Funit =
+-    (game.sourceIs(_.Friend) || presets.contains(text))
+-      .so(api.playerChat.write(game.id.into(ChatId), anonColor, text, _.round))
++    noSweatPresetChat
++      .post(game.id, Right(anonColor), text)
++      .flatMap:
++        case Some(_) => funit
++        case None =>
++          (game.sourceIs(_.Friend) || presets.contains(text))
++            .so(api.playerChat.write(game.id.into(ChatId), anonColor, text, _.round))
+ 
+   def timeout(chatId: ChatId, suspect: UserId, reason: String, text: String)(using mod: MyId): Funit =
+     ChatTimeout
+diff --git a/modules/round/src/main/RoundMobile.scala b/modules/round/src/main/RoundMobile.scala
+index 08594ca..63045a9 100644
+--- a/modules/round/src/main/RoundMobile.scala
++++ b/modules/round/src/main/RoundMobile.scala
+@@ -51,6 +51,7 @@ final class RoundMobile(
+     forecastApi: ForecastApi,
+     isOfferingRematch: lila.core.round.IsOfferingRematch,
+     chatApi: lila.chat.ChatApi,
++    noSweatPresetChat: NoSweatPresetChat,
+     chatJson: lila.chat.ChatJsonView,
+     bookmarkExists: lila.core.misc.BookmarkExists,
+     tourApi: lila.core.data.CircularDep[lila.core.tournament.TournamentApi]
+@@ -170,9 +171,10 @@ final class RoundMobile(
+     game.hasChat.so:
+       for
+         chat <- chatApi.playerChat.findIf(game.id.into(ChatId), !game.justCreated)
++        maia <- noSweatPresetChat.restricted(game)
+         filtered = chat.copy(lines = chat.lines.filterNot(l => l.troll || l.deleted))
+         lines <- chatJson.asyncLines(filtered)
+-      yield Chat.RestrictedLines(lines, restricted = game.sourceIs(_.Lobby) && !isAuth).some
++      yield Chat.RestrictedLines(lines, restricted = maia || (game.sourceIs(_.Lobby) && !isAuth)).some
+ 
+   private def getWatcherChat(game: Game)(using myId: Option[MyId]): Fu[Option[Chat.RestrictedLines]] =
+     game.hasChat.so:
+diff --git a/modules/round/src/main/RoundSocket.scala b/modules/round/src/main/RoundSocket.scala
+index 8fd4ed3..687a138 100644
+--- a/modules/round/src/main/RoundSocket.scala
++++ b/modules/round/src/main/RoundSocket.scala
+@@ -124,7 +124,7 @@ final class RoundSocket(
+         case t => logger.warn(s"Unhandled round socket message: $t")
+     case Protocol.In.Flag(gameId, color, fromPlayerId) => rounds.tell(gameId, ClientFlag(color, fromPlayerId))
+     case Protocol.In.PlayerChatSay(id, Right(color), msg) =>
+-      gameIfPresent(id).foreach:
++      getGame(id).foreach:
+         _.foreach:
+           messenger.owner(_, color, msg)
+     case Protocol.In.PlayerChatSay(id, Left(userId), msg) =>
 diff --git a/modules/security/src/main/ui/AccountSecurity.scala b/modules/security/src/main/ui/AccountSecurity.scala
 index 85c24e2..a97ff6d 100644
 --- a/modules/security/src/main/ui/AccountSecurity.scala
@@ -3336,6 +3617,702 @@ index 1c7a30b..691b973 100644
                    dasher(me)
                  )
                .getOrElse:
+diff --git a/public/flair/list.txt b/public/flair/list.txt
+index 74906f1..99e482b 100644
+--- a/public/flair/list.txt
++++ b/public/flair/list.txt
+@@ -335,11 +335,11 @@ nature.llama
+ nature.lobster
+ nature.lotus
+ nature.mammoth
+-nature.monarch-butterfly
+ nature.maple-leaf
+ nature.meteor
+ nature.microbe
+ nature.milky-way
++nature.monarch-butterfly
+ nature.monkey
+ nature.monkey-face
+ nature.moose
+@@ -524,6 +524,7 @@ objects.eleven-oclock
+ objects.eleven-thirty
+ objects.envelope
+ objects.envelope-with-arrow
++objects.eraser
+ objects.euro-banknote
+ objects.fax-machine
+ objects.file-cabinet
+@@ -615,6 +616,7 @@ objects.musical-score
+ objects.muted-speaker
+ objects.nazar-amulet
+ objects.necktie
++objects.net-with-handle
+ objects.newspaper
+ objects.nine-oclock
+ objects.nine-thirty
+@@ -745,8 +747,6 @@ objects.xmas-candle
+ objects.xmas-hat
+ objects.yarn
+ objects.yen-banknote
+-objects.eraser
+-objects.net-with-handle
+ people.anatomical-heart
+ people.artist
+ people.artist-dark-skin-tone
+@@ -1182,6 +1182,11 @@ people.left-facing-fist-light-skin-tone
+ people.left-facing-fist-medium-dark-skin-tone
+ people.left-facing-fist-medium-light-skin-tone
+ people.left-facing-fist-medium-skin-tone
++people.leftward-thumb-gesture-dark-skin-tone
++people.leftward-thumb-gesture-light-skin-tone
++people.leftward-thumb-gesture-medium-dark-skin-tone
++people.leftward-thumb-gesture-medium-light-skin-tone
++people.leftward-thumb-gesture-medium-skin-tone
+ people.leftwards-hand
+ people.leftwards-hand-dark-skin-tone
+ people.leftwards-hand-light-skin-tone
+@@ -1194,6 +1199,7 @@ people.leftwards-pushing-hand-light-skin-tone
+ people.leftwards-pushing-hand-medium-dark-skin-tone
+ people.leftwards-pushing-hand-medium-light-skin-tone
+ people.leftwards-pushing-hand-medium-skin-tone
++people.leftwards-thumb-sign
+ people.leg
+ people.leg-dark-skin-tone
+ people.leg-light-skin-tone
+@@ -2360,24 +2366,17 @@ people.raising-hands-medium-dark-skin-tone
+ people.raising-hands-medium-light-skin-tone
+ people.raising-hands-medium-skin-tone
+ people.red-hair
+-people.leftward-thumb-gesture-dark-skin-tone
+-people.leftward-thumb-gesture-light-skin-tone
+-people.leftward-thumb-gesture-medium-dark-skin-tone
+-people.leftward-thumb-gesture-medium-light-skin-tone
+-people.leftward-thumb-gesture-medium-skin-tone
+-people.leftwards-thumb-sign
+-people.rightward-thumb-gesture-dark-skin-tone
+-people.rightward-thumb-gesture-light-skin-tone
+-people.rightward-thumb-gesture-medium-dark-skin-tone
+-people.rightward-thumb-gesture-medium-light-skin-tone
+-people.rightward-thumb-gesture-medium-skin-tone
+-people.rightwards-thumb-sign
+ people.right-facing-fist
+ people.right-facing-fist-dark-skin-tone
+ people.right-facing-fist-light-skin-tone
+ people.right-facing-fist-medium-dark-skin-tone
+ people.right-facing-fist-medium-light-skin-tone
+ people.right-facing-fist-medium-skin-tone
++people.rightward-thumb-gesture-dark-skin-tone
++people.rightward-thumb-gesture-light-skin-tone
++people.rightward-thumb-gesture-medium-dark-skin-tone
++people.rightward-thumb-gesture-medium-light-skin-tone
++people.rightward-thumb-gesture-medium-skin-tone
+ people.rightwards-hand
+ people.rightwards-hand-dark-skin-tone
+ people.rightwards-hand-light-skin-tone
+@@ -2390,6 +2389,7 @@ people.rightwards-pushing-hand-light-skin-tone
+ people.rightwards-pushing-hand-medium-dark-skin-tone
+ people.rightwards-pushing-hand-medium-light-skin-tone
+ people.rightwards-pushing-hand-medium-skin-tone
++people.rightwards-thumb-sign
+ people.santa-claus
+ people.santa-claus-dark-skin-tone
+ people.santa-claus-light-skin-tone
+@@ -3085,10 +3085,10 @@ smileys.cat-with-tears-of-joy
+ smileys.cat-with-wry-smile
+ smileys.clown-face
+ smileys.cold-face
+-smileys.cracking-face
+ smileys.confounded-face
+ smileys.confused-face
+ smileys.cowboy-hat-face
++smileys.cracking-face
+ smileys.crying-cat
+ smileys.crying-face
+ smileys.disappointed-face
+@@ -3400,6 +3400,12 @@ symbols.move-good
+ symbols.move-interesting
+ symbols.move-mistake
+ symbols.multiply
++symbols.mute-circuit-knight
++symbols.mute-ghost-terminal
++symbols.mute-neon-fox
++symbols.mute-neural-chip
++symbols.mute-origami-crane
++symbols.mute-synthetic-eye
+ symbols.name-badge
+ symbols.neovim-mark
+ symbols.new-button
+@@ -3567,9 +3573,9 @@ travel-places.kaaba
+ travel-places.kick-scooter
+ travel-places.landslide
+ travel-places.light-rail
++travel-places.lighthouse
+ travel-places.locomotive
+ travel-places.love-hotel
+-travel-places.lighthouse
+ travel-places.manual-wheelchair
+ travel-places.map-of-japan
+ travel-places.metro
+diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
+index 88adade..523cba5 100644
+--- a/translation/dest/site/de-DE.xml
++++ b/translation/dest/site/de-DE.xml
+@@ -1064,4 +1064,51 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
+   <string name="write">Schreiben</string>
+   <string name="preview">Vorschau</string>
+   <string name="done">Erledigt</string>
++
++    <!-- Mute Chess: native preferences and English fallback; core Maia labels from Mobile Maia. -->
++    <string name="muteSignInOrJoin">Anmelden oder registrieren</string>
++    <string name="muteCreateKey">Schlüssel erstellen und spielen</string>
++    <string name="muteCopyKey">Schlüssel kopieren</string>
++    <string name="muteShowKey">Schlüssel anzeigen</string>
++    <string name="muteSaveKeyAndPlay">Schlüssel sichern und spielen</string>
++    <string name="muteContinueSaved">Mit gespeichertem Schlüssel fortfahren</string>
++    <string name="muteForgetSaved">Gespeicherten Schlüssel vergessen</string>
++    <string name="muteSigner">Mit Signierer anmelden</string>
++    <string name="muteImportKey">Schlüssel speichern und anmelden</string>
++    <string name="muteExistingKey">Oder vorhandenen geheimen Schlüssel einfügen</string>
++    <string name="mutePlayAnon">Ohne Anmeldung spielen</string>
++    <string name="muteProfileSettings">Profil und Einstellungen</string>
++    <string name="mutePublicName">Öffentlicher Name</string>
++    <string name="muteBotSettings">Bot-Einstellungen</string>
++    <string name="muteHumanTiming">Menschliches Zeitverhalten</string>
++    <string name="muteTimingStyle">Zeitstil</string>
++    <string name="muteResetArrows">Pfeilfarben zurücksetzen</string>
++    <string name="muteAdvancedMaia">Erweiterte Maia-Einstellungen</string>
++    <string name="muteMaiaModel">Maia-Modell</string>
++    <string name="mutePairingUnavailable">Paarung vorübergehend nicht verfügbar</string>
++    <string name="muteEngineAnalysis">Engine-Einstellungen</string>
++    <string name="mutePrimaryMaiaRating">Maia-Rating (Analyse)</string>
++    <string name="muteSecondMaiaRating">Zweites Maia-Rating (Analyse)</string>
++    <string name="muteSecondMaiaEnabled">Zweite Maia-Engine hinzufügen</string>
++    <string name="muteUseHistory">Stellungsverlauf verwenden</string>
++    <string name="muteMaiaRating">Maia-Rating (Analyse)</string>
++    <string name="muteMaiaArrows">Maia-Pfeile anzeigen</string>
++    <string name="muteStockfishArrows">Stockfish-Pfeile anzeigen</string>
++    <string name="muteAnalysisEngines">Computer-Analyse</string>
++    <string name="muteBoardArrows">Brettpfeile</string>
++    <string name="muteAdvancedStockfish">Erweiterte Stockfish-Einstellungen</string>
++    <string name="muteMaiaPreferences">Maia-Einstellungen</string>
++    <string name="muteDownloadKey">Herunterladen</string>
++    <string name="muteMoveHistory">Gespielte Züge</string>
++    <string name="muteSignIn">Anmelden</string>
++    <string name="muteUserName">Benutzername</string>
++    <string name="muteOn">on</string>
++    <string name="muteOff">off</string>
++    <string name="muteFast">Schnell</string>
++    <string name="muteBalanced">Ausgewogen</string>
++    <string name="muteThorough">Gründlich</string>
++    <string name="muteHideKey">Schlüssel verbergen</string>
++    <string name="muteOthers">Weitere</string>
++    <string name="muteMovesByRating">Züge nach Spielstärke</string>
++    <string name="muteLeadingMoves">Häufigste Züge</string>
+ </resources>
+diff --git a/translation/dest/site/es-ES.xml b/translation/dest/site/es-ES.xml
+index 76004f5..6a5fd69 100644
+--- a/translation/dest/site/es-ES.xml
++++ b/translation/dest/site/es-ES.xml
+@@ -1064,4 +1064,51 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
+   <string name="write">Escribir</string>
+   <string name="preview">Vista previa</string>
+   <string name="done">Listo</string>
++
++    <!-- Mute Chess: native preferences and English fallback; core Maia labels from Mobile Maia. -->
++    <string name="muteSignInOrJoin">Iniciar sesión o registrarse</string>
++    <string name="muteCreateKey">Crear una clave y jugar</string>
++    <string name="muteCopyKey">Copiar clave</string>
++    <string name="muteShowKey">Mostrar clave</string>
++    <string name="muteSaveKeyAndPlay">Guardar clave y jugar</string>
++    <string name="muteContinueSaved">Continuar con la clave guardada</string>
++    <string name="muteForgetSaved">Olvidar la clave guardada</string>
++    <string name="muteSigner">Entrar con un firmante</string>
++    <string name="muteImportKey">Guardar clave e iniciar sesión</string>
++    <string name="muteExistingKey">O pega tu clave secreta existente</string>
++    <string name="mutePlayAnon">Jugar sin iniciar sesión</string>
++    <string name="muteProfileSettings">Perfil y ajustes</string>
++    <string name="mutePublicName">Nombre público</string>
++    <string name="muteBotSettings">Ajustes del bot</string>
++    <string name="muteHumanTiming">Ritmo humano</string>
++    <string name="muteTimingStyle">Estilo de ritmo</string>
++    <string name="muteResetArrows">Restablecer colores de flechas</string>
++    <string name="muteAdvancedMaia">Ajustes avanzados de Maia</string>
++    <string name="muteMaiaModel">Modelo Maia</string>
++    <string name="mutePairingUnavailable">Emparejamiento temporalmente no disponible</string>
++    <string name="muteEngineAnalysis">Ajustes del motor</string>
++    <string name="mutePrimaryMaiaRating">Elo de Maia para analizar</string>
++    <string name="muteSecondMaiaRating">Elo del segundo Maia</string>
++    <string name="muteSecondMaiaEnabled">Añadir un segundo motor Maia</string>
++    <string name="muteUseHistory">Usar el historial de jugadas</string>
++    <string name="muteMaiaRating">Elo de Maia para analizar</string>
++    <string name="muteMaiaArrows">Mostrar flechas de Maia</string>
++    <string name="muteStockfishArrows">Mostrar flechas de Stockfish</string>
++    <string name="muteAnalysisEngines">Análisis del ordenador</string>
++    <string name="muteBoardArrows">Flechas del tablero</string>
++    <string name="muteAdvancedStockfish">Ajustes avanzados de Stockfish</string>
++    <string name="muteMaiaPreferences">Preferencias de Maia</string>
++    <string name="muteDownloadKey">Descargar</string>
++    <string name="muteMoveHistory">Movimientos</string>
++    <string name="muteSignIn">Iniciar sesión</string>
++    <string name="muteUserName">Nombre de usuario</string>
++    <string name="muteOn">on</string>
++    <string name="muteOff">off</string>
++    <string name="muteFast">Rápido</string>
++    <string name="muteBalanced">Equilibrado</string>
++    <string name="muteThorough">Exhaustivo</string>
++    <string name="muteHideKey">Ocultar clave</string>
++    <string name="muteOthers">Otras</string>
++    <string name="muteMovesByRating">Jugadas por puntuación</string>
++    <string name="muteLeadingMoves">Jugadas principales</string>
+ </resources>
+diff --git a/translation/dest/site/fr-FR.xml b/translation/dest/site/fr-FR.xml
+index 7dfd5f7..2cb0d90 100644
+--- a/translation/dest/site/fr-FR.xml
++++ b/translation/dest/site/fr-FR.xml
+@@ -1063,4 +1063,51 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
+   <string name="write">Écrire</string>
+   <string name="preview">Aperçu</string>
+   <string name="done">Terminé</string>
++
++    <!-- Mute Chess: native preferences and English fallback; core Maia labels from Mobile Maia. -->
++    <string name="muteSignInOrJoin">Se connecter ou s’inscrire</string>
++    <string name="muteCreateKey">Créer une clé et jouer</string>
++    <string name="muteCopyKey">Copier la clé</string>
++    <string name="muteShowKey">Afficher la clé</string>
++    <string name="muteSaveKeyAndPlay">Sauvegarder la clé et jouer</string>
++    <string name="muteContinueSaved">Continuer avec la clé enregistrée</string>
++    <string name="muteForgetSaved">Oublier la clé enregistrée</string>
++    <string name="muteSigner">Se connecter avec un signataire</string>
++    <string name="muteImportKey">Enregistrer la clé et se connecter</string>
++    <string name="muteExistingKey">Ou collez votre clé secrète existante</string>
++    <string name="mutePlayAnon">Jouer sans se connecter</string>
++    <string name="muteProfileSettings">Profil et paramètres</string>
++    <string name="mutePublicName">Nom public</string>
++    <string name="muteBotSettings">Paramètres du bot</string>
++    <string name="muteHumanTiming">Rythme humain</string>
++    <string name="muteTimingStyle">Style de rythme</string>
++    <string name="muteResetArrows">Réinitialiser les couleurs des flèches</string>
++    <string name="muteAdvancedMaia">Paramètres Maia avancés</string>
++    <string name="muteMaiaModel">Modèle Maia</string>
++    <string name="mutePairingUnavailable">Appariement temporairement indisponible</string>
++    <string name="muteEngineAnalysis">Paramètres du moteur d'analyse</string>
++    <string name="mutePrimaryMaiaRating">Classement de Maia pour l’analyse</string>
++    <string name="muteSecondMaiaRating">Classement du second Maia pour l’analyse</string>
++    <string name="muteSecondMaiaEnabled">Ajouter un second moteur Maia</string>
++    <string name="muteUseHistory">Utiliser l’historique des positions</string>
++    <string name="muteMaiaRating">Classement de Maia pour l’analyse</string>
++    <string name="muteMaiaArrows">Afficher les flèches Maia</string>
++    <string name="muteStockfishArrows">Afficher les flèches Stockfish</string>
++    <string name="muteAnalysisEngines">Analyse de l\'ordinateur</string>
++    <string name="muteBoardArrows">Flèches sur l’échiquier</string>
++    <string name="muteAdvancedStockfish">Paramètres Stockfish avancés</string>
++    <string name="muteMaiaPreferences">Préférences Maia</string>
++    <string name="muteDownloadKey">Télécharger</string>
++    <string name="muteMoveHistory">Coups joués</string>
++    <string name="muteSignIn">Connexion</string>
++    <string name="muteUserName">Nom d\'utilisateur</string>
++    <string name="muteOn">on</string>
++    <string name="muteOff">off</string>
++    <string name="muteFast">Rapide</string>
++    <string name="muteBalanced">Équilibrée</string>
++    <string name="muteThorough">Approfondie</string>
++    <string name="muteHideKey">Masquer la clé</string>
++    <string name="muteOthers">Autres</string>
++    <string name="muteMovesByRating">Coups par classement</string>
++    <string name="muteLeadingMoves">Coups principaux</string>
+ </resources>
+diff --git a/translation/dest/site/hi-IN.xml b/translation/dest/site/hi-IN.xml
+index bbf1703..88fd863 100644
+--- a/translation/dest/site/hi-IN.xml
++++ b/translation/dest/site/hi-IN.xml
+@@ -893,4 +893,51 @@
+   <string name="closingAccountWithdrawAppeal">आपका खाता बंद करने से आपकी अपील वापस ले ली जाएगी</string>
+   <string name="ourEventTips">कार्यक्रम आयोजित करने कि सलाह</string>
+   <string name="nothingToSeeHere">इस समय यहां देखने को कुछ भी नहीं है।</string>
++
++    <!-- Mute Chess: native preferences and English fallback; core Maia labels from Mobile Maia. -->
++    <string name="muteSignInOrJoin">साइन इन करें या जुड़ें</string>
++    <string name="muteCreateKey">कुंजी बनाएँ और खेलें</string>
++    <string name="muteCopyKey">कुंजी कॉपी करें</string>
++    <string name="muteShowKey">कुंजी दिखाएँ</string>
++    <string name="muteSaveKeyAndPlay">कुंजी सहेजें और खेलें</string>
++    <string name="muteContinueSaved">सहेजी गई कुंजी से जारी रखें</string>
++    <string name="muteForgetSaved">सहेजी गई कुंजी भूलें</string>
++    <string name="muteSigner">साइनर से लॉग इन करें</string>
++    <string name="muteImportKey">कुंजी सहेजें और साइन इन करें</string>
++    <string name="muteExistingKey">या अपनी मौजूदा गुप्त कुंजी पेस्ट करें</string>
++    <string name="mutePlayAnon">साइन इन किए बिना खेलें</string>
++    <string name="muteProfileSettings">प्रोफ़ाइल और सेटिंग</string>
++    <string name="mutePublicName">सार्वजनिक नाम</string>
++    <string name="muteBotSettings">बॉट सेटिंग</string>
++    <string name="muteHumanTiming">मानवीय समय</string>
++    <string name="muteTimingStyle">समय शैली</string>
++    <string name="muteResetArrows">तीर के रंग रीसेट करें</string>
++    <string name="muteAdvancedMaia">उन्नत Maia सेटिंग</string>
++    <string name="muteMaiaModel">Maia मॉडल</string>
++    <string name="mutePairingUnavailable">जोड़ी बनाना अस्थायी रूप से उपलब्ध नहीं है</string>
++    <string name="muteEngineAnalysis">इंजन सेटिंग्स</string>
++    <string name="mutePrimaryMaiaRating">Maia की विश्लेषण रेटिंग</string>
++    <string name="muteSecondMaiaRating">दूसरे Maia इंजन की विश्लेषण रेटिंग</string>
++    <string name="muteSecondMaiaEnabled">दूसरा Maia इंजन जोड़ें</string>
++    <string name="muteUseHistory">पिछली स्थितियों का उपयोग करें</string>
++    <string name="muteMaiaRating">Maia की विश्लेषण रेटिंग</string>
++    <string name="muteMaiaArrows">Maia के तीर दिखाएँ</string>
++    <string name="muteStockfishArrows">Stockfish के तीर दिखाएँ</string>
++    <string name="muteAnalysisEngines">कंप्यूटर विश्लेषण</string>
++    <string name="muteBoardArrows">बोर्ड के तीर</string>
++    <string name="muteAdvancedStockfish">उन्नत Stockfish सेटिंग</string>
++    <string name="muteMaiaPreferences">Maia प्राथमिकताएँ</string>
++    <string name="muteDownloadKey">डाउनलोड करें</string>
++    <string name="muteMoveHistory">चालें चलायीं</string>
++    <string name="muteSignIn">खाते में प्रवेश करें</string>
++    <string name="muteUserName">आपका यूज़र नेम</string>
++    <string name="muteOn">on</string>
++    <string name="muteOff">off</string>
++    <string name="muteFast">तेज़</string>
++    <string name="muteBalanced">संतुलित</string>
++    <string name="muteThorough">गहन</string>
++    <string name="muteHideKey">कुंजी छिपाएँ</string>
++    <string name="muteOthers">अन्य</string>
++    <string name="muteMovesByRating">रेटिंग के अनुसार चालें</string>
++    <string name="muteLeadingMoves">प्रमुख चालें</string>
+ </resources>
+diff --git a/translation/dest/site/ja-JP.xml b/translation/dest/site/ja-JP.xml
+index e628bdb..1bfe4de 100644
+--- a/translation/dest/site/ja-JP.xml
++++ b/translation/dest/site/ja-JP.xml
+@@ -1023,4 +1023,51 @@
+   <string name="write">書く</string>
+   <string name="preview">プレビュー</string>
+   <string name="done">完了</string>
++
++    <!-- Mute Chess: native preferences and English fallback; core Maia labels from Mobile Maia. -->
++    <string name="muteSignInOrJoin">ログイン・登録</string>
++    <string name="muteCreateKey">鍵を作成してプレイ</string>
++    <string name="muteCopyKey">鍵をコピー</string>
++    <string name="muteShowKey">鍵を表示</string>
++    <string name="muteSaveKeyAndPlay">鍵を保存してプレイ</string>
++    <string name="muteContinueSaved">保存した鍵で続行</string>
++    <string name="muteForgetSaved">保存した鍵を削除</string>
++    <string name="muteSigner">署名アプリでログイン</string>
++    <string name="muteImportKey">鍵を保存してログイン</string>
++    <string name="muteExistingKey">または既存の秘密鍵を貼り付け</string>
++    <string name="mutePlayAnon">ログインせずにプレイ</string>
++    <string name="muteProfileSettings">プロフィールと設定</string>
++    <string name="mutePublicName">公開名</string>
++    <string name="muteBotSettings">ボット設定</string>
++    <string name="muteHumanTiming">人間らしい着手時間</string>
++    <string name="muteTimingStyle">着手時間のスタイル</string>
++    <string name="muteResetArrows">矢印の色をリセット</string>
++    <string name="muteAdvancedMaia">Maiaの詳細設定</string>
++    <string name="muteMaiaModel">Maiaモデル</string>
++    <string name="mutePairingUnavailable">現在対局相手を探せません</string>
++    <string name="muteEngineAnalysis">エンジンの設定</string>
++    <string name="mutePrimaryMaiaRating">解析用Maiaのレーティング</string>
++    <string name="muteSecondMaiaRating">2つ目のMaiaのレーティング</string>
++    <string name="muteSecondMaiaEnabled">2つ目のMaiaエンジンを追加</string>
++    <string name="muteUseHistory">過去の局面を使う</string>
++    <string name="muteMaiaRating">解析用Maiaのレーティング</string>
++    <string name="muteMaiaArrows">Maiaの矢印を表示</string>
++    <string name="muteStockfishArrows">Stockfishの矢印を表示</string>
++    <string name="muteAnalysisEngines">コンピューター解析</string>
++    <string name="muteBoardArrows">盤上の矢印</string>
++    <string name="muteAdvancedStockfish">Stockfishの詳細設定</string>
++    <string name="muteMaiaPreferences">Maiaの設定</string>
++    <string name="muteDownloadKey">ダウンロード</string>
++    <string name="muteMoveHistory">総手数</string>
++    <string name="muteSignIn">ログイン</string>
++    <string name="muteUserName">ユーザー名</string>
++    <string name="muteOn">on</string>
++    <string name="muteOff">off</string>
++    <string name="muteFast">高速</string>
++    <string name="muteBalanced">標準</string>
++    <string name="muteThorough">詳細</string>
++    <string name="muteHideKey">鍵を隠す</string>
++    <string name="muteOthers">その他</string>
++    <string name="muteMovesByRating">レート別の候補手</string>
++    <string name="muteLeadingMoves">主な候補手</string>
+ </resources>
+diff --git a/translation/dest/site/ko-KR.xml b/translation/dest/site/ko-KR.xml
+index 9341bf0..4e289a9 100644
+--- a/translation/dest/site/ko-KR.xml
++++ b/translation/dest/site/ko-KR.xml
+@@ -1022,4 +1022,51 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
+   <string name="write">작성</string>
+   <string name="preview">미리보기</string>
+   <string name="done">완료</string>
++
++    <!-- Mute Chess: native preferences and English fallback; core Maia labels from Mobile Maia. -->
++    <string name="muteSignInOrJoin">로그인 또는 가입</string>
++    <string name="muteCreateKey">키를 만들고 플레이</string>
++    <string name="muteCopyKey">키 복사</string>
++    <string name="muteShowKey">키 표시</string>
++    <string name="muteSaveKeyAndPlay">키를 저장하고 플레이</string>
++    <string name="muteContinueSaved">저장된 키로 계속</string>
++    <string name="muteForgetSaved">저장된 키 지우기</string>
++    <string name="muteSigner">서명 앱으로 로그인</string>
++    <string name="muteImportKey">키를 저장하고 로그인</string>
++    <string name="muteExistingKey">또는 기존 비밀 키 붙여넣기</string>
++    <string name="mutePlayAnon">로그인 없이 플레이</string>
++    <string name="muteProfileSettings">프로필 및 설정</string>
++    <string name="mutePublicName">공개 이름</string>
++    <string name="muteBotSettings">봇 설정</string>
++    <string name="muteHumanTiming">사람과 비슷한 착수 시간</string>
++    <string name="muteTimingStyle">착수 시간 스타일</string>
++    <string name="muteResetArrows">화살표 색상 초기화</string>
++    <string name="muteAdvancedMaia">Maia 고급 설정</string>
++    <string name="muteMaiaModel">Maia 모델</string>
++    <string name="mutePairingUnavailable">일시적으로 상대를 찾을 수 없습니다</string>
++    <string name="muteEngineAnalysis">엔진 설정</string>
++    <string name="mutePrimaryMaiaRating">Maia 분석 레이팅</string>
++    <string name="muteSecondMaiaRating">두 번째 Maia 분석 레이팅</string>
++    <string name="muteSecondMaiaEnabled">두 번째 Maia 엔진 추가</string>
++    <string name="muteUseHistory">이전 포지션 사용</string>
++    <string name="muteMaiaRating">Maia 분석 레이팅</string>
++    <string name="muteMaiaArrows">Maia 화살표 표시</string>
++    <string name="muteStockfishArrows">Stockfish 화살표 표시</string>
++    <string name="muteAnalysisEngines">컴퓨터 분석</string>
++    <string name="muteBoardArrows">체스판 화살표</string>
++    <string name="muteAdvancedStockfish">Stockfish 고급 설정</string>
++    <string name="muteMaiaPreferences">Maia 환경설정</string>
++    <string name="muteDownloadKey">다운로드</string>
++    <string name="muteMoveHistory">말 이동 횟수</string>
++    <string name="muteSignIn">로그인</string>
++    <string name="muteUserName">사용자 이름</string>
++    <string name="muteOn">on</string>
++    <string name="muteOff">off</string>
++    <string name="muteFast">빠름</string>
++    <string name="muteBalanced">균형</string>
++    <string name="muteThorough">정밀</string>
++    <string name="muteHideKey">키 숨기기</string>
++    <string name="muteOthers">기타</string>
++    <string name="muteMovesByRating">레이팅별 수</string>
++    <string name="muteLeadingMoves">주요 수</string>
+ </resources>
+diff --git a/translation/dest/site/pt-BR.xml b/translation/dest/site/pt-BR.xml
+index 569e752..fc8fb81 100644
+--- a/translation/dest/site/pt-BR.xml
++++ b/translation/dest/site/pt-BR.xml
+@@ -1063,4 +1063,51 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
+   <string name="write">Escrever</string>
+   <string name="preview">Pré-visualizar</string>
+   <string name="done">Feito</string>
++
++    <!-- Mute Chess: native preferences and English fallback; core Maia labels from Mobile Maia. -->
++    <string name="muteSignInOrJoin">Entrar ou cadastrar-se</string>
++    <string name="muteCreateKey">Criar uma chave e jogar</string>
++    <string name="muteCopyKey">Copiar chave</string>
++    <string name="muteShowKey">Mostrar chave</string>
++    <string name="muteSaveKeyAndPlay">Salvar chave e jogar</string>
++    <string name="muteContinueSaved">Continuar com a chave salva</string>
++    <string name="muteForgetSaved">Esquecer chave salva</string>
++    <string name="muteSigner">Entrar com assinador</string>
++    <string name="muteImportKey">Salvar chave e entrar</string>
++    <string name="muteExistingKey">Ou cole sua chave secreta existente</string>
++    <string name="mutePlayAnon">Jogar sem entrar</string>
++    <string name="muteProfileSettings">Perfil e configurações</string>
++    <string name="mutePublicName">Nome público</string>
++    <string name="muteBotSettings">Configurações do bot</string>
++    <string name="muteHumanTiming">Ritmo humano</string>
++    <string name="muteTimingStyle">Estilo de ritmo</string>
++    <string name="muteResetArrows">Redefinir cores das setas</string>
++    <string name="muteAdvancedMaia">Configurações avançadas do Maia</string>
++    <string name="muteMaiaModel">Modelo Maia</string>
++    <string name="mutePairingUnavailable">Pareamento temporariamente indisponível</string>
++    <string name="muteEngineAnalysis">Configurações do motor</string>
++    <string name="mutePrimaryMaiaRating">Rating do Maia na análise</string>
++    <string name="muteSecondMaiaRating">Rating do segundo Maia na análise</string>
++    <string name="muteSecondMaiaEnabled">Adicionar um segundo motor Maia</string>
++    <string name="muteUseHistory">Usar histórico de posições</string>
++    <string name="muteMaiaRating">Rating do Maia na análise</string>
++    <string name="muteMaiaArrows">Mostrar setas do Maia</string>
++    <string name="muteStockfishArrows">Mostrar setas do Stockfish</string>
++    <string name="muteAnalysisEngines">Análise do computador</string>
++    <string name="muteBoardArrows">Setas no tabuleiro</string>
++    <string name="muteAdvancedStockfish">Configurações avançadas do Stockfish</string>
++    <string name="muteMaiaPreferences">Preferências do Maia</string>
++    <string name="muteDownloadKey">Baixar</string>
++    <string name="muteMoveHistory">Movimentos realizados</string>
++    <string name="muteSignIn">Entrar</string>
++    <string name="muteUserName">Nome de usuário</string>
++    <string name="muteOn">on</string>
++    <string name="muteOff">off</string>
++    <string name="muteFast">Rápida</string>
++    <string name="muteBalanced">Equilibrada</string>
++    <string name="muteThorough">Detalhada</string>
++    <string name="muteHideKey">Ocultar chave</string>
++    <string name="muteOthers">Outras</string>
++    <string name="muteMovesByRating">Lances por rating</string>
++    <string name="muteLeadingMoves">Principais lances</string>
+ </resources>
+diff --git a/translation/dest/site/ru-RU.xml b/translation/dest/site/ru-RU.xml
+index 6384657..ba22e92 100644
+--- a/translation/dest/site/ru-RU.xml
++++ b/translation/dest/site/ru-RU.xml
+@@ -1146,4 +1146,51 @@
+   <string name="write">Написать</string>
+   <string name="preview">Предпросмотр</string>
+   <string name="done">Готово</string>
++
++    <!-- Mute Chess: native preferences and English fallback; core Maia labels from Mobile Maia. -->
++    <string name="muteSignInOrJoin">Войти или зарегистрироваться</string>
++    <string name="muteCreateKey">Создать ключ и играть</string>
++    <string name="muteCopyKey">Скопировать ключ</string>
++    <string name="muteShowKey">Показать ключ</string>
++    <string name="muteSaveKeyAndPlay">Сохранить ключ и играть</string>
++    <string name="muteContinueSaved">Войти с сохранённым ключом</string>
++    <string name="muteForgetSaved">Забыть сохранённый ключ</string>
++    <string name="muteSigner">Войти через подписывающее приложение</string>
++    <string name="muteImportKey">Сохранить ключ и войти</string>
++    <string name="muteExistingKey">Или вставьте свой секретный ключ</string>
++    <string name="mutePlayAnon">Играть без входа</string>
++    <string name="muteProfileSettings">Профиль и настройки</string>
++    <string name="mutePublicName">Публичное имя</string>
++    <string name="muteBotSettings">Настройки бота</string>
++    <string name="muteHumanTiming">Человеческое время ходов</string>
++    <string name="muteTimingStyle">Стиль времени ходов</string>
++    <string name="muteResetArrows">Сбросить цвета стрелок</string>
++    <string name="muteAdvancedMaia">Расширенные настройки Maia</string>
++    <string name="muteMaiaModel">Модель Maia</string>
++    <string name="mutePairingUnavailable">Подбор соперника временно недоступен</string>
++    <string name="muteEngineAnalysis">Настройки движка</string>
++    <string name="mutePrimaryMaiaRating">Рейтинг Maia для анализа</string>
++    <string name="muteSecondMaiaRating">Второй рейтинг Maia для анализа</string>
++    <string name="muteSecondMaiaEnabled">Добавить второй движок Maia</string>
++    <string name="muteUseHistory">Учитывать историю позиций</string>
++    <string name="muteMaiaRating">Рейтинг Maia для анализа</string>
++    <string name="muteMaiaArrows">Показывать стрелки Maia</string>
++    <string name="muteStockfishArrows">Показывать стрелки Stockfish</string>
++    <string name="muteAnalysisEngines">Компьютерный анализ</string>
++    <string name="muteBoardArrows">Стрелки на доске</string>
++    <string name="muteAdvancedStockfish">Расширенные настройки Stockfish</string>
++    <string name="muteMaiaPreferences">Настройки Maia</string>
++    <string name="muteDownloadKey">Загрузить</string>
++    <string name="muteMoveHistory">Сделано ходов</string>
++    <string name="muteSignIn">Войти</string>
++    <string name="muteUserName">Имя пользователя</string>
++    <string name="muteOn">on</string>
++    <string name="muteOff">off</string>
++    <string name="muteFast">Быстрый</string>
++    <string name="muteBalanced">Сбалансированный</string>
++    <string name="muteThorough">Подробный</string>
++    <string name="muteHideKey">Скрыть ключ</string>
++    <string name="muteOthers">Другие</string>
++    <string name="muteMovesByRating">Ходы по рейтингу</string>
++    <string name="muteLeadingMoves">Основные ходы</string>
+ </resources>
+diff --git a/translation/dest/site/zh-CN.xml b/translation/dest/site/zh-CN.xml
+index 176f4d1..5388d14 100644
+--- a/translation/dest/site/zh-CN.xml
++++ b/translation/dest/site/zh-CN.xml
+@@ -1022,4 +1022,51 @@
+   <string name="write">撰写</string>
+   <string name="preview">预览</string>
+   <string name="done">完成</string>
++
++    <!-- Mute Chess: native preferences and English fallback; core Maia labels from Mobile Maia. -->
++    <string name="muteSignInOrJoin">登录或注册</string>
++    <string name="muteCreateKey">创建密钥并开始游戏</string>
++    <string name="muteCopyKey">复制密钥</string>
++    <string name="muteShowKey">显示密钥</string>
++    <string name="muteSaveKeyAndPlay">保存密钥并开始游戏</string>
++    <string name="muteContinueSaved">使用已保存的密钥继续</string>
++    <string name="muteForgetSaved">忘记已保存的密钥</string>
++    <string name="muteSigner">使用签名器登录</string>
++    <string name="muteImportKey">保存密钥并登录</string>
++    <string name="muteExistingKey">或粘贴您现有的私钥</string>
++    <string name="mutePlayAnon">不登录直接游戏</string>
++    <string name="muteProfileSettings">个人资料与设置</string>
++    <string name="mutePublicName">公开名称</string>
++    <string name="muteBotSettings">机器人设置</string>
++    <string name="muteHumanTiming">人类式用时</string>
++    <string name="muteTimingStyle">用时风格</string>
++    <string name="muteResetArrows">重置箭头颜色</string>
++    <string name="muteAdvancedMaia">Maia 高级设置</string>
++    <string name="muteMaiaModel">Maia 模型</string>
++    <string name="mutePairingUnavailable">暂时无法匹配对手</string>
++    <string name="muteEngineAnalysis">引擎设置</string>
++    <string name="mutePrimaryMaiaRating">Maia 分析等级分</string>
++    <string name="muteSecondMaiaRating">第二个 Maia 的分析等级分</string>
++    <string name="muteSecondMaiaEnabled">添加第二个 Maia 引擎</string>
++    <string name="muteUseHistory">使用历史局面</string>
++    <string name="muteMaiaRating">Maia 分析等级分</string>
++    <string name="muteMaiaArrows">显示 Maia 箭头</string>
++    <string name="muteStockfishArrows">显示 Stockfish 箭头</string>
++    <string name="muteAnalysisEngines">电脑分析</string>
++    <string name="muteBoardArrows">棋盘箭头</string>
++    <string name="muteAdvancedStockfish">Stockfish 高级设置</string>
++    <string name="muteMaiaPreferences">Maia 偏好设置</string>
++    <string name="muteDownloadKey">下载</string>
++    <string name="muteMoveHistory">已走棋步数</string>
++    <string name="muteSignIn">登录</string>
++    <string name="muteUserName">用户名</string>
++    <string name="muteOn">on</string>
++    <string name="muteOff">off</string>
++    <string name="muteFast">快速</string>
++    <string name="muteBalanced">均衡</string>
++    <string name="muteThorough">详细</string>
++    <string name="muteHideKey">隐藏密钥</string>
++    <string name="muteOthers">其他</string>
++    <string name="muteMovesByRating">按等级分显示着法</string>
++    <string name="muteLeadingMoves">主要着法</string>
+ </resources>
+diff --git a/translation/source/site.xml b/translation/source/site.xml
+index 8b5a6a1..5503e30 100644
+--- a/translation/source/site.xml
++++ b/translation/source/site.xml
+@@ -1066,4 +1066,51 @@ Leave empty to start games from the normal initial position.</string>
+   <string name="write">Write</string>
+   <string name="preview">Preview</string>
+   <string name="done">Done</string>
++
++    <!-- Mute Chess: native preferences and English fallback; core Maia labels from Mobile Maia. -->
++    <string name="muteSignInOrJoin">Sign in or join</string>
++    <string name="muteCreateKey">Create a key and play</string>
++    <string name="muteCopyKey">Copy key</string>
++    <string name="muteShowKey">Show key</string>
++    <string name="muteSaveKeyAndPlay">Save key and play</string>
++    <string name="muteContinueSaved">Continue with saved key</string>
++    <string name="muteForgetSaved">Forget saved key</string>
++    <string name="muteSigner">Log in with signer</string>
++    <string name="muteImportKey">Save key and sign in</string>
++    <string name="muteExistingKey">Or paste your existing secret key</string>
++    <string name="mutePlayAnon">Play without signing in</string>
++    <string name="muteProfileSettings">Profile &amp; settings</string>
++    <string name="mutePublicName">Public name</string>
++    <string name="muteBotSettings">Bot settings</string>
++    <string name="muteHumanTiming">Human timing</string>
++    <string name="muteTimingStyle">Timing style</string>
++    <string name="muteResetArrows">Reset arrow colors</string>
++    <string name="muteAdvancedMaia">Advanced Maia settings</string>
++    <string name="muteMaiaModel">Maia model</string>
++    <string name="mutePairingUnavailable">Pairing is temporarily unavailable</string>
++    <string name="muteEngineAnalysis">Engine settings</string>
++    <string name="mutePrimaryMaiaRating">Maia analysis rating</string>
++    <string name="muteSecondMaiaRating">Second Maia analysis rating</string>
++    <string name="muteSecondMaiaEnabled">Add second Maia engine</string>
++    <string name="muteUseHistory">Use move history</string>
++    <string name="muteMaiaRating">Maia analysis rating</string>
++    <string name="muteMaiaArrows">Show Maia arrows</string>
++    <string name="muteStockfishArrows">Show Stockfish arrows</string>
++    <string name="muteAnalysisEngines">Computer analysis</string>
++    <string name="muteBoardArrows">Board arrows</string>
++    <string name="muteAdvancedStockfish">Advanced Stockfish settings</string>
++    <string name="muteMaiaPreferences">Maia preferences</string>
++    <string name="muteDownloadKey">Download</string>
++    <string name="muteMoveHistory">Moves played</string>
++    <string name="muteSignIn">Sign in</string>
++    <string name="muteUserName">Username</string>
++    <string name="muteOn">on</string>
++    <string name="muteOff">off</string>
++    <string name="muteFast">Fast</string>
++    <string name="muteBalanced">Balanced</string>
++    <string name="muteThorough">Thorough</string>
++    <string name="muteHideKey">Hide key</string>
++    <string name="muteOthers">Others</string>
++    <string name="muteMovesByRating">Moves by Rating</string>
++    <string name="muteLeadingMoves">Leading moves</string>
+ </resources>
 diff --git a/ui/@types/lichess/index.d.ts b/ui/@types/lichess/index.d.ts
 index 818aaae..901eb6e 100644
 --- a/ui/@types/lichess/index.d.ts
@@ -4684,6 +5661,98 @@ index 89b6efa..81bc593 100644
      modal: !isTouchDevice(),
      easyClose: 'clickOutside',
      show: true,
+diff --git a/ui/bits/src/bits.flairPicker.ts b/ui/bits/src/bits.flairPicker.ts
+index 277b44a..aee157d 100644
+--- a/ui/bits/src/bits.flairPicker.ts
++++ b/ui/bits/src/bits.flairPicker.ts
+@@ -19,7 +19,7 @@ export async function initModule(cfg: Config): Promise<void> {
+     ...cfg,
+     onClickOutside: cfg.close,
+     data: makeEmojiData,
+-    categories: CATEGORIES.map(categ => categ[0]),
++    categories: ['cyberpunk', ...CATEGORIES.map(categ => categ[0])],
+     categoryIcons,
+     previewEmoji: 'people.backhand-index-pointing-up',
+     noResultsEmoji: 'smileys.crying-face',
+@@ -46,13 +46,16 @@ function getPickerLang(): PickerLocale {
+ const makeEmojiData = async () => {
+   const res = await fetch(site.asset.url('flair/list.txt', { pathVersion: true }));
+   const text = await res.text();
+-  const lines = text.split('\n').slice(0, -1);
++  const lines = text.trim().split(/\r?\n/).filter(Boolean);
+   return {
+-    categories: CATEGORIES.map(([id, name]) => ({
+-      id,
+-      name,
+-      emojis: lines.filter(line => line.startsWith(id)),
+-    })),
++    categories: [
++      { id: 'cyberpunk', name: 'Bot flairs', emojis: cyberpunk.filter(key => lines.includes(key)) },
++      ...CATEGORIES.map(([id, name]) => ({
++        id,
++        name,
++        emojis: lines.filter(line => line.startsWith(id)),
++      })),
++    ],
+     emojis: Object.fromEntries(
+       lines.map(key => {
+         const [categ, name] = key.split('.');
+@@ -61,7 +64,11 @@ const makeEmojiData = async () => {
+           {
+             id: key,
+             name,
+-            keywords: [categ, ...name.split('-')],
++            keywords: [
++              categ,
++              ...name.split('-'),
++              ...(cyberpunk.includes(key) ? ['cyberpunk', 'cypherpunk', 'technology', 'AI'] : []),
++            ],
+             skins: [
+               {
+                 src: site.asset.flairSrc(key),
+@@ -74,6 +81,32 @@ const makeEmojiData = async () => {
+   };
+ };
+ 
++const cyberpunk = [
++  'symbols.mute-circuit-knight',
++  'symbols.mute-synthetic-eye',
++  'symbols.mute-neural-chip',
++  'symbols.mute-neon-fox',
++  'symbols.mute-origami-crane',
++  'symbols.mute-ghost-terminal',
++
++  'smileys.robot',
++  'smileys.alien',
++  'smileys.alien-monster',
++  'objects.desktop-computer',
++  'objects.computer-disk',
++  'objects.floppy-disk',
++  'objects.satellite-antenna',
++  'objects.gear',
++  'objects.shield',
++  'activity.joystick',
++  'objects.electric-plug',
++  'objects.battery',
++  'objects.key',
++  'objects.locked',
++  'symbols.antenna-bars',
++  'symbols.infinity',
++];
++
+ const CATEGORIES: [string, string][] = [
+   ['smileys', 'Smileys'],
+   ['people', 'People'],
+@@ -86,6 +119,9 @@ const CATEGORIES: [string, string][] = [
+ ];
+ 
+ const categoryIcons = {
++  cyberpunk: {
++    svg: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M4 4h16v16H4V4zm2 2v12h12V6H6zm2 2h8v8H8V8zM0 7h3v2H0V7zm0 8h3v2H0v-2zm21-8h3v2h-3V7zm0 8h3v2h-3v-2zM7 0h2v3H7V0zm8 0h2v3h-2V0zM7 21h2v3H7v-3zm8 0h2v3h-2v-3z"/></svg>',
++  },
+   smileys: {
+     svg: $html`
+       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
 diff --git a/ui/bits/src/bits.qrcode.ts b/ui/bits/src/bits.qrcode.ts
 index a53a9f6..4b9c0e3 100644
 --- a/ui/bits/src/bits.qrcode.ts
@@ -4960,11 +6029,29 @@ index ba0f963..0e2c0e6 100644
    user?: LightUser;
    lang: LangsData;
    sound: {
+diff --git a/ui/dasher/src/langs.ts b/ui/dasher/src/langs.ts
+index 4d1d7a4..35c9872 100644
+--- a/ui/dasher/src/langs.ts
++++ b/ui/dasher/src/langs.ts
+@@ -54,6 +54,6 @@ export class LangsCtrl extends PaneCtrl {
+ 
+   private readonly list = () => [
+     ...this.data.list.filter(([code, _]) => this.isCurrent(code) || this.isAccepted(code)),
+-    ...this.data.list,
++    ...this.data.list.filter(([code, _]) => !this.isCurrent(code) && !this.isAccepted(code)),
+   ];
+ }
 diff --git a/ui/dasher/src/links.ts b/ui/dasher/src/links.ts
-index 6deb2fb..96f37aa 100644
+index 6deb2fb..0388320 100644
 --- a/ui/dasher/src/links.ts
 +++ b/ui/dasher/src/links.ts
-@@ -45,7 +45,7 @@ export class LinksCtrl extends PaneCtrl {
+@@ -1,4 +1,5 @@
+ import { licon, type LiconValue } from 'lib/licon';
++import { muteText } from 'lib/nosweat/i18n';
+ import { pubsub } from 'lib/pubsub';
+ import { type Attrs, hl, type VNode, bind } from 'lib/view';
+ import { userLine, profileUrl } from 'lib/view/userLink';
+@@ -45,7 +46,7 @@ export class LinksCtrl extends PaneCtrl {
              userLine(d.user),
              i18n.site.profile,
            ]),
@@ -4973,12 +6060,12 @@ index 6deb2fb..96f37aa 100644
            hl(
              'a.text',
              linkCfg(
-@@ -53,7 +53,7 @@ export class LinksCtrl extends PaneCtrl {
+@@ -53,7 +54,7 @@ export class LinksCtrl extends PaneCtrl {
                licon.Gear,
                this.root.opts.playing ? { target: '_blank' } : undefined,
              ),
 -            i18n.preferences.preferences,
-+            d.noSweat ? 'Profile & settings' : i18n.preferences.preferences,
++            d.noSweat ? muteText('ProfileSettings', 'Profile & settings') : i18n.preferences.preferences,
            ),
            d.coach && hl('a.text', linkCfg('/coach/edit', licon.GraduateCap), i18n.site.coachManager),
            d.streamer && hl('a.text', linkCfg('/streamer/edit', licon.Mic), i18n.site.streamerManager),
@@ -5466,10 +6553,14 @@ index e1f9396..11096a3 100644
 +  }
 +}
 diff --git a/ui/lobby/src/ctrl.ts b/ui/lobby/src/ctrl.ts
-index a8b22d7..67dfb83 100644
+index a8b22d7..63cb61d 100644
 --- a/ui/lobby/src/ctrl.ts
 +++ b/ui/lobby/src/ctrl.ts
-@@ -4,6 +4,7 @@ import { pubsub } from 'lib/pubsub';
+@@ -1,9 +1,11 @@
+ import { numberFormat } from 'lib/i18n';
++import { muteText } from 'lib/nosweat/i18n';
+ import * as poolRangeStorage from 'lib/poolRangeStorage';
+ import { pubsub } from 'lib/pubsub';
  import { colors } from 'lib/setup/color';
  import { wsPingInterval } from 'lib/socket';
  import { storage, type LichessStorage } from 'lib/storage';
@@ -5477,7 +6568,7 @@ index a8b22d7..67dfb83 100644
  
  import Filter from './filter';
  import * as hookRepo from './hookRepo';
-@@ -74,6 +75,7 @@ export default class LobbyController {
+@@ -74,6 +76,7 @@ export default class LobbyController {
        else if (this.hasOngoingRealTimeGame(false)) this.stores.tab.set('now_playing');
        this.tab = this.stores.tab.get();
      }
@@ -5485,7 +6576,7 @@ index a8b22d7..67dfb83 100644
      this.mode = this.stores.mode.get();
      this.sort = this.me ? this.stores.sort.get() : 'time';
  
-@@ -136,6 +138,8 @@ export default class LobbyController {
+@@ -136,6 +139,8 @@ export default class LobbyController {
        history.replaceState(null, '', '/');
      }
  
@@ -5494,7 +6585,7 @@ index a8b22d7..67dfb83 100644
      this.poolInStorage = storage.make('lobby.pool-in');
      this.poolInStorage.listen(_ => {
        // when another tab joins a pool
-@@ -154,7 +158,10 @@ export default class LobbyController {
+@@ -154,7 +159,10 @@ export default class LobbyController {
          if (this.poolMember) this.poolIn();
          else if (this.tab === 'real_time' && !this.data.hooks.length) this.socket.realTimeIn();
        }, 10 * 1000);
@@ -5506,7 +6597,7 @@ index a8b22d7..67dfb83 100644
      }
  
      pubsub.on('socket.open', () => {
-@@ -210,6 +217,7 @@ export default class LobbyController {
+@@ -210,6 +218,7 @@ export default class LobbyController {
    private readonly flushHooksSchedule = () => setTimeout(this.flushHooks, 8000);
  
    setTab = (tab: Tab) => {
@@ -5514,7 +6605,7 @@ index a8b22d7..67dfb83 100644
      if (tab !== this.tab) {
        if (tab === 'seeks') this.fetchSeeks();
        else if (tab === 'real_time') this.socket.realTimeIn();
-@@ -258,6 +266,11 @@ export default class LobbyController {
+@@ -258,6 +267,11 @@ export default class LobbyController {
    };
  
    clickPool = (id: string) => {
@@ -5526,7 +6617,7 @@ index a8b22d7..67dfb83 100644
      if (!this.me) {
        xhr.anonPoolSeek(this.pools.find(p => p.id === id)!);
        this.setTab('real_time');
-@@ -266,6 +279,29 @@ export default class LobbyController {
+@@ -266,6 +280,34 @@ export default class LobbyController {
      this.redraw();
    };
  
@@ -5542,11 +6633,16 @@ index a8b22d7..67dfb83 100644
 +        body: JSON.stringify(setup),
 +      });
 +      const game = await response.json();
-+      if (!response.ok) throw new Error(game.error || 'Pairing is temporarily unavailable');
++      if (!response.ok)
++        throw new Error(game.error || muteText('PairingUnavailable', 'Pairing is temporarily unavailable'));
 +      this.setRedirecting();
 +      site.redirect(game.url);
 +    } catch (error) {
-+      await alert(error instanceof Error ? error.message : 'Pairing is temporarily unavailable');
++      await alert(
++        error instanceof Error
++          ? error.message
++          : muteText('PairingUnavailable', 'Pairing is temporarily unavailable'),
++      );
 +    } finally {
 +      this.poolMember = undefined;
 +      this.redraw();
@@ -5556,7 +6652,7 @@ index a8b22d7..67dfb83 100644
    enterPool = (member: PoolMember) => {
      poolRangeStorage.set(this.me?.username, member.id, member.range);
      this.setTab('pools');
-@@ -352,7 +388,8 @@ export default class LobbyController {
+@@ -352,7 +394,8 @@ export default class LobbyController {
        if (range) member.range = range;
        if (match) {
          this.setTab('pools');
@@ -6805,10 +7901,10 @@ index 48a0e33..4bc93c5 100644
    });
 diff --git a/app/NoSweatBotCatalog.scala b/app/NoSweatBotCatalog.scala
 new file mode 100644
-index 0000000..48dc736
+index 0000000..648ef45
 --- /dev/null
 +++ b/app/NoSweatBotCatalog.scala
-@@ -0,0 +1,84 @@
+@@ -0,0 +1,110 @@
 +package lila.app
 +
 +import play.api.libs.json.*
@@ -6816,6 +7912,32 @@ index 0000000..48dc736
 +
 +/** Initialization of assigned bot priors; native Glicko and earned counts remain unchanged. */
 +private[app] object NoSweatBotCatalog:
++  val flairs = Vector(
++    "symbols.mute-circuit-knight",
++    "symbols.mute-synthetic-eye",
++    "symbols.mute-neural-chip",
++    "symbols.mute-neon-fox",
++    "symbols.mute-origami-crane",
++    "symbols.mute-ghost-terminal",
++
++    "smileys.robot",
++    "smileys.alien",
++    "smileys.alien-monster",
++    "objects.desktop-computer",
++    "objects.computer-disk",
++    "objects.floppy-disk",
++    "objects.satellite-antenna",
++    "objects.gear",
++    "objects.shield",
++    "activity.joystick",
++    "objects.electric-plug",
++    "objects.battery",
++    "objects.key",
++    "objects.locked",
++    "symbols.antenna-bars",
++    "symbols.infinity"
++  )
++
 +  val speeds = List(
 +    PerfKey.ultraBullet,
 +    PerfKey.bullet,
@@ -6895,10 +8017,10 @@ index 0000000..48dc736
 +    current.isEmpty || current.contains(username) || current.contains(alias)
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..e1cc47f
+index 0000000..5135d36
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,880 @@
+@@ -0,0 +1,891 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -7191,6 +8313,17 @@ index 0000000..e1cc47f
 +                )
 +                .void
 +          else funit
++      _ <- env.user.repo.withColl:
++        _.update
++          .one(
++            bid(user.id) ++ bdoc("noSweatBot" -> true, UserFields.flair -> bdoc("$exists" -> false)),
++            set(
++              UserFields.flair -> NoSweatBotCatalog.flairs(
++                scala.util.Random.nextInt(NoSweatBotCatalog.flairs.size)
++              )
++            )
++          )
++          .void
 +    yield env.user.lightUserApi.invalidate(user.id)
 +
 +  private def initialize(): Funit =
@@ -8421,11 +9554,13 @@ index 0000000..b56f4c6
 +    user ?=> handle(club.details(id, user.value).map(_.fold(NotFound)(Ok(_))))
 diff --git a/app/views/noSweatBot.scala b/app/views/noSweatBot.scala
 new file mode 100644
-index 0000000..550f673
+index 0000000..ea79016
 --- /dev/null
 +++ b/app/views/noSweatBot.scala
-@@ -0,0 +1,41 @@
+@@ -0,0 +1,49 @@
 +package views
++
++import lila.core.i18n.I18nKey
 +
 +import play.api.libs.json.*
 +import lila.app.UiEnv.{ *, given }
@@ -8438,7 +9573,7 @@ index 0000000..550f673
 +    val history = (personality \ "history").as[Boolean]
 +    val style = (personality \ "timingStyle").as[String].replace('-', ' ')
 +    div(cls := "nosweat-bot-policy")(
-+      h2("Bot settings"),
++      h2(I18nKey("muteBotSettings").txt()),
 +      table(
 +        tbody(
 +          tr(th("Model"), td("Maia3 79M")),
@@ -8453,9 +9588,15 @@ index 0000000..550f673
 +          tr(th("Opponent rating input"), td("Your rating for this time control (600–2600)")),
 +          tr(th("Temperature"), td((bot \ "temperature_after_opening").as[Double].toString)),
 +          tr(th("Top-p"), td((bot \ "top_p_after_opening").as[Double].toString)),
-+          tr(th("Move history"), td(if history then "On" else "Off")),
-+          tr(th("Human timing"), td(if timing then "On" else "Off")),
-+          tr(th("Timing style"), td(style + (if timing then "" else " (inactive)"))),
++          tr(
++            th(I18nKey("muteMoveHistory").txt()),
++            td(if history then I18nKey("muteOn").txt() else I18nKey("muteOff").txt())
++          ),
++          tr(
++            th(I18nKey("muteHumanTiming").txt()),
++            td(if timing then I18nKey("muteOn").txt() else I18nKey("muteOff").txt())
++          ),
++          tr(th(I18nKey("muteTimingStyle").txt()), td(style + (if timing then "" else " (inactive)"))),
 +          (opening > 0).option(tr(th("Opening"), td(s"Full sampling for the first $opening moves")))
 +        )
 +      ),
@@ -8704,17 +9845,19 @@ index 0000000..e28aa9d
 +    case _ => emptyFrag
 diff --git a/app/views/noSweatLogin.scala b/app/views/noSweatLogin.scala
 new file mode 100644
-index 0000000..7f9a91f
+index 0000000..f92346b
 --- /dev/null
 +++ b/app/views/noSweatLogin.scala
-@@ -0,0 +1,139 @@
+@@ -0,0 +1,154 @@
 +package views
++
++import lila.core.i18n.I18nKey
 +
 +import lila.app.UiEnv.{ *, given }
 +
 +object noSweatLogin:
 +  def apply()(using Context) =
-+    Page("Sign in")
++    Page(I18nKey("muteSignIn").txt())
 +      .css("bits.auth")
 +      .headAppend(link(rel := "stylesheet", href := s"${assetPath("nosweat/nostr.css")}?v=key-backup2"))
 +      .headAppend(script(src := s"${assetPath("nosweat/nostr.js")}?v=key-backup2", defer)):
@@ -8731,7 +9874,7 @@ index 0000000..7f9a91f
 +              alt := "Mute Chess"
 +            )
 +          ),
-+          h1("Sign in or join"),
++          h1(I18nKey("muteSignInOrJoin").txt()),
 +          p(cls := "nostr-intro")(
 +            "Your Nostr identity connects you to your profile and games. No email needed."
 +          ),
@@ -8748,7 +9891,7 @@ index 0000000..7f9a91f
 +            )
 +          ),
 +          div(id := "nostr-methods", cls := "form3")(
-+            button(id := "nostr-generate", cls := "button button-green")("Create a key and play"),
++            button(id := "nostr-generate", cls := "button button-green")(I18nKey("muteCreateKey").txt()),
 +            div(id := "nostr-created", hidden)(
 +              p(
 +                "Save a copy of this key so you can return on another device. A password manager is a good place for it; anyone with the key can use this identity."
@@ -8762,37 +9905,50 @@ index 0000000..7f9a91f
 +                aria.label := "Your new Nostr secret key"
 +              ),
 +              div(cls := "nostr-key-actions")(
-+                button(id := "nostr-copy", cls := "button button-metal")("Copy key"),
-+                button(id := "nostr-download", cls := "button button-metal")("Download .txt"),
-+                button(id := "nostr-reveal", cls := "button button-empty")("Show key")
++                button(id := "nostr-copy", cls := "button button-metal")(I18nKey("muteCopyKey").txt()),
++                button(id := "nostr-download", cls := "button button-metal")(
++                  I18nKey("muteDownloadKey").txt()
++                ),
++                button(
++                  id := "nostr-reveal",
++                  cls := "button button-empty",
++                  attr("data-show-key") := I18nKey("muteShowKey").txt(),
++                  attr("data-hide-key") := I18nKey("muteHideKey").txt()
++                )(I18nKey("muteShowKey").txt())
 +              ),
-+              label(cls := "form-label", `for` := "nostr-username")("Username (optional)"),
++              label(cls := "form-label", `for` := "nostr-username")(I18nKey("muteUserName").txt()),
 +              input(
 +                id := "nostr-username",
 +                cls := "form-control",
 +                maxlength := 20,
 +                autocomplete := "username"
 +              ),
-+              button(id := "nostr-create-login", cls := "button button-green")("Save key and play")
++              button(id := "nostr-create-login", cls := "button button-green")(
++                I18nKey("muteSaveKeyAndPlay").txt()
++              )
 +            ),
 +            p(cls := "nostr-help")(
 +              "This browser remembers your key between visits, as long as its site data is kept. Keep a separate backup."
 +            ),
 +            div(id := "nostr-saved", hidden)(
-+              button(id := "nostr-use-saved", cls := "button")("Continue with saved key"),
++              button(id := "nostr-use-saved", cls := "button")(I18nKey("muteContinueSaved").txt()),
 +              details(cls := "nostr-guide")(
 +                summary("Back up your saved key"),
 +                p("Copy it to your password manager or download a private .txt copy."),
 +                div(cls := "nostr-key-actions")(
-+                  button(id := "nostr-copy-saved", cls := "button button-metal")("Copy key"),
-+                  button(id := "nostr-download-saved", cls := "button button-metal")("Download .txt")
++                  button(id := "nostr-copy-saved", cls := "button button-metal")(
++                    I18nKey("muteCopyKey").txt()
++                  ),
++                  button(id := "nostr-download-saved", cls := "button button-metal")(
++                    I18nKey("muteDownloadKey").txt()
++                  )
 +                )
 +              ),
-+              button(id := "nostr-forget", cls := "button button-empty")("Forget saved key")
++              button(id := "nostr-forget", cls := "button button-empty")(I18nKey("muteForgetSaved").txt())
 +            ),
 +            div(cls := "or-separator")(span("Already use Nostr?")),
 +            button(id := "nostr-extension", cls := "button button-metal")(
-+              "Log in with signer"
++              I18nKey("muteSigner").txt()
 +            ),
 +            p(cls := "nostr-help")(
 +              "Already have a signer? Continue directly. Or install ",
@@ -8803,7 +9959,7 @@ index 0000000..7f9a91f
 +              )("nos2x for Chrome / Chromium"),
 +              ". Other compatible Nostr signers work too."
 +            ),
-+            label(cls := "form-label", `for` := "nostr-nsec")("Or paste your existing secret key"),
++            label(cls := "form-label", `for` := "nostr-nsec")(I18nKey("muteExistingKey").txt()),
 +            input(
 +              id := "nostr-nsec",
 +              cls := "form-control",
@@ -8812,7 +9968,7 @@ index 0000000..7f9a91f
 +              spellcheck := "false",
 +              placeholder := "nsec1…"
 +            ),
-+            button(id := "nostr-import", cls := "button button-metal")("Save key and sign in"),
++            button(id := "nostr-import", cls := "button button-metal")(I18nKey("muteImportKey").txt()),
 +            details(cls := "nostr-guide")(
 +              summary("Keeping access to your key"),
 +              p(
@@ -8838,14 +9994,14 @@ index 0000000..7f9a91f
 +              autocomplete := "one-time-code",
 +              maxlength := 64
 +            ),
-+            button(id := "nostr-verify", cls := "button button-green")("Sign in"),
++            button(id := "nostr-verify", cls := "button button-green")(I18nKey("muteSignIn").txt()),
 +            button(id := "nostr-back", cls := "button button-empty")("Use a different key")
 +          ),
 +          p(id := "nostr-status", role := "status", aria.live := "polite"),
 +          p(cls := "nostr-help")(
 +            "Your secret key stays in your browser. Signing in does not post anything to Nostr."
 +          ),
-+          a(href := "/")("Play without signing in")
++          a(href := "/")(I18nKey("mutePlayAnon").txt())
 +        )
 diff --git a/app/views/noSweatNostr.scala b/app/views/noSweatNostr.scala
 new file mode 100644
@@ -9777,6 +10933,226 @@ index 0000000..376f9b7
 +      !NoSweatStudyScope.valid("trial1", local.replace("27028", "27018"), local, "127.0.0.1:19763", false)
 +    )
 +    assert(!NoSweatStudyScope.valid("../bad", local, local, "127.0.0.1:19763", false))
+diff --git a/modules/i18n/src/main/NoSweatLanguages.scala b/modules/i18n/src/main/NoSweatLanguages.scala
+new file mode 100644
+index 0000000..ff1209e
+--- /dev/null
++++ b/modules/i18n/src/main/NoSweatLanguages.scala
+@@ -0,0 +1,25 @@
++package lila.i18n
++
++import play.api.i18n.Lang
++import play.api.mvc.RequestHeader
++import scalalib.model.LangTag
++
++/** Mobile Maia's ten supported languages, with native preference/session storage. */
++object NoSweatLanguages:
++  val codes = Set("en-GB", "de-DE", "fr-FR", "ru-RU", "pt-BR", "hi-IN", "ja-JP", "zh-CN", "ko-KR", "es-ES")
++  private val byLanguage = codes.toList.flatMap(Lang.get).map(l => l.language -> l).toMap
++  val choices = LangList.allChoices.filter((code, _) => codes(code))
++
++  def normalize(lang: Lang): Option[Lang] =
++    val traditional = lang.language == "zh" &&
++      (Set("TW", "HK", "MO")(lang.country) || lang.code.toLowerCase.contains("hant"))
++    Option.unless(traditional)(byLanguage.get(lang.language)).flatten
++
++  def pick(req: RequestHeader, user: Option[LangTag]): Lang =
++    LangTag
++      .raw(user)
++      .orElse(req.session.get("lang"))
++      .flatMap(Lang.get)
++      .flatMap(normalize)
++      .orElse(lila.core.i18n.playAcceptLanguages(req).collectFirstSome(normalize))
++      .getOrElse(lila.core.i18n.defaultLang)
+diff --git a/modules/i18n/src/test/NoSweatLanguagesTest.scala b/modules/i18n/src/test/NoSweatLanguagesTest.scala
+new file mode 100644
+index 0000000..329255d
+--- /dev/null
++++ b/modules/i18n/src/test/NoSweatLanguagesTest.scala
+@@ -0,0 +1,23 @@
++package lila.i18n
++
++import play.api.i18n.Lang
++
++class NoSweatLanguagesTest extends munit.FunSuite:
++  test("picker contains exactly the ten supported choices, without duplicate locales"):
++    assertEquals(NoSweatLanguages.choices.map(_._1).toSet, NoSweatLanguages.codes)
++    assertEquals(NoSweatLanguages.choices.size, 10)
++
++  test("regional variants resolve to the supported language and unknown languages do not leak in"):
++    for (input, output) <- List(
++        "en-US" -> "en-GB",
++        "pt-PT" -> "pt-BR",
++        "de-AT" -> "de-DE",
++        "zh-SG" -> "zh-CN"
++      )
++    do assertEquals(NoSweatLanguages.normalize(Lang.get(input).get).map(_.code), Some(output))
++    assertEquals(NoSweatLanguages.normalize(Lang("ar")), None)
++
++  test("traditional Chinese preferences are not silently substituted with Simplified Chinese"):
++    for code <- List("zh-TW", "zh-HK", "zh-MO") do
++      assertEquals(NoSweatLanguages.normalize(Lang.get(code).get), None)
++    assertEquals(NoSweatLanguages.normalize(Lang.get("zh-CN").get).map(_.code), Some("zh-CN"))
+diff --git a/modules/round/src/main/NoSweatPresetChat.scala b/modules/round/src/main/NoSweatPresetChat.scala
+new file mode 100644
+index 0000000..5d3de8f
+--- /dev/null
++++ b/modules/round/src/main/NoSweatPresetChat.scala
+@@ -0,0 +1,93 @@
++package lila.round
++
++import lila.chat.ChatApi
++import lila.db.dsl.{ *, given }
++import lila.round.RoundGame.*
++
++/** Only persisted, admitted human-versus-Maia games use this bounded adapter. */
++final class NoSweatPresetChat(records: Coll, getGame: GameId => Fu[Option[Game]], api: ChatApi)(using
++    Executor
++):
++  import NoSweatPresetChat.*
++
++  private def session(game: Game): Fu[Option[Session]] =
++    records
++      .byId[Bdoc](game.id)
++      .dmap:
++        _.flatMap: doc =>
++          for
++            color <- doc.getAsOpt[String]("humanColor").flatMap(Color.fromName)
++            bot <- doc.getAsOpt[UserId]("bot")
++            human = doc.getAsOpt[UserId]("human")
++            if game.hasChat && game.sourceIs(_.Pool) &&
++              !doc.getAsOpt[Boolean]("automatic").contains(true) &&
++              game.player(color).userId == human && game.player(!color).userId.contains(bot)
++          yield Session(color, human, bot)
++
++  def restricted(game: Game): Fu[Boolean] = session(game).dmap(_.isDefined)
++
++  /** None preserves native friend chat; Some also consumes invalid Maia messages. */
++  def post(gameId: GameId, sender: Either[UserId, Color], text: String): Fu[Option[Unit]] =
++    getGame(gameId).flatMap:
++      case None => fuccess(().some)
++      case Some(game) =>
++        session(game).flatMap:
++          case None => fuccess(none)
++          case Some(s) =>
++            replyFor(s, sender, game.finished, game.ply.value, text)
++              .fold(funit): (group, reply) =>
++                val chatId = gameId.into(ChatId)
++                respond(
++                  () =>
++                    sender.fold(
++                      api.userChat.writeAccepted(chatId, _, text, none, _.round),
++                      api.playerChat.writeAccepted(chatId, _, text, _.round)
++                    ),
++                  () =>
++                    records.update
++                      .one(
++                        bid(gameId) ++ bdoc(
++                          s"presetChat.$group" -> bdoc("$ne" -> text),
++                          s"presetChat.$group.1" -> bdoc("$exists" -> false)
++                        ),
++                        bdoc("$push" -> bdoc(s"presetChat.$group" -> text))
++                      )
++                      .dmap(_.nModified == 1),
++                  () => api.userChat.write(chatId, s.bot, reply, none, _.round)
++                )
++              .inject(().some)
++
++private[round] object NoSweatPresetChat:
++  case class Session(color: Color, human: Option[UserId], bot: UserId)
++
++  private val start = Map(
++    "Hello" -> "hi",
++    "Good luck" -> "you too!",
++    "Have fun!" -> "you too!",
++    "You too!" -> "thanks!"
++  )
++  private val end = Map(
++    "Good game" -> "ty, gg",
++    "Well played" -> "thank you!",
++    "Thank you" -> "you're welcome",
++    "I've got to go" -> "thanks for the game",
++    "Bye!" -> "bye!"
++  )
++
++  def replyFor(
++      s: Session,
++      sender: Either[UserId, Color],
++      finished: Boolean,
++      ply: Int,
++      text: String
++  ): Option[(String, String)] =
++    val authorized = sender.fold(id => s.human.contains(id), c => s.human.isEmpty && c == s.color)
++    Option
++      .when(authorized):
++        if finished then end.get(text).map("end" -> _)
++        else if ply < 5 then start.get(text).map("start" -> _)
++        else none
++      .flatten
++
++  def respond(write: () => Fu[Boolean], claim: () => Fu[Boolean], reply: () => Funit)(using Executor): Funit =
++    write().flatMap(accepted => accepted.so(claim().flatMap(fresh => fresh.so(reply()))))
+diff --git a/modules/round/src/test/NoSweatPresetChatTest.scala b/modules/round/src/test/NoSweatPresetChatTest.scala
+new file mode 100644
+index 0000000..f738ddd
+--- /dev/null
++++ b/modules/round/src/test/NoSweatPresetChatTest.scala
+@@ -0,0 +1,55 @@
++package lila.round
++
++import scala.concurrent.Future
++
++class NoSweatPresetChatTest extends munit.FunSuite:
++  import NoSweatPresetChat.*
++  private given Executor = scala.concurrent.ExecutionContext.global
++  private val human = UserId("human")
++  private val bot = UserId("bot")
++  private val signed = Session(Color.White, Some(human), bot)
++  private val anon = Session(Color.Black, None, bot)
++
++  test("signed participant only; bot and spectator cannot elicit replies"):
++    assertEquals(replyFor(signed, Left(human), false, 0, "Hello"), Some("start" -> "hi"))
++    for sender <- List(Left(bot), Left(UserId("spectator")), Right(Color.White)) do
++      assertEquals(replyFor(signed, sender, false, 0, "Hello"), None)
++
++  test("anonymous participant must have the admitted color and no registered identity"):
++    assertEquals(replyFor(anon, Right(Color.Black), false, 0, "Good luck"), Some("start" -> "you too!"))
++    for sender <- List(Right(Color.White), Left(human), Left(bot)) do
++      assertEquals(replyFor(anon, sender, false, 0, "Hello"), None)
++
++  test("native phase boundaries reject free text, commands and misplaced presets"):
++    assertEquals(replyFor(signed, Left(human), false, 4, "Hello"), Some("start" -> "hi"))
++    assertEquals(replyFor(signed, Left(human), false, 5, "Hello"), None)
++    assertEquals(replyFor(signed, Left(human), false, 0, "Good game"), None)
++    for text <- List("Hello there", "/whisper Hello", "rematch", "hi") do
++      assertEquals(replyFor(signed, Left(human), false, 0, text), None)
++
++  test("closing replies depend on finished game, never active tracking state or an engine"):
++    assertEquals(replyFor(signed, Left(human), true, 80, "Good game"), Some("end" -> "ty, gg"))
++    assertEquals(replyFor(anon, Right(Color.Black), true, 80, "Bye!"), Some("end" -> "bye!"))
++    assertEquals(replyFor(signed, Left(human), true, 0, "Hello"), None)
++
++  test("rejected native write never claims a reply or publishes one"):
++    respond(
++      () => Future.successful(false),
++      () => fail("must not claim rejected, muted or flooded input"),
++      () => fail("must not reply")
++    )
++
++  test("persistent duplicate/cap claim suppresses replies after accepted input"):
++    respond(
++      () => Future.successful(true),
++      () => Future.successful(false),
++      () => fail("must not reply to a duplicate or third message")
++    )
++
++  test("accepted input and fresh claim produce exactly one native reply"):
++    var replies = 0
++    respond(
++      () => Future.successful(true),
++      () => Future.successful(true),
++      () => Future.successful { replies += 1 }
++    ).map(_ => assertEquals(replies, 1))
 diff --git a/modules/user/src/main/NoSweatPlayerRatings.scala b/modules/user/src/main/NoSweatPlayerRatings.scala
 new file mode 100644
 index 0000000..28ad57d
@@ -9899,6 +11275,591 @@ index 0000000..9869ce0
 +    assertEquals(bind(old, Some(old)), Right(Some(old)))
 +    assert(bind("a" * 21, Some(old)).isLeft)
 +    assertEquals(bind("Short name", Some(old)), Right(Some("Short name")))
+diff --git a/public/flair/img/symbols.mute-circuit-knight.webp b/public/flair/img/symbols.mute-circuit-knight.webp
+new file mode 100644
+index 0000000000000000000000000000000000000000..48957d18fdd3bcdff6db5c598f259562c378b806
+GIT binary patch
+literal 4848
+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
+WqYq7^8$MV;v)kbNuT>O1a|i(XU@po4
+
+literal 0
+HcmV?d00001
+
+diff --git a/public/flair/img/symbols.mute-ghost-terminal.webp b/public/flair/img/symbols.mute-ghost-terminal.webp
+new file mode 100644
+index 0000000000000000000000000000000000000000..6935fd1be529694fd4b41c1c7913de0e419d164e
+GIT binary patch
+literal 4390
+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
+
+literal 0
+HcmV?d00001
+
+diff --git a/public/flair/img/symbols.mute-neon-fox.webp b/public/flair/img/symbols.mute-neon-fox.webp
+new file mode 100644
+index 0000000000000000000000000000000000000000..9d225936c10d15bc4c9a267f09c2e621484d5549
+GIT binary patch
+literal 4382
+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
+Y&SQ;#60^7mEOv%r3iwWckNAzY8X;_6qW}N^
+
+literal 0
+HcmV?d00001
+
+diff --git a/public/flair/img/symbols.mute-neural-chip.webp b/public/flair/img/symbols.mute-neural-chip.webp
+new file mode 100644
+index 0000000000000000000000000000000000000000..3235a18884a222f2f2bd9cb9c865e6131f0cf123
+GIT binary patch
+literal 6158
+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
+
+literal 0
+HcmV?d00001
+
+diff --git a/public/flair/img/symbols.mute-origami-crane.webp b/public/flair/img/symbols.mute-origami-crane.webp
+new file mode 100644
+index 0000000000000000000000000000000000000000..2e25baa693860ccde4ce66925b950b573d7e767b
+GIT binary patch
+literal 4142
+zcmV+}5Yg{aNk&E{5C8yIMM6+kP&iB)5C8x#JHQSQHQCMof1M-eE0#v|AJH%~i$)qo
+zF*DPx@R)VWyvNMUOUGnpW@ct~#*W4?+WAXM={GiY!DYAtH*lO8Cc6gAb`h9U5wsPU
+z%lKzzD#BH`0J#FD95XK9@7$3cDs}~qon7X~sk3{ofqO7E11)OXjyKlxTgjhdwsB<J
+zw)Z|8+qP}nwmPZXv1;2LBkj0G+W-H)myWjojU?sQ(*OULR6T?DkU`{K#6#%LK}N<I
+z-~c`%;sWy!lCSrEcWirGRolM1s=CWIB}leS+g7}L-nVVrY}vML+qP{RE!(zj+xEYA
+zueEXy1#a6YJ7ya6zJTim2f$$U`hb8@tBn8{g#b(jP`e=jL#wYAfYI98>~l?Rz9TmK
+zF<4#XPR3}oRwtKCKRf*&fawCjsMVFd90AyL&uBlJW-RZ+8_mBodNmP+0L+(NS9LdE
+z*Nv>H+6&#l=+)H`fU%=P>=(xz8}~;Y9R3HuTu801Bt@cooo%%|cGQ!!mPOA{fv!gb
+zdNnm92XUgr_HyX4;J=4VJqeTJ0DQq}A^<i}iX4}tyC?N{RQHVy{smyp@k~fl;V}6E
+z0P~2Lt|r^-cZmwSK=<SL?(81H6Z{yEr5Buoh)9#}2*9}MTz_j3B{oObNA!4HuD`aO
+zMCdKYQ3b#x04x{<y*>a-AVu0Upr1A~j=`>%x$$AW*Wz<qrLVpPV4}c$4AErvG;hJL
+zLln0Yr#XUn$zhov`vmHDugTJ!zy1$^na`ofHpFsuwVpU;#diL>%FL>$yTL&}maE(I
+za9+}-(PUat)KndRz@AQyi}7<@`ZAj-tWl)l8*k~Pxn%PQewijoksOE0z_CEO91=yk
+zZTnPi>k<2g1%QP~r~&F60H&Ir5dO3Gri&WQ_ub6nep|Y!tFRF^YD9Pa?Y(FpWQPT_
+zElr2i8vv}!1tlL+3=qYPG<j^f?xAtIQy0(Dp_ywES#`y6C+_LT*HU&dGD&etiomXT
+zOX6;4e^9TnyH^fBJZu0gGv-7m_%U!NUmi`Zdf?S*&`c0IL7I(NqbxRS*q7_AX@}iX
+z?jCXoea;IzlV(5cUJ~~P)3ju+6czX_Nzh3(ZOk=!mMv=!2mXKDW}cgT1HcsLP>6to
+zDF7G~5%J|=dTbW}CP{|+Sp$h0(z3xC8S&e$9d~Nhc0Mrr9e`=ip+emv(U9-6OXBnN
+zL%KW=Zd2a(BsN+k$6=|RxFJ!OztT06*^#q6wa4Rh<u32Rc}W;eV<hwz)|<O;yNjc1
+z31C|QW)GS+Ob7dT=-1@nD8W??RsvQD)}WZ~wlmM;F4)|NCv?RiMEck2+|{S^E0Vrh
+zGu5D(W-Fa#)5E8~e*yuRG1<XE;FEXDOXFO3St|`i(P4Ok|7h?6%(=e1;uf<ma-)r%
+z91-CU?~pWo*;1RF2Eg(FjE{&@lN5$AhSaS>P!!-IA>sflVZ>`WOA3>6(!53hSQ*1e
+z&0Bz>@Ypo5wcKjf#d$i3N-NV8wyOh?o%H*=Z(e?*A1{qYZ1x|I3BX3OC&gox1#yUG
+ztcCQ~&{&b&b=0PA7Upj1_4W;O@0G1wZ)ZO{$NOK^mT#_$lCbgL5OGR$8)H*ZT%F7U
+zMMl)|zzQHPD|Ly>SFbl&*6s&m!uJ6fYl=d|!2Dl^f~KCLd?oRlvnsZInQlvyL)2c|
+z?YZ=6YLaI+;t5@k2K42K2*9fGo!A_aI_HHI>C5+aiFzL0(}yEX?Yit<zH2v)4s)+f
+zz1(zjF9$@7e(lRy-p&eE+XFBIBE~t`feDHT+_6ARBnly%oH-R^+T(q>&DfK09%Y9j
+z0x-X*u6!t=6YD?o6=)1&6vJ9uCa==!QY{fgHJIH&w|v~aXzygl;v^y+K4%O!05IoB
+zWcb^`5uv>B!|G5Czt`1%iM!oui*m}PMQ*oul$-4w<d6veuaWe{ed79jX8@)FV4(zo
+zdNHS#$#qi_%YiV1xm=PPQg6!-1#Raoy}zFiz$BjA=@<K+nWeTQN>y2O`&$q%pF(SS
+z{PeaZNqo93ukq_v$F-<CW#s)tNqS?vJh*Q-_y#|;X!o$+_58e8ZLgJd5-(V-BHAt6
+zdJS8)Z$UY{D9#PzCb`a0Kl{ane{^LppGXbvM`ASTqg5dgh=DT`u{;PXgjbYu_mRi3
+z<Zo`teULr6(m%=Q&2(gw+)b^&vdzwM!N0}j(a8Wzi1@qy)K%&_boB|s&xp<E+38f!
+zj+lKC02U9$tM25>qcPUSflC)Pvu$zG*}cwdoM4~q;AB7&9foP0mML4hy6kl;%ZVw=
+zEImEzr>8AhZti3_N~UUwWuX&<*<}XP*(xt-(@srty$!t#)mF8N$kOPUtk*v&Wi@Gk
+z%<&*gqWn)dP34xDUzyyuS#c7JVT+d&7bAtC^>&RlXIZkL^#=e`ARUrZrGe~*8;(Co
+z_x+-C>DDJ*V0Mr)V$(R=n2{ckR?V~))0TdLEqGAcuPC-t#;WfviRC{ki5Zc|hF&zd
+zOgreXU#C~>sztYo4d?jCzW(rUao_p0iQKZAm$Au7+q<dHUcT6zxgM@;t@VYHaDdr3
+zaoAqH%cMsci5R~fT7c;D02te!vwHP5V~<n9sdz-;A$C~-v1ivp3=r!f*2Y;Iu|~zH
+zGptTQ`pxS1w!D$)s80Fsma>91WmP-v5BKs-$LA7{;VdbhTT=Qa*NES-+&#kMs;9YD
+zhtE&bTb%T{nq?(s1IvdfmZjWh#G{m^&hHq*Y^#<40A}0NAN+pfS?4X!_NtdN2N4^@
+z**XXtu~vvKVok&vh&6InORPdRY^qZr7_J~Gx}MWNs>m(J;}Q#)Ul84{cJR?L$H4y-
+zeD@<}(^|a8Q(3gBr45iH8D<hcG>Jw-kh(jMcpBBU<hW)(29spO7JzjRUfIbpyNAUP
+zTIXTJ0<j?*LIt4$D<alHtOlZzST#f`2`h;W2FVa=MsM1h>0VA@I5y7QocTNl_K)u<
+z3H?dV#0PlKe}MBKHZ41%)15pLzs)74R-KVR+1+^JNdVXno69jKO~w)>264*GhCj=;
+z+3U_|d+aVd+XSJ9P=blUazQF#RFf!y;UZ=skqg5_LMj<TN85e(0KXNqisj_YVmMn>
+zt!$a|D)zt!6#x9KGCkm}Q?#=6*7xRcCiZyd=R|GUyo=U<Cj49dAm16MsL*}pEx>3x
+zuR3}BUVR>?ykTE*R4bP=BZL9$D{?R)m<-GZQAWl^1u#r7bP#IJl1#&2y>;x;28PQ1
+zU<WH^+OCnIjBkIV{QY0P+dFDeeBlefHZsQd)g2!7+?)fWHd?&N9p;_Idm}!dMw*01
+z0bu(6_{lG~A9YM)xcbJAec=)**yn!0Ba#p1hmixr07D}P1(=W#2(gwN96NYbOSI3j
+zJIv_uEIKn{#`iM+`v*@yq~@ARFn*&0GcY3YdCuJ2*LQkK_R@=OuY#yNc=l=fGw1gM
+zFbUEm&;kJK9I?2SW4H8+AnZV{OWq}e_?!q#1i=AIhNcDc!@BfcFZ(}>NUX;0F!Y%%
+z{k{aBCs%R0ZpQlZ4l(}z9Z!3moPk0xRD#ezXt+?D&Q0ewSSw;e)yTD+k=k<P-b<Tl
+z&t1LszH?|2eNx+S!Cm@3&T#go6L>soMr2?YU;O_}knbgsA_pmkb*Y?)fCz_a42@+6
+zGEe*E7H`Q$hUK_iG9z&={ez!nhQ5!_DssWNL;)ce#P4r9?TomgB3BHXOYFXSIVy3M
+z@|@Mx;S;(Z4KQ?{6Z{weFt$H$^UnQxJdD0m7l|aK#9qoL!XhmTB#Ub-rX{c%fk3>H
+zV^S;$7>jFMR|AX8jtD*R*E_^@C3fhc(X(Uu@(&VU{tCM@BNYq@n4FkEF{&T!U311c
+zLLfR4TEo>jRcSwPaq%$#<B&)Z!wA4)3wMpmHD)y`5$ZJsBNDC&n8IgDmOzqpE8644
+zsv@DIqIr~Q2vp3XA(RD|X&GFJ*4Z709=pSUr{YYjDiG_bcu(vr-^l972m~Pkk#d%0
+zTEk^qM=!p>Fbx&BRXAMcoS*m6Zn4ZNz)&cGism@#mV=*UG;uPL8sf=PSiH}P4Dk@8
+z<z8KBIo~%D*D#P8a6HP19_F^VwB&DA_@*OrlsJ`{YBGUu?m22vLz=E_m!zaW^R;wV
+zU<*PBCS`<adlsLWTezz)(RNg-?Pg_1F;^z%;3P?da$(q39>03i5l^FioDZ9?MQw}2
+zZOg`8al=0UTe|SJ(WF2{eZ{PJjFJ(dD6IOz{3BzHw@Vz`BkfSYYfL}x3w+-&aCV~R
+zN+GZPLkyL$h;YFqO#A8)d&m7i;zZn2_1a!j_N{5F55N8wnzR`NV1Ds~{FCFBv=jLB
+zRvz)^)q3Q%bKQZA)vVKd59npb&V`l;gDVL#Np$uW?;Y7RE5h=5giK46*)2w$dcrUF
+zwd8I1@4g{Ux3ajF1@g`euXFO6E?-eZYT7cAzV4G+ilxT^-)ID20wRcG`%lgPo|U#q
+zS;#^4Xigzxd7S;w4Iv|v04<Yi$)Xl5)J#7XSP(bCvz&BQ=<gSv`tt+VoqVjMilvB7
+z25A{YI7GyXam_gmiu!%mdZUP?Bsvc##|0V?fH^cbwl8m%xsFk_)y!ETjEj84_#i3J
+z(m{U4&@G}hHT}S#-*3;jm&hV2)H8Y_5cuYf8UBgP4kbfinM4SY<+m#*FKE{M$NRpb
+zIQ|HL@q+5eX8{-k0hq;7x%<1iuGaDu)9es`@)FA=jS0eL8e!Ghs^{E!J`kbj^u)3i
+z9dfXEk9Ft%Pu-)}Ba*rjp$Il73{_Ot<PP1?EBZju^8>qO#tk@siV5x5tF9`GSCrxe
+z^FY|an540o!t~Zv=Lc#pwM8q8U<&9^mAQ2KoQ6MJ?&Jbr+*O^i6l)rMM~ShF%`?|!
+zvzSSu7|y{B;|5C2ehg?uP5w;NL&PadDIsAdlExImKG2mi(i3|oN|TmJRG6f@G*@+C
+zn_?@E>vg7_Q3sX7)^}ZV{0Xp#z|k0%t-D5sy{S6+;OiIC6M%yOSipI=>}t5wYC)Qb
+zY4LWw4PFSk;bUhd$}l*@5feuW2^*9wS0~mo(cew$nX@lyXJO<OIX8EbH6dqI7oG^i
+zXe-v35Qw}1(;BPO>+5Q10T+(P)vnY<hWy=tDPa<YAoXJ^^fSqzOBm4GMMCdHxa##7
+zLn3ada?Hw3z4@fGx_I{hcy%oe6d67}`}C(lLNM;CdB6|=<LesAFB>IOYs$9ij`M#6
+z;QTnQw*z2N047F645zl28%L=09N{2Km$vixzwVS&(jyI5vlQp9&&0_ILhk@<P|$+d
+zOQM$nm<<t;24M8%mm?xbST91TJ$u}uW~QGASnd{8c0E~iqEJ1J0PGIHg!t3Tso=W_
+s(})1<RGzsWk<=D%;xlX}PLvM;qQZZ~Z~tooA?oGy8ubaGC|ut=1ol}D@&Et;
+
+literal 0
+HcmV?d00001
+
+diff --git a/public/flair/img/symbols.mute-synthetic-eye.webp b/public/flair/img/symbols.mute-synthetic-eye.webp
+new file mode 100644
+index 0000000000000000000000000000000000000000..3d2bd9ea28f24e0e9f91234a65df04da6ad7dad4
+GIT binary patch
+literal 3506
+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
+
+literal 0
+HcmV?d00001
+
 diff --git a/public/images/board/svg/quiet-signal.svg b/public/images/board/svg/quiet-signal.svg
 new file mode 100644
 index 0000000..9d040d7
@@ -21744,10 +23705,10 @@ index 0000000..ec4cc78
 +};
 diff --git a/ui/analyse/src/noSweatAnalysis.ts b/ui/analyse/src/noSweatAnalysis.ts
 new file mode 100644
-index 0000000..ee54cfc
+index 0000000..b8c84c7
 --- /dev/null
 +++ b/ui/analyse/src/noSweatAnalysis.ts
-@@ -0,0 +1,877 @@
+@@ -0,0 +1,878 @@
 +import type { DrawShape } from '@lichess-org/chessground/draw';
 +import { parseUci } from 'chessops/util';
 +import { attributesModule, classModule, init } from 'snabbdom';
@@ -21757,6 +23718,7 @@ index 0000000..ee54cfc
 +import { licon } from 'lib/licon';
 +import { saveEnginePreferences, showMaiaRating, showEngineSettings } from 'lib/nosweat/engineSettings';
 +import { maiaExpectedScore } from 'lib/nosweat/expectedScore';
++import { muteText } from 'lib/nosweat/i18n';
 +import { storage } from 'lib/storage';
 +import { hl, type VNode } from 'lib/view';
 +
@@ -22548,7 +24510,7 @@ index 0000000..ee54cfc
 +          }),
 +        },
 +        [
-+          hl('span', expanded ? 'Leading moves' : 'Others'),
++          hl('span', expanded ? muteText('LeadingMoves', 'Leading moves') : muteText('Others', 'Others')),
 +          hl('span', !candidates.length ? '—' : expanded ? '−' : (rest * 100).toFixed(1) + '% +'),
 +        ],
 +      ),
@@ -22560,12 +24522,12 @@ index 0000000..ee54cfc
 +      hl('div.nosweat-maia-cards', [this.maiaCard(false), this.secondMaiaEnabled && this.maiaCard(true)]),
 +      hl('section.nosweat-rating-explorer', [
 +        hl('header.nosweat-rating-heading', [
-+          hl('h3', 'Moves by Rating'),
++          hl('h3', muteText('MovesByRating', 'Moves by Rating')),
 +          hl('button.fbt.nosweat-maia-settings', {
 +            attrs: {
 +              type: 'button',
-+              'aria-label': 'Engine Analysis settings',
-+              title: 'Engine Analysis settings',
++              'aria-label': muteText('EngineAnalysis', 'Engine Analysis settings'),
++              title: muteText('EngineAnalysis', 'Engine Analysis settings'),
 +              'data-icon': licon.Gear,
 +              'aria-haspopup': 'dialog',
 +            },
@@ -81562,14 +83524,15 @@ index 0000000..4b6b4be
 +};
 diff --git a/ui/lib/src/nosweat/engineSettings.ts b/ui/lib/src/nosweat/engineSettings.ts
 new file mode 100644
-index 0000000..b2b990b
+index 0000000..ec8be2d
 --- /dev/null
 +++ b/ui/lib/src/nosweat/engineSettings.ts
-@@ -0,0 +1,212 @@
-+import { frag } from '../index';
+@@ -0,0 +1,213 @@
++import { escapeHtml, frag } from '../index';
 +import { storage } from '../storage';
 +import { domDialog } from '../view';
 +import { engineColors, type EngineColors } from './arrows';
++import { muteText } from './i18n';
 +import { readEnginePreferences, type EnginePreferences } from './preferences';
 +import { gameReviewQualities, gameReviewQuality } from './reviewQuality';
 +
@@ -81587,7 +83550,7 @@ index 0000000..b2b990b
 +    show: true,
 +    easyClose: 'clickOutside',
 +    focus: '[aria-pressed="true"]',
-+    htmlText: `<h2>Maia rating</h2><div class="nosweat-rating-grid">${maiaRatings
++    htmlText: `<h2>${escapeHtml(muteText('MaiaRating', 'Maia rating'))}</h2><div class="nosweat-rating-grid">${maiaRatings
 +      .map(
 +        n =>
 +          `<button type="button" class="fbt" data-rating="${n}" aria-pressed="${n === rating}">${n}</button>`,
@@ -81642,40 +83605,40 @@ index 0000000..b2b990b
 +    stockfishSecond: 'Stockfish second move',
 +  };
 +  const accountMarkup = () => `<div class="nosweat-engine-settings-page">
-+    ${accountToggle('secondMaiaEnabled', 'Enable a second Maia for analysis')}
-+    ${accountSelect('selfElo', 'Primary Maia rating', ratings)}
-+    ${accountSelect('secondMaiaElo', 'Second Maia rating', ratings)}
-+    ${accountSelect('model', 'Maia model', [
++    ${accountToggle('secondMaiaEnabled', escapeHtml(muteText('SecondMaiaEnabled', 'Enable a second Maia for analysis')))}
++    ${accountSelect('selfElo', escapeHtml(muteText('PrimaryMaiaRating', 'Primary Maia rating')), ratings)}
++    ${accountSelect('secondMaiaElo', escapeHtml(muteText('SecondMaiaRating', 'Second Maia rating')), ratings)}
++    ${accountSelect('model', escapeHtml(muteText('MaiaModel', 'Maia model')), [
 +      ['5m', 'Maia3 5M · light'],
 +      ['79m', 'Maia3 79M'],
 +    ])}
-+    ${accountToggle('history', 'Use move history')}
-+    ${accountToggle('maiaArrows', 'Show Maia arrows')}
-+    ${accountToggle('fishArrows', 'Show Stockfish arrows')}
++    ${accountToggle('history', escapeHtml(muteText('UseHistory', 'Use move history')))}
++    ${accountToggle('maiaArrows', escapeHtml(muteText('MaiaArrows', 'Show Maia arrows')))}
++    ${accountToggle('fishArrows', escapeHtml(muteText('StockfishArrows', 'Show Stockfish arrows')))}
 +    ${(Object.keys(engineColors) as (keyof EngineColors)[]).map(key => section(`${arrowName[key]} arrow color`, `<input type="color" data-arrow-color="${key}" value="${prefs.arrowColors[key]}" aria-label="${arrowName[key]} arrow color">`, key === 'maiaSecond' ? 'data-second-maia' : '')).join('')}
-+    <section><button type="button" class="button button-empty nosweat-reset-arrow-colors">Reset arrow colors</button></section>
-+    ${section('Computer analysis', `<group class="radio">${gameReviewQualities.map(q => `<div><input id="maia-quality-${q.name}" type="radio" name="nosweat-review-quality" value="${q.name}" ${q.name === gameReviewQuality(storage.get('nosweat.gameReview.quality')).name ? 'checked' : ''}><label for="maia-quality-${q.name}">${q.name}</label></div>`).join('')}</group><p class="help">Fast: depth 12, up to 0.5 seconds per position. Balanced: depth 14, up to 1 second. Thorough: depth 16, up to 1.5 seconds. Applies to your next computer analysis.</p>`)}
++    <section><button type="button" class="button button-empty nosweat-reset-arrow-colors">${escapeHtml(muteText('ResetArrows', 'Reset arrow colors'))}</button></section>
++    ${section('Computer analysis', `<group class="radio">${gameReviewQualities.map(q => `<div><input id="maia-quality-${q.name}" type="radio" name="nosweat-review-quality" value="${q.name}" ${q.name === gameReviewQuality(storage.get('nosweat.gameReview.quality')).name ? 'checked' : ''}><label for="maia-quality-${q.name}">${escapeHtml(muteText(q.name, q.name))}</label></div>`).join('')}</group><p class="help">Fast: depth 12, up to 0.5 seconds per position. Balanced: depth 14, up to 1 second. Thorough: depth 16, up to 1.5 seconds. Applies to your next computer analysis.</p>`)}
 +  </div>`;
 +  const view = frag<HTMLElement>(
 +    accountPage
 +      ? accountMarkup()
 +      : `<div class="nosweat-maia-settings-view">
-+    <fieldset><legend>Analysis engines</legend>
-+      ${toggle('secondMaiaEnabled', 'Enable a second Maia for analysis')}
++    <fieldset><legend>${escapeHtml(muteText('AnalysisEngines', 'Analysis engines'))}</legend>
++      ${toggle('secondMaiaEnabled', escapeHtml(muteText('SecondMaiaEnabled', 'Enable a second Maia for analysis')))}
 +      <p>Compare two ratings, or turn this off to show more moves from one Maia. Puzzle review shows one row when this is off.</p>
-+      ${select('selfElo', 'Primary Maia rating', ratings)}
-+      ${select('secondMaiaElo', 'Second Maia rating', ratings)}
++      ${select('selfElo', escapeHtml(muteText('PrimaryMaiaRating', 'Primary Maia rating')), ratings)}
++      ${select('secondMaiaElo', escapeHtml(muteText('SecondMaiaRating', 'Second Maia rating')), ratings)}
 +    </fieldset>
-+    <details><summary>Advanced Maia settings</summary><fieldset><legend>Maia preferences</legend>
-+      ${select('model', 'Maia model', [
++    <details><summary>${escapeHtml(muteText('AdvancedMaia', 'Advanced Maia settings'))}</summary><fieldset><legend>${escapeHtml(muteText('MaiaPreferences', 'Maia preferences'))}</legend>
++      ${select('model', escapeHtml(muteText('MaiaModel', 'Maia model')), [
 +        ['5m', 'Maia3 5M · light'],
 +        ['79m', 'Maia3 79M'],
 +      ])}
-+      ${toggle('history', 'Use move history')}
++      ${toggle('history', escapeHtml(muteText('UseHistory', 'Use move history')))}
 +      <small>Maia downloads 36 MB for 5M or 331 MB for 79M on first use. Ratings are model inputs, not calibrated Elo. Settings are saved in this browser.</small>
 +    </fieldset></details>
-+    <fieldset><legend>Board arrows</legend>
-+      ${toggle('maiaArrows', 'Show Maia arrows')}${toggle('fishArrows', 'Show Stockfish arrows')}
++    <fieldset><legend>${escapeHtml(muteText('BoardArrows', 'Board arrows'))}</legend>
++      ${toggle('maiaArrows', escapeHtml(muteText('MaiaArrows', 'Show Maia arrows')))}${toggle('fishArrows', escapeHtml(muteText('StockfishArrows', 'Show Stockfish arrows')))}
 +      <div class="nosweat-arrow-palette">${(Object.keys(engineColors) as (keyof EngineColors)[])
 +        .map(key => {
 +          const name = {
@@ -81687,10 +83650,10 @@ index 0000000..b2b990b
 +          return `<label class="setting" ${key === 'maiaSecond' ? 'data-second-maia' : ''}><span>${name}</span><input type="color" data-arrow-color="${key}" value="${prefs.arrowColors[key]}" aria-label="${name} arrow color"></label>`;
 +        })
 +        .join('')}</div>
-+      <button type="button" class="button button-empty nosweat-reset-arrow-colors">Reset arrow colors</button>
++      <button type="button" class="button button-empty nosweat-reset-arrow-colors">${escapeHtml(muteText('ResetArrows', 'Reset arrow colors'))}</button>
 +    </fieldset>
 +    <fieldset><legend>Computer analysis</legend>
-+      <div class="nosweat-review-quality">${gameReviewQualities.map(q => `<label><input type="radio" name="nosweat-review-quality" value="${q.name}" ${q.name === gameReviewQuality(storage.get('nosweat.gameReview.quality')).name ? 'checked' : ''}><span>${q.name}</span></label>`).join('')}</div>
++      <div class="nosweat-review-quality">${gameReviewQualities.map(q => `<label><input type="radio" name="nosweat-review-quality" value="${q.name}" ${q.name === gameReviewQuality(storage.get('nosweat.gameReview.quality')).name ? 'checked' : ''}><span>${escapeHtml(muteText(q.name, q.name))}</span></label>`).join('')}</div>
 +      <p>Choose faster review or deeper analysis. Applies the next time you analyze a game or line.</p><details><summary>About analysis quality</summary><p>Fast: depth 12, up to 0.5 seconds per position.<br>Balanced: depth 14, up to 1 second per position.<br>Thorough: depth 16, up to 1.5 seconds per position.</p></details>
 +    </fieldset>
 +  </div>`,
@@ -81755,7 +83718,7 @@ index 0000000..b2b990b
 +  if (advanced)
 +    view.append(
 +      frag(
-+        '<button type="button" class="button button-empty nosweat-advanced-stockfish">Advanced Stockfish settings</button>',
++        `<button type="button" class="button button-empty nosweat-advanced-stockfish">${escapeHtml(muteText('AdvancedStockfish', 'Advanced Stockfish settings'))}</button>`,
 +      ),
 +    );
 +  domDialog({
@@ -81763,7 +83726,7 @@ index 0000000..b2b990b
 +    modal: true,
 +    show: true,
 +    easyClose: 'clickOutside',
-+    htmlText: '<h2>Engine Analysis</h2>',
++    htmlText: `<h2>${escapeHtml(muteText('EngineAnalysis', 'Engine Analysis'))}</h2>`,
 +    insert: [{ nodes: view }],
 +    actions: advanced
 +      ? [
@@ -81792,6 +83755,19 @@ index 0000000..7a07f41
 +  const max = Math.max(...Array.from(logits));
 +  const [loss, draw, win] = Array.from(logits, n => Math.exp(n - max));
 +  return (win + draw / 2) / (loss + draw + win);
++}
+diff --git a/ui/lib/src/nosweat/i18n.ts b/ui/lib/src/nosweat/i18n.ts
+new file mode 100644
+index 0000000..bc87c84
+--- /dev/null
++++ b/ui/lib/src/nosweat/i18n.ts
+@@ -0,0 +1,7 @@
++/** Native Lichess catalog; English fallback also supports embedded/test views. */
++export function muteText(key: string, fallback: string): string {
++  const text =
++    typeof i18n !== 'undefined' &&
++    (i18n.site as unknown as Record<string, string> | undefined)?.[`mute${key}`];
++  return typeof text === 'string' && text ? text : fallback;
 +}
 diff --git a/ui/lib/src/nosweat/phases.ts b/ui/lib/src/nosweat/phases.ts
 new file mode 100644
@@ -82639,10 +84615,10 @@ index 0000000..a53b20e
 +  });
 diff --git a/ui/puzzle/src/noSweatMaia.ts b/ui/puzzle/src/noSweatMaia.ts
 new file mode 100644
-index 0000000..680e899
+index 0000000..141c08f
 --- /dev/null
 +++ b/ui/puzzle/src/noSweatMaia.ts
-@@ -0,0 +1,287 @@
+@@ -0,0 +1,288 @@
 +import { parseUci } from 'chessops/util';
 +
 +import { winningChances } from 'lib/ceval';
@@ -82656,6 +84632,7 @@ index 0000000..680e899
 +  showMaiaRating,
 +  showEngineSettings,
 +} from 'lib/nosweat/engineSettings';
++import { muteText } from 'lib/nosweat/i18n';
 +import { loadBrowserMaia, ReviewMaia, reviewAllowed } from 'lib/nosweat/reviewMaia';
 +import { hl, bind } from 'lib/view';
 +
@@ -82914,8 +84891,8 @@ index 0000000..680e899
 +        hl('button.fbt.nosweat-maia-settings', {
 +          attrs: {
 +            type: 'button',
-+            'aria-label': 'Engine Analysis settings',
-+            title: 'Engine Analysis settings',
++            'aria-label': muteText('EngineAnalysis', 'Engine Analysis settings'),
++            title: muteText('EngineAnalysis', 'Engine Analysis settings'),
 +            'data-icon': licon.Gear,
 +            'aria-haspopup': 'dialog',
 +          },

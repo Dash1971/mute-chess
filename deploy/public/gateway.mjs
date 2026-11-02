@@ -21,12 +21,12 @@ function clientIp(req) {
   const value = req.headers['cf-connecting-ip'];
   return typeof value === 'string' && isIP(value) ? value : '127.0.0.1';
 }
-function allowed(req) {
-  const ip = clientIp(req), now = Date.now();
+function allowed(req, asset = false) {
+  const ip = `${asset ? "asset" : "action"}:${clientIp(req)}`, now = Date.now();
   let bucket = buckets.get(ip);
   if (!bucket && buckets.size >= 10000) return false;
   if (!bucket || bucket.until < now) { bucket = { until: now + 60000, requests: 0 }; buckets.set(ip, bucket); }
-  return ++bucket.requests <= 600;
+  return ++bucket.requests <= (asset ? 6000 : 600);
 }
 setInterval(() => { const now = Date.now(); for (const [key, value] of buckets) if (value.until < now) buckets.delete(key); }, 60000).unref();
 function headers(req, upgrade = false) {
@@ -47,8 +47,10 @@ const server = http.createServer((req, res) => {
     res.writeHead(308, { Location: 'https://' + domain + req.url }); return res.end();
   }
   if (req.headers.host !== domain) return reject(res, 421, 'Unknown host');
-  if (!allowed(req)) return reject(res, 429, 'Too many requests. Please try again shortly.');
   const path = pathOf(req);
+  // Browsing the native flair catalog loads hundreds of images, independently of page actions.
+  if (!allowed(req, path.startsWith('/assets/') && ['GET', 'HEAD'].includes(req.method)))
+    return reject(res, 429, 'Too many requests. Please try again shortly.');
   if (path === '/.well-known/nostr.json') {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
@@ -107,6 +109,7 @@ const server = http.createServer((req, res) => {
     (req.method === 'POST' && /^\/training\/(?:complete\/[A-Za-z0-9_-]+\/[A-Za-z0-9]{5}|difficulty\/[A-Za-z0-9_-]+|[A-Za-z0-9]{5}\/(?:vote(?:\/[A-Za-z0-9_-]+)?|report))$/.test(path));
   const read = ['GET', 'HEAD'].includes(req.method), post = req.method === 'POST';
   const featureRoute =
+    (post && path === "/translation/select") ||
     (read && /^\/player(?:\/top\/(?:ultraBullet|bullet|blitz|rapid|classical|correspondence))?$/.test(path)) ||
     (read && /^\/stat\/rating\/distribution\/(?:ultraBullet|bullet|blitz|rapid|classical|correspondence)$/.test(path)) ||
     (read && /^\/account\/preferences\/(?:display|chess-clock|game-behavior|privacy|notification|engine-analysis)$/.test(path)) ||
