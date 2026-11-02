@@ -291,3 +291,27 @@ matched rating inputs, policy/value heads and the exact 21-point rating sweep
 are unchanged. Runtime diagnostics record the selected backend and thread count.
 Pinned GPU runtime assets are served from Mute Chess's existing asset path.
 This is backend selection, not a measured speedup claim on every device.
+
+## Inline browser computer analysis (#208)
+
+Whole-game analysis on Mute's standalone and post-game boards runs inside the
+existing Computer analysis panel, without opening the native analysis-editor
+dialog. This follows Mobile Maia's `_graphTab` in `lib/src/review.dart`: show
+evaluation progress and Stop in the tab, retain the graph and accuracy once
+evaluation completes, then show classification progress beside the same graph.
+
+The existing `LocalAnalysisDialog` job state and `LocalAnalysisEngine` still
+perform the same searches, native review, first save/merge, optional brilliant
+verification and final save/merge. The inline host only presents that state and
+handles Stop, repeated starts, downloads, errors and leaving the page. Each
+controller owns one running job, including asset loading. Stable child graph
+hosts prevent native graph creation from removing the progress controls; changing
+underboard tabs does not cancel the job. Stopping classification retains the
+completed native review. Standalone results remain temporary, and post-game
+results retain their existing browser-local persistence.
+
+Intentional advanced Stockfish settings remain available; starting analysis there
+hands off to the inline panel. Native non-Mute and study editor behavior is
+retained. Engine settings, search budgets, accuracy, glyph classification and
+server review semantics are unchanged. Focused regressions cover both existing
+graph ownership and job preparation, progress, completion, retry and cancellation.

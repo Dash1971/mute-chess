@@ -4326,14 +4326,60 @@ index 818aaae..901eb6e 100644
    flair?: Flair;
    patron?: boolean; // BC
 diff --git a/ui/analyse/css/_analyse.base.scss b/ui/analyse/css/_analyse.base.scss
-index 5519010..1a9dc11 100644
+index 5519010..5e04ecd 100644
 --- a/ui/analyse/css/_analyse.base.scss
 +++ b/ui/analyse/css/_analyse.base.scss
-@@ -22,3 +22,4 @@
+@@ -22,3 +22,50 @@
  @import 'persistence';
  @import 'keyboard';
  @import 'settings';
 +@import 'move-tooltip';
++
++// The review runner and native graph share one stable underboard panel.
++.analyse .analyse__underboard {
++  .computer-analysis:has(.nosweat-review-chart) {
++    flex-direction: column;
++    gap: 0;
++    max-height: none;
++  }
++
++  .nosweat-review-chart {
++    width: 100%;
++    min-width: 0;
++    text-align: center;
++  }
++
++  .nosweat-inline-analysis {
++    width: 100%;
++    padding: 12px 16px;
++
++    progress {
++      flex: 0 0 100%;
++      width: 100%;
++      accent-color: var(--c-primary);
++    }
++
++    [role='status'] {
++      flex: 1;
++    }
++
++    button {
++      margin: 0;
++      padding: 6px 10px;
++    }
++  }
++
++  .nosweat-inline-analysis__content {
++    display: flex;
++    flex-wrap: wrap;
++    align-items: center;
++    gap: 10px 16px;
++  }
++
++  .nosweat-analysis-running > .nosweat-review-chart > button {
++    display: none;
++  }
++}
 diff --git a/ui/analyse/css/_analyse.free.scss b/ui/analyse/css/_analyse.free.scss
 index a5094c6..60daa09 100644
 --- a/ui/analyse/css/_analyse.free.scss
@@ -4752,22 +4798,25 @@ index 00f9d9a..b2c6b05 100644
    data: AnalyseData;
    userId?: string;
 diff --git a/ui/analyse/src/local/analyse.local.ts b/ui/analyse/src/local/analyse.local.ts
-index 2759a13..49e32aa 100644
+index 2759a13..21272d6 100644
 --- a/ui/analyse/src/local/analyse.local.ts
 +++ b/ui/analyse/src/local/analyse.local.ts
-@@ -1,7 +1,8 @@
+@@ -1,7 +1,11 @@
  import type AnalyseCtrl from '../ctrl';
++import { inlineAnalysis } from './inlineAnalysis';
  import { localAnalysisDialog } from './localAnalysisDialog';
  
 -export async function initModule(ctrl: AnalyseCtrl): Promise<void> {
 +export async function initModule(input: AnalyseCtrl | { ctrl: AnalyseCtrl; start: boolean }): Promise<void> {
++  const options = 'ctrl' in input ? input : { ctrl: input, start: false };
++  if (options.start && options.ctrl.noSweat && !options.ctrl.study && !options.ctrl.opts.study)
++    return inlineAnalysis(options.ctrl);
    await site.asset.loadI18n('localAnalysis');
 -  return localAnalysisDialog(ctrl);
-+  const options = 'ctrl' in input ? input : { ctrl: input, start: false };
 +  return localAnalysisDialog(options.ctrl, options.start);
  }
 diff --git a/ui/analyse/src/local/localAnalysisDialog.tsx b/ui/analyse/src/local/localAnalysisDialog.tsx
-index 3a429c5..dce12c1 100644
+index 3a429c5..e31b55d 100644
 --- a/ui/analyse/src/local/localAnalysisDialog.tsx
 +++ b/ui/analyse/src/local/localAnalysisDialog.tsx
 @@ -9,7 +9,8 @@ import { numberFormat } from 'lib/i18n';
@@ -4780,7 +4829,7 @@ index 3a429c5..dce12c1 100644
  import {
    type Dialog,
    type LooseVNodes,
-@@ -23,25 +24,31 @@ import {
+@@ -23,28 +24,41 @@ import {
  } from 'lib/view';
  import { text as xhrText } from 'lib/xhr';
  
@@ -4793,6 +4842,11 @@ index 3a429c5..dce12c1 100644
  import { LocalAnalysisEngine } from './localAnalysisEngine';
  
 -export async function localAnalysisDialog(ctrl: AnalyseCtrl): Promise<void> {
++export interface InlineAnalysisHost {
++  readonly inline: true;
++  close(): void;
++}
++
 +export async function localAnalysisDialog(ctrl: AnalyseCtrl, start = false): Promise<void> {
    const state = new LocalAnalysisDialog(ctrl, await site.asset.loadEsm<ChartGame>('chart.game'));
 -  jsxDialog({
@@ -4814,11 +4868,20 @@ index 3a429c5..dce12c1 100644
    private engine?: LocalAnalysisEngine;
 +  private running = false;
 +  private closed = false;
++  private stopped = false;
    private chartData: Parameters<ChartGame['acpl']>[1];
    private chart?: AcplChart;
    private status?: LooseVNodes;
-@@ -56,9 +63,18 @@ class LocalAnalysisDialog {
-     private readonly chartGame: ChartGame,
++  private progress?: { done: number; total: number };
+   private readonly quality: Prop<number>;
+   private readonly engineId: StoredProp<string>;
+   private readonly threads: StoredProp<number>;
+@@ -53,19 +67,28 @@ class LocalAnalysisDialog {
+ 
+   constructor(
+     readonly ctrl: AnalyseCtrl,
+-    private readonly chartGame: ChartGame,
++    private readonly chartGame?: ChartGame,
    ) {
      const info = this.bestEngineDefaults;
 -    this.engineId = storedStringProp('local-analysis.engine', info.id);
@@ -4839,18 +4902,84 @@ index 3a429c5..dce12c1 100644
      this.engineId(this.customSearch.engine!.id);
      const quality = storedIntProp('local-analysis.quality', 0);
      this.quality = (value?: number) => quality(Math.max(this.minQuality, value ?? quality()));
-@@ -124,7 +140,7 @@ class LocalAnalysisDialog {
+     this.engine = new LocalAnalysisEngine(ctrl);
+   }
+ 
+-  readonly render = (redraw: Redraw, dialog: Dialog): LooseVNodes => {
++  private watchDownloads(redraw: Redraw): void {
+     if (!this.updateDownloadStatus) {
+       this.updateDownloadStatus = (d: { bytes: number; total: number }) => {
+         const megabytes = (n: number) => Math.round(n / 1000 / 1000) + 'MB';
+@@ -84,7 +107,33 @@ class LocalAnalysisDialog {
+       };
+       pubsub.on('ceval.engine.download', this.updateDownloadStatus);
+     }
++  }
++
++  readonly renderInline = (redraw: Redraw): jsx.JSX.Element => {
++    this.watchDownloads(redraw);
++    return (
++      <div class="nosweat-inline-analysis__content">
++        {this.running && (
++          <progress
++            max={this.progress?.total ?? 1}
++            attrs={this.progress ? { value: this.progress.done } : {}}
++            aria-label="Game analysis progress"
++          />
++        )}
++        <div role="status" aria-live="polite">
++          {this.status}
++        </div>
++        {this.running && (
++          <button class="button button-empty" type="button" on={{ click: this.stop }}>
++            Stop analysis
++          </button>
++        )}
++      </div>
++    );
++  };
+ 
++  readonly render = (redraw: Redraw, dialog: Dialog): LooseVNodes => {
++    this.watchDownloads(redraw);
+     return [
+       <div class="main-content">
+         <h2 class={[!(this.canAnalyse && this.engine) && 'hidden']}>{i18n.study.analysisEditor}</h2>
+@@ -95,7 +144,7 @@ class LocalAnalysisDialog {
+           <canvas
+             class="chart"
+             hook={onInsert<HTMLCanvasElement>(async canvas => {
+-              this.chart = await this.chartGame.acpl(canvas, this.ctrl.data, this.engine!.nodes);
++              this.chart = await this.chartGame!.acpl(canvas, this.ctrl.data, this.engine!.nodes);
+             })}
+           />
+         </div>
+@@ -123,8 +172,15 @@ class LocalAnalysisDialog {
+         </p>
          <button
            class={['button analyse-btn', !this.canAnalyse && 'none']}
-           on={{ click: async () => this.analyse(dialog, redraw) }}>
+-          on={{ click: async () => this.analyse(dialog, redraw) }}>
 -          {i18n.localAnalysis.analyse}
++          on={{
++            click: async () => {
++              if (this.ctrl.noSweat && !this.ctrl.study && !this.ctrl.opts.study) {
++                dialog.close();
++                await site.asset.loadEsm('analyse.local', { init: { ctrl: this.ctrl, start: true } });
++              } else await this.analyse(dialog, redraw);
++            },
++          }}>
 +          {this.ctrl.noSweat ? 'Analyze' : i18n.localAnalysis.analyse}
          </button>
          <button class={['button ok-btn', this.engine && 'none']} on={{ click: () => dialog.close('ok') }}>
            {i18n.site.ok}
-@@ -134,15 +150,21 @@ class LocalAnalysisDialog {
+@@ -133,16 +189,32 @@ class LocalAnalysisDialog {
+     ];
    };
  
++  readonly stop = () => {
++    this.stopped = true;
++    this.engine?.stop();
++  };
++
    readonly close = () => {
 +    this.closed = true;
      pubsub.off('ceval.engine.download', this.updateDownloadStatus);
@@ -4858,42 +4987,60 @@ index 3a429c5..dce12c1 100644
    };
  
 -  private async analyse(dlg: Dialog, redraw: Redraw): Promise<void> {
-+  async analyse(dlg: Dialog, redraw: Redraw): Promise<void> {
++  async analyse(dlg: Dialog | InlineAnalysisHost, redraw: Redraw): Promise<void> {
 +    if (this.closed || this.running || !this.engine) return;
      const then = performance.now();
 -    const engine = this.engine!;
 +    const engine = this.engine;
 +    this.running = true;
++    this.progress = undefined;
 +    this.status = 'Preparing analysis…';
 +    redraw();
      try {
        const division = await engine.getDivision();
 +      if (this.closed) return;
++      if (this.stopped) {
++        this.status = 'Analysis stopped.';
++        return;
++      }
        this.chartData = {
          ...this.ctrl.data,
          game: { ...this.ctrl.data.game, division },
-@@ -157,13 +179,55 @@ class LocalAnalysisDialog {
+@@ -157,21 +229,84 @@ class LocalAnalysisDialog {
            redraw();
          },
        );
 +      if (this.closed) return;
-+      if (!engine.isCurrent) return dlg.close('cancel');
++      if (this.stopped) {
++        this.status = 'Analysis stopped.';
++        return;
++      }
++      if (!engine.isCurrent) return 'inline' in dlg ? dlg.close() : dlg.close('cancel');
        await this.ctrl.idbTree.saveAnalysis(result);
 +      if (this.closed) return;
-+      if (!engine.isCurrent) return dlg.close('cancel');
++      if (!engine.isCurrent) return 'inline' in dlg ? dlg.close() : dlg.close('cancel');
 +      const mergeResult = () =>
 +        this.ctrl.mergeMainlineAnalysisData({
 +          ...result.localUpdate,
 +          tree: structuredCloneLite(result.localUpdate.tree),
 +        });
 +      mergeResult();
++      if (this.stopped) {
++        this.status = 'Analysis stopped.';
++        this.engine = undefined;
++        return;
++      }
 +      // Keep the completed native review even if optional brilliant verification is cancelled.
 +      let brillianceUnavailable = false;
 +      if (this.ctrl.noSweat) {
++        this.progress = undefined;
++        this.status = 'Classifying moves…';
++        redraw();
 +        try {
 +          const verified = await engine.verifyBrilliants(
 +            result,
 +            (done, total, phase = 'Classifying moves') => {
++              this.progress = undefined;
 +              this.status = `${phase}: ${done} / ${total}`;
 +              this.chart?.updateData(this.ctrl.data, engine.nodes);
 +              redraw();
@@ -4929,17 +5076,27 @@ index 3a429c5..dce12c1 100644
        this.engine = undefined;
        redraw();
      } catch (e) {
-@@ -172,6 +236,9 @@ class LocalAnalysisDialog {
-         await alert(String(e));
+-      if (e !== 'cancelled') {
+-        log(e);
+-        await alert(String(e));
++      if ('inline' in dlg) {
++        this.status = e === 'cancelled' ? 'Analysis stopped.' : `Analysis failed: ${String(e)}`;
++        this.engine = undefined;
++      } else {
++        if (e !== 'cancelled') {
++          log(e);
++          await alert(String(e));
++        }
++        dlg.close('cancel');
        }
-       dlg.close('cancel');
+-      dlg.close('cancel');
 +    } finally {
 +      this.running = false;
-+      if (dlg.dialog.open) redraw();
++      if (!this.closed && ('inline' in dlg || dlg.dialog.open)) redraw();
      }
    }
  
-@@ -214,7 +281,7 @@ class LocalAnalysisDialog {
+@@ -214,7 +349,7 @@ class LocalAnalysisDialog {
    private readonly clickClearLocal = async () => {
      if (await confirm(i18n.study.clearLocal)) {
        await this.ctrl.idbTree.clear('analysis');
@@ -4948,7 +5105,15 @@ index 3a429c5..dce12c1 100644
      }
    };
  
-@@ -266,7 +333,7 @@ class LocalAnalysisDialog {
+@@ -231,6 +366,7 @@ class LocalAnalysisDialog {
+   };
+ 
+   private readonly updateEngineStatus = (nodeIndex: number, totalNodes: number, nodesPerMove: number) => {
++    this.progress = { done: nodeIndex, total: totalNodes };
+     const progress =
+       nodeIndex === 0
+         ? i18n.localAnalysis.startingPosition
+@@ -266,7 +402,7 @@ class LocalAnalysisDialog {
        this.ctrl.idbTree.hasLocalAnalysis && this.ctrl.publishedEvalEngine,
      ].filter(Boolean);
  
@@ -4957,7 +5122,7 @@ index 3a429c5..dce12c1 100644
        preludes.push(<p>{i18n.localAnalysis.chooseYourEngineSettings}</p>);
        if (
          !ceval.engines
-@@ -327,7 +394,14 @@ class LocalAnalysisDialog {
+@@ -327,7 +463,14 @@ class LocalAnalysisDialog {
              'local-analysis-engine',
            )}
          </div>
@@ -4973,7 +5138,7 @@ index 3a429c5..dce12c1 100644
          <div class="setting">
            <label for="local-analysis-threads">{i18n.site.threads}</label>
            <input
-@@ -430,11 +504,11 @@ class LocalAnalysisDialog {
+@@ -430,11 +573,11 @@ class LocalAnalysisDialog {
    }
  
    private get isIdle() {
@@ -4987,7 +5152,7 @@ index 3a429c5..dce12c1 100644
    }
  
    private get canPublish() {
-@@ -479,11 +553,15 @@ class LocalAnalysisDialog {
+@@ -479,11 +622,15 @@ class LocalAnalysisDialog {
      return {
        engine: { id: engine.id, threads: this.threads(), hashSize: this.hashSize() },
        search: () => ({
@@ -5006,7 +5171,7 @@ index 3a429c5..dce12c1 100644
        }),
        canBackground: true,
      };
-@@ -491,8 +569,10 @@ class LocalAnalysisDialog {
+@@ -491,8 +638,10 @@ class LocalAnalysisDialog {
  
    private get bestEngineDefaults(): { id: string; threads: number; hashSize: number } {
      const engine = this.bestBrowserEngine; // TODO - allow external engines once supported
@@ -5019,7 +5184,7 @@ index 3a429c5..dce12c1 100644
      return { id: engine.id, threads, hashSize };
    }
  
-@@ -502,6 +582,9 @@ class LocalAnalysisDialog {
+@@ -502,6 +651,9 @@ class LocalAnalysisDialog {
    }
  
    private get bestBrowserEngine(): BaseEngineInfo {
@@ -5248,10 +5413,10 @@ index 5019c1b..188e283 100644
  }
  
 diff --git a/ui/analyse/src/serverSideUnderboard.ts b/ui/analyse/src/serverSideUnderboard.ts
-index cfbd78b..9956dad 100644
+index cfbd78b..cc51dad 100644
 --- a/ui/analyse/src/serverSideUnderboard.ts
 +++ b/ui/analyse/src/serverSideUnderboard.ts
-@@ -15,6 +15,17 @@ export const stockfishName = 'Stockfish 19';
+@@ -15,8 +15,28 @@ export const stockfishName = 'Stockfish 19';
  
  export default function (element: HTMLElement, ctrl: AnalyseCtrl) {
    $(element).replaceWith(ctrl.opts.$underboard);
@@ -5268,8 +5433,30 @@ index cfbd78b..9956dad 100644
 +  }
    const data = ctrl.data;
    const $panels = $('.analyse__underboard__panels > div');
++  if (ctrl.noSweat) {
++    const panel = document.querySelector('.analyse__underboard__panels > .computer-analysis');
++    if (panel) {
++      const graph = document.createElement('div');
++      graph.className = 'nosweat-review-chart';
++      graph.append(...panel.childNodes);
++      panel.append(graph);
++    }
++  }
    const $menu = $('.analyse__underboard__menu');
-@@ -93,6 +104,19 @@ export default function (element: HTMLElement, ctrl: AnalyseCtrl) {
+   const inputFen = document.querySelector<HTMLInputElement>('.analyse__underboard__fen input');
+   const positionGifLink = document.querySelector<HTMLAnchorElement>('.position-gif a');
+@@ -77,7 +97,9 @@ export default function (element: HTMLElement, ctrl: AnalyseCtrl) {
+   function startAdvantageChart() {
+     if (advChart || site.blindMode) return;
+     const loading = !ctrl.hasFullComputerAnalysis();
+-    const $panel = $panels.filter('.computer-analysis');
++    const $panel = ctrl.noSweat
++      ? $panels.filter('.computer-analysis').find('.nosweat-review-chart')
++      : $panels.filter('.computer-analysis');
+     if (!$('#acpl-chart-container').length) {
+       $panel.html(
+         $html`
+@@ -93,6 +115,19 @@ export default function (element: HTMLElement, ctrl: AnalyseCtrl) {
          ${loading ? chartLoader() : ''}`,
        );
      } else if (loading && !$('#acpl-chart-container-loader').length) $panel.append(chartLoader());
@@ -5289,6 +5476,17 @@ index cfbd78b..9956dad 100644
      site.asset.loadEsm<ChartGame>('chart.game').then(m => {
        m.acpl($('#acpl-chart')[0] as HTMLCanvasElement, data, ctrl.mainline).then(chart => {
          advChart = chart;
+@@ -142,7 +177,9 @@ export default function (element: HTMLElement, ctrl: AnalyseCtrl) {
+   if (ctrl.idbTree.hasLocalAnalysis) {
+     startAdvantageChart();
+   }
+-  $panels.on('click', '.analysis-editor', () => site.asset.loadEsm('analyse.local', { init: ctrl }));
++  $panels.on('click', '.analysis-editor', () =>
++    site.asset.loadEsm('analyse.local', { init: ctrl.noSweat ? { ctrl, start: true } : ctrl }),
++  );
+   if (!data.analysis) {
+     $panels.find('form.future-game-analysis').on('submit', function (this: HTMLFormElement) {
+       if ($(this).hasClass('must-login')) {
 diff --git a/ui/analyse/src/study/analyse.study.tour.ts b/ui/analyse/src/study/analyse.study.tour.ts
 index 9f368b9..00623a6 100644
 --- a/ui/analyse/src/study/analyse.study.tour.ts
@@ -23815,6 +24013,80 @@ index 0000000..ec4cc78
 +    self.postMessage({ error: String(error) });
 +  }
 +};
+diff --git a/ui/analyse/src/local/inlineAnalysis.tsx b/ui/analyse/src/local/inlineAnalysis.tsx
+new file mode 100644
+index 0000000..3a6ec47
+--- /dev/null
++++ b/ui/analyse/src/local/inlineAnalysis.tsx
+@@ -0,0 +1,68 @@
++import { attributesModule, eventListenersModule, init, type VNode } from 'snabbdom';
++
++import type AnalyseCtrl from '../ctrl';
++import { LocalAnalysisDialog } from './localAnalysisDialog';
++
++interface InlineJob {
++  busy: boolean;
++  dispose(): void;
++}
++const jobs = new WeakMap<AnalyseCtrl, InlineJob>();
++
++// Only the presentation is inline. The existing local-review runner owns the
++// engine, saved analysis, classifications and cancellation throughout the job.
++export async function inlineAnalysis(ctrl: AnalyseCtrl): Promise<void> {
++  if (!ctrl.canAnalyseMainline()) return;
++  ctrl.settings.set('showMainlineAnalysis', true);
++  if (ctrl.synthetic) ctrl.noSweat!.boardReview.showComputerAnalysis();
++  else $('.analyse__underboard__menu [data-panel="computer-analysis"]').trigger('click');
++  const previous = jobs.get(ctrl);
++  if (previous?.busy) return;
++  previous?.dispose();
++  const panel = document.querySelector<HTMLElement>('.analyse__underboard__panels > .computer-analysis');
++  if (!panel) return;
++  const host = document.createElement('div');
++  host.className = 'nosweat-inline-analysis';
++  host.textContent = 'Preparing analysis…';
++  panel.append(host);
++  panel.classList.add('nosweat-analysis-running');
++  let state: LocalAnalysisDialog | undefined;
++  let disposed = false;
++  const observer = new MutationObserver(() => {
++    if (!host.isConnected) dispose();
++  });
++  const dispose = () => {
++    if (disposed) return;
++    disposed = true;
++    state?.close();
++    observer.disconnect();
++    window.removeEventListener('pagehide', dispose);
++    host.remove();
++    panel.classList.remove('nosweat-analysis-running');
++    if (!job.busy && jobs.get(ctrl) === job) jobs.delete(ctrl);
++  };
++  const job: InlineJob = { busy: true, dispose };
++  jobs.set(ctrl, job);
++  observer.observe(document.body, { childList: true, subtree: true });
++  window.addEventListener('pagehide', dispose);
++  try {
++    await site.asset.loadI18n('localAnalysis');
++    if (disposed) return;
++    state = new LocalAnalysisDialog(ctrl);
++    const patch = init([attributesModule, eventListenersModule]);
++    const placeholder = document.createElement('div');
++    host.replaceChildren(placeholder);
++    let vnode: VNode | Element = placeholder;
++    const redraw = () => {
++      if (!disposed) vnode = patch(vnode, state!.renderInline(redraw));
++    };
++    await state.analyse({ inline: true, close: dispose }, redraw);
++  } catch (error) {
++    if (!disposed) host.textContent = `Analysis failed: ${String(error)}`;
++  } finally {
++    job.busy = false;
++    state?.close();
++    if (!disposed) panel.classList.remove('nosweat-analysis-running');
++    else if (jobs.get(ctrl) === job) jobs.delete(ctrl);
++  }
++}
 diff --git a/ui/analyse/src/noSweatAnalysis.ts b/ui/analyse/src/noSweatAnalysis.ts
 new file mode 100644
 index 0000000..b8c84c7
@@ -24708,10 +24980,10 @@ index 0000000..ddf9d0d
 +export * from 'lib/nosweat/arrows';
 diff --git a/ui/analyse/src/noSweatBoardReview.ts b/ui/analyse/src/noSweatBoardReview.ts
 new file mode 100644
-index 0000000..bbb4f5c
+index 0000000..e51a91d
 --- /dev/null
 +++ b/ui/analyse/src/noSweatBoardReview.ts
-@@ -0,0 +1,349 @@
+@@ -0,0 +1,358 @@
 +import type { AcplChart, ChartGame } from 'chart';
 +
 +import { escapeHtml } from 'lib';
@@ -24741,6 +25013,13 @@ index 0000000..bbb4f5c
 +  private copyTimer?: ReturnType<typeof setTimeout>;
 +
 +  constructor(private readonly ctrl: AnalyseCtrl) {}
++
++  showComputerAnalysis(): void {
++    this.selected = 'computer-analysis';
++    this.ctrl.settings.set('showMainlineAnalysis', true);
++    this.ctrl.redraw();
++    this.chart?.resize();
++  }
 +
 +  view(inputs?: VNode): VNode {
 +    this.sync();
@@ -24778,7 +25057,9 @@ index 0000000..bbb4f5c
 +            class: { active: this.selected === 'computer-analysis' },
 +            hook: {
 +              ...onInsert(elm => {
-+                this.panel = elm;
++                this.panel = document.createElement('div');
++                this.panel.className = 'nosweat-review-chart';
++                elm.append(this.panel);
 +                pubsub.on('analysis.server.progress', this.onAnalysis);
 +                this.sync();
 +              }),
@@ -27238,10 +27519,10 @@ index 0000000..759163b
 +}
 diff --git a/ui/analyse/tests/boardReview.test.ts b/ui/analyse/tests/boardReview.test.ts
 new file mode 100644
-index 0000000..d6acaaf
+index 0000000..b23aea0
 --- /dev/null
 +++ b/ui/analyse/tests/boardReview.test.ts
-@@ -0,0 +1,281 @@
+@@ -0,0 +1,287 @@
 +import assert from 'node:assert/strict';
 +import { mock, test } from 'node:test';
 +import { attributesModule, classModule, propsModule, init } from 'snabbdom';
@@ -27399,8 +27680,13 @@ index 0000000..d6acaaf
 +  root.querySelector<HTMLButtonElement>('.computer-analysis button')!.click();
 +  assert.equal(load.mock.calls[0].arguments[0], 'analyse.local');
 +  assert.deepEqual((load.mock.calls[0].arguments as any)[1].init, { ctrl, start: true });
++  const inlineStatus = document.createElement('div');
++  inlineStatus.className = 'nosweat-inline-analysis';
++  inlineStatus.textContent = 'Classifying moves';
++  root.querySelector('.computer-analysis')!.append(inlineStatus);
 +  (ctrl as any).mainlineAnalysis = {};
 +  ctrl.redraw();
++  assert.equal(root.querySelector('.nosweat-inline-analysis'), inlineStatus);
 +  await new Promise(resolve => setTimeout(resolve, 0));
 +  assert.equal(acpl.mock.callCount(), 1);
 +  assert.ok(root.querySelector('.analysis-chart-actions + .analysis-chart-plot canvas'));
@@ -27410,6 +27696,7 @@ index 0000000..d6acaaf
 +  (ctrl as any).mainlineAnalysis = undefined;
 +  ctrl.redraw();
 +  assert.equal(chart.destroy.mock.callCount(), 1);
++  assert.equal(root.querySelector('.nosweat-inline-analysis'), inlineStatus);
 +  assert.equal(root.querySelector('textarea'), input);
 +  assert.equal(input.value, '1. e4 e5');
 +  patch(vnode, hl('div'));
@@ -80846,6 +81133,188 @@ index 0000000..d00400d
 +    }
 +  ]
 +}
+diff --git a/ui/analyse/tests/inlineAnalysis.test.ts b/ui/analyse/tests/inlineAnalysis.test.ts
+new file mode 100644
+index 0000000..7b1a1e9
+--- /dev/null
++++ b/ui/analyse/tests/inlineAnalysis.test.ts
+@@ -0,0 +1,176 @@
++import assert from 'node:assert/strict';
++import { mock, test } from 'node:test';
++
++import type AnalyseCtrl from '../src/ctrl';
++
++const deferred = <T>() => {
++  let resolve!: (value: T) => void;
++  let reject!: (error: unknown) => void;
++  const promise = new Promise<T>((res, rej) => {
++    resolve = res;
++    reject = rej;
++  });
++  return { promise, resolve, reject };
++};
++let engines: TestEngine[] = [];
++class TestEngine {
++  nodes = [];
++  isCurrent = true;
++  busy = false;
++  division = deferred<object>();
++  evaluation = deferred<any>();
++  classification = deferred<boolean>();
++  searches = 0;
++  stopped = false;
++  constructor() {
++    engines.push(this);
++  }
++  getDivision() {
++    return this.division.promise;
++  }
++  analyse(
++    _search: unknown,
++    _division: unknown,
++    progress: (done: number, total: number, nodes: number) => void,
++  ) {
++    this.searches++;
++    progress(2, 8, 1000);
++    return this.evaluation.promise;
++  }
++  verifyBrilliants(_result: unknown, progress: (done: number, total: number, phase?: string) => void) {
++    progress(1, 3, 'Classifying moves');
++    return this.classification.promise;
++  }
++  stop() {
++    this.stopped = true;
++    this.evaluation.reject('cancelled');
++    // A cancelled preparation has not yet awaited evaluation.
++    void this.evaluation.promise.catch(() => {});
++    this.classification.resolve(false);
++  }
++}
++mock.module('../src/study/studyChapters.ts', { namedExports: { isFinished: () => false } });
++mock.module('../src/local/localAnalysisEngine.ts', { namedExports: { LocalAnalysisEngine: TestEngine } });
++document.documentElement.lang = 'en-US';
++Object.assign(globalThis, { MutationObserver: window.MutationObserver });
++const { inlineAnalysis } = await import('../src/local/inlineAnalysis');
++const tick = () => new Promise(resolve => setImmediate(resolve));
++const result = { localUpdate: { analysis: {}, tree: { id: '', children: [] } } };
++function setup(loadI18n = async () => {}) {
++  engines = [];
++  localStorage.clear();
++  document.body.innerHTML =
++    '<div class="analyse__underboard__panels"><div class="computer-analysis"><div class="nosweat-review-chart"></div></div></div>';
++  const selects = mock.fn();
++  const saves = mock.fn(async () => {});
++  const merges = mock.fn(() => {
++    document.querySelector('.nosweat-review-chart')!.innerHTML = '<canvas id="acpl-chart"></canvas>';
++  });
++  (site as any).asset = { loadI18n };
++  const ctrl = {
++    synthetic: true,
++    noSweat: { boardReview: { showComputerAnalysis: selects } },
++    opts: {},
++    data: {},
++    settings: { set() {} },
++    canAnalyseMainline: () => true,
++    idbTree: { saveAnalysis: saves, hasLocalAnalysis: true },
++    mergeMainlineAnalysisData: merges,
++    ceval: {
++      rules: 'chess',
++      engines: { supporting: () => [{ id: '__sf_19_smallnet', minThreads: 1, maxThreads: 2 }] },
++    },
++  } as unknown as AnalyseCtrl;
++  return { ctrl, selects, saves, merges };
++}
++
++test('inline start deduplicates while assets load and keeps the native graph when classification stops', async () => {
++  const assets = deferred<void>();
++  const { ctrl, selects, saves, merges } = setup(() => assets.promise);
++  const job = inlineAnalysis(ctrl);
++  await inlineAnalysis(ctrl);
++  assert.equal(document.querySelectorAll('.nosweat-inline-analysis').length, 1);
++  assert.equal(engines.length, 0);
++  assert.equal(selects.mock.callCount(), 2);
++  assets.resolve();
++  await tick();
++  const engine = engines[0];
++  engine.division.resolve({});
++  await tick();
++  assert.equal(engine.searches, 1);
++  assert.equal(document.querySelector('progress')!.getAttribute('value'), '2');
++  engine.evaluation.resolve(result);
++  await tick();
++  assert.equal(saves.mock.callCount(), 1);
++  assert.equal(merges.mock.callCount(), 1);
++  assert.ok(document.querySelector('#acpl-chart'));
++  assert.equal(document.querySelector('progress')!.hasAttribute('value'), false);
++  document.querySelector<HTMLButtonElement>('.nosweat-inline-analysis button')!.click();
++  await job;
++  assert.ok(document.querySelector('#acpl-chart'));
++  assert.match(document.querySelector('[role=status]')!.textContent, /classification interrupted/);
++  assert.equal(document.querySelector('progress'), null);
++  assert.equal(document.querySelector('dialog'), null);
++  window.dispatchEvent(new window.Event('pagehide'));
++});
++
++test('Stop during preparation prevents engine work and permits another run', async () => {
++  const { ctrl, saves } = setup();
++  const job = inlineAnalysis(ctrl);
++  await tick();
++  document.querySelector<HTMLButtonElement>('.nosweat-inline-analysis button')!.click();
++  engines[0].division.resolve({});
++  await job;
++  assert.equal(engines[0].searches, 0);
++  assert.equal(saves.mock.callCount(), 0);
++  assert.match(document.querySelector('[role=status]')!.textContent, /stopped/);
++  const again = inlineAnalysis(ctrl);
++  await tick();
++  assert.equal(engines.length, 2);
++  assert.equal(document.querySelectorAll('.nosweat-inline-analysis').length, 1);
++  window.dispatchEvent(new window.Event('pagehide'));
++  engines[1].division.resolve({});
++  await again;
++});
++
++for (const action of ['unmount', 'pagehide'] as const)
++  test(`${action} cancels the runner without saving stale results`, async () => {
++    const { ctrl, saves } = setup();
++    const job = inlineAnalysis(ctrl);
++    await tick();
++    const engine = engines[0];
++    engine.division.resolve({});
++    await tick();
++    if (action === 'unmount') document.querySelector('.computer-analysis')!.remove();
++    else window.dispatchEvent(new window.Event('pagehide'));
++    await tick();
++    await job;
++    assert.equal(engine.stopped, true);
++    assert.equal(saves.mock.callCount(), 0);
++    assert.equal(document.querySelector('.nosweat-inline-analysis'), null);
++  });
++
++test('engine errors appear inline and a completed run retains both native saves', async () => {
++  const { ctrl, saves, merges } = setup();
++  const failed = inlineAnalysis(ctrl);
++  await tick();
++  engines[0].division.resolve({});
++  await tick();
++  engines[0].evaluation.reject(new Error('test engine unavailable'));
++  await failed;
++  assert.match(document.querySelector('[role=status]')!.textContent, /test engine unavailable/);
++  assert.equal(document.querySelector('dialog'), null);
++  const complete = inlineAnalysis(ctrl);
++  await tick();
++  engines[1].division.resolve({});
++  await tick();
++  engines[1].evaluation.resolve(result);
++  await tick();
++  engines[1].classification.resolve(true);
++  await complete;
++  assert.equal(saves.mock.callCount(), 2);
++  assert.equal(merges.mock.callCount(), 2);
++  assert.ok(document.querySelector('#acpl-chart'));
++  assert.equal(document.querySelector('progress'), null);
++  window.dispatchEvent(new window.Event('pagehide'));
++});
 diff --git a/ui/analyse/tests/localReviewStart.test.ts b/ui/analyse/tests/localReviewStart.test.ts
 new file mode 100644
 index 0000000..3c938d9
