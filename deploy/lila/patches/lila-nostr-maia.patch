@@ -1117,7 +1117,7 @@ index 5222d2d..2edd45b 100644
    def apply(
        tourneyWinners: List[lila.tournament.Winner],
 diff --git a/app/views/user/show/header.scala b/app/views/user/show/header.scala
-index 26a6045..a02716c 100644
+index 26a6045..85b1983 100644
 --- a/app/views/user/show/header.scala
 +++ b/app/views/user/show/header.scala
 @@ -10,7 +10,7 @@ import lila.web.ui.bits.splitNumber
@@ -1149,7 +1149,38 @@ index 26a6045..a02716c 100644
          div(cls := "trophies")(
            views.user.bits.perfTrophies(u, info.ranks),
            otherTrophies(info),
-@@ -162,6 +166,7 @@ object header:
+@@ -75,6 +79,30 @@ object header:
+         ),
+         u.enabled.no.option(span(cls := "closed")("CLOSED"))
+       ),
++      u.nostrKey
++        .filter(_ => u.noBot)
++        .flatMap(lila.core.NostrName.npub)
++        .map: npub =>
++          div(cls := "user-show__nostr")(
++            label(`for` := "profile-nostr-npub")("Public Nostr identity (npub)"),
++            div(cls := "copy-me")(
++              input(
++                id := "profile-nostr-npub",
++                cls := "copy-me__target",
++                tpe := "text",
++                spellcheck := "false",
++                readonly,
++                value := npub
++              ),
++              button(
++                tpe := "button",
++                cls := "copy-me__button button button-metal",
++                dataIcon := Icon.Clipboard,
++                ariaTitle("Copy public npub")
++              )
++            ),
++            a(cls := "user-show__nostr-link", href := s"/@/$npub")("Permanent profile link")
++          ),
+       div(cls := "user-show__social")(
+         div(cls := "number-menu")(
+           u.noBot.option(
+@@ -162,6 +190,7 @@ object header:
                    .so(profile.nonEmptyBio)
                    .map: bio =>
                      p(cls := List("bio" -> true, "muted" -> muted))(richText(bio, nl2br = true)),
@@ -1207,7 +1238,7 @@ index 885adb4..06960ae 100644
  
  lazy val forumSearch = module("forumSearch",
 diff --git a/conf/routes b/conf/routes
-index f2a7ab2..cc51786 100644
+index f2a7ab2..df18905 100644
 --- a/conf/routes
 +++ b/conf/routes
 @@ -1,6 +1,29 @@
@@ -1240,7 +1271,15 @@ index f2a7ab2..cc51786 100644
  GET   /                                controllers.Lobby.home
  GET   /lobby/seeks                     controllers.Lobby.seeks
  
-@@ -220,6 +243,7 @@ GET   /$lang<\w\w\w?>/racer             controllers.Racer.homeLang(lang: Languag
+@@ -82,6 +105,7 @@ GET   /@/:username/download            controllers.User.download(username: UserS
+ GET   /@/:username/blog                controllers.Ublog.index(username: UserStr, page: Int ?= 1)
+ GET   /@/:username/blog.atom           controllers.Ublog.userAtom(username: UserStr)
+ GET   /@/:username/:filterName         controllers.User.games(username: UserStr, filterName, page: Int ?= 1)
++GET   /@/$npub<[nN][pP][uU][bB]1[A-Za-z0-9]{58}> controllers.NoSweat.nostrProfile(npub: String)
+ GET   /@/:username                     controllers.User.show(username: UserStr)
+ GET   /player/opponents                controllers.User.opponents
+ GET   /player/search/:term             controllers.User.search(term: String)
+@@ -220,6 +244,7 @@ GET   /$lang<\w\w\w?>/racer             controllers.Racer.homeLang(lang: Languag
  
  # User Analysis
  GET   /analysis/help                   controllers.UserAnalysis.help
@@ -1248,7 +1287,7 @@ index f2a7ab2..cc51786 100644
  GET   /analysis/pgn/*pgn               controllers.UserAnalysis.pgn(pgn)
  GET   /analysis/*something             controllers.UserAnalysis.parseArg(something)
  GET   /analysis                        controllers.UserAnalysis.index
-@@ -333,6 +357,10 @@ GET   /$lang<\w\w\w?>/learn            controllers.Learn.indexLang(lang: Languag
+@@ -333,6 +358,10 @@ GET   /$lang<\w\w\w?>/learn            controllers.Learn.indexLang(lang: Languag
  
  # Patron
  GET   /patron                          controllers.Plan.index(page: Int ?= 1)
@@ -2873,7 +2912,7 @@ index 947bee6..d3f3a3f 100644
      mapping(
        "text" -> cleanTextWithSymbols(minLength = 3, maxLength = 2000),
 diff --git a/modules/user/src/main/UserRepo.scala b/modules/user/src/main/UserRepo.scala
-index 45fd497..a3ed484 100644
+index 45fd497..ad0d86b 100644
 --- a/modules/user/src/main/UserRepo.scala
 +++ b/modules/user/src/main/UserRepo.scala
 @@ -236,6 +236,34 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
@@ -2911,17 +2950,22 @@ index 45fd497..a3ed484 100644
    def existsSec[U: UserIdOf](u: U): Fu[Boolean] = coll.secondary.exists(bid(u.id))
  
    def filterExists(ids: Set[UserId]): Fu[List[UserId]] =
-@@ -247,6 +275,20 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+@@ -247,6 +275,25 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
    def userIdsLikeClosed(text: UserSearch, max: Int = 10): Fu[List[UserId]] =
      userIdsLikeFilter(text, bdoc(F.enabled -> false), max)
  
 +  def noSweatUserIdsLike(term: String): Fu[List[UserId]] =
-+    coll
-+      .find(
++    val selector = lila.core.NostrName
++      .pubkeyFromNpub(term)
++      .fold(
 +        or(
 +          bdoc(F.id.regex(NoSweatUserSearch.literalPrefix(term.toLowerCase), "i")),
 +          bdoc(s"${F.profile}.displayName".regex(NoSweatUserSearch.literalPrefix(term), "i"))
-+        ) ++ enabledSelect,
++        )
++      )(key => bdoc("nostr" -> key))
++    coll
++      .find(
++        selector ++ enabledSelect,
 +        bdoc(F.id -> true).some
 +      )
 +      .sort(bdoc("len" -> 1))
@@ -2932,7 +2976,7 @@ index 45fd497..a3ed484 100644
    private[user] def userIdsLikeFilter(text: UserSearch, filter: Bdoc, max: Int): Fu[List[UserId]] =
      coll
        .find(
-@@ -589,3 +631,8 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+@@ -589,3 +636,8 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
      } ++ {
        kid.yes.so(bdoc(F.kid -> kid))
      }
@@ -7987,10 +8031,18 @@ index f91c71d..665cbe5 100644
        ? i18n.site.aiNameLevelAiLevel('Stockfish', player.ai)
        : i18n.site.anonymous;
 diff --git a/ui/site/src/clinput.ts b/ui/site/src/clinput.ts
-index c89c454..e1562f0 100644
+index c89c454..b8d4463 100644
 --- a/ui/site/src/clinput.ts
 +++ b/ui/site/src/clinput.ts
-@@ -10,6 +10,7 @@ import { profileUrl } from 'lib/view/userLink';
+@@ -2,6 +2,7 @@ import { load as loadDasher } from 'dasher';
+ import debounce from 'debounce-promise';
+ 
+ import { defined, escapeHtml } from 'lib';
++import { isPrivateNostrInput, npubFromInput, publicIdentitySearch } from 'lib/nosweat/identity';
+ import { domDialog, alert, enter } from 'lib/view';
+ import { complete, type CompleteOpts } from 'lib/view/complete';
+ import { checkDebouncedResultAgainstTerm, fetchUsers, renderUserEntry } from 'lib/view/userComplete';
+@@ -10,6 +11,7 @@ import { profileUrl } from 'lib/view/userLink';
  type Entry = LightUserOnline | HTMLAnchorElement;
  
  export function addClinputKeyHandler({ input }: { input: HTMLInputElement }) {
@@ -7998,7 +8050,7 @@ index c89c454..e1562f0 100644
    const fetchLinks = (term: string): HTMLAnchorElement[] => {
      const all = menuLinks()
        .filter(a => a.textContent?.toLowerCase().includes(term.toLowerCase()))
-@@ -28,7 +29,7 @@ export function addClinputKeyHandler({ input }: { input: HTMLInputElement }) {
+@@ -28,7 +30,7 @@ export function addClinputKeyHandler({ input }: { input: HTMLInputElement }) {
      return all;
    };
  
@@ -8007,15 +8059,26 @@ index c89c454..e1562f0 100644
  
    const completeOpts: CompleteOpts<Entry> = {
      input,
-@@ -39,7 +40,7 @@ export function addClinputKeyHandler({ input }: { input: HTMLInputElement }) {
+@@ -39,7 +41,7 @@ export function addClinputKeyHandler({ input }: { input: HTMLInputElement }) {
      render: o => (isLink(o) ? o : renderUserEntry(o)),
      populate: r => r.name,
      onSelect: r => execute(r),
 -    regex: /^[a-z][\w-]{2,29}$/i,
-+    regex: publicNames ? /^[^\u0000-\u001f\u007f]{2,30}$/u : /^[a-z][\w-]{2,29}$/i,
++    regex: publicNames ? publicIdentitySearch : /^[a-z][\w-]{2,29}$/i,
    };
  
    complete<Entry>(completeOpts);
+@@ -61,6 +63,10 @@ function execute(e: string | Entry) {
+   if (!e) return;
+   if (typeof e !== 'string' && isLink(e)) location.href = e.href;
+   else if (isUser(e)) location.href = profileUrl(e.name);
++  else if (document.documentElement.dataset.brand === 'mutechess' && isPrivateNostrInput(e))
++    void alert('This is a private Nostr key. Search with your npub instead.');
++  else if (document.documentElement.dataset.brand === 'mutechess' && npubFromInput(e))
++    location.href = profileUrl(npubFromInput(e)!);
+   else if (e.startsWith('/')) command(e.replace(/\//g, ''));
+   // 5kr1/p1p2p2/2b2Q2/3q2r1/2p4p/2P4P/P2P1PP1/1R1K3R b - - 1 23
+   else if (/^([1-8pnbrqk]+\/){7}.*/i.test(e)) location.href = '/analysis/standard/' + e.replace(/ /g, '_');
 diff --git a/ui/site/src/topBar.ts b/ui/site/src/topBar.ts
 index 18646b3..5eb1d07 100644
 --- a/ui/site/src/topBar.ts
@@ -8077,6 +8140,48 @@ index fc3e09e..2b2a8be 100644
 +    padding: 3px;
 +    appearance: auto;
 +    cursor: pointer;
++  }
++}
+diff --git a/ui/user/css/_header.scss b/ui/user/css/_header.scss
+index 9443479..96a3646 100644
+--- a/ui/user/css/_header.scss
++++ b/ui/user/css/_header.scss
+@@ -1,3 +1,5 @@
++@import '../../lib/css/component/copy-me';
++
+ .user-show__header {
+   background: $c-bg-zebra;
+   padding: 2em 1.5em 2em 1.5em;
+@@ -23,3 +25,31 @@
+     vertical-align: top;
+   }
+ }
++
++.user-show__nostr {
++  min-width: 0;
++  padding: 0 1.5em 1.5em;
++  background: $c-bg-zebra;
++
++  label {
++    display: block;
++    margin-bottom: 0.5em;
++    font-weight: bold;
++  }
++
++  .copy-me {
++    width: 100%;
++    max-width: 58em;
++  }
++
++  .copy-me__target {
++    min-width: 0;
++    font-family: monospace;
++  }
++
++  &-link {
++    display: inline-block;
++    margin-top: 0.5em;
++    overflow-wrap: anywhere;
 +  }
 +}
 diff --git a/ui/user/src/user.account.ts b/ui/user/src/user.account.ts
@@ -9595,10 +9700,10 @@ index 0000000..703a031
 +  def find(key: String): Option[NoSweatStudyPlan] = plans.find(_.key == key)
 diff --git a/app/controllers/NoSweat.scala b/app/controllers/NoSweat.scala
 new file mode 100644
-index 0000000..b56f4c6
+index 0000000..1d0b1a9
 --- /dev/null
 +++ b/app/controllers/NoSweat.scala
-@@ -0,0 +1,255 @@
+@@ -0,0 +1,266 @@
 +package controllers
 +
 +import play.api.libs.json.*
@@ -9638,6 +9743,17 @@ index 0000000..b56f4c6
 +
 +  def home = Open:
 +    fuccess(Redirect("/"))
++
++  def nostrProfile(npub: String) = Open:
++    handle:
++      lila.core.NostrName.pubkeyFromNpub(npub) match
++        case None => fuccess(NotFound)
++        case Some(key) =>
++          env.user.repo
++            .byNostr(key)
++            .map:
++              case Some(user) if user.enabled.yes => Redirect(routes.User.show(user.username))
++              case _ => NotFound
 +
 +  def loginPage = Open:
 +    handle(Ok.page(views.noSweatLogin()))
@@ -10795,10 +10911,10 @@ index 0000000..bf47918
 +    )
 diff --git a/modules/core/src/main/NostrName.scala b/modules/core/src/main/NostrName.scala
 new file mode 100644
-index 0000000..6d6be63
+index 0000000..76cc855
 --- /dev/null
 +++ b/modules/core/src/main/NostrName.scala
-@@ -0,0 +1,41 @@
+@@ -0,0 +1,72 @@
 +package lila.core
 +
 +/** Public-key display only. Canonical usernames and Nostr identity remain unchanged. */
@@ -10820,16 +10936,47 @@ index 0000000..6d6be63
 +          words += ((acc >> bits) & 31)
 +    if bits > 0 then words += ((acc << (5 - bits)) & 31)
 +    val hrp = "npub"
-+    val expanded = hrp.map(_.toInt >> 5) ++ Seq(0) ++ hrp.map(_.toInt & 31)
++    val checksum = polymod(expand(hrp) ++ words ++ Seq.fill(6)(0)) ^ 1
++    hrp + "1" + words.map(alphabet(_)).mkString +
++      (0 until 6).map(i => alphabet((checksum >>> (5 * (5 - i))) & 31)).mkString
++
++  /** Only a full NIP-19 public key is an account identity; never decode private keys or TLV entities. */
++  def pubkeyFromNpub(raw: String): Option[String] =
++    val trimmed = raw.trim
++    val value = if trimmed.regionMatches(true, 0, "nostr:", 0, 6) then trimmed.drop(6) else trimmed
++    if value.length != 63 || (value.exists(_.isLower) && value.exists(_.isUpper)) then None
++    else
++      val encoded = value.toLowerCase(java.util.Locale.ROOT)
++      if !encoded.startsWith("npub1") then None
++      else
++        val words = encoded.drop(5).map(alphabet.indexOf(_))
++        if words.exists(_ < 0) || polymod(expand("npub") ++ words) != 1 then None
++        else
++          val bytes = scala.collection.mutable.ArrayBuffer.empty[Int]
++          var acc = 0
++          var bits = 0
++          words
++            .dropRight(6)
++            .foreach: word =>
++              acc = ((acc << 5) | word) & 0xfff
++              bits += 5
++              while bits >= 8 do
++                bits -= 8
++                bytes += ((acc >> bits) & 255)
++          Option.when(bytes.size == 32 && bits < 5 && (acc & ((1 << bits) - 1)) == 0):
++            bytes.map(byte => f"$byte%02x").mkString
++
++  private def expand(hrp: String): Seq[Int] =
++    hrp.map(_.toInt >> 5) ++ Seq(0) ++ hrp.map(_.toInt & 31)
++
++  private def polymod(values: Seq[Int]): Int =
 +    var checksum = 1
-+    (expanded ++ words ++ Seq.fill(6)(0)).foreach: value =>
++    values.foreach: value =>
 +      val top = checksum >>> 25
 +      checksum = ((checksum & 0x1ffffff) << 5) ^ value
 +      generators.indices.foreach: i =>
 +        if ((top >>> i) & 1) != 0 then checksum ^= generators(i)
-+    checksum ^= 1
-+    hrp + "1" + words.map(alphabet(_)).mkString +
-+      (0 until 6).map(i => alphabet((checksum >>> (5 * (5 - i))) & 31)).mkString
++    checksum
 +
 +  def display(username: String, chosen: Option[String], key: Option[String]): Option[String] =
 +    chosen
@@ -10842,10 +10989,10 @@ index 0000000..6d6be63
 +            full.take(9) + "…" + full.takeRight(4)
 diff --git a/modules/core/src/test/NostrNameTest.scala b/modules/core/src/test/NostrNameTest.scala
 new file mode 100644
-index 0000000..e3492f8
+index 0000000..3f4a2e8
 --- /dev/null
 +++ b/modules/core/src/test/NostrNameTest.scala
-@@ -0,0 +1,30 @@
+@@ -0,0 +1,98 @@
 +package lila.core
 +
 +class NostrNameTest extends munit.FunSuite:
@@ -10876,6 +11023,74 @@ index 0000000..e3492f8
 +    assertEquals(NostrName.display("n" + key.take(19), Some("My name"), Some(key)), Some("My name"))
 +    assertEquals(NostrName.display("n" + key.take(19), None, None), None)
 +    assertEquals(NostrName.npub("not-a-key"), None)
++
++  private val officialVectors = List(
++    "3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d" ->
++      "npub180cvv07tjdrrgpa0j7j7tmnyl2yr6yr7l8j4s3evf6u64th6gkwsyjh6w6",
++    "7e7e9c42a91bfef19fa929e5fda1b72e0ebc1a4c1141673e2794234d86addf4e" ->
++      "npub10elfcs4fr0l0r8af98jlmgdh9c8tcxjvz9qkw038js35mp4dma8qzvjptg"
++  )
++
++  test("NIP-19 official public-key vectors decode without changing the existing encoder"):
++    officialVectors.foreach: (key, encoded) =>
++      assertEquals(NostrName.pubkeyFromNpub(encoded), Some(key))
++      assertEquals(NostrName.npub(key), Some(encoded))
++
++  test("public identities accept nostr URIs and uniform Bech32 case"):
++    officialVectors.foreach: (key, encoded) =>
++      assertEquals(NostrName.pubkeyFromNpub(s"nostr:$encoded"), Some(key))
++      assertEquals(NostrName.pubkeyFromNpub(encoded.toUpperCase(java.util.Locale.ROOT)), Some(key))
++      assertEquals(
++        NostrName.pubkeyFromNpub(s"NOSTR:${encoded.toUpperCase(java.util.Locale.ROOT)}"),
++        Some(key)
++      )
++      assertEquals(NostrName.pubkeyFromNpub(s"  nostr:$encoded\n"), Some(key))
++      assertEquals(NostrName.pubkeyFromNpub("N" + encoded.drop(1)), None)
++      assertEquals(NostrName.pubkeyFromNpub("nostr:N" + encoded.drop(1)), None)
++
++  test("all 256 public-key bits survive decoding including leading zeros and padding"):
++    val keys = List("00" * 32, "11" * 32, "ff" * 32) ++
++      (0 until 16).map: offset =>
++        (0 until 32).map(i => f"${(i * 17 + offset) & 255}%02x").mkString
++    keys.foreach: key =>
++      assertEquals(NostrName.pubkeyFromNpub(NostrName.npub(key).get), Some(key))
++
++  test("checksums and alphabet must be valid standard Bech32, never Bech32m"):
++    val encoded = officialVectors.head._2
++    List(
++      encoded.dropRight(1) + "q",
++      encoded.take(5) + "o" + encoded.drop(6),
++      "npub1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqhuv77m"
++    ).foreach: invalid =>
++      assertEquals(NostrName.pubkeyFromNpub(invalid), None)
++
++  test("valid checksums cannot admit nonzero padding or the wrong payload length"):
++    // Independently checksummed malformed payloads: 32 bytes with nonzero pad
++    // bits, 31 bytes, and 33 bytes respectively.
++    List(
++      "npub1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplkg8xt",
++      "npub1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqkxnxjx",
++      "npub1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqnenctv"
++    ).foreach: invalid =>
++      assertEquals(NostrName.pubkeyFromNpub(invalid), None)
++
++  test("private keys, TLV profiles, notes, shortened keys and unrelated URLs are not public identities"):
++    val encoded = officialVectors.head._2
++    List(
++      "",
++      "npub1short",
++      encoded.take(9) + "…" + encoded.takeRight(4),
++      "nsec" + encoded.drop(4),
++      "nostr:nsec" + encoded.drop(4),
++      "nprofile" + encoded.drop(4),
++      "note" + encoded.drop(4),
++      officialVectors.head._1,
++      s"https://example.com/$encoded",
++      s"nostr:$encoded?foo=bar",
++      s"nostr:nostr:$encoded",
++      encoded.take(10) + " " + encoded.drop(10)
++    ).foreach: invalid =>
++      assertEquals(NostrName.pubkeyFromNpub(invalid), None)
 diff --git a/modules/forum/src/test/ForumAccessTest.scala b/modules/forum/src/test/ForumAccessTest.scala
 new file mode 100644
 index 0000000..840c50a
@@ -11469,16 +11684,19 @@ index 0000000..28ad57d
 +    (400 to 4000 by 25).map(r => counts.getOrElse(r, 0)).toList
 diff --git a/modules/user/src/main/NoSweatUserSearch.scala b/modules/user/src/main/NoSweatUserSearch.scala
 new file mode 100644
-index 0000000..d864975
+index 0000000..400909f
 --- /dev/null
 +++ b/modules/user/src/main/NoSweatUserSearch.scala
-@@ -0,0 +1,8 @@
+@@ -0,0 +1,11 @@
 +package lila.user
 +
 +object NoSweatUserSearch:
 +  def read(raw: String): Option[String] =
 +    val term = raw.trim
-+    Option.when(term.length >= 2 && term.length <= 30 && !term.exists(_.isControl))(term)
++    Option.when(
++      !term.exists(_.isControl) &&
++        ((term.length >= 2 && term.length <= 30) || lila.core.NostrName.pubkeyFromNpub(term).isDefined)
++    )(term)
 +
 +  def literalPrefix(term: String): String = "^" + java.util.regex.Pattern.quote(term)
 diff --git a/modules/user/src/test/NoSweatBotIdentityTest.scala b/modules/user/src/test/NoSweatBotIdentityTest.scala
@@ -11536,10 +11754,10 @@ index 0000000..2560107
 +    assertEquals(counts.sum, 2)
 diff --git a/modules/user/src/test/NoSweatUserSearchTest.scala b/modules/user/src/test/NoSweatUserSearchTest.scala
 new file mode 100644
-index 0000000..6904666
+index 0000000..6b27672
 --- /dev/null
 +++ b/modules/user/src/test/NoSweatUserSearchTest.scala
-@@ -0,0 +1,15 @@
+@@ -0,0 +1,27 @@
 +package lila.user
 +
 +class NoSweatUserSearchTest extends munit.FunSuite:
@@ -11555,6 +11773,18 @@ index 0000000..6904666
 +    val regex = NoSweatUserSearch.literalPrefix("Al.*").r
 +    assert(regex.findFirstIn("Al.* Smith").nonEmpty)
 +    assert(regex.findFirstIn("Alice Smith").isEmpty)
++
++  test("public search accepts complete public npubs and NIP-21 URIs, not private or malformed keys"):
++    val npub = "npub10elfcs4fr0l0r8af98jlmgdh9c8tcxjvz9qkw038js35mp4dma8qzvjptg"
++    assertEquals(NoSweatUserSearch.read(npub), Some(npub))
++    assertEquals(NoSweatUserSearch.read(s"nostr:$npub"), Some(s"nostr:$npub"))
++    assertEquals(
++      NoSweatUserSearch.read(npub.toUpperCase(java.util.Locale.ROOT)),
++      Some(npub.toUpperCase(java.util.Locale.ROOT))
++    )
++    assertEquals(NoSweatUserSearch.read("nsec" + npub.drop(4)), None)
++    assertEquals(NoSweatUserSearch.read(npub.dropRight(1) + "q"), None)
++    assertEquals(NoSweatUserSearch.read("npub1" + "q" * 58), None)
 diff --git a/modules/user/src/test/PublicNameTest.scala b/modules/user/src/test/PublicNameTest.scala
 new file mode 100644
 index 0000000..9869ce0
@@ -84363,6 +84593,25 @@ index 0000000..bc87c84
 +    (i18n.site as unknown as Record<string, string> | undefined)?.[`mute${key}`];
 +  return typeof text === 'string' && text ? text : fallback;
 +}
+diff --git a/ui/lib/src/nosweat/identity.ts b/ui/lib/src/nosweat/identity.ts
+new file mode 100644
+index 0000000..65f2ac7
+--- /dev/null
++++ b/ui/lib/src/nosweat/identity.ts
+@@ -0,0 +1,13 @@
++// The server validates the NIP-19 checksum; these patterns only route public input.
++const npubInput = /^(?:nostr:)?(npub1[023456789acdefghjklmnpqrstuvwxyz]{58})$/i;
++
++export const publicIdentitySearch =
++  /^(?:[^\u0000-\u001f\u007f]{2,30}|(?:nostr:)?npub1[023456789acdefghjklmnpqrstuvwxyz]{58})$/iu;
++
++export function npubFromInput(value: string): string | undefined {
++  return npubInput.exec(value.trim())?.[1];
++}
++
++export function isPrivateNostrInput(value: string): boolean {
++  return /^(?:nostr:)?nsec1[023456789acdefghjklmnpqrstuvwxyz]{58}$/i.test(value.trim());
++}
 diff --git a/ui/lib/src/nosweat/phases.ts b/ui/lib/src/nosweat/phases.ts
 new file mode 100644
 index 0000000..44504e3
@@ -85111,6 +85360,49 @@ index 0000000..6fe5688
 +    [2600, 2600],
 +  ]);
 +  engine.cancel();
++});
+diff --git a/ui/lib/tests/nostrIdentity.test.ts b/ui/lib/tests/nostrIdentity.test.ts
+new file mode 100644
+index 0000000..db2c117
+--- /dev/null
++++ b/ui/lib/tests/nostrIdentity.test.ts
+@@ -0,0 +1,37 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++
++import { isPrivateNostrInput, npubFromInput, publicIdentitySearch } from '../src/nosweat/identity';
++
++const npub = 'npub10elfcs4fr0l0r8af98jlmgdh9c8tcxjvz9qkw038js35mp4dma8qzvjptg';
++
++test('header search routes a full public npub and nostr URI without changing its case', () => {
++  for (const value of [npub, `nostr:${npub}`, npub.toUpperCase()]) {
++    assert.ok(publicIdentitySearch.test(value));
++    assert.equal(npubFromInput(value), value.replace(/^nostr:/i, ''));
++  }
++  assert.equal(npubFromInput(`  ${npub}  `), npub);
++});
++
++test('display names remain flexible and public input never treats a private key as an npub', () => {
++  for (const name of ['Dash', 'Alice Smith', '友だち']) assert.ok(publicIdentitySearch.test(name));
++  for (const value of [
++    'nsec' + npub.slice(4),
++    'nostr:nsec' + npub.slice(4),
++    'nprofile' + npub.slice(4),
++    'x'.repeat(31),
++    'Al\nBob',
++  ]) {
++    assert.equal(publicIdentitySearch.test(value), false);
++    assert.equal(npubFromInput(value), undefined);
++  }
++  assert.equal(npubFromInput('Dash'), undefined);
++});
++
++test('private-key input is recognized locally before search navigation', () => {
++  const secretFixture = 'nsec' + npub.slice(4);
++  assert.equal(isPrivateNostrInput(secretFixture), true);
++  assert.equal(isPrivateNostrInput(`nostr:${secretFixture}`), true);
++  assert.equal(isPrivateNostrInput(npub), false);
++  assert.equal(isPrivateNostrInput('nsec'), false);
 +});
 diff --git a/ui/lib/tests/publicNameSearch.test.ts b/ui/lib/tests/publicNameSearch.test.ts
 new file mode 100644

@@ -106,3 +106,26 @@ other native user helpers already do. This resolves the analysis-side metadata
 card showing a Nostr-derived account username after a public name is chosen.
 Existing display-name fallback and Scalatags escaping apply; profile URLs still
 use the canonical username. No game snapshots, IDs, ratings or histories change.
+
+## Nostr as the public human identity (#212)
+
+The owner chose editable, non-unique display names, matching Nostr rather than
+Lichess's permanent unique usernames. The permanent public identity is the npub.
+Human profiles retain their existing name/internal-ID header and add the full
+public npub, native copy control and permanent `/@/npub…` share link. Bots remain
+native named accounts with their BOT label; they receive no Nostr keys.
+
+The profile link validates NIP-19 checksum/type and resolves the existing stored
+public key through its existing unique index, then redirects to the native
+profile. No account is created by lookup. Closed accounts and unknown keys are
+not exposed. Header search accepts full npub and NIP-21 `nostr:npub…` input;
+ordinary display-name/canonical-account search remains unchanged. Frontend search
+blocks full nsec-shaped input locally, while server public lookup rejects private
+keys, invalid checksums and other entity types. Native account IDs, URLs, perfs,
+sessions, game histories and Nostr sign-in remain unchanged. No new namespace,
+uniqueness index, database migration or cooldown is introduced.
+
+References: [NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md)
+defines public-key encoding and hex storage; [NIP-21](https://github.com/nostr-protocol/nips/blob/master/21.md)
+defines the public `nostr:` URI. Existing known vectors plus checksum, padding,
+case/type negatives, search validation and header routing tests cover this adapter.

@@ -435,3 +435,18 @@ implementing a GPU-first79M browser path with CPU fallback for testing. Keep
 model bytes, input semantics, exact21chart samples, cancellation and deadlines
 unchanged. Reuse pinned runtime assets and existing preparation; no general
 benchmarking/deployment framework is part of this change.
+
+
+## Nostr public identity and non-unique display names (November 2, #212)
+
+The owner explicitly chose Nostr semantics: human display names remain editable
+and may repeat; npub is the permanent official public identity. This is the accepted Nostr departure from Lichess: display names are not
+canonical account identifiers, and no uniqueness constraint or identity migration
+is part of this policy. Keep actual npub prominent and
+copyable on public human profiles, with a shareable npub profile URL and full-key
+lookup. Preserve native internal user IDs and canonical foreign-key/history
+relationships; decode validated public npub input to the existing stored public
+key, not a new account. Native username parsing remains unchanged. Private nsec
+never belongs on a public profile or in search transport. Managed bots keep
+native names and BOT labels and have no Nostr identities. No bot keys, social
+publishing, account migrations or uniqueness namespace are part of this work.

@@ -28,7 +28,7 @@
         },
         {
           "id": "nostr-and-public-profiles",
-          "rationale": "Support signature-based Nostr login, optional native TOTP, editable public names and stable native account IDs; preserve native sessions, ownership and game history. Issue #94 adds optional signer discovery, key-backup guidance and browser persistence controls in the existing login view, preserving its native page, authentication and identity contracts. Issues #124/#125 restore public-name friend discovery and an owner-only Nostr account page using the existing encrypted browser store, with explicit transient private-key reveal/copy and optional public Primal links; no server-side secret-key storage or identity migration. Issue #172 stores the optional managed catalog identity marker in the same new-account insert, retaining legacy account creation when absent and making interrupted provisioning resumable without claiming unmarked existing accounts. Issue #187 reuses native player views with a shared current-rating directory, removing unsupported community sections. The directory reads existing user/perf records; native rating, ranking and history writes remain unchanged. Issue #210 makes native game-player labels use the existing LightUser.publicName getter, matching other user helpers; canonical profile links, account IDs, ratings and stored histories remain unchanged.",
+          "rationale": "Support signature-based Nostr login, optional native TOTP, editable public names and stable native account IDs; preserve native sessions, ownership and game history. Issue #94 adds optional signer discovery, key-backup guidance and browser persistence controls in the existing login view, preserving its native page, authentication and identity contracts. Issues #124/#125 restore public-name friend discovery and an owner-only Nostr account page using the existing encrypted browser store, with explicit transient private-key reveal/copy and optional public Primal links; no server-side secret-key storage or identity migration. Issue #172 stores the optional managed catalog identity marker in the same new-account insert, retaining legacy account creation when absent and making interrupted provisioning resumable without claiming unmarked existing accounts. Issue #187 reuses native player views with a shared current-rating directory, removing unsupported community sections. The directory reads existing user/perf records; native rating, ranking and history writes remain unchanged. Issue #210 makes native game-player labels use the existing LightUser.publicName getter, matching other user helpers; canonical profile links, account IDs, ratings and stored histories remain unchanged. Issue #212 explicitly keeps human display names editable and non-unique; validated npub is the permanent public identity. Public human profiles reuse native copy controls and link to a bounded npub resolver, while header search resolves full public npub/NIP-21 URIs through the existing public-key index. Native IDs, namespaced identity/authentication, perfs and history are retained; bots keep native names/BOT labels without keys.",
           "verification": [
             "Adapter authentication/security/login tests",
             "Native NostrName/PublicName tests",
@@ -38,7 +38,8 @@
             "Header search finds enabled accounts by literal public-name/handle prefixes; displayed names are escaped and profile links retain canonical IDs (#124)",
             "Owner-only Nostr page; private key stays browser-local, matching-account checks, explicit reveal/copy, timeout/visibility cleanup and Primal community links (#125)",
             "Native NoSweatBotIdentityTest: unchanged legacy insert document and atomic catalog owner metadata with zero game history; app catalog recovery/collision tests.",
-            "Native formatting/compilation and existing public-name fallback tests; actual post-game metadata card shows the chosen display name while its profile href retains the canonical account ID (#210)."
+            "Native formatting/compilation and existing public-name fallback tests; actual post-game metadata card shows the chosen display name while its profile href retains the canonical account ID (#210).",
+            "NostrNameTest official NIP-19 vectors plus checksum/type/case/padding negatives; NoSweatUserSearchTest accepts full npub/URI while ordinary display-name rules remain; frontend routing/private-key transport guard tests; native profile copy/layout and same-account redirect, disabled/unknown-key and BOT no-key acceptance (#212)."
           ],
           "files": [
             "app/controllers/Account.scala",
@@ -78,7 +79,10 @@
             "ui/lib/tests/publicNameSearch.test.ts",
             "ui/round/src/view/user.ts",
             "ui/site/src/clinput.ts",
-            "modules/user/src/test/NoSweatBotIdentityTest.scala"
+            "modules/user/src/test/NoSweatBotIdentityTest.scala",
+            "ui/user/css/_header.scss",
+            "ui/lib/src/nosweat/identity.ts",
+            "ui/lib/tests/nostrIdentity.test.ts"
           ]
         },
         {
