@@ -1144,7 +1144,7 @@ index 5222d2d..2edd45b 100644
    def apply(
        tourneyWinners: List[lila.tournament.Winner],
 diff --git a/app/views/user/show/header.scala b/app/views/user/show/header.scala
-index 26a6045..1984d27 100644
+index 26a6045..f8fabd2 100644
 --- a/app/views/user/show/header.scala
 +++ b/app/views/user/show/header.scala
 @@ -10,7 +10,7 @@ import lila.web.ui.bits.splitNumber
@@ -1176,7 +1176,7 @@ index 26a6045..1984d27 100644
          div(cls := "trophies")(
            views.user.bits.perfTrophies(u, info.ranks),
            otherTrophies(info),
-@@ -75,6 +79,17 @@ object header:
+@@ -75,6 +79,18 @@ object header:
          ),
          u.enabled.no.option(span(cls := "closed")("CLOSED"))
        ),
@@ -1189,12 +1189,13 @@ index 26a6045..1984d27 100644
 +              cls := "user-show__nostr-link",
 +              href := s"/@/$npub",
 +              ariaTitle("Copy public npub")
-+            )(npub)
++            )(npub),
++            span(cls := "user-show__nostr-feedback", attr("role") := "status", attr("aria-live") := "polite")
 +          ),
        div(cls := "user-show__social")(
          div(cls := "number-menu")(
            u.noBot.option(
-@@ -162,6 +177,7 @@ object header:
+@@ -162,6 +178,7 @@ object header:
                    .so(profile.nonEmptyBio)
                    .map: bio =>
                      p(cls := List("bio" -> true, "muted" -> muted))(richText(bio, nl2br = true)),
@@ -8252,25 +8253,35 @@ index fc3e09e..2b2a8be 100644
 +  }
 +}
 diff --git a/ui/user/css/_header.scss b/ui/user/css/_header.scss
-index 9443479..be1c887 100644
+index 9443479..ce1baf0 100644
 --- a/ui/user/css/_header.scss
 +++ b/ui/user/css/_header.scss
-@@ -23,3 +23,17 @@
+@@ -23,3 +23,27 @@
      vertical-align: top;
    }
  }
 +
 +.user-show__nostr {
++  display: flex;
++  align-items: baseline;
++  gap: 0.5em;
 +  min-width: 0;
 +  padding: 0 1.5em 1em;
 +  background: $c-bg-zebra;
 +
 +  &-link {
++    min-width: 0;
 +    display: inline-block;
 +    color: $c-font-dim;
 +    font-family: monospace;
 +    font-size: 0.85em;
 +    overflow-wrap: anywhere;
++  }
++
++  &-feedback {
++    flex: 0 0 4em;
++    color: $c-font-dim;
++    font-size: 0.8em;
 +  }
 +}
 diff --git a/ui/user/src/user.account.ts b/ui/user/src/user.account.ts
@@ -8305,14 +8316,16 @@ index 48a0e33..4bc93c5 100644
      flairPickerLoader(this);
    });
 diff --git a/ui/user/src/user.ts b/ui/user/src/user.ts
-index 5b6c2f1..9e32368 100644
+index 5b6c2f1..ffb7192 100644
 --- a/ui/user/src/user.ts
 +++ b/ui/user/src/user.ts
-@@ -11,6 +11,20 @@ export async function initModule(): Promise<void> {
+@@ -11,6 +11,27 @@ export async function initModule(): Promise<void> {
    makeLinkPopups($('.social_links'));
    makeLinkPopups($('.user-infos .bio'));
  
 +  const npubLink = document.querySelector<HTMLAnchorElement>('.user-show__nostr-link');
++  const npubFeedback = document.querySelector<HTMLElement>('.user-show__nostr-feedback');
++  let copiedTimer: ReturnType<typeof setTimeout> | undefined;
 +  if (npubLink)
 +    npubLink.addEventListener('click', e => {
 +      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -8320,7 +8333,12 @@ index 5b6c2f1..9e32368 100644
 +      navigator.clipboard.writeText(npubLink.innerText.trim()).then(
 +        () => {
 +          npubLink.title = 'Copied npub';
-+          setTimeout(() => (npubLink.title = 'Copy public npub'), 1500);
++          if (npubFeedback) npubFeedback.textContent = 'Copied';
++          clearTimeout(copiedTimer);
++          copiedTimer = setTimeout(() => {
++            npubLink.title = 'Copy public npub';
++            if (npubFeedback) npubFeedback.textContent = '';
++          }, 900);
 +        },
 +        () => alert('Could not copy the npub. You can select and copy the text instead.'),
 +      );

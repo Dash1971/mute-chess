@@ -113,7 +113,9 @@ The owner subsequently chose editable, case-insensitively unique public names
 (#217), superseding the earlier duplicate-name policy. The permanent public identity is the npub.
 Human profiles retain their existing name/internal-ID header and add the full
 public npub as subtle text: ordinary activation copies the npub, while its
-permanent `/@/npub…` href retains native copy-link and modified-click behavior (#216). Native
+permanent `/@/npub…` href retains native copy-link and modified-click behavior (#216).
+A small inline `Copied` status appears only after successful copying and clears
+after 900 ms; its reserved space avoids shifting the npub (#223). Native
 hovercards also show a compact npub link with the full key in its accessible
 label, so identity stays visible beside a chosen display name. Bots remain
 native named accounts with their BOT label; they receive no Nostr keys.
