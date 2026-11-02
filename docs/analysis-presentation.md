@@ -163,10 +163,25 @@ Mobile Maia’s brilliant color is cyan `#15aabf`. The native tree’s brilliant
 and Chessground 10.5’s inline green brilliant-badge circle are overridden only
 inside the Mute Chess analysis surface. Badge paths, stacking and placement stay
 native. No classification thresholds, imported glyphs or award counts change.
-The fill selector is pinned to Chessground’s current `#168226` circle: recheck it
-when updating Chessground. En Croissant’s reference is `ReportPanel.tsx` at
+The original brilliant-only CSS selector remains as a compatibility fallback;
+the shared palette below now colors all six board badges. En Croissant’s reference
+is `ReportPanel.tsx` at
 `6f2d2628f0fbe11cb62a7dd2f9c102bb52907d53`; Mobile Maia’s is
 `review_widgets.dart` at `8563954429c2fb53ce0fe0e16c73c5d8a73ccfe0`.
+
+## Shared board and summary classification colors (#225)
+
+The unchanged six-class array lives in `ui/lib/src/nosweat/moveClasses.ts`, shared
+by the review summary and native board annotation hook. On Mute-branded documents,
+only the first native SVG background circle is recolored: brilliant cyan
+`#15aabf`, good teal `#12b886`, interesting lime `#82c91e`, dubious amber `#fab005`,
+mistake orange `#fd7e14` and blunder red `#fa5252`. White symbol paths, geometry,
+shadows, badge stacking, arrow layers and classification rules stay native.
+
+Other glyphs and non-Mute/unbranded rendering retain the exact upstream SVG.
+Actual Chessground SVG tests cover every class at all four stack positions and
+verify that only the background fill changes. Recheck that first-circle contract
+when updating Chessground; no dependency fork is introduced.
 
 
 ## Import control correction (#153)
