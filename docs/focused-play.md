@@ -98,3 +98,11 @@ this call. Native themes, volume, autoplay checks and the existing one-second
 sound timeout remain unchanged; pairing requests, clocks and ratings are intact.
 The real lobby regression covers signed-in, anonymous, initially-now-playing and
 custom-clock entry, verifying the existing request and the sound-enabled redirect.
+
+## Public names in native game metadata (#210)
+
+The native game-player label helper now renders `LightUser.publicName`, as the
+other native user helpers already do. This resolves the analysis-side metadata
+card showing a Nostr-derived account username after a public name is chosen.
+Existing display-name fallback and Scalatags escaping apply; profile URLs still
+use the canonical username. No game snapshots, IDs, ratings or histories change.

@@ -2677,6 +2677,19 @@ index 2303c7d..302c7a4 100644
          )
  
    object side:
+diff --git a/modules/ui/src/main/helper/GameHelper.scala b/modules/ui/src/main/helper/GameHelper.scala
+index 49b468f..02c0da6 100644
+--- a/modules/ui/src/main/helper/GameHelper.scala
++++ b/modules/ui/src/main/helper/GameHelper.scala
+@@ -45,7 +45,7 @@ trait GameHelper:
+         .fold[Frag](trans.site.anonymous.txt()): user =>
+           frag(
+             titleTag(withTitle.so(user.title)),
+-            user.name,
++            user.publicName,
+             user.flair.map(userFlair),
+             withRating.option(
+               span(cls := "rating")(
 diff --git a/modules/ui/src/main/helper/UserHelper.scala b/modules/ui/src/main/helper/UserHelper.scala
 index 4e9fcb5..a490173 100644
 --- a/modules/ui/src/main/helper/UserHelper.scala
