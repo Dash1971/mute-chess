@@ -1,216 +1,186 @@
-# Brilliant moves: the Mute Chess experiment
+# Brilliant moves: Mute Selective
 
-Owner direction, November 2, 2026, [#221](https://github.com/Dash1971/mute-chess/issues/221):
-make the site more fun by awarding more sound sacrifices as brillies, and publish
-exactly how the algorithm works. This is a Mute Chess change. Mobile Maia stays
-with En Croissant. The draft PR does not authorize merging or deployment.
+For **Mute Selective**, we trained a small model on chess moves labeled by
+Chess.com and combined it with basic soundness and legal-piece-offer checks.
+It recognizes more Chess.com Brilliants than
+En Croissant while keeping undeserved badges low in our tests.
+**Mobile Maia keeps its existing En Croissant classifier.**
 
-## What we can say about Chess.com
+The browser downloads the model with the analysis JavaScript and runs it locally
+in a background worker. Stockfish provides evaluations; the model uses those and
+facts about the position to decide whether to award Brilliant. This decision-tree
+model runs in ordinary JavaScript, without ONNX, a GPU requirement, ChatGPT or a
+remote classification service. It does not learn during play. Both the trained
+model and the code used to train it are openly published.
 
-Chess.com's [official classification explanation](https://support.chess.com/en/articles/8572705-how-are-moves-classified-what-is-a-blunder-or-brilliant-etc)
-describes a best or nearly best piece sacrifice that leaves an acceptable
-position, without an easy win already available. It reports greater generosity
-for newer players. It does not publish the exact sacrifice test, numerical gates
-or rating curve. Those details cannot be recovered from this small sample.
+En Croissant decides its Brilliant badge using rules written by its developers.
+Mute Selective uses basic chess checks plus patterns learned from Chess.com’s
+labeled examples. Both still rely on engine analysis.
 
-The profile galleries of [Nelson Lopez](https://www.chess.com/member/nelsi/stats/all-brilliant-moves?time=0),
-[Eric Hansen](https://www.chess.com/member/hansen/stats/all-brilliant-moves?time=0),
-[Ju Wenjun](https://www.chess.com/member/Juwen/stats/all-brilliant-moves?time=0) and
-[Aman Hambleton](https://www.chess.com/member/KNVB/stats/all-brilliant-moves?time=0)
-were inspected in Safari on November 2, 2026. Nine gallery examples from six games
-were transcribed and compared with the unchanged En Croissant annotation
-function under local Stockfish 18 evidence. The engine used one thread, 64 MB
-hash, and 300,000/1,500,000-node budgets per position. Complete, exact, same-depth
-MultiPV iterations were retained, with a forward preceding/before/after window
-and hash cleared for each comparison. The material calculation was a Python
-translation of the pinned reference, not a live Mobile Maia/Mute application run.
+This is our open implementation, not Chess.com's unpublished formula.
+No human manual testing is claimed.
 
-| Move | Gallery | Fresh Chess.com review observed | EC, 300k / 1.5m nodes | Mute v1 eligibility, same scores |
-| --- | --- | --- | --- | --- |
-| [Ju 19.Bb2](https://www.chess.com/analysis/game/live/172016241890?move=36) | `!!` | `!!`, +0.62 | `!?` / `!?` | `!!` / `!!` |
-| [Aman 11.Bxh7+](https://www.chess.com/analysis/game/live/186066291740?move=20) | `!!` | `!!`, +0.86 | `!?` / `!?` | `!!` / `!!` |
-| [Hansen 31.Nd7](https://www.chess.com/analysis/game/live/183990510823?move=60) | `!!` | `!!`, +4.21 | blank / blank | `!!` / `!!` |
-| [Hansen 34.Rxd6](https://www.chess.com/analysis/game/live/183990510823?move=66) | `!!` | Not rechecked | `!?` / `!?` | `!!` / `!!` |
-| [Hansen 29.Rxa1](https://www.chess.com/analysis/game/live/184007910437?move=56) | `!!` | `!!`, +6.40 | `!!` / `!!` | `!!` / `!!` |
-| [Nelson 19.f5](https://www.chess.com/analysis/game/live/186399008010?move=36) | `!!` | `!!`, +2.08 | `!?` / `!!` | `!!` / `!!` |
-| [Ju 19.Rxd5](https://www.chess.com/analysis/game/live/119215241095?move=36) | `!!` | `?!`, +0.79 | `!?` / `?!` | `!!` / `?!` |
-| [Ju 20.Nf5](https://www.chess.com/analysis/game/live/119215241095?move=38) | `!!` | `?!`, +0.48 | blank / blank | `!!` / `!!` |
-| [Ju 27.Nxf7+](https://www.chess.com/analysis/game/live/119215241095?move=52) | `!!` | Not rechecked | blank / blank | `!!` / `!!` |
+## What the tests show
 
-Evaluations in the fresh-review column are White's advantage, not Mute's scoring
-inputs. A blank means no EC annotation, not a bad move. Earlier local runs also
-left Nelson's move below the EC uniqueness cutoff, illustrating search sensitivity.
-The [recorded inputs, scores, PGNs and limitations](data/brilliants-2026-11-02/comparison.json)
-retain this evidence. The two gallery/fresh-review disagreements are observations;
-we do not know whether they result from engine, algorithm or historical changes.
+The [illustrated study](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md)
+compares unchanged classifiers on **400 labeled moves from 215 games** that were
+not used to train the model. There are 200 confirmed Chess.com Brilliants and
+200 moves explicitly classified non-Brilliant. The same model, threshold and
+feature calculations were fixed before these labels; no retraining or tuning
+was used to produce the results.
 
-The Mute column replays eligibility, before real review corroboration. Rxd5's
-two recorded windows disagree, so using them as baseline/confirmation withholds
-its award. Nf5 qualifies under both local score windows even though fresh
-Chess.com calls it inaccurate. That disagreement is retained openly; neither
-matching historical trophies nor rejecting a named move is hard-coded.
+| Classifier | Brilliants recognized | Undeserved Brilliant badges |
+| --- | ---: | ---: |
+| Mute Selective | **112 / 200** | **3 / 200** |
+| En Croissant | 53 / 200 | 3 / 200 |
 
-This is a selected positive sample of four titled players. It is not a random
-corpus, a precision/recall estimate, evidence of beginner behavior, or proof of
-Chess.com's hidden implementation. The new gates were chosen with these examples
-in view; they are development examples, not held-out validation. Fresh-confirmed
-examples should not be conflated with historical gallery-only awards.
+The selective classifier finds about **2.1 times as many Brilliants**, with the
+same number of wrong badges in these tests. It recognizes 56% of the studied
+Brilliants; 112 of its 115 awards match Chess.com. Overall agreement is 77.3%,
+versus En Croissant's 62.5%. These are different measurements, not interchangeable
+claims of accuracy.
 
-## The original En Croissant / Mobile Maia rule
+On the newest 200 moves, Mute Selective recognizes 57/100 Brilliants with 2/100
+wrong awards, versus En Croissant's 27 and one. History Rule with recovery
+recognizes 78 but gives 13 wrong awards. We examined methods that found more
+Brilliants, but their wrong awards were too frequent to justify choosing them.
+History and its recovery guard are comparisons, not additional runtime filters.
+The selective model independently rejects both illustrated hxg6/hxg5 tactics;
+it misses some genuine ideas, including the illustrated quiet Bg2.
 
-Our independent [scoring reference](../analysis/reference/score.ts) and
-[material reference](../analysis/reference/material.rs) are pinned to En Croissant
-v0.15.0, commit `6f2d2628f0fbe11cb62a7dd2f9c102bb52907d53`:
-[score.ts](https://github.com/franciscoBSalgueiro/en-croissant/blob/6f2d2628f0fbe11cb62a7dd2f9c102bb52907d53/src/utils/score.ts),
-[chess.rs](https://github.com/franciscoBSalgueiro/en-croissant/blob/6f2d2628f0fbe11cb62a7dd2f9c102bb52907d53/src-tauri/src/chess.rs).
-The inspected Mobile Maia preview was `8563954429c2fb53ce0fe0e16c73c5d8a73ccfe0`:
-[MoveClassifier](https://github.com/Dash1971/maia-chess-android-preview/blob/8563954429c2fb53ce0fe0e16c73c5d8a73ccfe0/lib/src/review_widgets.dart).
+## How we plan to improve
 
-The EC function first assigns `??`, `?`, `?!` for mapped winning-chance losses
-strictly greater than 20, 10 and 5 percentage points. Otherwise it awards `!!`
-when the played move is the first candidate, its mapped score exceeds the second
-candidate by more than 10 points, and material sacrifice detection succeeds.
-Sacrifices outside that branch can receive `!?` if the resulting score is above
-−200 cp. The `!` branch has its own uniqueness and preceding-position test.
-Mobile Maia adds reliable evidence collection and whole-window corroboration.
+Keep the model fixed for this release. More labeled examples can help a future
+version, particularly missed genuine Brilliants and difficult ordinary tactics.
+The 400 current test moves can become training examples, but they then cease to
+be an independent test of the new model. Reserve different complete games,
+exclude duplicate positions across the training/test boundary, and finish
+training before testing the new version on those games. Favor
+changes that recognize more genuine Brilliants while keeping wrong awards low;
+do not improve recognition simply by lowering the threshold. Publish both counts
+for each candidate and compare it with this fixed baseline.
 
-The EC material predicate is `M(before) > -M(after) + 100`, excluding terminal
-positions. `M` considers every legal root move followed by a material-only
-capture search; either side can stop capturing. This is a heuristic, not a
-Stockfish evaluation. It can miss meaningful temporary piece offers because
-later captures restore material. In Hansen's Nd7 example its net change is only
-90 material units, below the strict greater-than-100 test.
+The samples emphasize nearby tactical comparisons from five established
+accounts. They do not establish ordinary-game badge frequency, beginner behavior,
+population precision or measured fun. The fixed SF18 research inputs and saved
+native parity do not establish classification accuracy under native SF19 or
+variable timed review profiles. The recent native History review does not
+validate this selective model. Browser interaction and human testing remain
+outside the completed evidence.
 
-## Exact Mute Chess policy: mute-chess-brilliant-v2
+## Exact frozen classifier
 
-The [README](../README.md#more-chances-to-find-a-brilliant-move) specifies every
-eligibility gate and threshold. The implementation is in the namespaced native
-`ui/analyse/src/noSweatClassify.ts`, carried by our
-[Lila patch](../deploy/lila/patches/lila-nostr-maia.patch). The original
-`annotation()` and `isSacrifice()` remain unchanged for EC compatibility tests.
-The classification worker explicitly selects `mute-brilliant-v2`; Mobile Maia
-and the independent references are not modified.
+The [versioned research reference](https://github.com/Dash1971/mute-chess-research/tree/main/studies/brilliant-moves/reference/v5)
+provides the frozen extractor, model and protocol. The native adapter is
+`ui/analyse/src/noSweatBrilliantForest.ts`, with static weights in
+`noSweatBrilliantForestModel.json`, carried by the
+[Lila patch](../deploy/lila/patches/lila-nostr-maia.patch). The worker selects v5.
+The internal v4 reference branch is not exposed as a review-mode choice.
 
-The exact decision order is:
+The forest has **64 trees and 75 semantic features**, plus a missingness indicator
+for each feature. Each tree returns its unweighted positive fraction at the
+selected leaf; the classifier averages those fractions. The result is a model
+score, not a calibrated probability. Both the current and corroborating engine
+windows must each score **at least 5/6** and satisfy these hard gates:
 
-1. Calculate the EC annotation with the existing scores/material predicate.
-   If it is `??`, `?` or `?!`, return it; a sacrifice does not rescue a bad move.
-2. Apply the README's six Mute eligibility conditions. In particular, use
-   `W(best-before) - W(after) <= 5`, `after >= -100 cp`, and veto any *other
-   evaluated* non-sacrificing candidate at `>= +600 cp`. Passing means provisional
-   `!!`, even if the played move is second or outside the searched pair.
-3. Clear sacrifice-derived EC `!!`/`!?` when the Mute material test rejects the
-   alleged sacrifice. Otherwise, if the other gates fail, retain the EC label,
-   except an EC `!!` becomes `!?` when its sacrifice remains above −200 cp,
-   or blank otherwise. Native bad-move labels and non-sacrifice `!` are unchanged.
-4. Corroborate every provisional `!!`/`!` through the existing whole-window
-   reliability checks before publishing it. A withheld label is not an award.
+1. At least two complete, distinct candidate roots before the move.
+2. A raw legal piece offer after the played move.
+3. At most **5 percentage points** lost relative to the best before-score under
+   `W(cp) = 100 / (1 + exp(-0.00368208 * cp))`.
+4. The after-score is at least **−100 cp**, from the mover's perspective.
+5. Complete-window confidence, including nonempty matching quality metadata.
 
-Material qualification requires a legal piece offer. The original EC probe is
-not an eligibility fallback: its root moves and capture-only continuations can
-mistake both postponed gains and quiet tactical defenses for sacrifices. The
-independent EC predicate and EC policy mode remain unchanged. For each
-mover-owned non-pawn, non-king piece after the move, compute
-the opponent's best material gain from legal captures on that piece's square.
-After each capture, the other side may capture on that same square or stop;
-the best result is found recursively. Recaptures, legal pins, en passant where
-relevant and promotion gains use Chessops legality and the published material
-values. Quiet continuations and captures on other squares are not part of this
-local exchange calculation: Stockfish judges the position's actual soundness.
+Mate scores use the reference's signed normalization. The played move need not
+be the first or uniquely best root. The raw offer test considers mover-owned
+non-pawn, non-king pieces and legal captures followed by optimal same-square
+recaptures, with either side allowed to stop. A profitable acceptance must exceed
+`max(0, moverMaterial(after) - moverMaterial(before)) + 100`. This credits immediate
+captures and promotions rather than mistaking their proceeds for a sacrifice.
+Material values are pawn 90, knight/bishop 300, rook 500 and queen 1,000.
 
-Credit is `max(0, moverMaterial(after) - moverMaterial(before))` using raw board
-material, so a free capture or promotion cannot masquerade as an equal/lower-value
-piece offer. A local exchange gain must be **strictly greater** than credit plus
-100. An already-attacked piece may remain offered; the opponent need not accept
-it in the played game. Pawn-only sacrifices and offers that become capturable
-only after a quiet continuation are intentionally ineligible. This conservative
-rule does not prove creativity or remove every arguable award.
+The EC material heuristic, mating replies, phase-aware safe alternatives,
+checked continuations, attribution, avoidability, physical refunds and prior
+engine context are **predictors, not additional hard vetoes**. V5 is not the old
+EC-material gate followed by a model. No player identity, game ID, move lookup,
+Chess.com label, rating whitelist or Maia likelihood is a runtime predictor.
 
-### Foregone-gain and defended-tactic corrections (#227)
+The feature-specific probes retain the frozen reference's bounds: attribution,
+avoidability and stalemate checks use bounded legal proofs; the physical probe
+examines three plies of captures/promotions, including legal check evasions,
+within 10,000 nodes and 250 ms. Unknown results remain explicitly missing rather
+than being invented. Native numeric inputs reject NaN and infinity.
 
-In the reported `41.Qf5+` position, before FEN
-`6r1/p1P3pk/1q1B1b1p/3Q4/8/7P/P4PP1/2R3K1 w - - 9 41`, the old EC probe
-finds `c8=Q Rxc8 Rxc8` and reports +590 material. After `Qf5+`, it reports
-+180 from White's perspective, which is also White's actual material balance
-before the move. The old comparison mistook postponing a rook-for-pawn gain
-for sacrificing 410 units. Black can only answer `Kh8` or `g6`; there is no
-immediate legal piece offer. The corrected Mute policy publishes neither `!!`
-nor a sacrifice-derived `!?` for this case. The exact position and its
-Black-to-move mirror are regressions; existing selected positive examples remain.
+The native adapter adds one conservative safeguard beyond the frozen research
+reference: **an incomplete physical probe prevents both provisional and final
+Brilliant awards**. No physical timeout was observed in either the 1,048-case parity
+replay or the additional 200-case parity check, so this guard changes none of
+those recorded decisions. It addresses an unrepresented
+missingness condition on slower devices; it is not a claim of calibrated behavior
+under timeouts. Other optional unknowns, including avoidability unknowns seen in
+training, retain the frozen model's handling.
 
-The second reported case, `17...Bf5` in game186311900336, also has no profitable
-same-square piece offer. The old probe follows `Rxf5 gxf5 Qxd3 Bxe5` and sees a
-material loss, but does not search Black's quiet `...Rd1+` tactical reply after
-`Rxf5`. Even comparing against raw pre-move material would retain that false
-signal. Requiring the legal offer removes this case as well. Exact Bf5 and
-White-to-move mirror regressions protect this behavior. The reported
-`14...Ndxe5` does pass the legal-offer test and remains eligible, subject to
-the unchanged score, safe-alternative and confirmation gates.
+## Confirmation, fallback and native behavior
 
-Version2 replaces the v1 material qualification and suppresses sacrifice-derived
-EC labels when no legal offer exists. All nine selected historical examples
-still pass the material-offer predicate, including the five fresh-confirmed
-examples in the table above. There is no Stockfish search-budget or Mobile Maia
-change. Existing computed badges are replaced on an explicit fresh full review;
-imported annotations are preserved, including protection against a new v2
-computed badge conflicting with an imported quality annotation.
+The classifier evaluates the current and previous complete engine iterations.
+An independent confirmation can replace the second window while leaving the
+first unchanged. Its metadata must match, its completed depth must not be lower,
+and terminal evidence must be preserved. A contradictory or incomplete window
+withholds the standout award. Ordinary EC `!` retains its preceding-position
+confirmation requirements.
 
-The +6.00 gate is intentionally generous and limited to the roots already
-searched, normally two. We do not search every possible safe alternative, add
-an exhaustive relevance search, or assert a solved position. Equal-scoring
-sacrifices do not suppress one another. A sacrifice reaching +8 can qualify if
-the evaluated safe alternative does not already win comfortably.
+Full review retains its existing six-search confirmation allowance. Fast targets
+depth 12 / 500 ms per position, Balanced 14 / 1,000 ms, and Thorough 16 / 1,500 ms.
+Only unsupported standout candidates consume that allowance, targeting two more
+depths with the selected mode's time cap. The forest adds no Stockfish searches
+or roots. Its legal/material work runs in the cancellable classification worker;
+worker failure, cancellation or the existing 10-second watchdog publishes no
+result. Results are checked again before committing glyphs.
 
-There is no player-rating adjustment, Maia-likelihood threshold, shallow-engine
-surprise test, opening exclusion, underpromotion bonus, per-game quota, or random
-award. Underpromotion can qualify only through the same material and soundness
-rules. This is an attempt to celebrate good sacrifices, not an objective measure
-of creativity or a promise to match Chess.com.
+The legacy additive verifier supplies only two board positions, so prior history
+and prior engine features are honestly missing. Full review normally supplies
+three positions, but its two-review confirmation of `!!` also leaves the second
+window's prior engine features missing. These paths are not equivalent to the
+saved three-position, fixed-budget research evidence and remain native validation
+caveats. No fabricated history or extra search fills the gap.
 
-## Confirmation, persistence and cost
+When the forest does not award `!!`, ordinary EC annotations retain their normal
+meaning and confirmation. Sacrifice-derived `!!`/`!?` is cleared if there is no
+raw legal piece offer; an EC `!!` otherwise falls back to `!?` when its sacrifice
+and score permit it. The original EC policy and reference functions remain
+available unchanged. Accuracy and centipawn loss calculations are unchanged.
 
-The existing browser worker and selected Stockfish engine perform the review.
-Fast targets depth 12 / 500 ms per position, Balanced 14 / 1000 ms, Thorough
-16 / 1500 ms. Each complete snapshot contains exact, distinct, legal same-depth
-roots; partial iterations and score bounds are not accepted as a comparison.
+Computed v5 badges carry `mute-chess-brilliant-v5` provenance. Imported PGN
+judgments remain authoritative, and computed provenance versions v1–v5 are
+recognized by conflict protection. Native evaluations, analysis-tree ownership,
+clocks and outcomes are unchanged. Explicit fresh review may replace computed
+judgments; there is no historical batch or silent rewrite of saved badges.
 
-An earlier complete before/after window must produce the same standout label.
-Alternatively the existing independent confirmation session may corroborate it,
-with matching quality metadata and no shallower completed depth. `!` also needs
-the preceding position when applicable. An explicit contradictory confirmation
-overrides apparent prior stability. Only unsupported standouts consume the
-existing six-search allowance per full-game review; verification targets two
-additional depths with the selected mode's time cap. Exhausted allowance or
-failed/stale/canceled evidence withholds the badge. No extra Stockfish roots or
-search budgets are introduced by the experiment.
+## Verification and limits
 
-The older additive brilliant-only verifier uses the same Mute worker predicate:
-baseline depth 14 / 1200 ms, then before/after confirmation at least depth 16
-and at least two depths above baseline, 1800 ms each. Material and exchange work
-stay in the cancellable classification worker, with its existing 10-second
-request watchdog and bounded material cache; a failure publishes no result.
+The [versioned validation record](../analysis/data/brilliants-v5-validation.json)
+pins the model, native source and maintained patch, with the actual check results.
 
-New computed `!!` glyphs carry `mute-chess-brilliant-v2` provenance. Native
-accuracy, evaluations, clocks, game outcomes, imported PGN glyphs and native tree
-ownership are unchanged. Reviews are browser-local; this change does not run a
-historical batch or silently change saved badges. Explicit reanalysis with
-different engines/settings can produce different annotations.
+The TypeScript feature adapter and integrated classifier were replayed against
+all **848 development + 200 fresh cases** using their exact saved engine inputs:
+no categorical/missingness, model-decision or integrated Brilliant differences
+were found; floating differences were limited to machine rounding. EC result
+objects also matched the independent reference replay. Focused tests cover input
+validation, confirmation, actual worker dispatch, cancellation and glyph/import
+protection. These checks validate implementation parity, not a second independent
+accuracy test. The fresh set must not be used to retune this model or threshold.
 
-## Validation and remaining uncertainty
+The research used Stockfish 18, one thread, 64 MB hash and 300,000 requested nodes
+per position with full PGN history. Native Stockfish 19 and timed modes produce
+different inputs. Even changing only the research node budget changed predictions,
+so source parity cannot establish native accuracy. Saved-input parity does not establish behavior on every browser or device;
+human review remains an important validation step.
 
-The unchanged 3,075 EC boundary vectors and existing material/reference corpora
-remain tests of the original algorithm. New tests replay both recorded score
-budgets for the five fresh-confirmed examples, exercise actual worker dispatch,
-and cover exchanges, pinned captures, capture/promotion credit, terminal
-positions, side-to-move perspective, soundness, safe alternatives, equivalent
-sacrifices and confirmation vetoes. Replayed eligibility inputs are not a live
-browser search; test corroboration windows are controlled fixtures.
+The independent EC score/material sources are pinned to v0.15.0 commit
+`6f2d2628f0fbe11cb62a7dd2f9c102bb52907d53` and were verified byte-identical to
+v0.15.1 commit `4932c9231517f6fd75e5a97902b207c7dc82e61f`, the latest stable
+release checked on November 3, 2026. This is source equivalence, not equivalence
+of complete applications or their engine collection. Source pins, full outcomes,
+selection limitations and sensitivity results are retained in the public study.
 
-The experiment intentionally awards more sacrifices, but has no measured
-real-game award rate or false-positive rate yet. The selected sample helped
-choose the rules. A future independent set containing ordinary trades, unsound
-sacrifices and games across rating levels would be needed to quantify those
-rates; this draft adds no telemetry, calibration run or general tooling.
-
-Prepared with OpenAI Codex assistance. Automated checks are reported in the PR;
-no human manual testing or upstream Lichess contribution is claimed.
+Prepared with OpenAI Codex assistance. No upstream contribution, human manual
+test is claimed.
