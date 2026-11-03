@@ -24188,6 +24188,42 @@ index 0000000..b207c43
 +<path transform="translate(4818 0)" d="M276.875 -14Q181.45 -14 119.362 28Q57.275 70 44.1 151.325L150.126 178Q157.301 139.85 175.2 118.013Q193.1 96.175 219.525 86.888Q245.95 77.601 276.875 77.601Q323.675 77.601 347.387 94.675Q371.099 111.75 371.099 138.25Q371.099 164.925 348.562 178.212Q326.025 191.5 279.75 199.85L248.6 205.375Q197.65 215.025 155.7 232.35Q113.75 249.675 88.537 280.15Q63.325 310.625 63.325 358.4Q63.325 430.475 116.537 469.363Q169.75 508.25 256.7 508.25Q339.7 508.25 393.913 471.163Q448.125 434.075 464.425 372.15L358.099 340.35Q349.749 381.85 322.975 399.25Q296.2 416.65 256.7 416.65Q217.375 416.65 195.925 402.662Q174.476 388.675 174.476 363.35Q174.476 336.55 196.225 323.825Q217.975 311.1 255.125 304.575L286.275 299.05Q341.225 289.4 385.762 273.075Q430.3 256.75 456.275 226.688Q482.25 196.625 482.25 145.675Q482.25 69.25 426.538 27.625Q370.825 -14 276.875 -14Z"/>
 +</g></g>
 +</svg>
+diff --git a/security-dependencies.sbt b/security-dependencies.sbt
+new file mode 100644
+index 0000000..1ac44b3
+--- /dev/null
++++ b/security-dependencies.sbt
+@@ -0,0 +1,30 @@
++// Security-only alignment of transitive runtime dependencies (#232).
++// Overrides retain the existing dependency graph and native application behavior.
++ThisBuild / dependencyOverrides ++= {
++  val nettyVersion = "4.2.19.Final"
++  val jacksonVersion = "2.18.11"
++  Seq(
++    "netty-buffer",
++    "netty-codec",
++    "netty-codec-base",
++    "netty-codec-compression",
++    "netty-codec-dns",
++    "netty-codec-http",
++    "netty-codec-http2",
++    "netty-common",
++    "netty-handler",
++    "netty-handler-proxy",
++    "netty-resolver",
++    "netty-resolver-dns",
++    "netty-transport",
++    "netty-transport-classes-epoll",
++    "netty-transport-classes-kqueue",
++    "netty-transport-native-epoll",
++    "netty-transport-native-kqueue",
++    "netty-transport-native-unix-common"
++  ).map("io.netty" % _ % nettyVersion) ++
++    Seq("jackson-annotations", "jackson-core", "jackson-databind")
++      .map("com.fasterxml.jackson.core" % _ % jacksonVersion) ++
++    Seq("jackson-datatype-jdk8", "jackson-datatype-jsr310")
++      .map("com.fasterxml.jackson.datatype" % _ % jacksonVersion)
++}
 diff --git a/src/test/scala/NoSweatBotCatalogTest.scala b/src/test/scala/NoSweatBotCatalogTest.scala
 new file mode 100644
 index 0000000..bb36ad1
