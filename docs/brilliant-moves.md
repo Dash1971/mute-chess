@@ -5,32 +5,44 @@ piece offers, avoid repeated awards for an unchanged sacrifice, and reject
 ordinary material-recovery combinations. It is our open implementation, not
 Chess.com's unpublished formula. **Mobile Maia retains En Croissant.**
 
-The recommendation is one system: **Mute History Rule with the material-recovery
-guard**. The forest remains a research comparison, not a native runtime or mode.
-This PR is a draft; no merge, deployment or human manual testing is claimed.
-Native Stockfish 19 and varying timed review budgets remain unvalidated.
+The proposed system is **Mute History Rule with the material-recovery guard**.
+The forest remains a research comparison, not a native runtime or mode.
+**Keep this PR in draft: fresh-game testing found too many false awards.**
+No merge, deployment or human manual testing is claimed.
 
 ## Evidence and its limits
 
 The [illustrated study](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md)
-contains 1,048 moves from 545 games, with 513 recorded Chess.com Brilliants and
-535 explicitly non-Brilliant controls. The refined rule recognizes **400/513**
-Brilliants and makes **22/535** extra awards: 78.0% recognition, 94.8% sample badge
-precision and 87.1% agreement. This is a replay of examples used to develop the
-refinement, not an independent accuracy estimate.
+contains **1,248 moves from 654 games**, with 613 recorded Chess.com Brilliants
+and 635 explicitly non-Brilliant controls. Mute recognizes **478/613** Brilliants
+and makes **35/635** extra awards: 78.0% recognition and 86.4% agreement.
+En Croissant recognizes 166/613 with 10/635 extra awards and 63.4% agreement.
+These combined figures include development examples; they are not an independent
+accuracy estimate.
 
-The core History Rule was frozen before a separate 200-move assessment. It
-recognized 78/100 Brilliants, with 5/100 extra control awards, versus direct
-En Croissant's 26 and 2. The new material guard rejects the ordinary `hxg6` and
-`hxg5` combinations while retaining all 400 previously correct awards across the
-saved corpus. On the earlier 200, that changes 5 extra awards to 3 while retaining
-78 matches. Those revised numbers are retrospective: the errors informed the
-guard, so they must not be advertised as a new untouched test.
+The frozen classifier was also tested on **200 fresh moves from 109 unseen
+games**, balanced between explicit current Brilliant and non-Brilliant labels.
+Mute recognizes **78/100 Brilliants** and makes **13/100 extra awards** (82.5%
+agreement), versus direct En Croissant’s 27 matches and one extra award (63.0%).
+The core History Rule and the rule with the guard make identical decisions.
+The guard fixes `hxg6` and `hxg5` among the development examples without losing
+any of the 400 matching awards there, but its benefit on fresh games remains
+unproven. A separate 500-game discovery scan found no qualifying guard vetoes;
+that scan is not additional labeled accuracy data.
+
+A headless run of the actual native Stockfish 19 full-game review completed
+10 games and classified 884 moves. Only 19 overlap the primary labeled sample:
+seven matched Brilliants, two missed Brilliants, two extra awards and eight
+correct non-awards. Checking all 13 native awards separately found nine current
+Brilliant labels and four non-Brilliant labels. This prediction-selected audit is
+not added to the primary sample. The guard again changed no decisions. This establishes
+bounded native execution and limited labeled evidence, not browser interaction,
+human testing, or accuracy across variable engines and review budgets.
 
 The samples emphasize challenging comparisons from five established accounts.
 They do not establish beginner behavior, ordinary-game badge frequency,
 population precision, or measured fun. The 90% agreement goal remains unmet.
-Further unseen-game assessment and native-domain testing remain necessary.
+The fresh false awards do not support merging the proposed classifier yet.
 
 ## Ordered decision rules
 

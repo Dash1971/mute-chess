@@ -82,18 +82,21 @@ inspect. It checks move quality and position context, remembers earlier offers,
 and follows material recovery so an ordinary trade does not automatically earn
 Brilliant.
 
-We studied **1,048 labeled moves from 545 games**, starting from En Croissant
+We studied **1,248 labeled moves from 654 games**, starting from En Croissant
 and comparing both classifiers with Chess.com on the same positions.
 
 | On the studied examples | Mute Chess | En Croissant |
 | --- | ---: | ---: |
-| Chess.com Brilliants recognized | **400 / 513** | 139 / 513 |
-| Extra awards on non-Brilliant moves | **22 / 535** | 9 / 535 |
-| Overall agreement | **87.1%** | 63.5% |
+| Chess.com Brilliants recognized | **478 / 613** | 166 / 613 |
+| Extra awards on non-Brilliant moves | **35 / 635** | 10 / 635 |
+| Overall agreement | **86.4%** | 63.4% |
 
 Mute recognizes about **2.9 times as many Brilliants**, with more extra awards.
-These results describe the studied examples; **fresh-game testing is underway
-before release**. Mobile Maia keeps its existing En Croissant rules.
+These results describe the studied examples. On 200 fresh moves, Mute matched
+**78 of 100 Brilliants** but gave **13 extra awards among 100 non-Brilliants**,
+versus En Croissant’s 27 matches and one extra award. The recovery guard changed
+no fresh decisions. **The proposal stays in draft because false awards remain
+too frequent.** Mobile Maia keeps its existing En Croissant rules.
 
 See the [illustrated research report](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md)
 for the ideas and board examples, or the [exact algorithm](docs/brilliant-moves.md)

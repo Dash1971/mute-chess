@@ -1,6 +1,6 @@
 {
   "date": "2026-11-03",
-  "status": "draft_only_no_merge_or_deployment",
+  "status": "draft_hold_false_awards_no_merge_or_deployment",
   "policy": "mute-brilliant-v7",
   "name": "Mute History Rule with existing-offer material recovery guard",
   "native_source_sha256": {
@@ -72,7 +72,7 @@
     "changed_typescript_format": "passed",
     "exact_pinned_patch_apply_and_reconstruction": "passed",
     "departure_register_tests_passed": 5,
-    "full_native_build": "pending CI for final source"
+    "full_native_build": "passed:434tests,0failed;TypeScript and bundles passed on frozen source4a1c0b4"
   },
   "reference_domain": {
     "engine": "Stockfish18",
@@ -82,12 +82,105 @@
     "history": "full legal PGN history"
   },
   "release_limitations": [
-    "No new unseen assessment exists for the recovery guard.",
-    "Native Stockfish19 and variable timed review profiles remain unvalidated.",
+    "Fresh200 assessment yielded13 false awards among100 explicit non-Brilliants; draft is held.",
+    "The guard did not change fresh200 or native10 decisions; zero separate discovery vetoes leave fresh guard efficacy inconclusive.",
+    "The combined1248 include development cases and cannot be advertised as untouched validation.",
+    "Native SF19 evidence is one fixed headless profile; variable timed profiles and browser interaction remain unvalidated.",
     "Missing prior history or engine origin windows cannot establish the temporal veto.",
     "Unknown recovery proofs retain the core award; finite material proof is not a full tactical solver.",
-    "Human review and browser interaction checks remain outstanding; no human manual testing is claimed.",
+    "No human manual testing is claimed.",
     "The90% agreement goal remains unmet."
   ],
-  "report": "https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md"
+  "report": "https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md",
+  "combined_study": {
+    "moves": 1248,
+    "games": 654,
+    "brilliant": 613,
+    "nonbrilliant": 635,
+    "mute_history_recovery": {
+      "TP": 478,
+      "FN": 135,
+      "FP": 35,
+      "TN": 600
+    },
+    "en_croissant_direct": {
+      "TP": 166,
+      "FN": 447,
+      "FP": 10,
+      "TN": 625
+    },
+    "evaluation_role": "Combined development and prospective examples; not an independent accuracy estimate."
+  },
+  "fresh_frozen_assessment": {
+    "moves": 200,
+    "games": 109,
+    "brilliant": 100,
+    "nonbrilliant": 100,
+    "mute_history_recovery": {
+      "TP": 78,
+      "FP": 13,
+      "TN": 87,
+      "FN": 22,
+      "agreement_percent": 82.5
+    },
+    "core_history_rule": {
+      "TP": 78,
+      "FP": 13,
+      "TN": 87,
+      "FN": 22,
+      "agreement_percent": 82.5
+    },
+    "en_croissant_direct": {
+      "FN": 73,
+      "TN": 99,
+      "TP": 27,
+      "FP": 1,
+      "agreement_percent": 63.0
+    },
+    "paired_decision_changes": 0,
+    "all_temporal_eligible_quiet_awards_have_origin_windows": true,
+    "history_or_recovery_proof_unknown": 0,
+    "withheld_classifications": 5,
+    "input_sha256": {
+      "primary-results.json": "1c0c56b5a3e1388dbca392d75e38c76bb81a08e80d14eddd99b2e18b99d987f4",
+      "root-frozen-final200queue.json": "aeec043aa16b97000b4a8bc4d2f32b092e49c28a243f3b12f09bdfbf1054ca94",
+      "FINAL-DATA-FREEZE.json": "2e219d671b99fb5938c09986025465756dc21716c3d88ef2b904d0fcf9d6bbbc",
+      "sf18-core.json": "b4a062c9ac2bc1657cf9d1901f3540932d1b6076217ef3de82147c120ab81b56",
+      "sf18-supplement.json": "e1521c3330cdf16ec0ee88b69cfec6d353d329535491f2fe537d38426c8a0809"
+    },
+    "conclusion": "No fresh guard benefit demonstrated. False awards remain too frequent to recommend merge."
+  },
+  "guard_discovery_panel": {
+    "unseen_games_scanned": 500,
+    "board_candidates": 12,
+    "actual_guard_vetoes": 0,
+    "planned_veto_coverage": 30,
+    "coverage": "inconclusive",
+    "not_pooled_with_primary_accuracy": true,
+    "activation_freeze_sha256": "9973d2fcf26b805d79c4d5996ca9523c8ffcf9b88a16e6b7c149ff1ae7d25e14"
+  },
+  "native_full_game_execution": {
+    "engine": "Pinned native Stockfish19 small-net WASM",
+    "games": 10,
+    "classified_moves": 884,
+    "baseline_positions": 894,
+    "search_requests": 902,
+    "primary_labeled_moves": 19,
+    "primary_mute_counts": {
+      "TP": 7,
+      "FN": 2,
+      "FP": 2,
+      "TN": 8
+    },
+    "core_and_guard_final_symbols_equal_on_all_moves": true,
+    "limitations": "Headless Node execution; no browser interaction or human test; paired comparisons share v7-requested confirmation evidence. Other plies are not assumed negative. Variable budgets remain unvalidated.",
+    "result_sha256": "23f33e96191e29f568d3f3e02a68ae6f8fad58c93b4fac03afd40d549cd4570d",
+    "all_awards_current_label_audit": {
+      "predicted_awards": 13,
+      "matching_brilliant": 9,
+      "explicit_nonbrilliant": 4,
+      "unknown": 0,
+      "evaluation_role": "Prediction-selected award audit, separate from primary19 overlap and primary200; does not estimate overall accuracy."
+    }
+  }
 }

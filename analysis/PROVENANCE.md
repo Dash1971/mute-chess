@@ -243,6 +243,15 @@ preservation is development evidence, not a fresh prospective accuracy claim.
 The frozen core History Rule's separate 200-case assessment remains published
 unchanged. Original GPL/AGPL source notices and attribution remain authoritative.
 
-This is a Codex-assisted draft with no human manual-test, merge or deployment
-claim. Saved SF18 parity and build checks do not qualify native SF19/timed-mode
-accuracy. No new engine searches, inference service or general tooling is added.
+The frozen refinement was tested on 200 fresh labeled moves from 109 unseen
+games: 78TP/22FN/13FP/87TN, identical to the core rule. Direct En Croissant gives
+27TP/73FN/1FP/99TN. Across all 1,248 primary examples the refinement gives
+478TP/135FN/35FP/600TN. The 500-game guard discovery scan has zero actual vetoes,
+so it supplies no evidence of fresh guard benefit and is not pooled as accuracy.
+
+A headless native SF19 review completes 10 games and 884 move classifications;
+its 19 primary labeled overlaps give 7TP/2FN/2FP/8TN. This is bounded execution
+and limited label evidence, not variable-budget or browser interaction testing.
+The proposal remains draft because false awards remain too frequent.
+No human manual-test, merge or deployment claim is made. No additional runtime
+engine searches, inference service or general tooling is added.
