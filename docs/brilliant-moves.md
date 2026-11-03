@@ -1,9 +1,21 @@
 # Brilliant moves: Mute Selective
 
-Mute Chess uses **Mute Selective**: soundness and legal-piece-offer rules followed
-by a fixed, openly published model. It recognizes more Chess.com Brilliants than
+For **Mute Selective**, we trained a small model on chess moves labeled by
+Chess.com and combined it with basic soundness and legal-piece-offer checks.
+It recognizes more Chess.com Brilliants than
 En Croissant while keeping undeserved badges low in our tests.
 **Mobile Maia keeps its existing En Croissant classifier.**
+
+The browser downloads the model with the analysis JavaScript and runs it locally
+in a background worker. Stockfish provides evaluations; the model uses those and
+facts about the position to decide whether to award Brilliant. This decision-tree
+model runs in ordinary JavaScript, without ONNX, a GPU requirement, ChatGPT or a
+remote classification service. It does not learn during play. Both the trained
+model and the code used to train it are openly published.
+
+En Croissant decides its Brilliant badge using rules written by its developers.
+Mute Selective uses basic chess checks plus patterns learned from Chess.com’s
+labeled examples. Both still rely on engine analysis.
 
 This is our open implementation, not Chess.com's unpublished formula.
 No human manual testing is claimed.
@@ -38,8 +50,12 @@ it misses some genuine ideas, including the illustrated quiet Bg2.
 
 ## How we plan to improve
 
-Keep the model fixed for this release. Study missed genuine Brilliants and the
-remaining wrong awards, then test any proposed change on new games. Favor
+Keep the model fixed for this release. More labeled examples can help a future
+version, particularly missed genuine Brilliants and difficult ordinary tactics.
+The 400 current test moves can become training examples, but they then cease to
+be an independent test of the new model. Reserve different complete games,
+exclude duplicate positions across the training/test boundary, and finish
+training before testing the new version on those games. Favor
 changes that recognize more genuine Brilliants while keeping wrong awards low;
 do not improve recognition simply by lowering the threshold. Publish both counts
 for each candidate and compare it with this fixed baseline.

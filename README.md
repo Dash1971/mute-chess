@@ -76,9 +76,17 @@ different things; a popular human move is not automatically the best move.
 
 ### More chances to find a brilliant move
 
-Brillies are part of the fun. Our **Mute Selective** classifier combines
-soundness and piece-offer rules with an openly published model. It runs locally
-with fixed weights; no ChatGPT call or learning during play is involved.
+Brillies are part of the fun. For **Mute Selective**, we trained a small model
+on chess moves labeled by Chess.com: both Brilliant moves and moves it did not
+call Brilliant. We combine that model with basic checks for a sound move and a
+real piece offer.
+
+Your browser downloads the model with the analysis code and runs it locally,
+using Stockfish evaluations and facts about the position. It does not call
+ChatGPT or a remote classification service, and it does not learn during play.
+The model and training code are openly published. En Croissant decides its
+Brilliant badge using developer-written rules; our model learns patterns from
+Chess.com’s labeled examples.
 
 On **400 test moves from 215 games** not used to train the model:
 
@@ -89,8 +97,9 @@ On **400 test moves from 215 games** not used to train the model:
 
 That is about **twice as many Brilliants with the same number of wrong badges**
 in our tests. Other methods recognized more Brilliants, but gave too many wrong
-awards to justify choosing them. Our plan is to recognize more genuine Brilliants
-while keeping wrong awards low, checking proposed changes on new games.
+awards to justify choosing them. Our plan is to train improved versions on more
+labeled examples while keeping wrong awards low. We can reuse the current test examples for training, then check
+the new model on different games it has never seen.
 Mobile Maia keeps its existing En Croissant rules.
 
 See the [illustrated research report](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md)
