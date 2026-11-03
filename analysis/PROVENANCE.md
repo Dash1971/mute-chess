@@ -220,3 +220,31 @@ isolated, then1;5M retains its bounded1-thread loader. No model conversion,
 retraining, provider-specific policy changes or reduced rating samples occur.
 Task-specific tests exercise backend fallbacks, unchanged input/output contracts
 and the existing watchdog; they are not device performance or accuracy evidence.
+
+
+## Precision-first Brilliant v5 draft (November 3, 2026)
+
+This section supersedes the historical Brilliant-policy descriptions above for
+newly computed Mute `!!` awards only. Mobile Maia and the independent En Croissant
+references remain unchanged. The native worker selects the fixed v5 forest;
+internal v4 remains a reference branch, not a UI option. See the
+[current algorithm and validation limits](../docs/brilliant-moves.md) and
+[public study](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md).
+
+The Mute-specific feature adapter and 64-tree/75-feature model are published with
+the [frozen v5 research reference](https://github.com/Dash1971/mute-chess-research/tree/main/studies/brilliant-moves/reference/v5).
+Native `noSweatBrilliantForestModel.json` preserves the frozen model bytes:
+SHA-256 `44704ac06378d3f671a4eed959e21959f759c0437c71af1f9119d1081293c0b7`.
+There is no runtime training or external inference service. The model is trained
+from the disclosed study features and observed labels, not copied Chess.com code;
+no claim is made to Chess.com's private formula. Existing GPL/AGPL source notices
+and third-party licenses remain authoritative; the adapter is part of this
+AGPL-3.0 Mute fork and does not replace upstream attribution.
+
+The native adapter uses injected EC/raw-offer helpers and native Chessops legality,
+with no runtime import cycle to classification. It adds conservative abstention
+on incomplete physical probes without changing frozen model weights, thresholds
+or research outcomes. The 1,048-case saved-input parity replay had no observed
+physical timeout. Native SF19/timed-profile behavior remains unvalidated; the
+SF18 fixed-budget research and source parity are not deployment qualification.
+This is a Codex-assisted draft with no merge, deployment or human-test claim.

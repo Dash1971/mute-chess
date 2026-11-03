@@ -76,75 +76,35 @@ different things; a popular human move is not automatically the best move.
 
 ### More chances to find a brilliant move
 
-Brillies are part of the fun. Mute Chess experiments with a more generous `!!`
-award for sound sacrifices, inspired by Chess.com's published definition. This
-is our own open algorithm, not a reproduction of Chess.com's private code.
-**Mobile Maia remains on the En Croissant rules.**
+Mute Chess's draft v5 classifier favors fewer questionable `!!` awards while
+recognizing more sound sacrifices than the En Croissant reference. Its fixed
+64-tree model uses 75 chess and engine features, with explicit legal-offer and
+soundness checks. It is our own open classifier, not Chess.com's private formula.
+**Mobile Maia remains unchanged on the En Croissant rules.**
 
-For newly computed Mute Chess reviews, `mute-chess-brilliant-v3` awards `!!` when
-all of these conditions hold:
+On a fresh, balanced test frozen before its labels were collected:
 
-- There are at least two complete, distinct Stockfish candidate lines. The
-  move need not rank first or be uniquely best.
-- The move loses **at most 5 percentage points** under the fixed mapping
-  `W(cp) = 100 / (1 + exp(-0.00368208 × cp))`, comparing the best score before
-  the move with the position after it. Scores are from the mover's perspective,
-  clamped to −1000…+1000 centipawns; forced wins/losses map to +1000/−1000.
-- The resulting evaluation is **at least −100 centipawns (−1.00 pawn)**, and
-  the position is not terminal.
-- A sacrifice requires a legal capture of an offered non-pawn piece.
-  The opponent's best capture sequence
-  on that square must gain **more than 100 units plus the material already gained
-  by the played move**. The piece may have been left attacked while another piece
-  moves. Material units are pawn 90, knight/bishop 300, rook 500 and queen 1000;
-  promotions are credited. Ordinary equal exchanges do not pass the piece-offer
-  test. The older material-probe fallback is excluded: it can mistake foregone
-  gains and quiet tactical defenses for sacrifices. Pawn-only and delayed
-  offers do not qualify under this more conservative rule (#227).
-- The existing En Croissant material-sacrifice heuristic must also agree,
-  **or the resulting position must contain an explicit forced win by mate**.
-  This additional guard reduces routine combinations whose apparent sacrifice
-  is recovered elsewhere. It is a heuristic: some genuine sacrifices are missed.
-  A large centipawn advantage alone does not activate the mate exception.
-- No **other evaluated candidate** already scores **+600 centipawns (+6.00 pawns)
-  or more** without a qualifying sacrifice. This check normally sees only the
-  two searched candidates; it does not prove that every unsearched alternative
-  is worse. Two good sacrifices can both qualify.
-- The **whole award agrees** with an earlier complete evidence window or an
-  independent confirmation window. Missing, contradictory, wrong-quality,
-  canceled or insufficient confirmation withholds the badge. Existing search
-  budgets and imported-annotation protections still apply.
-
-These fixed thresholds are deliberate, generous experimental choices. They are
-not Chess.com thresholds, measured outcome probabilities, or a rating-adjusted
-model. Maia move likelihood does not determine the award. Native Stockfish
-evaluations, Lichess accuracy and mistake-review controls retain their meanings.
-Moves not awarded `!!` continue to use the En Croissant rules, except a
-sacrifice-derived `!!`/`!?` is cleared when actual sacrifice qualification fails.
-An old EC `!!` that fails the other gates can become `!?` on a new review. Imported PGN annotations
-remain authoritative. Engine versions, search settings and reanalysis can change
-computed badges; historical results are not silently recalculated.
-
-Read the [full algorithm, evidence and Chess.com/En Croissant/Mobile Maia comparison](docs/brilliant-moves.md),
-including the exact confirmation budgets. Our selected **618-move benchmark**
-contains 309 current Chess.com Brilliants and 309 explicitly non-Brilliant moves
-from 299 games:
-
-| Ruleset | Brilliants recognized / 309 | Other moves awarded Brilliant / 309 |
+| Classifier | Chess.com Brilliants recognized / 100 | Other moves awarded Brilliant / 100 |
 | --- | ---: | ---: |
-| Direct En Croissant rule | 84 | 6 |
-| Mute v2 | 273 | 77 |
-| Proposed Mute v3 | 220 | 16 |
+| Direct En Croissant rule | 26 | 2 |
+| Mute v5 fixed forest | 55 | 1 |
 
-The guard removes **61 extra awards while losing 53 correctly recognized
-Brilliants**. This is a tradeoff: v2 has higher overall label agreement on both
-the prospective 300-move check and the separately reserved 101-move subset.
-The full benchmark includes development examples; its counts describe a balanced,
-offer-enriched sample, not ordinary-game error rates or measured enjoyment.
-The En Croissant score/material source was verified equivalent to stable
-v0.15.1, the latest release checked on November 3, 2026; Mobile Maia remains
-unchanged. Read the
-[illustrated study and validation results](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md).
+That is **98.2% precision among the 56 awarded badges**, **55% recognition of
+Chess.com's Brilliants**, and **77% overall agreement**. These are different
+measures: the 90% agreement goal remains unmet. The sample contains deliberately
+challenging comparison moves, so these figures do not estimate ordinary-game
+error rates. Quiet sacrifices can still be missed; the test also retains one
+extra `Rxd7+` award.
+
+**Draft only: no merge or deployment.** The TypeScript adapter and integrated
+classifier match the frozen reference on 1,048 saved cases. That checks the port,
+not browser behavior: the research used Stockfish 18 at 300,000 nodes, while
+native Stockfish 19 and timed review modes remain unvalidated. The native adapter
+also abstains from `!!` if its bounded physical-material probe is incomplete.
+Native accuracy, evaluations and imported PGN judgments retain their meanings.
+
+Read the [exact algorithm, confirmation rules and limitations](docs/brilliant-moves.md)
+and the [illustrated study and fresh-test results](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md).
 
 ### Opponents with an identity
 
