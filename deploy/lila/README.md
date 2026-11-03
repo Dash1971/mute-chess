@@ -15,6 +15,11 @@ public deployment is described in [../public](../public/README.md).
   `patches/lila-ws-bind-address.patch` to lila-ws. The first adds the club, native
   Nostr accounts/sessions, reserved human-versus-Maia admission and bot moves.
   The second adds configurable `http.host`, preserving the upstream default.
+  Both patches also add `security-dependencies.sbt`: existing Netty modules resolve
+  to 4.2.19.Final and Jackson core/datatype modules to 2.18.11 (#232). These
+  security overrides retain the existing dependency graph and native behavior;
+  recheck the resolved/staged JARs and remove overrides once upstream selects
+  equivalent patched versions. Ubuntu package updates do not replace bundled JARs.
 - Java 21 JDK, Node 24.22.1, pnpm 12.9.0 and sbt 2.0.11. Use the checked-in
   dependency lockfiles and the versions selected by each pinned Scala build.
 - MongoDB Community 8.0.34 and the host distribution's Redis 8.0.5 packages are

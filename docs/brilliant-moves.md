@@ -1,13 +1,12 @@
 # Brilliant moves: Mute Selective
 
-We recommend **Mute Selective**: soundness and legal-piece-offer rules followed
+Mute Chess uses **Mute Selective**: soundness and legal-piece-offer rules followed
 by a fixed, openly published model. It recognizes more Chess.com Brilliants than
 En Croissant while keeping undeserved badges low in our tests.
 **Mobile Maia keeps its existing En Croissant classifier.**
 
-This PR is a draft for Mute Dev to review and merge. No merge, deployment or
-human manual testing is claimed. This is our open implementation, not
-Chess.com's unpublished formula.
+This is our open implementation, not Chess.com's unpublished formula.
+No human manual testing is claimed.
 
 ## What the tests show
 
@@ -157,8 +156,8 @@ accuracy test. The fresh set must not be used to retune this model or threshold.
 The research used Stockfish 18, one thread, 64 MB hash and 300,000 requested nodes
 per position with full PGN history. Native Stockfish 19 and timed modes produce
 different inputs. Even changing only the research node budget changed predictions,
-so source parity cannot establish native accuracy. Browser/device runtime and
-human review remain necessary before a release decision.
+so source parity cannot establish native accuracy. Saved-input parity does not establish behavior on every browser or device;
+human review remains an important validation step.
 
 The independent EC score/material sources are pinned to v0.15.0 commit
 `6f2d2628f0fbe11cb62a7dd2f9c102bb52907d53` and were verified byte-identical to
@@ -168,4 +167,4 @@ of complete applications or their engine collection. Source pins, full outcomes,
 selection limitations and sensitivity results are retained in the public study.
 
 Prepared with OpenAI Codex assistance. No upstream contribution, human manual
-test, merge or deployment is claimed.
+test is claimed.

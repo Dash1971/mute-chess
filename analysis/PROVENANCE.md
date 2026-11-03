@@ -222,7 +222,7 @@ Task-specific tests exercise backend fallbacks, unchanged input/output contracts
 and the existing watchdog; they are not device performance or accuracy evidence.
 
 
-## Mute Selective draft (November 3, 2026)
+## Mute Selective (November 3, 2026)
 
 This section supersedes the historical Brilliant-policy descriptions above for
 newly computed Mute `!!` awards only. Mobile Maia and the independent En Croissant
@@ -247,7 +247,7 @@ on incomplete physical probes without changing frozen model weights, thresholds
 or research outcomes. The 1,048-case saved-input parity replay had no observed
 physical timeout. Native SF19/timed-profile behavior remains unvalidated; the
 SF18 fixed-budget research and source parity are not deployment qualification.
-This is a Codex-assisted draft with no merge, deployment or human-test claim.
+This is a Codex-assisted implementation; no human-test claim is made.
 
 The unchanged model was evaluated on 400 test moves from 215 unseen games:
 112TP/88FN/3FP/197TN, versus direct En Croissant 53TP/147FN/3FP/197TN.
@@ -257,4 +257,4 @@ result differences. No physical probe times out; one optional avoidability
 unknown is preserved. The History Rule/recovery path is not part of this
 runtime. Earlier imported computed-glyph generations v1–v7 remain protected.
 Future research should improve recognition while keeping wrong awards low.
-The draft PR is for Mute Dev to review and merge; no deployment is authorized.
+The owner authorized review, merge, build and deployment on November 3, 2026.
