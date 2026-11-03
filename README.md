@@ -209,6 +209,62 @@ The 79M model tries WebGPU, with a multi-threaded CPU fallback where supported.
 Visitors do not download the model from GitHub; deployment can fetch a pinned
 upstream copy if the server's existing model is unavailable.
 
+### 5M or 79M Maia model for analysis
+
+Choose the model in **Profile & settings → Engine Analysis → Maia model**, or
+under **Advanced Maia settings** in the analysis gear dialog. **5M** is the
+lightweight default (about 21 MB of model weights); **79M** is the larger option
+(about 316 MB). Both run in your browser. The larger model needs more memory and
+computation; it can give different predictions, but a larger network does not
+guarantee a better answer to every tactical position. Maia predicts human moves
+and game outcomes; use Stockfish to assess the strongest continuation.
+
+**Use move history** is available in both settings locations and defaults to
+**on**. It supplies up to eight recent board positions, repeating the earliest
+available position when fewer are present. Turning it off supplies the current
+board repeated across all eight input frames. This changes Maia's information
+and can change both move probabilities and expected score. Preferences apply to
+analysis in this browser; they do not change a playing bot's configured policy.
+Each analysis channel uses its selected rating for both player and opponent.
+
+#### Why predictions can differ from maiachess.com
+
+In the comparison on November 3, 2026, the Maia website's model was a different
+network: its served ONNX file was about
+46 MB, with roughly 22.7 million FP16 weight elements, and takes only the current
+board. It is neither our 5M nor our 79M export. Turning our history off therefore
+does not reproduce its model. See its pinned [model selection][maia-model-source]
+and [board encoding][maia-input-source].
+
+For example, after **1.e4 d5 2.exd5 Qxd5 3.Nc3 Qe6+ 4.Be2 Qc6**, independent
+CPU runs with **2600 for both rating inputs** produced:
+
+| Model | History input | Probability of Bb5 | White expected score |
+|---|---|---:|---:|
+| Mute 5M | Eight recent positions | 7.1% | 55.3% |
+| Mute 79M | Eight recent positions | 7.0% | 61.4% |
+| Mute 79M | Current board repeated | 12.4% | 68.0% |
+| Maia website model | Current board only | 20.1% | 67.3% |
+
+The website displayed Bb5 at 20.2%; the small difference from the CPU run has
+not been isolated. These are model predictions, not measured human success rates
+for this position. Expected score means **win probability plus half the draw
+probability**. Mute displays it for the side to move, which is White here.
+
+The website's displayed **77.8%** in this example has a separate explanation:
+its analysis bar uses a **Stockfish-to-score lookup during the first ten plies**,
+rather than Maia's own value. Stockfish +5.82 rounds to its +5.8 lookup entry,
+which is 77.8%. Comparing that bar directly with Mute's Maia score mixes two
+different estimates. See the pinned [bar logic][maia-bar-source] and
+[lookup table][maia-score-source].
+
+[maia-model-source]: https://github.com/CSSLab/maia-platform-frontend/blob/3e5ef6d86287481cdbf730c1499d5023ae79eb48/src/contexts/MaiaEngineContext.tsx
+[maia-input-source]: https://github.com/CSSLab/maia-platform-frontend/blob/3e5ef6d86287481cdbf730c1499d5023ae79eb48/src/lib/engine/tensor.ts
+[maia-bar-source]: https://github.com/CSSLab/maia-platform-frontend/blob/3e5ef6d86287481cdbf730c1499d5023ae79eb48/src/pages/analysis/%5B...id%5D.tsx
+[maia-score-source]: https://github.com/CSSLab/maia-platform-frontend/blob/3e5ef6d86287481cdbf730c1499d5023ae79eb48/src/lib/analysis.ts
+
+### Analysis move colors
+
 Current-position move colors follow Maia's complete legal-move evaluation and
 ranked palettes. Cards and Moves by Rating share the same colors; opening Others
 only expands the list. Move-hover details show Maia probability, White-perspective
