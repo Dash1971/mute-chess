@@ -5995,14 +5995,15 @@ index 89b6efa..81bc593 100644
      easyClose: 'clickOutside',
      show: true,
 diff --git a/ui/analyse/tsconfig.json b/ui/analyse/tsconfig.json
-index bb75f61..a185d80 100644
+index bb75f61..5b13698 100644
 --- a/ui/analyse/tsconfig.json
 +++ b/ui/analyse/tsconfig.json
-@@ -1,6 +1,6 @@
+@@ -1,6 +1,7 @@
  {
    "extends": "../tsconfig.base.json",
 -  "compilerOptions": { "noEmit": true, "isolatedDeclarations": false },
 +  "compilerOptions": { "noEmit": true, "isolatedDeclarations": false, "resolveJsonModule": true },
++  "include": ["**/*", "src/noSweatBrilliantForestModel.json"],
    "references": [
      { "path": "../bits/tsconfig.json" },
      { "path": "../chart/tsconfig.json" },

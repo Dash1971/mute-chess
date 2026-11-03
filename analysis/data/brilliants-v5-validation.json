@@ -4,7 +4,7 @@
   "model_sha256": "44704ac06378d3f671a4eed959e21959f759c0437c71af1f9119d1081293c0b7",
   "native_feature_adapter_sha256": "10ac40a04d29492e85d09ddfbd0ac5c8ab32f64a8dce28cb6d78cd1cecbfb499",
   "native_classifier_sha256": "be222880d7158a6ae3604bd482cb1e218d69c59ee815ea0a0c6ad34e4f1b18c9",
-  "native_patch_sha256": "cfedd5d6b815d98a2aa6a157d2c22346f3b087dabd5bb6f5c4d082f27f2d20d9",
+  "native_patch_sha256": "c9c2cba5e5f0bf3faec2a432691f8ae0d3993055d3e7f9cd4ccd25bb883de68d",
   "reference_domain": {
     "engine": "Stockfish 18",
     "requested_nodes_per_position": 300000,
