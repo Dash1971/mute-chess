@@ -81,7 +81,7 @@ award for sound sacrifices, inspired by Chess.com's published definition. This
 is our own open algorithm, not a reproduction of Chess.com's private code.
 **Mobile Maia remains on the En Croissant rules.**
 
-For newly computed Mute Chess reviews, `mute-chess-brilliant-v2` awards `!!` when
+For newly computed Mute Chess reviews, `mute-chess-brilliant-v3` awards `!!` when
 all of these conditions hold:
 
 - There are at least two complete, distinct Stockfish candidate lines. The
@@ -101,6 +101,11 @@ all of these conditions hold:
   test. The older material-probe fallback is excluded: it can mistake foregone
   gains and quiet tactical defenses for sacrifices. Pawn-only and delayed
   offers do not qualify under this more conservative rule (#227).
+- The existing En Croissant material-sacrifice heuristic must also agree,
+  **or the resulting position must contain an explicit forced win by mate**.
+  This additional guard reduces routine combinations whose apparent sacrifice
+  is recovered elsewhere. It is a heuristic: some genuine sacrifices are missed.
+  A large centipawn advantage alone does not activate the mate exception.
 - No **other evaluated candidate** already scores **+600 centipawns (+6.00 pawns)
   or more** without a qualifying sacrifice. This check normally sees only the
   two searched candidates; it does not prove that every unsearched alternative
@@ -121,7 +126,11 @@ remain authoritative. Engine versions, search settings and reanalysis can change
 computed badges; historical results are not silently recalculated.
 
 Read the [full algorithm, evidence and Chess.com/En Croissant/Mobile Maia comparison](docs/brilliant-moves.md),
-including the small sample's limits and the exact confirmation budgets.
+including the exact confirmation budgets. In a selected 318-move challenge set,
+the proposed guard reduces awards on 159 Chess.com non-brilliants from 42 to 6,
+while recognizing 117 rather than 143 of its 159 brilliants (En Croissant: 44).
+These are retrospective sample counts, not ordinary-game error rates. Read the
+[illustrated research report](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves-2026-11-03/REPORT.md).
 
 ### Opponents with an identity
 

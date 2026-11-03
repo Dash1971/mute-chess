@@ -81,21 +81,21 @@ Stockfish evaluation. It can miss meaningful temporary piece offers because
 later captures restore material. In Hansen's Nd7 example its net change is only
 90 material units, below the strict greater-than-100 test.
 
-## Exact Mute Chess policy: mute-chess-brilliant-v2
+## Exact Mute Chess policy: mute-chess-brilliant-v3
 
 The [README](../README.md#more-chances-to-find-a-brilliant-move) specifies every
 eligibility gate and threshold. The implementation is in the namespaced native
 `ui/analyse/src/noSweatClassify.ts`, carried by our
 [Lila patch](../deploy/lila/patches/lila-nostr-maia.patch). The original
 `annotation()` and `isSacrifice()` remain unchanged for EC compatibility tests.
-The classification worker explicitly selects `mute-brilliant-v2`; Mobile Maia
+The classification worker explicitly selects `mute-brilliant-v3`; Mobile Maia
 and the independent references are not modified.
 
 The exact decision order is:
 
 1. Calculate the EC annotation with the existing scores/material predicate.
    If it is `??`, `?` or `?!`, return it; a sacrifice does not rescue a bad move.
-2. Apply the README's six Mute eligibility conditions. In particular, use
+2. Apply the README's seven Mute eligibility conditions. In particular, use
    `W(best-before) - W(after) <= 5`, `after >= -100 cp`, and veto any *other
    evaluated* non-sacrificing candidate at `>= +600 cp`. Passing means provisional
    `!!`, even if the played move is second or outside the searched pair.
@@ -144,8 +144,8 @@ material loss, but does not search Black's quiet `...Rd1+` tactical reply after
 `Rxf5`. Even comparing against raw pre-move material would retain that false
 signal. Requiring the legal offer removes this case as well. Exact Bf5 and
 White-to-move mirror regressions protect this behavior. The reported
-`14...Ndxe5` does pass the legal-offer test and remains eligible, subject to
-the unchanged score, safe-alternative and confirmation gates.
+`14...Ndxe5` passes that preliminary legal-offer test. Version3 adds the
+material corroboration below, which rejects this routine pawn-winning tactic.
 
 Version2 replaces the v1 material qualification and suppresses sacrifice-derived
 EC labels when no legal offer exists. All nine selected historical examples
@@ -166,6 +166,49 @@ surprise test, opening exclusion, underpromotion bonus, per-game quota, or rando
 award. Underpromotion can qualify only through the same material and soundness
 rules. This is an attempt to celebrate good sacrifices, not an objective measure
 of creativity or a promise to match Chess.com.
+
+## Material corroboration (#229)
+
+Version3 adds one gate to the played move: the unchanged EC `isSacrifice()`
+material heuristic must be true, **or** the after-score must contain an explicit
+winning mate from the mover's perspective. A centipawn score, mate zero or losing
+mate cannot activate the exception. The legal piece offer, quality, soundness,
+safe-alternative and whole-window confirmation checks still apply. The same gate
+must pass in corroborating windows; a later mating score does not override a
+contradictory earlier window.
+
+The EC material probe considers capture sequences across different squares. This
+helps reject apparent offers that recover material elsewhere, including
+`14...Ndxe5 15.Nxe5 Nxe5 16.fxe5 Rxd3`: equal-valued pieces are traded and Black
+wins a pawn. It is a legacy heuristic rather than proof of a genuine sacrifice.
+Its mate sentinel can also reject genuine mating offers, hence the explicit
+winning-mate exception. The regression uses the exact position with controlled
+stable scores to isolate the guard, not a new measured Stockfish evaluation.
+
+Only Brilliant eligibility changes. The raw legal-offer predicate used for safe
+alternatives and worker prefiltering remains unchanged. The guard reuses the EC
+material result already computed by classification; it adds no material or
+Stockfish search. En Croissant mode, accuracy and imported annotation protections
+remain unchanged, including recognition of older computed provenance versions.
+
+On a selected set of 159 currently displayed Chess.com Brilliants and 159
+explicitly non-brilliant moves from 153 games, the actual confirmation-aware
+replay gives:
+
+| Policy | Brilliants recognized / 159 | Extra Brilliant awards / 159 |
+| --- | ---: | ---: |
+| En Croissant | 44 | 2 |
+| Mute v2 | 143 | 42 |
+| Proposed Mute v3 | 117 | 6 |
+
+The proposal removes 36 extra awards while withholding 26 previously recognized
+Brilliants. This includes known genuine sacrifices such as Hansen's Nd7; four of
+the five earlier fresh-confirmed reference cases retain their awards. No named
+move is hard-coded. The rule was chosen after examining this challenge set, whose
+non-brilliants deliberately emphasize difficult offers. These are retrospective
+results, not a population error estimate or independent validation. The
+[illustrated report and reproducible methods](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves-2026-11-03/REPORT.md)
+retain disagreements, stronger-search sensitivity and selection limits.
 
 ## Confirmation, persistence and cost
 
@@ -190,7 +233,7 @@ and at least two depths above baseline, 1800 ms each. Material and exchange work
 stay in the cancellable classification worker, with its existing 10-second
 request watchdog and bounded material cache; a failure publishes no result.
 
-New computed `!!` glyphs carry `mute-chess-brilliant-v2` provenance. Native
+New computed `!!` glyphs carry `mute-chess-brilliant-v3` provenance. Native
 accuracy, evaluations, clocks, game outcomes, imported PGN glyphs and native tree
 ownership are unchanged. Reviews are browser-local; this change does not run a
 historical batch or silently change saved badges. Explicit reanalysis with
@@ -199,8 +242,9 @@ different engines/settings can produce different annotations.
 ## Validation and remaining uncertainty
 
 The unchanged 3,075 EC boundary vectors and existing material/reference corpora
-remain tests of the original algorithm. New tests replay both recorded score
-budgets for the five fresh-confirmed examples, exercise actual worker dispatch,
+remain tests of the original algorithm. Tests replay both recorded score
+budgets for the earlier fresh-confirmed examples, explicitly retaining the Nd7
+tradeoff, exercise actual worker dispatch,
 and cover exchanges, pinned captures, capture/promotion credit, terminal
 positions, side-to-move perspective, soundness, safe alternatives, equivalent
 sacrifices and confirmation vetoes. Replayed eligibility inputs are not a live
