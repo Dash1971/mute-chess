@@ -41,7 +41,7 @@ Every PR must update the affected register entry and supporting feature document
 | `modules/core/src/main/socket.scala` and `modules/socket/src/main/RemoteSocket.scala` | A small roster-presence event bridge, with transition-only native presence announcements and reannouncement after a WebSocket restart. | Existing WebSocket protocol and ordinary user/API-bot handling. No lila-ws protocol fork. |
 | `app/views/noSweatBot.scala` and the native profile header | Disclose the bot's actual fixed settings and link the methodology. | Existing native profiles, game history and account identity. |
 
-The register uses complete source paths within the [native patch](../deploy/lila/patches/lila-nostr-maia.patch). The separate lila-ws patch only makes its listener bind address configurable for the loopback gateway deployment; it does not change chess or messaging semantics. [Bot methodology](bot-population.md) documents assignment, timing and calibration limits.
+The register uses complete source paths within the [native patch](../deploy/lila/patches/lila-nostr-maia.patch). The separate lila-ws patch makes its listener bind address configurable for the loopback gateway deployment. Both native patches also align existing transitive Netty/Jackson runtime dependencies to patched versions through `security-dependencies.sbt` (#232); remove those overrides when the pinned upstream builds select equivalent safe versions. These build-only overrides do not change chess or messaging semantics. [Bot methodology](bot-population.md) documents assignment, timing and calibration limits.
 
 ## Updating upstream
 
