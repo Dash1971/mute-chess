@@ -222,38 +222,39 @@ Task-specific tests exercise backend fallbacks, unchanged input/output contracts
 and the existing watchdog; they are not device performance or accuracy evidence.
 
 
-## Mute History Rule draft (November 3, 2026)
+## Mute Selective draft (November 3, 2026)
 
-The current draft uses explicit heuristics for newly computed Mute Brilliant
-awards: the frozen history-rule research reference plus an existing-offer
-material-recovery guard. The forest remains a published research comparison and
-is removed from the native runtime. Mobile Maia and independent En Croissant
-behavior remain unchanged. See the [exact algorithm](../docs/brilliant-moves.md)
-and [public study](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md).
+This section supersedes the historical Brilliant-policy descriptions above for
+newly computed Mute `!!` awards only. Mobile Maia and the independent En Croissant
+references remain unchanged. The native worker selects the fixed v5 forest;
+internal v4 remains a reference branch, not a UI option. See the
+[current algorithm and validation limits](../docs/brilliant-moves.md) and
+[public study](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md).
 
-The history rule uses real piece identity, completed engine evidence and bounded
-legal reply proofs; it never uses imported badges as prior origins. The recovery
-guard compares existing offer geometry, best accepting replies in both completed
-windows, and material recovery against all legal immediate defenses. It has no
-runtime account, game ID, rating curve, observed label or position whitelist.
+The Mute-specific feature adapter and 64-tree/75-feature model are published with
+the [frozen v5 research reference](https://github.com/Dash1971/mute-chess-research/tree/main/studies/brilliant-moves/reference/v5).
+Native `noSweatBrilliantForestModel.json` preserves the frozen model bytes:
+SHA-256 `44704ac06378d3f671a4eed959e21959f759c0437c71af1f9119d1081293c0b7`.
+There is no runtime training or external inference service. The model is trained
+from the disclosed study features and observed labels, not copied Chess.com code;
+no claim is made to Chess.com's private formula. Existing GPL/AGPL source notices
+and third-party licenses remain authoritative; the adapter is part of this
+AGPL-3.0 Mute fork and does not replace upstream attribution.
 
-The guard was designed from inspected errors. Its replay fixes hxg6 and hxg5
-while preserving all 400 previously correct awards in 1,048 saved cases. That
-preservation is development evidence, not a fresh prospective accuracy claim.
-The frozen core History Rule's separate 200-case assessment remains published
-unchanged. Original GPL/AGPL source notices and attribution remain authoritative.
+The native adapter uses injected EC/raw-offer helpers and native Chessops legality,
+with no runtime import cycle to classification. It adds conservative abstention
+on incomplete physical probes without changing frozen model weights, thresholds
+or research outcomes. The 1,048-case saved-input parity replay had no observed
+physical timeout. Native SF19/timed-profile behavior remains unvalidated; the
+SF18 fixed-budget research and source parity are not deployment qualification.
+This is a Codex-assisted draft with no merge, deployment or human-test claim.
 
-The frozen refinement was tested on 200 fresh labeled moves from 109 unseen
-games: 78TP/22FN/13FP/87TN, identical to the core rule. Direct En Croissant gives
-27TP/73FN/1FP/99TN. Across all 1,248 primary examples the refinement gives
-478TP/135FN/35FP/600TN. The 500-game guard discovery scan has zero actual vetoes,
-so it supplies no evidence of fresh guard benefit and is not pooled as accuracy.
-
-A headless native SF19 review completes 10 games and 884 move classifications;
-its 19 primary labeled overlaps give 7TP/2FN/2FP/8TN. This is bounded execution
-and limited label evidence, not variable-budget or browser interaction testing.
-The recommendation includes the guard; it fixes two known mistakes without
-losing correct awards in these tests. Remaining false awards require further
-research. The PR stays in draft for Mute Dev to review and merge.
-No human manual-test, merge or deployment claim is made. No additional runtime
-engine searches, inference service or general tooling is added.
+The unchanged model was evaluated on 400 test moves from 215 unseen games:
+112TP/88FN/3FP/197TN, versus direct En Croissant 53TP/147FN/3FP/197TN.
+The newer 200 give 57TP/43FN/2FP/98TN. Actual native source parity on those
+additional cases has zero feature, award, integrated decision or complete EC
+result differences. No physical probe times out; one optional avoidability
+unknown is preserved. The History Rule/recovery path is not part of this
+runtime. Earlier imported computed-glyph generations v1–v7 remain protected.
+Future research should improve recognition while keeping wrong awards low.
+The draft PR is for Mute Dev to review and merge; no deployment is authorized.

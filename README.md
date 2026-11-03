@@ -76,33 +76,26 @@ different things; a popular human move is not automatically the best move.
 
 ### More chances to find a brilliant move
 
-Brillies are part of the fun. Our proposed **Mute History Rule** brings
-Chess.com-like sacrifice badges to an open platform, with rules anyone can
-inspect. It checks move quality and position context, remembers earlier offers,
-and follows material recovery so an ordinary trade does not automatically earn
-Brilliant.
+Brillies are part of the fun. Our proposed **Mute Selective** classifier combines
+soundness and piece-offer rules with an openly published model. It runs locally
+with fixed weights; no ChatGPT call or learning during play is involved.
 
-We studied **1,248 labeled moves from 654 games**, starting from En Croissant
-and comparing both classifiers with Chess.com on the same positions.
+On **400 test moves from 215 games** not used to train the model:
 
-| On the studied examples | Mute Chess | En Croissant |
+| | Mute Selective | En Croissant |
 | --- | ---: | ---: |
-| Chess.com Brilliants recognized | **478 / 613** | 166 / 613 |
-| Extra awards on non-Brilliant moves | **35 / 635** | 10 / 635 |
-| Overall agreement | **86.4%** | 63.4% |
+| Chess.com Brilliants recognized | **112 / 200** | 53 / 200 |
+| Undeserved Brilliant badges | **3 / 200** | 3 / 200 |
 
-Mute recognizes about **2.9 times as many Brilliants**, with more extra awards.
-These results describe the studied examples. On 200 fresh moves, Mute matched
-**78 of 100 Brilliants** but gave **13 extra awards among 100 non-Brilliants**,
-versus En Croissant’s 27 matches and one extra award. The recovery guard changed
-no fresh decisions, but fixes the illustrated hxg6 and hxg5 mistakes without
-losing correct awards in our tests. **We recommend including it with the Mute
-History Rule.** Reducing the remaining undeserved badges is future work.
+That is about **twice as many Brilliants with the same number of wrong badges**
+in our tests. Other methods recognized more Brilliants, but gave too many wrong
+awards to justify choosing them. Our plan is to recognize more genuine Brilliants
+while keeping wrong awards low, checking proposed changes on new games.
 Mobile Maia keeps its existing En Croissant rules.
 
 See the [illustrated research report](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md)
-for the ideas and board examples, or the [exact algorithm](docs/brilliant-moves.md)
-for every threshold and exception.
+for the examples and results, or the [exact algorithm](docs/brilliant-moves.md)
+for every threshold and exception. The PR remains a draft for Mute Dev to merge.
 
 ### Opponents with an identity
 

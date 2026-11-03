@@ -1,0 +1,154 @@
+{
+  "date": "2026-11-03",
+  "status": "draft_for_mute_dev_review_and_merge_no_deployment",
+  "model_sha256": "44704ac06378d3f671a4eed959e21959f759c0437c71af1f9119d1081293c0b7",
+  "native_feature_adapter_sha256": "10ac40a04d29492e85d09ddfbd0ac5c8ab32f64a8dce28cb6d78cd1cecbfb499",
+  "native_classifier_sha256": "be222880d7158a6ae3604bd482cb1e218d69c59ee815ea0a0c6ad34e4f1b18c9",
+  "native_patch_sha256": "87c26b237c9f7a3b095332a1b82cae6cd00efb5ee2362bad2c22940f2debdade",
+  "reference_domain": {
+    "engine": "Stockfish 18",
+    "requested_nodes_per_position": 300000,
+    "threads": 1,
+    "hash_mb": 64,
+    "history": "full legal PGN history",
+    "current_and_previous_complete_multipv_iterations": true
+  },
+  "fresh_test": {
+    "moves": 200,
+    "games": 106,
+    "model_and_extractor_frozen_before_labels": true,
+    "observed_brilliant": 100,
+    "explicit_non_brilliant": 100,
+    "rendered_boards_verified": 200,
+    "forest": {
+      "TP": 55,
+      "FN": 45,
+      "FP": 1,
+      "TN": 99
+    },
+    "en_croissant_direct": {
+      "TP": 26,
+      "FN": 74,
+      "FP": 2,
+      "TN": 98
+    },
+    "scope": "Balanced challenge sample from five accounts; not ordinary-game or deployment precision. 98.2% badge precision is not 77% overall agreement or 55% recognition."
+  },
+  "native_checks": {
+    "saved_cases": 1048,
+    "feature_or_missingness_mismatch_cases": 0,
+    "maximum_floating_difference": 2.842170943040401e-14,
+    "model_award_differences": 0,
+    "integrated_brilliant_differences": 0,
+    "complete_ec_result_differences": 0,
+    "serial_native_tests_passed": 64,
+    "serial_native_tests_failed": 0,
+    "independent_ec_boundary_vectors": 3075,
+    "feature_adapter_strict_isolated_typecheck": "passed",
+    "changed_typescript_lint_and_format": "Restored byte-identical previously checked source; util retains previous formatted v1\u2013v7 protection.",
+    "exact_pinned_patch_apply_and_reconstruction": "passed",
+    "departure_register_tests_passed": 5,
+    "full_native_build": "pending current CI; local wrapper unavailable because installed pnpm11 does not meet pinned12 requirement; no tooling changes made",
+    "additional_saved_cases": 200,
+    "additional_parity_summary": {
+      "scope": "Saved SF18 inputs only; native SF19 domain remains unvalidated. No cached predictor substitution.",
+      "cases": 200,
+      "hashes": {
+        "driver": "12c41a8f80874f00f77d2dccb3884f9cdfb937a5c542cd21f0440b036d17e675",
+        "core": "b4a062c9ac2bc1657cf9d1901f3540932d1b6076217ef3de82147c120ab81b56",
+        "database": "13e6575c245acbdbf8260486315cf79bd920b8fe7e66df08bbff1263294dea7e",
+        "predictions": "d5d94e466317201b2c8359165dee47863e0c6b5a7b13f9df4a34d788d2d286ce",
+        "module": "10ac40a04d29492e85d09ddfbd0ac5c8ab32f64a8dce28cb6d78cd1cecbfb499",
+        "classifier": "be222880d7158a6ae3604bd482cb1e218d69c59ee815ea0a0c6ad34e4f1b18c9",
+        "model": "44704ac06378d3f671a4eed959e21959f759c0437c71af1f9119d1081293c0b7"
+      },
+      "modelByteEqual": true,
+      "featureMismatchCases": 0,
+      "scoreMismatchCases": 0,
+      "integrationMismatchCases": 0,
+      "ecFullObjectMismatchCases": 0,
+      "physicalUnknownCases": [],
+      "maxFloatingDifference": 2.842170943040401e-14,
+      "elapsed_ms": 2816,
+      "maxRSS": 149232,
+      "optionalUnknowns": {
+        "avoidability_unknown": [
+          {
+            "key": "174345053230:46",
+            "window": "current"
+          },
+          {
+            "key": "174345053230:46",
+            "window": "previous"
+          }
+        ]
+      },
+      "execution_notes": [
+        "Used existing adapter/tsconfig.json for module resolution; archived lib/nosweat/core.ts and restored native core.ts are byte-identical SHA583c1584a01b080a21877df697443d522fdd245c28dcbd163fd878b7ebedb55a.",
+        "Two initial loader invocations failed before case execution; dependency mapping corrected using existing configuration, no source/predictor changes."
+      ]
+    },
+    "standalone_integration_typecheck": "Unusable archived config: missing upstream alias/declaration context. Module-only strict check passed; actual project check delegated to existing native CI."
+  },
+  "native_only_safeguard": "A physical-probe timeout prevents both provisional and final Brilliant eligibility. No such timeout occurred in the 1048-case parity check; the frozen research reference is unchanged.",
+  "release_limitations": [
+    "Native Stockfish19 and variable timed review profiles remain unvalidated for the selective model. The recent10-game native run measured History, not Selective.",
+    "Two-position legacy input and two-review confirmation can omit prior engine features.",
+    "Human review and browser interaction testing remain outstanding; no human manual testing is claimed.",
+    "The400 test moves are a balanced tactical comparison from five accounts, not ordinary-game prevalence or beginner calibration."
+  ],
+  "report": "https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md",
+  "name": "Mute Selective",
+  "combined_fixed_model_tests": {
+    "moves": 400,
+    "games": 215,
+    "brilliant": 200,
+    "nonbrilliant": 200,
+    "selective": {
+      "TP": 112,
+      "FN": 88,
+      "FP": 3,
+      "TN": 197
+    },
+    "en_croissant_direct": {
+      "TP": 53,
+      "FN": 147,
+      "FP": 3,
+      "TN": 197
+    },
+    "scope": "Two disjoint tests; unchanged frozen model and feature extraction. Training data excluded. Selected tactical comparison sample, not ordinary-game frequency or population precision."
+  },
+  "additional_fresh_test": {
+    "moves": 200,
+    "games": 109,
+    "selective": {
+      "TP": 57,
+      "TN": 98,
+      "FN": 43,
+      "FP": 2,
+      "agreement_percent": 77.5,
+      "awarded_badges": 59
+    },
+    "en_croissant_direct": {
+      "FN": 73,
+      "TN": 99,
+      "TP": 27,
+      "FP": 1,
+      "agreement_percent": 63.0,
+      "awarded_badges": 28
+    },
+    "history_with_recovery_comparison": {
+      "TP": 78,
+      "FP": 13,
+      "TN": 87,
+      "FN": 22,
+      "agreement_percent": 82.5,
+      "awarded_badges": 91
+    },
+    "prediction_sha256": "d5d94e466317201b2c8359165dee47863e0c6b5a7b13f9df4a34d788d2d286ce",
+    "source_freeze_sha256": "4dc9f492928dd0d18f6a737fc10381532cb835ccf6e2aee3283ab032a627f3c4",
+    "no_model_or_threshold_changes": true
+  },
+  "recommendation": "Use Mute Selective alone; do not layer History or recovery rules. Other tested methods recognized more Brilliants but produced too many wrong awards.",
+  "future_research": "Keep the current model and threshold fixed. Study misses and wrong awards, then test any candidate on new games. Expand genuine recognition while keeping wrong awards low; publish both counts rather than relaxing threshold just to increase awards."
+}
