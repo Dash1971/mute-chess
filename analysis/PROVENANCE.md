@@ -252,6 +252,8 @@ so it supplies no evidence of fresh guard benefit and is not pooled as accuracy.
 A headless native SF19 review completes 10 games and 884 move classifications;
 its 19 primary labeled overlaps give 7TP/2FN/2FP/8TN. This is bounded execution
 and limited label evidence, not variable-budget or browser interaction testing.
-The proposal remains draft because false awards remain too frequent.
+The recommendation includes the guard; it fixes two known mistakes without
+losing correct awards in these tests. Remaining false awards require further
+research. The PR stays in draft for Mute Dev to review and merge.
 No human manual-test, merge or deployment claim is made. No additional runtime
 engine searches, inference service or general tooling is added.

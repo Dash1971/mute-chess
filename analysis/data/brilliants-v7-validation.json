@@ -1,6 +1,6 @@
 {
   "date": "2026-11-03",
-  "status": "draft_hold_false_awards_no_merge_or_deployment",
+  "status": "draft_for_mute_dev_review_and_merge_no_deployment",
   "policy": "mute-brilliant-v7",
   "name": "Mute History Rule with existing-offer material recovery guard",
   "native_source_sha256": {
@@ -82,7 +82,7 @@
     "history": "full legal PGN history"
   },
   "release_limitations": [
-    "Fresh200 assessment yielded13 false awards among100 explicit non-Brilliants; draft is held.",
+    "Fresh200 assessment yielded13 false awards among100 explicit non-Brilliants; remaining false awards are a research priority.",
     "The guard did not change fresh200 or native10 decisions; zero separate discovery vetoes leave fresh guard efficacy inconclusive.",
     "The combined1248 include development cases and cannot be advertised as untouched validation.",
     "Native SF19 evidence is one fixed headless profile; variable timed profiles and browser interaction remain unvalidated.",
@@ -148,7 +148,7 @@
       "sf18-core.json": "b4a062c9ac2bc1657cf9d1901f3540932d1b6076217ef3de82147c120ab81b56",
       "sf18-supplement.json": "e1521c3330cdf16ec0ee88b69cfec6d353d329535491f2fe537d38426c8a0809"
     },
-    "conclusion": "No fresh guard benefit demonstrated. False awards remain too frequent to recommend merge."
+    "conclusion": "Core and guard tie on fresh200; no fresh guard benefit demonstrated. Include guard for demonstrated known-error fixes with no lost matching awards in tested cases."
   },
   "guard_discovery_panel": {
     "unseen_games_scanned": 500,
@@ -182,5 +182,6 @@
       "unknown": 0,
       "evaluation_role": "Prediction-selected award audit, separate from primary19 overlap and primary200; does not estimate overall accuracy."
     }
-  }
+  },
+  "recommendation": "Adopt Mute History Rule with recovery guard: two known false awards removed, no correct awards lost in tested cases; future work should reduce remaining false awards."
 }

@@ -5,9 +5,9 @@ piece offers, avoid repeated awards for an unchanged sacrifice, and reject
 ordinary material-recovery combinations. It is our open implementation, not
 Chess.com's unpublished formula. **Mobile Maia retains En Croissant.**
 
-The proposed system is **Mute History Rule with the material-recovery guard**.
+We recommend **Mute History Rule with the material-recovery guard**.
 The forest remains a research comparison, not a native runtime or mode.
-**Keep this PR in draft: fresh-game testing found too many false awards.**
+The PR remains a draft for Mute Dev to review and merge.
 No merge, deployment or human manual testing is claimed.
 
 ## Evidence and its limits
@@ -42,7 +42,9 @@ human testing, or accuracy across variable engines and review budgets.
 The samples emphasize challenging comparisons from five established accounts.
 They do not establish beginner behavior, ordinary-game badge frequency,
 population precision, or measured fun. The 90% agreement goal remains unmet.
-The fresh false awards do not support merging the proposed classifier yet.
+The recovery guard fixes two known mistakes without removing correct awards in
+our tests. Include it with the History Rule; reducing the remaining false awards
+is a priority for future research.
 
 ## Ordered decision rules
 

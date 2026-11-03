@@ -95,8 +95,10 @@ Mute recognizes about **2.9 times as many Brilliants**, with more extra awards.
 These results describe the studied examples. On 200 fresh moves, Mute matched
 **78 of 100 Brilliants** but gave **13 extra awards among 100 non-Brilliants**,
 versus En Croissant’s 27 matches and one extra award. The recovery guard changed
-no fresh decisions. **The proposal stays in draft because false awards remain
-too frequent.** Mobile Maia keeps its existing En Croissant rules.
+no fresh decisions, but fixes the illustrated hxg6 and hxg5 mistakes without
+losing correct awards in our tests. **We recommend including it with the Mute
+History Rule.** Reducing the remaining undeserved badges is future work.
+Mobile Maia keeps its existing En Croissant rules.
 
 See the [illustrated research report](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md)
 for the ideas and board examples, or the [exact algorithm](docs/brilliant-moves.md)
