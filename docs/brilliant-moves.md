@@ -11,7 +11,25 @@ Chess.com's [official classification explanation](https://support.chess.com/en/a
 describes a best or nearly best piece sacrifice that leaves an acceptable
 position, without an easy win already available. It reports greater generosity
 for newer players. It does not publish the exact sacrifice test, numerical gates
-or rating curve. Those details cannot be recovered from this small sample.
+or rating curve. This selected benchmark does not establish those hidden details.
+
+The [illustrated study and reproducible methods](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md)
+cover **618 moves from 299 games: 309 current Chess.com Brilliants and 309
+explicitly non-Brilliant moves** from nelsi, hansen, KNVB, GothamChess and Hikaru.
+Each move is matched to its full PGN, exact ply and visible SAN; rendered board
+evidence provides an additional identity check when available. Live and daily
+game URL namespaces are distinguished. Historical gallery entries and current
+review labels are retained separately; an absent gallery entry is never treated
+as a negative label.
+
+The sample emphasizes sacrifices and challenging comparison moves, including
+apparent legal offers, quiet defenses and exchanges. It also retains four Book
+controls selected by the same pre-label rules. These are public player accounts,
+not a representative sample of all players, rating levels or ordinary games.
+The [benchmark results below](#618-move-benchmark) distinguish combined,
+prospective and reserved-game evidence.
+
+### Supplemental development examples outside the benchmark
 
 The profile galleries of [Nelson Lopez](https://www.chess.com/member/nelsi/stats/all-brilliant-moves?time=0),
 [Eric Hansen](https://www.chess.com/member/hansen/stats/all-brilliant-moves?time=0),
@@ -50,11 +68,10 @@ its award. Nf5 qualifies under both local score windows even though fresh
 Chess.com calls it inaccurate. That disagreement is retained openly; neither
 matching historical trophies nor rejecting a named move is hard-coded.
 
-This is a selected positive sample of four titled players. It is not a random
-corpus, a precision/recall estimate, evidence of beginner behavior, or proof of
-Chess.com's hidden implementation. The new gates were chosen with these examples
-in view; they are development examples, not held-out validation. Fresh-confirmed
-examples should not be conflated with historical gallery-only awards.
+These nine supplemental examples are outside the 618-move benchmark. They helped
+develop the rules and remain regression/reference cases, not held-out validation
+or evidence of beginner behavior. Fresh-confirmed examples should not be
+conflated with historical gallery-only awards.
 
 ## The original En Croissant / Mobile Maia rule
 
@@ -63,6 +80,11 @@ Our independent [scoring reference](../analysis/reference/score.ts) and
 v0.15.0, commit `6f2d2628f0fbe11cb62a7dd2f9c102bb52907d53`:
 [score.ts](https://github.com/franciscoBSalgueiro/en-croissant/blob/6f2d2628f0fbe11cb62a7dd2f9c102bb52907d53/src/utils/score.ts),
 [chess.rs](https://github.com/franciscoBSalgueiro/en-croissant/blob/6f2d2628f0fbe11cb62a7dd2f9c102bb52907d53/src-tauri/src/chess.rs).
+On November 3, 2026, both files were verified byte-identical at the latest stable
+[v0.15.1 release](https://github.com/franciscoBSalgueiro/en-croissant/releases/tag/v0.15.1),
+commit `4932c9231517f6fd75e5a97902b207c7dc82e61f`. This verifies the scoring and
+material source, not equivalence of entire applications or their evidence
+collection. En Croissant is the external peer in this comparison.
 The inspected Mobile Maia preview was `8563954429c2fb53ce0fe0e16c73c5d8a73ccfe0`:
 [MoveClassifier](https://github.com/Dash1971/maia-chess-android-preview/blob/8563954429c2fb53ce0fe0e16c73c5d8a73ccfe0/lib/src/review_widgets.dart).
 
@@ -191,24 +213,59 @@ material result already computed by classification; it adds no material or
 Stockfish search. En Croissant mode, accuracy and imported annotation protections
 remain unchanged, including recognition of older computed provenance versions.
 
-On a selected set of 159 currently displayed Chess.com Brilliants and 159
-explicitly non-brilliant moves from 153 games, the actual confirmation-aware
-replay gives:
+## 618-move benchmark
 
-| Policy | Brilliants recognized / 159 | Extra Brilliant awards / 159 |
-| --- | ---: | ---: |
-| En Croissant | 44 | 2 |
-| Mute v2 | 143 | 42 |
-| Proposed Mute v3 | 117 | 6 |
+All policies receive the same saved Stockfish 18 evidence: one thread, 64 MB hash
+and 300,000 requested nodes per position, with preceding/before/after windows.
+The external peer is the **direct, unchanged En Croissant annotation rule**,
+whose score/material source matches latest stable v0.15.1. Mute v2 and v3 use
+their actual whole-window confirmation-aware outputs. Applying Mute's shared
+confirmation wrapper to EC is a separate technical result, not the peer baseline.
+This is a source replay on saved evidence, not an end-to-end Mobile Maia benchmark.
 
-The proposal removes 36 extra awards while withholding 26 previously recognized
-Brilliants. This includes known genuine sacrifices such as Hansen's Nd7; four of
-the five earlier fresh-confirmed reference cases retain their awards. No named
-move is hard-coded. The rule was chosen after examining this challenge set, whose
-non-brilliants deliberately emphasize difficult offers. These are retrospective
-results, not a population error estimate or independent validation. The
-[illustrated report and reproducible methods](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves-2026-11-03/REPORT.md)
-retain disagreements, stronger-search sensitivity and selection limits.
+TP means a confirmed Chess.com Brilliant awarded `!!`; FN means one not awarded.
+FP means an explicitly non-Brilliant move awarded `!!`; TN means one not awarded.
+A withheld badge counts as no award. Agreement is `(TP + TN) / N`.
+
+| Ruleset | TP / 309 | FN / 309 | FP / 309 | TN / 309 | Agreement / 618 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Direct En Croissant rule | 84 | 225 | 6 | 303 | 62.6214% |
+| Mute v2 | 273 | 36 | 77 | 232 | 81.7152% |
+| Proposed Mute v3 | 220 | 89 | 16 | 293 | 83.0097% |
+
+The guard removes **61 extra awards** while losing **53 correctly recognized
+Brilliants** relative to v2. It still recognizes more of these Brilliants than
+EC, but it does not provide an unqualified improvement over v2. No named move is
+hard-coded. The combined set includes examples used to choose the guard, so its
+overall agreement is a retrospective description, not independent validation.
+
+### Prospective and reserved-game checks
+
+The v3 source was fixed before the 300 prospective moves were labeled. On those
+150 Brilliants and 150 non-Brilliants from 146 games:
+
+| Ruleset | TP | FN | FP | TN | Agreement / 300 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Direct En Croissant rule | 39 | 111 | 4 | 146 | 61.6667% |
+| Mute v2 | 130 | 20 | 35 | 115 | 81.6667% |
+| Proposed Mute v3 | 103 | 47 | 10 | 140 | 81.0000% |
+
+The separately reserved subset contains **101 moves from 48 whole games: 51
+Brilliants and 50 non-Brilliants**. It is part of the prospective 300 and combined
+618, not another set to add to either total. Game assignment was frozen before
+labeling, and position-overlap hygiene was fixed before policy scoring.
+
+| Ruleset | TP / 51 | FN / 51 | FP / 50 | TN / 50 | Agreement / 101 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Direct En Croissant rule | 15 | 36 | 0 | 50 | 64.3564% |
+| Mute v2 | 44 | 7 | 11 | 39 | 82.1782% |
+| Proposed Mute v3 | 31 | 20 | 4 | 46 | 76.2376% |
+
+V2 has higher overall agreement on both checks. V3 favors fewer extra awards at
+the cost of more missed Brilliants; that balance is a product choice, not evidence
+that it dominates v2. The [study report and methods](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md)
+retain move-level outcomes, source freezes, stronger-search sensitivity and
+selection limits. Mobile Maia's implementation remains unchanged.
 
 ## Confirmation, persistence and cost
 
@@ -250,11 +307,19 @@ positions, side-to-move perspective, soundness, safe alternatives, equivalent
 sacrifices and confirmation vetoes. Replayed eligibility inputs are not a live
 browser search; test corroboration windows are controlled fixtures.
 
-The experiment intentionally awards more sacrifices, but has no measured
-real-game award rate or false-positive rate yet. The selected sample helped
-choose the rules. A future independent set containing ordinary trades, unsound
-sacrifices and games across rating levels would be needed to quantify those
-rates; this draft adds no telemetry, calibration run or general tooling.
+The benchmark measures conditional label agreement on a balanced, offer-enriched
+sample. Of the 309 negative controls, 163 meet the raw legal-offer predicate; all
+observed extra awards occur in that subgroup. The other 146 controls receive no
+Brilliant from any tested policy. Four Book controls remain in the predeclared
+sample rather than being removed after seeing their labels. The report exposes
+these subgroups; not every comparison move is a difficult sacrifice.
+
+Moves share games, players and sometimes positions. These results do not establish
+ordinary-game award frequency, population error rates, beginner behavior or
+measured enjoyment. The combined results include development evidence; the
+prospective and reserved-game checks above provide separate tests of the frozen
+v3 policy. Broader games across rating levels would be needed to estimate normal
+play behavior. This draft adds no telemetry, calibration run or general tooling.
 
 Prepared with OpenAI Codex assistance. Automated checks are reported in the PR;
 no human manual testing or upstream Lichess contribution is claimed.

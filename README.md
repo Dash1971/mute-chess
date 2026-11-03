@@ -126,11 +126,25 @@ remain authoritative. Engine versions, search settings and reanalysis can change
 computed badges; historical results are not silently recalculated.
 
 Read the [full algorithm, evidence and Chess.com/En Croissant/Mobile Maia comparison](docs/brilliant-moves.md),
-including the exact confirmation budgets. In a selected 318-move challenge set,
-the proposed guard reduces awards on 159 Chess.com non-brilliants from 42 to 6,
-while recognizing 117 rather than 143 of its 159 brilliants (En Croissant: 44).
-These are retrospective sample counts, not ordinary-game error rates. Read the
-[illustrated research report](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves-2026-11-03/REPORT.md).
+including the exact confirmation budgets. Our selected **618-move benchmark**
+contains 309 current Chess.com Brilliants and 309 explicitly non-Brilliant moves
+from 299 games:
+
+| Ruleset | Brilliants recognized / 309 | Other moves awarded Brilliant / 309 |
+| --- | ---: | ---: |
+| Direct En Croissant rule | 84 | 6 |
+| Mute v2 | 273 | 77 |
+| Proposed Mute v3 | 220 | 16 |
+
+The guard removes **61 extra awards while losing 53 correctly recognized
+Brilliants**. This is a tradeoff: v2 has higher overall label agreement on both
+the prospective 300-move check and the separately reserved 101-move subset.
+The full benchmark includes development examples; its counts describe a balanced,
+offer-enriched sample, not ordinary-game error rates or measured enjoyment.
+The En Croissant score/material source was verified equivalent to stable
+v0.15.1, the latest release checked on November 3, 2026; Mobile Maia remains
+unchanged. Read the
+[illustrated study and validation results](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md).
 
 ### Opponents with an identity
 
