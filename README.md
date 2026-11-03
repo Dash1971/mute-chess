@@ -76,29 +76,28 @@ different things; a popular human move is not automatically the best move.
 
 ### More chances to find a brilliant move
 
-**Mute History Rule** is our draft open classifier for sound piece offers. It
-checks move quality, sacrifice relevance and game history, then rejects ordinary
-combinations that safely recover the offered material. Newly created offers and
-genuine temporary sacrifices remain eligible. **Mobile Maia keeps En Croissant.**
+Brillies are part of the fun. Our proposed **Mute History Rule** brings
+Chess.com-like sacrifice badges to an open platform, with rules anyone can
+inspect. It checks move quality and position context, remembers earlier offers,
+and follows material recovery so an ordinary trade does not automatically earn
+Brilliant.
 
-Across 1,048 reviewed examples, the refined rule recognizes **400 of 513
-Chess.com Brilliants** and makes **22 extra awards among 535 explicitly
-non-Brilliant moves**. That is 78.0% recognition, 94.8% sample badge precision
-and 87.1% agreement. This is a development replay, not an independent accuracy
-estimate or an ordinary-game error rate; the 90% agreement goal remains unmet.
+We studied **1,048 labeled moves from 545 games**, starting from En Croissant
+and comparing both classifiers with Chess.com on the same positions.
 
-The material-recovery guard rejects the ordinary `hxg6` and `hxg5` combinations
-while retaining all 400 previously correct awards in the saved corpus. The core
-History Rule separately recognized 78/100 Brilliants with 5/100 extra awards on
-an assessment collected after its rules were frozen, versus En Croissant's 26
-and 2. A new unseen assessment is still needed for the additional recovery guard.
+| On the studied examples | Mute Chess | En Croissant |
+| --- | ---: | ---: |
+| Chess.com Brilliants recognized | **400 / 513** | 139 / 513 |
+| Extra awards on non-Brilliant moves | **22 / 535** | 9 / 535 |
+| Overall agreement | **87.1%** | 63.5% |
 
-**Draft only: no merge or deployment.** The research uses Stockfish 18 at 300,000
-nodes; native Stockfish 19 and timed review modes remain unvalidated. Native
-accuracy, evaluations and imported PGN judgments retain their meanings.
+Mute recognizes about **2.9 times as many Brilliants**, with more extra awards.
+These results describe the studied examples; **fresh-game testing is underway
+before release**. Mobile Maia keeps its existing En Croissant rules.
 
-Read the [exact algorithm and limitations](docs/brilliant-moves.md) and the
-[illustrated research report](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md).
+See the [illustrated research report](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md)
+for the ideas and board examples, or the [exact algorithm](docs/brilliant-moves.md)
+for every threshold and exception.
 
 ### Opponents with an identity
 
