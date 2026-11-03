@@ -1,0 +1,93 @@
+{
+  "date": "2026-11-03",
+  "status": "draft_only_no_merge_or_deployment",
+  "policy": "mute-brilliant-v7",
+  "name": "Mute History Rule with existing-offer material recovery guard",
+  "native_source_sha256": {
+    "ui/analyse/src/noSweatClassify.ts": "79b2b94717e83d0b01bb32a834f4efa93498342cfb7bcb1ba068e9dcbefe898b",
+    "ui/analyse/src/noSweatHistoryOffer.ts": "11998e94330999e001a9e1aa683047c24563880cb1ebb4ad6ec019d813365785",
+    "ui/analyse/src/noSweatHistoryProof.ts": "eaad6d0f9235b64f11946aee137570efa7e60a9170c8af8c45b9f2d9a6df6f33",
+    "ui/analyse/src/noSweatRecoveryProof.ts": "f9dc9ddf2126b5210dbc1d595c9c81b8561290e7e6a6b85e808a4f7f3fd5fca6",
+    "ui/analyse/src/noSweatFullReview.ts": "8e297163ed8bbb5afc73fc80834fcece79ebb364f39feb5eda0645f9d2807dc5",
+    "ui/analyse/src/analyse.nosweatWorker.ts": "57bd6d1a599a611f3421404d4987d59d22415b174369c4470ac9e7f3a67eb7a7",
+    "ui/analyse/src/util.ts": "896c7ebf060c017e41c7ad769dc56a6fa6f0387fb0d1d713c59918d4a4f88f91",
+    "ui/analyse/tsconfig.json": "076004900c5c64f91890bfc6bac234b1e646a59cafd890fd84e7ad11ff5c9333",
+    "ui/analyse/tests/noSweatHistory.test.ts": "54fa303d474f0227d4c3c1cf117aae889250f3c97bb9acc923971a37f09709f3",
+    "ui/analyse/tests/noSweatRecovery.test.ts": "fbb10f24827d16510f7458465a2a613df196ea705b4addee40af5a61229e9309",
+    "ui/analyse/tests/fixtures/noSweat/brilliant-v6.json": "b90f89dc77c3d0402028d9788b7c29b154f75fa3eebee488cd50532bca52907b",
+    "ui/analyse/tests/fixtures/noSweat/brilliant-v7.json": "bc4b8ea81dae90f6c95f310a02ce6c86daa4ab7028810efdeb6358cee91443ad",
+    "ui/analyse/tests/noSweatBrilliants.test.ts": "bc3cfd59af94871105490913e7468e9001d99325167859863c43c0c42f9b525d",
+    "ui/analyse/tests/noSweatMuteBrilliants.test.ts": "d2f337e571e483c8d8e66348914797a565f5787ebea215a3d8563e5f6f98100e",
+    "ui/analyse/tests/noSweatFullGame.test.ts": "e2f1bba746e413cb0ad646b587179bdcfacd9c7c54ab212cfe9537d92dd9b8e8"
+  },
+  "native_patch_sha256": "63aeb766167c4fb2178a6a1da0e1f52b6925651dc68ae4b29d97f77f61958251",
+  "frozen_python_sha256": {
+    "CANDIDATE-PLAN.json": "1d95afbf290345ae9eeefa611f3286f07dfed8ab5da60d2aef202866d89b703f",
+    "candidate.py": "d87bf86b8da910950ca1da5c7ea753e2e96059dc0d8c93f16882a06012308a06",
+    "probe.py": "ccba09c903188490be3a1568a6174ed678b12edb080ab2db379cbc0a3302555a"
+  },
+  "evidence": {
+    "moves": 1048,
+    "games": 545,
+    "evaluation_role": "retrospective_development_for_refined_guard",
+    "TP": 400,
+    "FN": 113,
+    "FP": 22,
+    "TN": 513,
+    "only_changes": [
+      "171488501692:36",
+      "173517772799:30"
+    ],
+    "previously_correct_awards_preserved": 400,
+    "previously_correct_awards_lost": 0,
+    "independent_legal_certificate_audit": "passed; all4 Qc5+ evasions and43 Ba6 replies",
+    "guard_proof_unknown": 0
+  },
+  "historical_core_rule_independent_assessment": {
+    "moves": 200,
+    "games": 106,
+    "core_history_rule": {
+      "TP": 78,
+      "FN": 22,
+      "FP": 5,
+      "TN": 95
+    },
+    "en_croissant_direct": {
+      "TP": 26,
+      "FN": 74,
+      "FP": 2,
+      "TN": 98
+    },
+    "refinement_limit": "These labels informed the new guard; revised78TP/3FP is retrospective, not unseen validation."
+  },
+  "native_checks": {
+    "saved_input_cases": 1048,
+    "refined_decision_differences": 0,
+    "guard_status_node_certificate_differences": 0,
+    "ec_full_result_object_differences": 0,
+    "focused_serial_tests_passed": 74,
+    "focused_serial_tests_failed": 0,
+    "independent_ec_boundary_vectors": 3075,
+    "recovery_module_strict_typecheck": "passed",
+    "changed_typescript_format": "passed",
+    "exact_pinned_patch_apply_and_reconstruction": "passed",
+    "departure_register_tests_passed": 5,
+    "full_native_build": "pending CI for final source"
+  },
+  "reference_domain": {
+    "engine": "Stockfish18",
+    "nodes_per_position": 300000,
+    "threads": 1,
+    "hash_mb": 64,
+    "history": "full legal PGN history"
+  },
+  "release_limitations": [
+    "No new unseen assessment exists for the recovery guard.",
+    "Native Stockfish19 and variable timed review profiles remain unvalidated.",
+    "Missing prior history or engine origin windows cannot establish the temporal veto.",
+    "Unknown recovery proofs retain the core award; finite material proof is not a full tactical solver.",
+    "Human review and browser interaction checks remain outstanding; no human manual testing is claimed.",
+    "The90% agreement goal remains unmet."
+  ],
+  "report": "https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md"
+}

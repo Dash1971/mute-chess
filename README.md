@@ -76,35 +76,29 @@ different things; a popular human move is not automatically the best move.
 
 ### More chances to find a brilliant move
 
-Mute Chess's draft v5 classifier favors fewer questionable `!!` awards while
-recognizing more sound sacrifices than the En Croissant reference. Its fixed
-64-tree model uses 75 chess and engine features, with explicit legal-offer and
-soundness checks. It is our own open classifier, not Chess.com's private formula.
-**Mobile Maia remains unchanged on the En Croissant rules.**
+**Mute History Rule** is our draft open classifier for sound piece offers. It
+checks move quality, sacrifice relevance and game history, then rejects ordinary
+combinations that safely recover the offered material. Newly created offers and
+genuine temporary sacrifices remain eligible. **Mobile Maia keeps En Croissant.**
 
-On a fresh, balanced test frozen before its labels were collected:
+Across 1,048 reviewed examples, the refined rule recognizes **400 of 513
+Chess.com Brilliants** and makes **22 extra awards among 535 explicitly
+non-Brilliant moves**. That is 78.0% recognition, 94.8% sample badge precision
+and 87.1% agreement. This is a development replay, not an independent accuracy
+estimate or an ordinary-game error rate; the 90% agreement goal remains unmet.
 
-| Classifier | Chess.com Brilliants recognized / 100 | Other moves awarded Brilliant / 100 |
-| --- | ---: | ---: |
-| Direct En Croissant rule | 26 | 2 |
-| Mute v5 fixed forest | 55 | 1 |
+The material-recovery guard rejects the ordinary `hxg6` and `hxg5` combinations
+while retaining all 400 previously correct awards in the saved corpus. The core
+History Rule separately recognized 78/100 Brilliants with 5/100 extra awards on
+an assessment collected after its rules were frozen, versus En Croissant's 26
+and 2. A new unseen assessment is still needed for the additional recovery guard.
 
-That is **98.2% precision among the 56 awarded badges**, **55% recognition of
-Chess.com's Brilliants**, and **77% overall agreement**. These are different
-measures: the 90% agreement goal remains unmet. The sample contains deliberately
-challenging comparison moves, so these figures do not estimate ordinary-game
-error rates. Quiet sacrifices can still be missed; the test also retains one
-extra `Rxd7+` award.
+**Draft only: no merge or deployment.** The research uses Stockfish 18 at 300,000
+nodes; native Stockfish 19 and timed review modes remain unvalidated. Native
+accuracy, evaluations and imported PGN judgments retain their meanings.
 
-**Draft only: no merge or deployment.** The TypeScript adapter and integrated
-classifier match the frozen reference on 1,048 saved cases. That checks the port,
-not browser behavior: the research used Stockfish 18 at 300,000 nodes, while
-native Stockfish 19 and timed review modes remain unvalidated. The native adapter
-also abstains from `!!` if its bounded physical-material probe is incomplete.
-Native accuracy, evaluations and imported PGN judgments retain their meanings.
-
-Read the [exact algorithm, confirmation rules and limitations](docs/brilliant-moves.md)
-and the [illustrated study and fresh-test results](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md).
+Read the [exact algorithm and limitations](docs/brilliant-moves.md) and the
+[illustrated research report](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md).
 
 ### Opponents with an identity
 

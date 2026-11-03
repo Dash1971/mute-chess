@@ -1,159 +1,166 @@
-# Brilliant moves: precision-first Mute v5
+# Brilliant moves: Mute History Rule
 
-Mute Chess's draft `mute-chess-brilliant-v5` uses a fixed forest to award more
-sound sacrifices than the En Croissant reference while keeping extra awards low.
-It changes Mute's computed Brilliant eligibility. Mobile Maia stays unchanged.
-This is an open experiment, not a reproduction of Chess.com's unpublished
-classification formula or an objective measure of creativity.
+Mute Chess's draft classifier uses explicit chess heuristics to recognize sound
+piece offers, avoid repeated awards for an unchanged sacrifice, and reject
+ordinary material-recovery combinations. It is our open implementation, not
+Chess.com's unpublished formula. **Mobile Maia retains En Croissant.**
 
-**Draft only: no merge or deployment is authorized.** Native Stockfish 19 and
-variable timed review profiles remain unvalidated. No human manual testing is
-claimed.
+The recommendation is one system: **Mute History Rule with the material-recovery
+guard**. The forest remains a research comparison, not a native runtime or mode.
+This PR is a draft; no merge, deployment or human manual testing is claimed.
+Native Stockfish 19 and varying timed review budgets remain unvalidated.
 
-## What the fresh test shows
+## Evidence and its limits
 
-The [public study](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md)
-contains 1,048 moves from 545 games: 848 development moves and a separate fresh
-200-move test from 106 games. The model, threshold, feature extraction and test
-selection protocol were frozen before the fresh labels were collected. The fresh
-set contains 100 currently confirmed Chess.com Brilliants and 100 explicitly
-non-Brilliant controls, balanced across five public accounts. Prior development
-games and positions were excluded. Historical gallery disagreements and controls
-that turned out to be Brilliant were retained separately, not silently relabeled
-or counted in the primary 200.
+The [illustrated study](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md)
+contains 1,048 moves from 545 games, with 513 recorded Chess.com Brilliants and
+535 explicitly non-Brilliant controls. The refined rule recognizes **400/513**
+Brilliants and makes **22/535** extra awards: 78.0% recognition, 94.8% sample badge
+precision and 87.1% agreement. This is a replay of examples used to develop the
+refinement, not an independent accuracy estimate.
 
-| Classifier | True awards | Missed Brilliants | Extra awards | Correct non-awards | Agreement |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Direct En Croissant rule | 26 | 74 | 2 | 98 | 62% |
-| Mute v5 fixed forest | 55 | 45 | 1 | 99 | 77% |
-| Separate temporal-rule comparator S | 78 | 22 | 5 | 95 | 86.5% |
+The core History Rule was frozen before a separate 200-move assessment. It
+recognized 78/100 Brilliants, with 5/100 extra control awards, versus direct
+En Croissant's 26 and 2. The new material guard rejects the ordinary `hxg6` and
+`hxg5` combinations while retaining all 400 previously correct awards across the
+saved corpus. On the earlier 200, that changes 5 extra awards to 3 while retaining
+78 matches. Those revised numbers are retrospective: the errors informed the
+guard, so they must not be advertised as a new untouched test.
 
-V5's badge precision is 55/56, or **98.2%**; its recognition rate is **55%**.
-Neither is overall agreement. The **90% agreement goal remains unmet**. S trades
-more extra awards for more recognized Brilliants and is not the native default.
-The direct, unchanged EC rule is the external peer; imposing Mute's confirmation
-wrapper on EC is a separate comparison, not a replacement for that baseline.
-All receive the same saved engine evidence.
+The samples emphasize challenging comparisons from five established accounts.
+They do not establish beginner behavior, ordinary-game badge frequency,
+population precision, or measured fun. The 90% agreement goal remains unmet.
+Further unseen-game assessment and native-domain testing remain necessary.
 
-The controls emphasize nearby, challenging moves rather than a random sample of
-ordinary play. Moves share games and accounts. The results do not establish
-population badge precision, beginner behavior, normal award frequency or measured
-fun. One extra `Rxd7+` award remains. The known ordinary `Ndxe5` tactic is rejected,
-but genuine `Nxd5` and quiet `Bg2` examples are missed. Those illustrations must
-not be presented as successful Mute awards or added to the fresh-test totals.
+## Ordered decision rules
 
-## Exact frozen classifier
+The exact code and finite proof limits are also documented in the
+[research algorithm reference](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/README.md).
+The native classifier is carried in the maintained
+[Lila patch](../deploy/lila/patches/lila-nostr-maia.patch).
 
-The [versioned research reference](https://github.com/Dash1971/mute-chess-research/tree/main/studies/brilliant-moves/reference/v5)
-provides the frozen extractor, model and protocol. The native adapter is
-`ui/analyse/src/noSweatBrilliantForest.ts`, with static weights in
-`noSweatBrilliantForestModel.json`, carried by the
-[Lila patch](../deploy/lila/patches/lila-nostr-maia.patch). The worker selects v5.
-The internal v4 reference branch is not exposed as a review-mode choice.
+### 1. Require a sound, concrete piece offer
 
-The forest has **64 trees and 75 semantic features**, plus a missingness indicator
-for each feature. Each tree returns its unweighted positive fraction at the
-selected leaf; the classifier averages those fractions. The result is a model
-score, not a calibrated probability. Both the current and corroborating engine
-windows must each score **at least 5/6** and satisfy these hard gates:
+Use the mover's evaluation and
+`W(cp) = 100 / (1 + exp(-0.00368208 * cp))` after clamping cp to ±1000;
+signed mate scores map to ±1000. Require two distinct evaluated roots, no more
+than five mapped percentage points lost relative to the best root, and an
+after-score of at least −100 cp. The played move need not be uniquely best.
 
-1. At least two complete, distinct candidate roots before the move.
-2. A raw legal piece offer after the played move.
-3. At most **5 percentage points** lost relative to the best before-score under
-   `W(cp) = 100 / (1 + exp(-0.00368208 * cp))`.
-4. The after-score is at least **−100 cp**, from the mover's perspective.
-5. Complete-window confidence, including nonempty matching quality metadata.
+A raw offer concerns a mover-owned non-pawn, non-king piece that the opponent
+can legally capture. Its optimal same-square capture/recapture gain must exceed
+`max(0, moverMaterial(after) - moverMaterial(before)) + 100`. This credits
+captures and promotions already made. Material units are pawn 90, knight/bishop
+300, rook 500, queen 1000 and king 0. The same-square exchange helper permits
+stopping; it is a local heuristic, not a full tactical solver.
 
-Mate scores use the reference's signed normalization. The played move need not
-be the first or uniquely best root. The raw offer test considers mover-owned
-non-pawn, non-king pieces and legal captures followed by optimal same-square
-recaptures, with either side allowed to stop. A profitable acceptance must exceed
-`max(0, moverMaterial(after) - moverMaterial(before)) + 100`. This credits immediate
-captures and promotions rather than mistaking their proceeds for a sacrifice.
-Material values are pawn 90, knight/bishop 300, rook 500 and queen 1,000.
+Also require the independent En Croissant material predicate
+`EC(before) > -EC(after) + 100`, a searched winning mate, or the bounded attributed
+mate-acceptance exception. The exception requires a profitable acceptance and
+literal legal mate-in-one reply tied to a newly offered or moved piece; an
+unrelated preexisting mate trap cannot supply the evidence. Its proof is bounded
+to 512 counted nodes; exhaustion establishes no exception.
 
-The EC material heuristic, mating replies, phase-aware safe alternatives,
-checked continuations, attribution, avoidability, physical refunds and prior
-engine context are **predictors, not additional hard vetoes**. V5 is not the old
-EC-material gate followed by a model. No player identity, game ID, move lookup,
-Chess.com label, rating whitelist or Maia likelihood is a runtime predictor.
+### 2. Exclude routine winning alternatives and checked continuations
 
-The feature-specific probes retain the frozen reference's bounds: attribution,
-avoidability and stalemate checks use bounded legal proofs; the physical probe
-examines three plies of captures/promotions, including legal check evasions,
-within 10,000 nodes and 250 ms. Unknown results remain explicitly missing rather
-than being invented. Native numeric inputs reject NaN and infinity.
+When remaining phase is at most 8 or the mover leads by at least 300 physical
+material points, withhold Brilliant if another searched non-offering move scores
+at least +600 cp. Phase weights are knight/bishop 1, rook 2 and queen 4, initially
+24. This checks searched alternatives, not every legal move.
 
-The native adapter adds one conservative safeguard beyond the frozen research
-reference: **an incomplete physical probe prevents both provisional and final
-Brilliant awards**. No physical timeout was observed in the 1,048-case parity
-replay, so this guard has no observed effect there. It addresses an unrepresented
-missingness condition on slower devices; it is not a claim of calibrated behavior
-under timeouts. Other optional unknowns, including avoidability unknowns seen in
-training, retain the frozen model's handling.
+When the mover starts in check, a bounded unchanged-offer proof can reject an
+ordinary continuation. It must account for every qualifying offer, rather than
+mistaking the continued availability of an earlier sacrifice for a new idea.
+Unknown history or an exhausted 512-node proof establishes no veto.
 
-## Confirmation, fallback and native behavior
+### 3. Confirm the award with a second completed engine window
 
-The classifier evaluates the current and previous complete engine iterations.
-An independent confirmation can replace the second window while leaving the
-first unchanged. Its metadata must match, its completed depth must not be lower,
-and terminal evidence must be preserved. A contradictory or incomplete window
-withholds the standout award. Ordinary EC `!` retains its preceding-position
-confirmation requirements.
+Repeat the core decision using the preceding completed iteration. An explicit
+independent confirmation may replace that second window, preserving the primary
+window. Quality metadata must match, confirmation depth must not be lower, and
+terminal evidence must be preserved. Contradictory or incomplete required engine
+evidence withholds a standout award. Ordinary EC Great-move confirmation retains
+its preceding-position requirements.
 
-Full review retains its existing six-search confirmation allowance. Fast targets
-depth 12 / 500 ms per position, Balanced 14 / 1,000 ms, and Thorough 16 / 1,500 ms.
-Only unsupported standout candidates consume that allowance, targeting two more
-depths with the selected mode's time cap. The forest adds no Stockfish searches
-or roots. Its legal/material work runs in the cancellable classification worker;
-worker failure, cancellation or the existing 10-second watchdog publishes no
-result. Results are checked again before committing glyphs.
+### 4. Avoid repeated badges for an unchanged sacrifice
 
-The legacy additive verifier supplies only two board positions, so prior history
-and prior engine features are honestly missing. Full review normally supplies
-three positions, but its two-review confirmation of `!!` also leaves the second
-window's prior engine features missing. These paths are not equivalent to the
-saved three-position, fixed-budget research evidence and remain native validation
-caveats. No fabricated history or extra search fills the gap.
+Inspect the preceding three own decisions within a continuous six-ply history.
+An origin must independently earn a confirmed, unsuppressed core award from its
+original engine windows. Imported labels, provisional badges and earlier
+suppressed History Rule decisions cannot establish origins.
 
-When the forest does not award `!!`, ordinary EC annotations retain their normal
-meaning and confirmation. Sacrifice-derived `!!`/`!?` is cleared if there is no
-raw legal piece offer; an EC `!!` otherwise falls back to `!?` when its sacrifice
-and score permit it. The original EC policy and reference functions remain
-available unchanged. Accuracy and centipawn loss calculations are unchanged.
+For a quiet current award, withhold it if an earlier origin accounts for every
+currently offered physical piece: each piece remains unmoved and unreplaced, has
+the same exchange liability, and qualified against the earlier capture credit.
+Current checks, captures, promotions and actual castling are exempt from this
+repeat rule. Preserve a new qualifying acceptance permitting literal mate, or a
+new checking-fork reply that safely wins more than 100 net material points after
+every legal check evasion. Fork novelty compares checking-piece role and checking
+destination. The shared proof budget is 512 counted nodes.
 
-Computed v5 badges carry `mute-chess-brilliant-v5` provenance. Imported PGN
-judgments remain authoritative, and computed provenance versions v1–v5 are
-recognized by conflict protection. Native evaluations, analysis-tree ownership,
-clocks and outcomes are unchanged. Explicit fresh review may replace computed
-judgments; there is no historical batch or silent rewrite of saved badges.
+Missing earlier engine windows cannot prove an origin. Incomplete physical
+history or proof exhaustion establishes no veto. A complete result with no
+proven origin does not imply that all historical engine evidence was available.
+Legacy two-position callers therefore cannot provide the same history coverage
+as full review.
 
-## Verification and limits
+### 5. Reject existing offers that best defense accepts and safely refunds
 
-The [versioned validation record](../analysis/data/brilliants-v5-validation.json)
-pins the model, native source and maintained patch, with the actual check results.
+This narrowly targets ordinary material transactions; it is not a ban on
+captures or temporary sacrifices. Apply only to a non-promoting capture that
+neither gives check nor answers a check. All qualifying offered pieces must be
+unmoved by the target move.
 
-The TypeScript feature adapter and integrated classifier were replayed against
-all **848 development + 200 fresh cases** using their exact saved engine inputs:
-no categorical/missingness, model-decision or integrated Brilliant differences
-were found; floating differences were limited to machine rounding. EC result
-objects also matched the independent reference replay. Focused tests cover input
-validation, confirmation, actual worker dispatch, cancellation and glyph/import
-protection. These checks validate implementation parity, not a second independent
-accuracy test. The fresh set must not be used to retune this model or threshold.
+Both completed after-position engine windows must choose a first-root reply
+that actually accepts a qualifying offer. Different roots may qualify, but a
+later PV capture or the continuation played in the game is insufficient.
 
-The research used Stockfish 18, one thread, 64 MB hash and 300,000 requested nodes
-per position with full PGN history. Native Stockfish 19 and timed modes produce
-different inputs. Even changing only the research node budget changed predictions,
-so source parity cannot establish native accuracy. Browser/device runtime and
-human review remain necessary before a release decision.
+Every qualifying acceptance must already have been legal, with the same
+attacker/victim identities and exchange gain, before the target capture. This
+uses a before-position clone with the opponent to move solely to compare static
+capture geometry; it invents no actual move or historical event. A capture that
+opens a new sacrifice lane is protected.
 
-The independent EC score/material sources are pinned to v0.15.0 commit
-`6f2d2628f0fbe11cb62a7dd2f9c102bb52907d53` and were verified byte-identical to
-v0.15.1 commit `4932c9231517f6fd75e5a97902b207c7dc82e61f`, the latest stable
-release checked on November 3, 2026. This is source equivalence, not equivalence
-of complete applications or their engine collection. Source pins, full outcomes,
-selection limitations and sensitivity results are retained in the public study.
+For every qualifying acceptance, search for one legal noncapture,
+nonpromotion reply by the original mover. Against **every legal opponent reply**,
+require an explicit legal, nonchecking, nonterminal capture that restores the
+physical material balance to within 100 points of its pre-target value, after
+subtracting the opponent's maximum same-square recapture gain. Do not use an
+unstable raw material leaf, a mate sentinel, or a single principal variation as
+a recovery certificate. Unresolved checking captures do not establish recovery.
 
-Prepared with OpenAI Codex assistance. No upstream contribution, human manual
-test, merge or deployment is claimed.
+The whole target shares a 100,000-node, one-second limit. Unknown or exhausted
+proofs retain the core History Rule decision. This is a finite local material
+certificate; it does not claim to solve all subsequent tactical play. No account,
+rating, game ID, square whitelist or observed Chess.com label enters the rule.
+
+The `hxg6` certificate uses `...Qc5+` and covers all four legal check evasions.
+The `hxg5` certificate uses `...Ba6` and covers all 43 legal replies: moving the
+bishop allows recovery of the other rook, while moving that rook leaves the
+bishop available. These are conditional acceptance branches, not claims that the
+opponent must accept the offer or play the illustrated continuation.
+
+## Native behavior and release boundary
+
+Full review supplies its existing preceding six plies and engine evidence;
+these rules add no engine searches or new review settings. The existing six-search
+confirmation allowance remains. Legal/material work runs in the cancellable
+classification worker. Failure, cancellation or the existing watchdog publishes
+no result. Results are checked again before committing glyphs.
+
+A proved repeat or material-recovery veto clears final and provisional computed
+Brilliant eligibility rather than requesting more confirmation searches.
+Independent EC behavior, native accuracy and centipawn loss remain unchanged.
+Imported PGN judgments remain authoritative. Computed provenance generations are
+protected against accidental replacement; explicit fresh review may replace a
+computed judgment. There is no silent historical batch rewrite.
+
+The saved research uses Stockfish 18, 300,000 requested nodes, one thread, 64 MB
+hash and full legal PGN history. Native SF19, timed budgets and legacy incomplete
+history paths produce different inputs. Reference parity and passing native
+builds do not establish their award accuracy or browser performance.
+
+En Croissant sources are pinned to commit
+`6f2d2628f0fbe11cb62a7dd2f9c102bb52907d53`, verified byte-identical to v0.15.1 for
+the copied score/material functions. Original GPL/AGPL notices and source
+attribution remain authoritative. Prepared with OpenAI Codex assistance.
