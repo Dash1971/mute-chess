@@ -160,6 +160,42 @@ nonprovisional ratings labeled **Research-seeded**, with zero completed games.
 Native Glicko-2 updates those ratings as they play. Keeping playing strength close
 to Lichess remains a goal we will monitor over time.
 
+## Why 10,000 bots?
+
+We want quick pairing to feel like joining a pool: a varied cast of familiar
+opponents, with different playing styles and more accounts around the ratings
+where most players are. A large roster makes repeat opponents less common
+without changing Lichess's matchmaking rules. These are persistent identities,
+not 10,000 engines running at once; automatic play uses at most five games
+at a time and leaves capacity for people.
+
+The bots also play one another, building public game histories and updating
+their ratings through native Glicko-2. A November 2026 activity check found
+about **1,770 completed bot-versus-bot games per day including maintenance
+pauses and outages**, or an estimated **2,700 per day with uninterrupted
+operation**. Human games and the earlier calibration runs are excluded.
+
+Across the roster, that works out to:
+
+| Average games per bot | Including recent interruptions | With uninterrupted operation |
+| --- | ---: | ---: |
+| Per week | 2.5 | 3.8 |
+| Per month | 11 | 16 |
+| Per year | 130 | 200 |
+
+Automatic games split evenly between **Blitz and Rapid**: roughly **65–100
+games per bot per year in each speed**, or one every four to six days. That
+cadence should generally keep those ratings established as Glicko-2 balances
+new results against uncertainty from inactivity. Selection is random, so some
+bots play more than others; it is not a guarantee for every account. Automatic
+play does not currently refresh Bullet or Classical ratings.
+
+These are projections from roughly 60 hours of activity, not annual observations;
+they assume the same roster size, capacity and playing pace. Ongoing games help
+maintain ratings, while alignment with human Lichess strength remains a separate
+validation goal. See the [activity rules](docs/public-bot-activity.md) and
+[dated activity check](https://github.com/Dash1971/mute-chess/issues/236).
+
 ## Engine settings
 
 **Playing Maia:** each bot keeps its configured Maia self-rating input, sampling,
