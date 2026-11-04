@@ -171,3 +171,27 @@ unrelated paths remain denied; no socket port or service exposure changes.
 Focused handler tests use mocked HTTP transports without binding ports or changing
 live relations/challenges. No native game, challenge ownership or friendship
 semantics are replaced. This correction is PR-only until separately released.
+
+
+## Online-friend public names (#259)
+
+The WebSocket friend-data reader now loads the existing optional
+`profile.displayName` and applies the same nonempty public-name/canonical-name
+fallback as `LightUser.publicName`. The initial `following_onlines` message
+carries a separate `displayNames` map keyed by canonical account ID; live
+`following_enters` carries `displayName`. Existing `d` title/name strings and
+presence/playing IDs remain canonical. Older clients ignore the additive fields,
+and the updated UI falls back to the native name when metadata is absent/empty.
+
+Friend labels use the existing HTML escape helper. Public names with spaces,
+punctuation or HTML-like text cannot change links or presence identity. Native
+profile/TV links, BOT titles and aliases, patron colors, counts and leave/playing
+updates remain intact. No new copy, endpoint, per-friend lookup or account writes
+are introduced. The existing WS friend-data cache lifetime (up to ten minutes)
+is unchanged; this does not add immediate name-change push notifications.
+
+Focused DOM regressions exercise initial/enter events, renames, escaping, old
+payloads and canonical presence/link behavior. The existing automatic CI checks
+native UI tests/types and applies the exact WS patch; it does not compile
+lila-ws. No local full native/UI build, release build, merge or deployment is
+part of this PR.

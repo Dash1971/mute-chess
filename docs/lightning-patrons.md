@@ -117,3 +117,40 @@ owner confirmed the camera does not recognize the current QR. The corrected
 rendering still needs a scan test on a Phoenix device;
 no wallet payment or end-to-end compatibility claim is made. This PR remains
 undeployed pending the owner's instruction.
+
+
+## Dismissing an outstanding invoice (#260)
+
+Signed-in donors can choose **Dismiss invoice** to hide an unpaid donation
+request, including after reloading. The adjacent help and result explain that
+the wallet invoice can still be paid until its expiry. Our current public
+LNURL-pay/NIP-57 integration provides invoice creation and receipt verification,
+not wallet invoice revocation; no wallet-management API or secret is added.
+The [LNURL-pay flow](https://github.com/lnurl/luds/blob/luds/06.md) and
+[NIP-57 flow](https://github.com/nostr-protocol/nips/blob/master/57.md) document
+those public creation and receipt operations. This does not claim that every
+provider's separate management API lacks cancellation.
+
+The existing authenticated same-origin controller atomically matches the exact
+payment hash, signed-in account and `paid: false` before setting only a
+`dismissed` flag. A paid record or another account's invoice cannot be dismissed.
+Repeated dismissal is harmless. No invoice, receipt or paid record is deleted,
+and dismissal never grants wings or changes payment state. A payment racing
+dismissal still goes through the original verified receipt/account/ledger checks
+and grants the same native wings.
+
+The pending body remains the existing unpaid-invoice array. Its additive
+authenticated `X-Mute-Patron-Dismissed` header carries the dismissed hashes from
+that same bounded result, with `Cache-Control: no-store`. The browser tracks
+all returned invoices for late receipts and restores only non-dismissed invoices
+newer than the existing paid-at watermark. New renewal invoices remain available.
+Dismissal and display guards prevent stale QR/expiry/pending/copy callbacks from
+restoring the hidden request; a server-confirmed payment wins over an in-flight
+dismissal. The full QR payload, invoice amount, signer validation and receiving
+address are unchanged.
+
+Four new native translation keys cover the action, help, success and failure
+feedback in all ten supported locales. Focused browser tests use mocked invoice
+fixtures and the existing cryptographic receipt suite; no real invoice is
+created or paid. Native selector tests run in the existing CI test command.
+This PR does not merge, build a release or deploy.
