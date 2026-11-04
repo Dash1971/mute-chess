@@ -15,6 +15,9 @@ use the generic permanent-ID explanation. All human Nostr profiles show their
 permanent handle, including those without a chosen username. Managed bots have
 no Nostr help buttons. The help reads no key storage and exposes no private keys.
 The npub's existing click-to-copy and 900ms Copied feedback remain separate.
+Profile help, the introductory login disclosure, contact guidance and copy
+feedback use native translations in all ten supported locales (#242), including
+titles and accessible labels. Linked sentences retain translated placeholders.
 
 Keep Create a key and play, Continue with saved key, and Log in with signer as
 direct actions. No required tutorial or backup acknowledgement. A closed “New to

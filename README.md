@@ -353,3 +353,10 @@ source versions, and reproduction references.
 
 For research, code and labeled data on brilliant-move classification, see
 [Open Brilly Finder](https://github.com/Dash1971/open-brilly-finder).
+
+## UI translations
+
+All new or changed user-facing text must use the native translation catalogs
+and ship in all ten supported languages, including help, accessibility labels,
+errors and copy feedback. English fallback alone is insufficient. Check key and
+placeholder parity and localized rendering before release; see [AGENTS.md](AGENTS.md).
