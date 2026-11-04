@@ -1144,10 +1144,18 @@ index 5222d2d..2edd45b 100644
    def apply(
        tourneyWinners: List[lila.tournament.Winner],
 diff --git a/app/views/user/show/header.scala b/app/views/user/show/header.scala
-index 26a6045..b1e10d7 100644
+index 26a6045..d8bcd9c 100644
 --- a/app/views/user/show/header.scala
 +++ b/app/views/user/show/header.scala
-@@ -10,11 +10,59 @@ import lila.web.ui.bits.splitNumber
+@@ -3,6 +3,7 @@ package show
+ 
+ import lila.app.UiEnv.{ *, given }
+ import lila.app.mashup.UserInfo
++import lila.core.i18n.I18nKey
+ import lila.user.Plan.sinceDate
+ import lila.user.PlayTime.*
+ import lila.user.Profile.*
+@@ -10,11 +11,50 @@ import lila.web.ui.bits.splitNumber
  
  object header:
  
@@ -1168,47 +1176,38 @@ index 26a6045..b1e10d7 100644
 +      title := label
 +    )
 +
-+  private def identityHelp(u: User) = frag(
++  private def identityHelp(u: User)(using Context) = frag(
 +    div(id := "nostr-help-npub", cls := "none")(
-+      h2("Your Nostr identity"),
++      h2(I18nKey("muteNpubHelpTitle")()),
 +      p(
-+        "Your npub is your public ",
-+        a(href := "https://nostr.org/", targetBlank, rel := "noopener noreferrer")("Nostr"),
-+        " key and your unique identity on Mute Chess. You can change your username, but your npub stays the same. Your npub is public and can be shared with anyone."
++        I18nKey("muteNpubHelpIdentity")(
++          a(href := "https://nostr.org/", targetBlank, rel := "noopener noreferrer")("Nostr")
++        )
 +      ),
++      p(I18nKey("muteNpubHelpPair")()),
++      p(strong(I18nKey("muteNpubHelpSecret")()), " ", I18nKey("muteNpubHelpWarning")()),
 +      p(
-+        "Your npub and nsec form a key pair. Think of them as a username and password: the npub identifies you, and the nsec is your private key."
++        I18nKey("muteNpubHelpApps")(
++          a(href := "https://primal.net/", targetBlank, rel := "noopener noreferrer")("Primal")
++        )
 +      ),
-+      p(
-+        strong("Keep your nsec secret."),
-+        " Someone who has it could sign in to your account here or post messages as you on Nostr."
-+      ),
-+      p(
-+        "You can use the same identity anywhere Nostr is supported. For example, ",
-+        a(href := "https://primal.net/", targetBlank, rel := "noopener noreferrer")("Primal"),
-+        " is a social site similar to X, where you can follow people and be followed using your Nostr identity."
-+      ),
-+      p(
-+        "We use Nostr to keep the personal information we ask for to a minimum. We don't want your email address. Please minimize the personal information you share in your public profile."
-+      )
++      p(I18nKey("muteNpubHelpPrivacy")())
 +    ),
 +    div(id := "nostr-help-handle", cls := "none")(
-+      h2("Your permanent account ID"),
++      h2(I18nKey("muteHandleHelpTitle")()),
 +      p(
 +        if u.nostrKey.exists(k => u.username.value.equalsIgnoreCase("n" + k.take(19))) then
-+          "This account ID is made from a shortened hexadecimal form of your public key, with an n prefix."
-+        else "This is your unique account ID on Mute Chess."
++          I18nKey("muteHandleHelpDerived")()
++        else I18nKey("muteHandleHelpGeneric")()
 +      ),
-+      p(
-+        "It gives your profile a permanent link. You can change your username, and people with this link will still reach your profile."
-+      )
++      p(I18nKey("muteHandleHelpLink")())
 +    )
 +  )
 +
    private def possibleSeoBot(u: User) =
      !u.isVerified && !u.hasTitle && u.count.game < 5 && u.profile.exists(_.hasLinks)
  
-@@ -42,7 +90,7 @@ object header:
+@@ -42,7 +82,7 @@ object header:
      )(
        u.isPatron.not.so(lineIcon(u)),
        titleTag(u.title),
@@ -1217,7 +1216,7 @@ index 26a6045..b1e10d7 100644
        if ctx.blind
        then s" : ${if isOnline.exec(u.id) then trans.site.online.txt() else trans.site.offline.txt()}"
        else
-@@ -53,8 +101,13 @@ object header:
+@@ -53,8 +93,13 @@ object header:
  
    def apply(u: User, info: UserInfo, angle: UserInfo.Angle, social: UserInfo.Social)(using ctx: Context) =
      val showLinks = !possibleSeoBot(u) || isGranted(_.Shadowban)
@@ -1232,14 +1231,14 @@ index 26a6045..b1e10d7 100644
          u.patronAndColor.match
            case Some(p) =>
              h1(cls := s"user-link ${if isOnline.exec(u.id) then "online" else "offline"}")(
-@@ -62,6 +115,17 @@ object header:
+@@ -62,6 +107,17 @@ object header:
                userDom(u)
              )
            case None => h1(userDom(u)),
 +        if publicNpub.isDefined then
 +          span(cls := "user-show__handle")(
 +            s"@${u.username.value}",
-+            identityInfo("handle", "About this permanent account ID")
++            identityInfo("handle", I18nKey("muteAboutHandle").txt())
 +          )
 +        else
 +          u.profile
@@ -1250,7 +1249,7 @@ index 26a6045..b1e10d7 100644
          div(cls := "trophies")(
            views.user.bits.perfTrophies(u, info.ranks),
            otherTrophies(info),
-@@ -75,6 +139,19 @@ object header:
+@@ -75,6 +131,19 @@ object header:
          ),
          u.enabled.no.option(span(cls := "closed")("CLOSED"))
        ),
@@ -1260,9 +1259,9 @@ index 26a6045..b1e10d7 100644
 +            a(
 +              cls := "user-show__nostr-link",
 +              href := s"/@/$npub",
-+              ariaTitle("Copy public npub")
++              ariaTitle(I18nKey("muteCopyNpub").txt())
 +            )(npub),
-+            identityInfo("npub", "About this public Nostr key"),
++            identityInfo("npub", I18nKey("muteAboutNpub").txt()),
 +            span(cls := "user-show__nostr-feedback", attr("role") := "status", attr("aria-live") := "polite")
 +          ),
 +          identityHelp(u)
@@ -1270,7 +1269,7 @@ index 26a6045..b1e10d7 100644
        div(cls := "user-show__social")(
          div(cls := "number-menu")(
            u.noBot.option(
-@@ -162,6 +239,7 @@ object header:
+@@ -162,6 +231,7 @@ object header:
                    .so(profile.nonEmptyBio)
                    .map: bio =>
                      p(cls := List("bio" -> true, "muted" -> muted))(richText(bio, nl2br = true)),
@@ -2806,6 +2805,19 @@ index 2303c7d..302c7a4 100644
          )
  
    object side:
+diff --git a/modules/ublog/src/main/ui/UblogPostUi.scala b/modules/ublog/src/main/ui/UblogPostUi.scala
+index b4c4ae7..b153a0b 100644
+--- a/modules/ublog/src/main/ui/UblogPostUi.scala
++++ b/modules/ublog/src/main/ui/UblogPostUi.scala
+@@ -4,7 +4,7 @@ package ui
+ import lila.ui.*
+ import lila.ui.ScalatagsTemplate.{ *, given }
+ 
+-final class UblogPostUi(helpers: Helpers, ui: UblogUi)(connectLinks: Frag):
++final class UblogPostUi(helpers: Helpers, ui: UblogUi)(connectLinks: Context ?=> Frag):
+   import helpers.{ *, given }
+ 
+   def page(
 diff --git a/modules/ui/src/main/helper/GameHelper.scala b/modules/ui/src/main/helper/GameHelper.scala
 index 49b468f..02c0da6 100644
 --- a/modules/ui/src/main/helper/GameHelper.scala
@@ -3635,13 +3647,23 @@ index 4d9306b..b8b1950 100644
        )
      )
 diff --git a/modules/web/src/main/ui/bits.scala b/modules/web/src/main/ui/bits.scala
-index 0c0ed10..a622f87 100644
+index 0c0ed10..27b56bb 100644
 --- a/modules/web/src/main/ui/bits.scala
 +++ b/modules/web/src/main/ui/bits.scala
-@@ -46,29 +46,8 @@ z-index: 99;
+@@ -1,7 +1,7 @@
+ package lila.web
+ package ui
+ 
+-import lila.core.i18n.Translate
++import lila.core.i18n.{ I18nKey, Translate }
+ import lila.ui.*
+ import lila.ui.ScalatagsTemplate.*
+ 
+@@ -45,30 +45,9 @@ z-index: 99;
+   ):
      "This is an empty Lichess preview website, go to lichess.org instead"
  
-   val connectLinks: Frag = div(cls := "connect-links")(
+-  val connectLinks: Frag = div(cls := "connect-links")(
 -    a(
 -      href := "https://mastodon.online/@lichess",
 -      targetBlank,
@@ -3665,8 +3687,9 @@ index 0c0ed10..a622f87 100644
 -      targetBlank,
 -      noFollow
 -    )("Twitch")
++  def connectLinks(using Translate): Frag = div(cls := "connect-links")(
 +    a(href := "https://github.com/Dash1971/mute-chess", targetBlank, noFollow)("GitHub"),
-+    a(href := "/forum")("Forum")
++    a(href := "/forum")(I18nKey.site.forum())
    )
  
    val logo = raw:
@@ -3946,10 +3969,10 @@ index 74906f1..99e482b 100644
  travel-places.map-of-japan
  travel-places.metro
 diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
-index 88adade..523cba5 100644
+index 88adade..308263f 100644
 --- a/translation/dest/site/de-DE.xml
 +++ b/translation/dest/site/de-DE.xml
-@@ -1064,4 +1064,51 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
+@@ -1064,4 +1064,79 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
    <string name="write">Schreiben</string>
    <string name="preview">Vorschau</string>
    <string name="done">Erledigt</string>
@@ -4000,12 +4023,40 @@ index 88adade..523cba5 100644
 +    <string name="muteOthers">Weitere</string>
 +    <string name="muteMovesByRating">Züge nach Spielstärke</string>
 +    <string name="muteLeadingMoves">Häufigste Züge</string>
++  <string name="muteNpubHelpTitle">Deine Nostr-Identität</string>
++  <string name="muteNpubHelpIdentity">Dein npub ist dein öffentlicher %s-Schlüssel und deine eindeutige Identität auf Mute Chess. Du kannst deinen Benutzernamen ändern, aber dein npub bleibt gleich. Dein npub ist öffentlich und kann mit allen geteilt werden.</string>
++  <string name="muteNpubHelpPair">Dein npub und dein nsec bilden ein Schlüsselpaar. Stell sie dir wie einen Benutzernamen und ein Passwort vor: Der npub identifiziert dich, und der nsec ist dein privater Schlüssel.</string>
++  <string name="muteNpubHelpSecret">Halte deinen nsec geheim.</string>
++  <string name="muteNpubHelpWarning">Wer ihn hat, könnte sich hier bei deinem Konto anmelden oder in deinem Namen Nachrichten auf Nostr veröffentlichen.</string>
++  <string name="muteNpubHelpApps">Du kannst dieselbe Identität überall verwenden, wo Nostr unterstützt wird. Zum Beispiel ist %s eine soziale Plattform ähnlich wie X, auf der du mit deiner Nostr-Identität anderen folgen und selbst Follower haben kannst.</string>
++  <string name="muteNpubHelpPrivacy">Wir verwenden Nostr, um so wenige persönliche Daten wie möglich abzufragen. Wir möchten deine E-Mail-Adresse nicht wissen. Bitte teile in deinem öffentlichen Profil möglichst wenige persönliche Informationen.</string>
++  <string name="muteHandleHelpTitle">Deine dauerhafte Konto-ID</string>
++  <string name="muteHandleHelpDerived">Diese Konto-ID wird aus einer gekürzten hexadezimalen Darstellung deines öffentlichen Schlüssels gebildet, der der Buchstabe n vorangestellt wird.</string>
++  <string name="muteHandleHelpGeneric">Das ist deine eindeutige Konto-ID auf Mute Chess.</string>
++  <string name="muteHandleHelpLink">Sie gibt deinem Profil einen dauerhaften Link. Auch wenn du deinen Benutzernamen änderst, führt dieser Link weiterhin zu deinem Profil.</string>
++  <string name="muteAboutNpub">Über diesen öffentlichen Nostr-Schlüssel</string>
++  <string name="muteAboutHandle">Über diese dauerhafte Konto-ID</string>
++  <string name="muteCopyNpub">Öffentlichen npub kopieren</string>
++  <string name="muteCopiedNpub">npub kopiert</string>
++  <string name="muteCopied">Kopiert</string>
++  <string name="muteCopyNpubFailed">Der npub konnte nicht kopiert werden. Du kannst stattdessen den Text markieren und kopieren.</string>
++  <string name="muteLoginIntro">Deine %s-Identität verbindet dich mit deinem Profil und deinen Partien. Keine E-Mail-Adresse nötig.</string>
++  <string name="muteNewToNostr">Neu bei Nostr?</string>
++  <string name="muteLoginIdentity">%s ist eine offene Identität, die du in kompatiblen Apps verwenden kannst. Dein npub ist öffentlich; dein nsec ist der private Schlüssel, mit dem du dich anmeldest.</string>
++  <string name="muteLoginSignerHelp">Ein Signer verwahrt deinen Schlüssel und bestätigt die Anmeldung für dich. Du kannst auch in diesem Browser einen Schlüssel erstellen oder importieren.</string>
++  <string name="muteLoginSameIdentity">Verwende auf einem anderen Gerät denselben Schlüssel oder Signer, um zu deinem Konto zurückzukehren. Wenn du einen neuen Schlüssel erstellst, erhältst du eine andere Identität.</string>
++  <string name="muteContactPublic">Bei Fragen, Feedback oder Fehlermeldungen schreibe ins %s.</string>
++  <string name="muteContactReport">Gib die URL der Seite an und beschreibe, was passiert ist. Veröffentliche keine persönlichen Informationen in öffentlichen Beiträgen.</string>
++  <string name="muteContactPrivate">Bei vertraulichen Anliegen zu deinem Konto, Datenschutz, Zahlungen oder Sicherheit sende eine Nachricht an %s. Sende niemals deinen nsec, deinen Authenticator-Geheimschlüssel, Wiederherstellungscodes oder die Seed-Phrase deiner Wallet.</string>
++  <string name="muteContactDetails">Gib bei einer Fehlermeldung die URL der Seite an und beschreibe, was passiert ist. Teile Konto- oder Zahlungsdetails nur privat.</string>
++  <string name="muteForumLabel">Mute Chess-Forum</string>
++  <string name="muteNostrContactLabel">Mute Chess auf Nostr</string>
  </resources>
 diff --git a/translation/dest/site/es-ES.xml b/translation/dest/site/es-ES.xml
-index 76004f5..6a5fd69 100644
+index 76004f5..0d036d8 100644
 --- a/translation/dest/site/es-ES.xml
 +++ b/translation/dest/site/es-ES.xml
-@@ -1064,4 +1064,51 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
+@@ -1064,4 +1064,79 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
    <string name="write">Escribir</string>
    <string name="preview">Vista previa</string>
    <string name="done">Listo</string>
@@ -4056,12 +4107,40 @@ index 76004f5..6a5fd69 100644
 +    <string name="muteOthers">Otras</string>
 +    <string name="muteMovesByRating">Jugadas por puntuación</string>
 +    <string name="muteLeadingMoves">Jugadas principales</string>
++  <string name="muteNpubHelpTitle">Tu identidad de Nostr</string>
++  <string name="muteNpubHelpIdentity">Tu npub es tu clave pública de %s y tu identidad única en Mute Chess. Puedes cambiar tu nombre de usuario, pero tu npub sigue siendo el mismo. Tu npub es público y puedes compartirlo con cualquiera.</string>
++  <string name="muteNpubHelpPair">Tu npub y tu nsec forman un par de claves. Piensa en ellos como un nombre de usuario y una contraseña: el npub te identifica y el nsec es tu clave privada.</string>
++  <string name="muteNpubHelpSecret">Mantén tu nsec en secreto.</string>
++  <string name="muteNpubHelpWarning">Alguien que lo tenga podría iniciar sesión en tu cuenta aquí o publicar mensajes en tu nombre en Nostr.</string>
++  <string name="muteNpubHelpApps">Puedes usar la misma identidad en cualquier servicio compatible con Nostr. Por ejemplo, %s es una red social similar a X, donde puedes seguir a otras personas y tener seguidores con tu identidad de Nostr.</string>
++  <string name="muteNpubHelpPrivacy">Usamos Nostr para pedirte la mínima información personal posible. No queremos tu dirección de correo electrónico. Comparte la menor cantidad posible de información personal en tu perfil público.</string>
++  <string name="muteHandleHelpTitle">Tu identificador permanente de cuenta</string>
++  <string name="muteHandleHelpDerived">Este identificador de cuenta se genera a partir de una representación hexadecimal abreviada de tu clave pública, con la letra n al principio.</string>
++  <string name="muteHandleHelpGeneric">Este es tu identificador único de cuenta en Mute Chess.</string>
++  <string name="muteHandleHelpLink">Proporciona un enlace permanente a tu perfil. Puedes cambiar tu nombre de usuario y quienes tengan este enlace seguirán llegando a tu perfil.</string>
++  <string name="muteAboutNpub">Acerca de esta clave pública de Nostr</string>
++  <string name="muteAboutHandle">Acerca de este identificador permanente de cuenta</string>
++  <string name="muteCopyNpub">Copiar npub público</string>
++  <string name="muteCopiedNpub">npub copiado</string>
++  <string name="muteCopied">Copiado</string>
++  <string name="muteCopyNpubFailed">No se ha podido copiar el npub. Puedes seleccionar y copiar el texto.</string>
++  <string name="muteLoginIntro">Tu identidad de %s te da acceso a tu perfil y tus partidas. No necesitas correo electrónico.</string>
++  <string name="muteNewToNostr">¿Es tu primera vez en Nostr?</string>
++  <string name="muteLoginIdentity">%s es una identidad abierta que puedes usar en aplicaciones compatibles. Tu npub es público; tu nsec es la clave privada que usas para iniciar sesión.</string>
++  <string name="muteLoginSignerHelp">Un firmante guarda tu clave y autoriza el inicio de sesión por ti. También puedes crear o importar una clave en este navegador.</string>
++  <string name="muteLoginSameIdentity">Para volver a acceder desde otro dispositivo, usa la misma clave o el mismo firmante. Crear una clave nueva genera una identidad distinta.</string>
++  <string name="muteContactPublic">Si tienes preguntas, comentarios o quieres informar de un error, publica en el %s.</string>
++  <string name="muteContactReport">Incluye la URL de la página y explica qué ha ocurrido. No incluyas información personal en publicaciones públicas.</string>
++  <string name="muteContactPrivate">Para asuntos privados relacionados con tu cuenta, la privacidad, los pagos o la seguridad, envía un mensaje a %s. Nunca envíes tu nsec, la clave secreta de tu aplicación de autenticación, tus códigos de recuperación ni la frase semilla de tu monedero.</string>
++  <string name="muteContactDetails">Para informar de un error, incluye la URL de la página y explica qué ha ocurrido. Comparte los datos de tu cuenta o de tus pagos solo en privado.</string>
++  <string name="muteForumLabel">foro de Mute Chess</string>
++  <string name="muteNostrContactLabel">Mute Chess en Nostr</string>
  </resources>
 diff --git a/translation/dest/site/fr-FR.xml b/translation/dest/site/fr-FR.xml
-index 7dfd5f7..2cb0d90 100644
+index 7dfd5f7..15b927b 100644
 --- a/translation/dest/site/fr-FR.xml
 +++ b/translation/dest/site/fr-FR.xml
-@@ -1063,4 +1063,51 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
+@@ -1063,4 +1063,79 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
    <string name="write">Écrire</string>
    <string name="preview">Aperçu</string>
    <string name="done">Terminé</string>
@@ -4112,12 +4191,40 @@ index 7dfd5f7..2cb0d90 100644
 +    <string name="muteOthers">Autres</string>
 +    <string name="muteMovesByRating">Coups par classement</string>
 +    <string name="muteLeadingMoves">Coups principaux</string>
++  <string name="muteNpubHelpTitle">Votre identité Nostr</string>
++  <string name="muteNpubHelpIdentity">Votre npub est votre clé publique %s et votre identité unique sur Mute Chess. Vous pouvez changer de nom d’utilisateur, mais votre npub reste le même. Votre npub est public et peut être partagé avec tout le monde.</string>
++  <string name="muteNpubHelpPair">Votre npub et votre nsec forment une paire de clés. Voyez-les comme un nom d’utilisateur et un mot de passe : le npub vous identifie et le nsec est votre clé privée.</string>
++  <string name="muteNpubHelpSecret">Gardez votre nsec secret.</string>
++  <string name="muteNpubHelpWarning">Une personne qui le possède pourrait se connecter à votre compte ici ou publier des messages en votre nom sur Nostr.</string>
++  <string name="muteNpubHelpApps">Vous pouvez utiliser la même identité partout où Nostr est pris en charge. Par exemple, %s est un réseau social similaire à X, où vous pouvez suivre d’autres personnes et avoir des abonnés avec votre identité Nostr.</string>
++  <string name="muteNpubHelpPrivacy">Nous utilisons Nostr pour vous demander le moins d’informations personnelles possible. Nous ne voulons pas votre adresse e-mail. Veillez à partager le moins d’informations personnelles possible sur votre profil public.</string>
++  <string name="muteHandleHelpTitle">Votre identifiant de compte permanent</string>
++  <string name="muteHandleHelpDerived">Cet identifiant de compte est créé à partir d’une version hexadécimale abrégée de votre clé publique, précédée de la lettre n.</string>
++  <string name="muteHandleHelpGeneric">Il s’agit de votre identifiant de compte unique sur Mute Chess.</string>
++  <string name="muteHandleHelpLink">Il donne à votre profil un lien permanent. Vous pouvez changer de nom d’utilisateur : les personnes disposant de ce lien pourront toujours accéder à votre profil.</string>
++  <string name="muteAboutNpub">À propos de cette clé publique Nostr</string>
++  <string name="muteAboutHandle">À propos de cet identifiant de compte permanent</string>
++  <string name="muteCopyNpub">Copier le npub public</string>
++  <string name="muteCopiedNpub">npub copié</string>
++  <string name="muteCopied">Copié</string>
++  <string name="muteCopyNpubFailed">Impossible de copier le npub. Vous pouvez sélectionner et copier le texte.</string>
++  <string name="muteLoginIntro">Votre identité %s vous donne accès à votre profil et à vos parties. Aucune adresse e-mail nécessaire.</string>
++  <string name="muteNewToNostr">Vous découvrez Nostr ?</string>
++  <string name="muteLoginIdentity">%s est une identité ouverte que vous pouvez utiliser dans les applications compatibles. Votre npub est public ; votre nsec est la clé privée que vous utilisez pour vous connecter.</string>
++  <string name="muteLoginSignerHelp">Un outil de signature conserve votre clé et autorise la connexion pour vous. Vous pouvez aussi créer ou importer une clé dans ce navigateur.</string>
++  <string name="muteLoginSameIdentity">Pour retrouver votre compte sur un autre appareil, utilisez la même clé ou le même outil de signature. Créer une nouvelle clé crée une identité différente.</string>
++  <string name="muteContactPublic">Pour toute question, suggestion ou signalement de bug, publiez un message sur le %s.</string>
++  <string name="muteContactReport">Indiquez l’URL de la page et décrivez ce qui s’est passé. Ne communiquez pas d’informations personnelles dans les publications publiques.</string>
++  <string name="muteContactPrivate">Pour les questions privées concernant votre compte, la confidentialité, les paiements ou la sécurité, envoyez un message à %s. Ne transmettez jamais votre nsec, la clé secrète de votre application d’authentification, vos codes de récupération ou la phrase de récupération de votre portefeuille.</string>
++  <string name="muteContactDetails">Pour signaler un bug, indiquez l’URL de la page et décrivez ce qui s’est passé. Ne communiquez les informations de compte ou de paiement qu’en privé.</string>
++  <string name="muteForumLabel">forum Mute Chess</string>
++  <string name="muteNostrContactLabel">Mute Chess sur Nostr</string>
  </resources>
 diff --git a/translation/dest/site/hi-IN.xml b/translation/dest/site/hi-IN.xml
-index bbf1703..88fd863 100644
+index bbf1703..15e91b1 100644
 --- a/translation/dest/site/hi-IN.xml
 +++ b/translation/dest/site/hi-IN.xml
-@@ -893,4 +893,51 @@
+@@ -893,4 +893,79 @@
    <string name="closingAccountWithdrawAppeal">आपका खाता बंद करने से आपकी अपील वापस ले ली जाएगी</string>
    <string name="ourEventTips">कार्यक्रम आयोजित करने कि सलाह</string>
    <string name="nothingToSeeHere">इस समय यहां देखने को कुछ भी नहीं है।</string>
@@ -4168,12 +4275,40 @@ index bbf1703..88fd863 100644
 +    <string name="muteOthers">अन्य</string>
 +    <string name="muteMovesByRating">रेटिंग के अनुसार चालें</string>
 +    <string name="muteLeadingMoves">प्रमुख चालें</string>
++  <string name="muteNpubHelpTitle">Nostr पर आपकी पहचान</string>
++  <string name="muteNpubHelpIdentity">आपका npub आपकी सार्वजनिक %s कुंजी और Mute Chess पर आपकी विशिष्ट पहचान है। आप अपना उपयोगकर्ता नाम बदल सकते हैं, लेकिन आपका npub वही रहता है। आपका npub सार्वजनिक है और इसे किसी के भी साथ साझा किया जा सकता है।</string>
++  <string name="muteNpubHelpPair">आपका npub और nsec मिलकर कुंजियों की एक जोड़ी बनाते हैं। इन्हें उपयोगकर्ता नाम और पासवर्ड की तरह समझें: npub आपकी पहचान बताता है और nsec आपकी निजी कुंजी है।</string>
++  <string name="muteNpubHelpSecret">अपना nsec गुप्त रखें।</string>
++  <string name="muteNpubHelpWarning">जिसके पास यह होगा, वह यहाँ आपके खाते में साइन इन कर सकता है या Nostr पर आपके नाम से संदेश पोस्ट कर सकता है।</string>
++  <string name="muteNpubHelpApps">जहाँ भी Nostr का समर्थन है, वहाँ आप इसी पहचान का उपयोग कर सकते हैं। उदाहरण के लिए, %s, X जैसी एक सोशल साइट है, जहाँ आप अपनी Nostr पहचान से लोगों को फ़ॉलो कर सकते हैं और लोग आपको फ़ॉलो कर सकते हैं।</string>
++  <string name="muteNpubHelpPrivacy">हम Nostr का उपयोग करते हैं ताकि हमें आपसे कम से कम व्यक्तिगत जानकारी माँगनी पड़े। हमें आपके ईमेल पते की ज़रूरत नहीं है। कृपया अपनी सार्वजनिक प्रोफ़ाइल में कम से कम व्यक्तिगत जानकारी साझा करें।</string>
++  <string name="muteHandleHelpTitle">आपके खाते का स्थायी ID</string>
++  <string name="muteHandleHelpDerived">यह खाता ID आपकी सार्वजनिक कुंजी के संक्षिप्त हेक्साडेसिमल रूप की शुरुआत में n जोड़कर बनाया जाता है।</string>
++  <string name="muteHandleHelpGeneric">यह Mute Chess पर आपके खाते का विशिष्ट ID है।</string>
++  <string name="muteHandleHelpLink">इससे आपकी प्रोफ़ाइल को एक स्थायी लिंक मिलता है। आप अपना उपयोगकर्ता नाम बदल सकते हैं, फिर भी इस लिंक से लोग आपकी प्रोफ़ाइल तक पहुँच सकेंगे।</string>
++  <string name="muteAboutNpub">इस सार्वजनिक Nostr कुंजी के बारे में</string>
++  <string name="muteAboutHandle">इस स्थायी खाता ID के बारे में</string>
++  <string name="muteCopyNpub">सार्वजनिक npub कॉपी करें</string>
++  <string name="muteCopiedNpub">npub कॉपी किया गया</string>
++  <string name="muteCopied">कॉपी किया गया</string>
++  <string name="muteCopyNpubFailed">npub कॉपी नहीं हो सका। आप टेक्स्ट चुनकर उसे कॉपी कर सकते हैं।</string>
++  <string name="muteLoginIntro">आपकी %s पहचान आपको आपकी प्रोफ़ाइल और बाज़ियों से जोड़ती है। ईमेल की ज़रूरत नहीं है।</string>
++  <string name="muteNewToNostr">Nostr पर नए हैं?</string>
++  <string name="muteLoginIdentity">%s एक खुली पहचान व्यवस्था है, जिसे आप संगत ऐप्स में उपयोग कर सकते हैं। आपका npub सार्वजनिक है; आपका nsec वह निजी कुंजी है जिसका उपयोग आप साइन इन करने के लिए करते हैं।</string>
++  <string name="muteLoginSignerHelp">साइनर आपकी कुंजी सुरक्षित रखता है और आपकी ओर से साइन इन को मंज़ूरी देता है। आप इस ब्राउज़र में कुंजी बना या आयात भी कर सकते हैं।</string>
++  <string name="muteLoginSameIdentity">दूसरे डिवाइस पर फिर से साइन इन करने के लिए उसी कुंजी या साइनर का उपयोग करें। नई कुंजी बनाने से एक अलग पहचान बनती है।</string>
++  <string name="muteContactPublic">सवाल पूछने, सुझाव देने या बग की रिपोर्ट करने के लिए %s में पोस्ट करें।</string>
++  <string name="muteContactReport">पेज का URL और क्या हुआ, इसका विवरण शामिल करें। सार्वजनिक पोस्ट में व्यक्तिगत जानकारी न दें।</string>
++  <string name="muteContactPrivate">खाते, गोपनीयता, भुगतान या सुरक्षा से जुड़े निजी मामलों के लिए %s को संदेश भेजें। अपना nsec, ऑथेंटिकेटर की गुप्त कुंजी, रिकवरी कोड या वॉलेट का सीड वाक्यांश कभी न भेजें।</string>
++  <string name="muteContactDetails">बग की रिपोर्ट में पेज का URL और क्या हुआ, इसका विवरण शामिल करें। खाते या भुगतान की जानकारी केवल निजी संदेश में साझा करें।</string>
++  <string name="muteForumLabel">Mute Chess फ़ोरम</string>
++  <string name="muteNostrContactLabel">Nostr पर Mute Chess</string>
  </resources>
 diff --git a/translation/dest/site/ja-JP.xml b/translation/dest/site/ja-JP.xml
-index e628bdb..1bfe4de 100644
+index e628bdb..d613d9a 100644
 --- a/translation/dest/site/ja-JP.xml
 +++ b/translation/dest/site/ja-JP.xml
-@@ -1023,4 +1023,51 @@
+@@ -1023,4 +1023,79 @@
    <string name="write">書く</string>
    <string name="preview">プレビュー</string>
    <string name="done">完了</string>
@@ -4224,12 +4359,40 @@ index e628bdb..1bfe4de 100644
 +    <string name="muteOthers">その他</string>
 +    <string name="muteMovesByRating">レート別の候補手</string>
 +    <string name="muteLeadingMoves">主な候補手</string>
++  <string name="muteNpubHelpTitle">あなたのNostr ID</string>
++  <string name="muteNpubHelpIdentity">npubは、あなたの%s公開鍵であり、Mute Chess上であなたを一意に識別するIDです。ユーザー名は変更できますが、npubは変わりません。npubは公開情報なので、誰とでも共有できます。</string>
++  <string name="muteNpubHelpPair">npubとnsecは、対になる鍵です。ユーザー名とパスワードのようなものと考えてください。npubはあなたを識別し、nsecはあなたの秘密鍵です。</string>
++  <string name="muteNpubHelpSecret">nsecは誰にも教えないでください。</string>
++  <string name="muteNpubHelpWarning">nsecを知っている人は、ここであなたのアカウントにログインしたり、Nostrであなたになりすまして投稿したりできてしまいます。</string>
++  <string name="muteNpubHelpApps">Nostrに対応しているサービスなら、どこでも同じIDを使えます。たとえば、%sはXに似たソーシャルサイトで、NostrのIDを使って他の人をフォローしたり、フォローしてもらったりできます。</string>
++  <string name="muteNpubHelpPrivacy">私たちは、お願いする個人情報を最小限に抑えるためにNostrを使っています。メールアドレスは必要ありません。公開プロフィールに載せる個人情報も、できるだけ少なくしてください。</string>
++  <string name="muteHandleHelpTitle">あなたの固定アカウントID</string>
++  <string name="muteHandleHelpDerived">このアカウントIDは、公開鍵を16進数で表したものを短縮し、先頭に n を付けて作られています。</string>
++  <string name="muteHandleHelpGeneric">これは、Mute Chess上であなたを一意に識別するアカウントIDです。</string>
++  <string name="muteHandleHelpLink">このIDにより、プロフィールへの固定リンクが作られます。ユーザー名を変更しても、このリンクからあなたのプロフィールにアクセスできます。</string>
++  <string name="muteAboutNpub">このNostr公開鍵について</string>
++  <string name="muteAboutHandle">この固定アカウントIDについて</string>
++  <string name="muteCopyNpub">公開npubをコピー</string>
++  <string name="muteCopiedNpub">npubをコピーしました</string>
++  <string name="muteCopied">コピーしました</string>
++  <string name="muteCopyNpubFailed">npubをコピーできませんでした。テキストを選択してコピーすることもできます。</string>
++  <string name="muteLoginIntro">%sのIDで、あなたのプロフィールや対局にアクセスできます。メールアドレスは不要です。</string>
++  <string name="muteNewToNostr">Nostrを初めて使いますか？</string>
++  <string name="muteLoginIdentity">%sは、対応アプリ間で共通のIDを使えるオープンな仕組みです。npubは公開情報で、nsecはログインに使う秘密鍵です。</string>
++  <string name="muteLoginSignerHelp">署名ツールはあなたの鍵を保管し、ログインを承認します。このブラウザーで鍵を作成したり、インポートしたりすることもできます。</string>
++  <string name="muteLoginSameIdentity">別の端末で再びログインするには、同じ鍵または署名ツールを使ってください。新しい鍵を作成すると、別のIDになります。</string>
++  <string name="muteContactPublic">ご質問、ご意見、不具合の報告は、%sに投稿してください。</string>
++  <string name="muteContactReport">ページのURLと、何が起きたかを書いてください。公開の投稿には個人情報を含めないでください。</string>
++  <string name="muteContactPrivate">アカウント、プライバシー、支払い、セキュリティに関する非公開のご相談は、%sにメッセージを送ってください。nsec、認証アプリのシークレット、リカバリーコード、ウォレットのシードは絶対に送らないでください。</string>
++  <string name="muteContactDetails">不具合の報告には、ページのURLと、何が起きたかを書いてください。アカウントや支払いの詳細は、非公開のやり取りでのみ共有してください。</string>
++  <string name="muteForumLabel">Mute Chessフォーラム</string>
++  <string name="muteNostrContactLabel">NostrのMute Chess</string>
  </resources>
 diff --git a/translation/dest/site/ko-KR.xml b/translation/dest/site/ko-KR.xml
-index 9341bf0..4e289a9 100644
+index 9341bf0..f2d562f 100644
 --- a/translation/dest/site/ko-KR.xml
 +++ b/translation/dest/site/ko-KR.xml
-@@ -1022,4 +1022,51 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
+@@ -1022,4 +1022,79 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
    <string name="write">작성</string>
    <string name="preview">미리보기</string>
    <string name="done">완료</string>
@@ -4280,12 +4443,40 @@ index 9341bf0..4e289a9 100644
 +    <string name="muteOthers">기타</string>
 +    <string name="muteMovesByRating">레이팅별 수</string>
 +    <string name="muteLeadingMoves">주요 수</string>
++  <string name="muteNpubHelpTitle">나의 Nostr 신원</string>
++  <string name="muteNpubHelpIdentity">npub는 나의 %s 공개 키이자 Mute Chess에서 나를 식별하는 고유한 신원입니다. 사용자 이름은 바꿀 수 있지만 npub는 바뀌지 않습니다. npub는 공개 정보이므로 누구에게나 공유해도 됩니다.</string>
++  <string name="muteNpubHelpPair">npub와 nsec는 한 쌍의 키입니다. 사용자 이름과 비밀번호처럼 생각하면 됩니다. npub는 나를 식별하고, nsec는 나의 비밀 키입니다.</string>
++  <string name="muteNpubHelpSecret">nsec는 비밀로 보관하세요.</string>
++  <string name="muteNpubHelpWarning">nsec를 가진 사람은 여기에서 내 계정에 로그인하거나 Nostr에서 나를 사칭해 글을 올릴 수 있습니다.</string>
++  <string name="muteNpubHelpApps">Nostr를 지원하는 곳이라면 어디서든 같은 신원을 사용할 수 있습니다. 예를 들어 %s은 X와 비슷한 소셜 사이트로, Nostr 신원을 사용해 다른 사람을 팔로우하거나 팔로우를 받을 수 있습니다.</string>
++  <string name="muteNpubHelpPrivacy">저희는 요청하는 개인정보를 최소화하기 위해 Nostr를 사용합니다. 이메일 주소는 필요하지 않습니다. 공개 프로필에 공유하는 개인정보도 최소한으로 줄여 주세요.</string>
++  <string name="muteHandleHelpTitle">나의 영구 계정 ID</string>
++  <string name="muteHandleHelpDerived">이 계정 ID는 공개 키를 16진수로 나타낸 값을 짧게 줄인 뒤, 맨 앞에 n을 붙여 만듭니다.</string>
++  <string name="muteHandleHelpGeneric">Mute Chess에서 나를 식별하는 고유한 계정 ID입니다.</string>
++  <string name="muteHandleHelpLink">이 ID로 프로필의 영구 링크가 만들어집니다. 사용자 이름을 바꿔도 이 링크를 가진 사람은 계속 내 프로필에 접속할 수 있습니다.</string>
++  <string name="muteAboutNpub">이 Nostr 공개 키에 대해</string>
++  <string name="muteAboutHandle">이 영구 계정 ID에 대해</string>
++  <string name="muteCopyNpub">공개 npub 복사</string>
++  <string name="muteCopiedNpub">npub를 복사했습니다</string>
++  <string name="muteCopied">복사했습니다</string>
++  <string name="muteCopyNpubFailed">npub를 복사하지 못했습니다. 대신 텍스트를 선택해서 복사할 수 있습니다.</string>
++  <string name="muteLoginIntro">%s 신원으로 내 프로필과 대국에 접속할 수 있습니다. 이메일은 필요하지 않습니다.</string>
++  <string name="muteNewToNostr">Nostr가 처음이신가요?</string>
++  <string name="muteLoginIdentity">%s는 호환 앱 전반에서 사용할 수 있는 개방형 신원 체계입니다. npub는 공개 정보이며, nsec는 로그인할 때 사용하는 비밀 키입니다.</string>
++  <string name="muteLoginSignerHelp">서명 도구는 키를 보관하고 로그인을 승인해 줍니다. 이 브라우저에서 키를 만들거나 가져올 수도 있습니다.</string>
++  <string name="muteLoginSameIdentity">다른 기기에서 다시 접속하려면 같은 키나 서명 도구를 사용하세요. 새 키를 만들면 별도의 신원이 생성됩니다.</string>
++  <string name="muteContactPublic">질문, 의견 또는 버그 제보는 %s에 올려 주세요.</string>
++  <string name="muteContactReport">페이지 URL과 어떤 일이 일어났는지 적어 주세요. 공개 게시물에는 개인정보를 포함하지 마세요.</string>
++  <string name="muteContactPrivate">계정, 개인정보 보호, 결제 또는 보안에 관한 비공개 문의는 %s에 메시지를 보내 주세요. nsec, 인증 앱의 비밀 키, 복구 코드 또는 지갑 시드는 절대 보내지 마세요.</string>
++  <string name="muteContactDetails">버그를 제보할 때는 페이지 URL과 어떤 일이 일어났는지 적어 주세요. 계정이나 결제에 관한 세부 정보는 비공개로만 공유하세요.</string>
++  <string name="muteForumLabel">Mute Chess 포럼</string>
++  <string name="muteNostrContactLabel">Nostr의 Mute Chess</string>
  </resources>
 diff --git a/translation/dest/site/pt-BR.xml b/translation/dest/site/pt-BR.xml
-index 569e752..fc8fb81 100644
+index 569e752..f8abd0b 100644
 --- a/translation/dest/site/pt-BR.xml
 +++ b/translation/dest/site/pt-BR.xml
-@@ -1063,4 +1063,51 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
+@@ -1063,4 +1063,79 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
    <string name="write">Escrever</string>
    <string name="preview">Pré-visualizar</string>
    <string name="done">Feito</string>
@@ -4336,12 +4527,40 @@ index 569e752..fc8fb81 100644
 +    <string name="muteOthers">Outras</string>
 +    <string name="muteMovesByRating">Lances por rating</string>
 +    <string name="muteLeadingMoves">Principais lances</string>
++  <string name="muteNpubHelpTitle">Sua identidade no Nostr</string>
++  <string name="muteNpubHelpIdentity">Seu npub é sua chave pública do %s e sua identidade única no Mute Chess. Você pode mudar seu nome de usuário, mas seu npub continua o mesmo. Seu npub é público e pode ser compartilhado com qualquer pessoa.</string>
++  <string name="muteNpubHelpPair">Seu npub e seu nsec formam um par de chaves. Pense neles como um nome de usuário e uma senha: o npub identifica você, e o nsec é sua chave privada.</string>
++  <string name="muteNpubHelpSecret">Mantenha seu nsec em segredo.</string>
++  <string name="muteNpubHelpWarning">Quem tiver acesso a ele poderá entrar na sua conta aqui ou publicar mensagens em seu nome no Nostr.</string>
++  <string name="muteNpubHelpApps">Você pode usar a mesma identidade em qualquer lugar compatível com o Nostr. Por exemplo, o %s é uma rede social semelhante ao X, onde você pode seguir pessoas e ser seguido usando sua identidade do Nostr.</string>
++  <string name="muteNpubHelpPrivacy">Usamos o Nostr para pedir o mínimo possível de informações pessoais. Não queremos seu endereço de e-mail. Compartilhe o mínimo possível de informações pessoais no seu perfil público.</string>
++  <string name="muteHandleHelpTitle">O ID permanente da sua conta</string>
++  <string name="muteHandleHelpDerived">Este ID de conta é criado a partir de uma forma hexadecimal abreviada da sua chave pública, com o prefixo n.</string>
++  <string name="muteHandleHelpGeneric">Este é o ID único da sua conta no Mute Chess.</string>
++  <string name="muteHandleHelpLink">Ele dá ao seu perfil um link permanente. Você pode mudar seu nome de usuário, e as pessoas que tiverem esse link continuarão chegando ao seu perfil.</string>
++  <string name="muteAboutNpub">Sobre esta chave pública do Nostr</string>
++  <string name="muteAboutHandle">Sobre este ID permanente de conta</string>
++  <string name="muteCopyNpub">Copiar npub público</string>
++  <string name="muteCopiedNpub">npub copiado</string>
++  <string name="muteCopied">Copiado</string>
++  <string name="muteCopyNpubFailed">Não foi possível copiar o npub. Você pode selecionar e copiar o texto manualmente.</string>
++  <string name="muteLoginIntro">Sua identidade do %s conecta você ao seu perfil e às suas partidas. Não é preciso informar um e-mail.</string>
++  <string name="muteNewToNostr">É sua primeira vez no Nostr?</string>
++  <string name="muteLoginIdentity">%s oferece uma identidade aberta que você pode usar em aplicativos compatíveis. Seu npub é público; seu nsec é a chave privada que você usa para entrar.</string>
++  <string name="muteLoginSignerHelp">Um assinador guarda sua chave e autoriza o login por você. Você também pode criar ou importar uma chave neste navegador.</string>
++  <string name="muteLoginSameIdentity">Para voltar a acessar em outro dispositivo, use a mesma chave ou o mesmo assinador. Criar uma nova chave cria uma identidade diferente.</string>
++  <string name="muteContactPublic">Para dúvidas, sugestões ou relatos de erros, publique no %s.</string>
++  <string name="muteContactReport">Inclua a URL da página e descreva o que aconteceu. Não inclua informações pessoais em publicações públicas.</string>
++  <string name="muteContactPrivate">Para assuntos privados sobre conta, privacidade, pagamentos ou segurança, envie uma mensagem para %s. Nunca envie seu nsec, a chave secreta do autenticador, códigos de recuperação ou a frase-semente da carteira.</string>
++  <string name="muteContactDetails">Ao relatar um erro, inclua a URL da página e descreva o que aconteceu. Compartilhe dados da conta ou de pagamento apenas em particular.</string>
++  <string name="muteForumLabel">Fórum do Mute Chess</string>
++  <string name="muteNostrContactLabel">Mute Chess no Nostr</string>
  </resources>
 diff --git a/translation/dest/site/ru-RU.xml b/translation/dest/site/ru-RU.xml
-index 6384657..ba22e92 100644
+index 6384657..674d89d 100644
 --- a/translation/dest/site/ru-RU.xml
 +++ b/translation/dest/site/ru-RU.xml
-@@ -1146,4 +1146,51 @@
+@@ -1146,4 +1146,79 @@
    <string name="write">Написать</string>
    <string name="preview">Предпросмотр</string>
    <string name="done">Готово</string>
@@ -4392,12 +4611,40 @@ index 6384657..ba22e92 100644
 +    <string name="muteOthers">Другие</string>
 +    <string name="muteMovesByRating">Ходы по рейтингу</string>
 +    <string name="muteLeadingMoves">Основные ходы</string>
++  <string name="muteNpubHelpTitle">Ваша идентичность в Nostr</string>
++  <string name="muteNpubHelpIdentity">Ваш npub — это ваш открытый ключ %s и ваш уникальный идентификатор в Mute Chess. Вы можете изменить имя пользователя, но npub останется прежним. Ваш npub открыт, и им можно делиться с кем угодно.</string>
++  <string name="muteNpubHelpPair">Ваши npub и nsec образуют пару ключей. Их можно сравнить с именем пользователя и паролем: npub позволяет определить, кто вы, а nsec — это ваш закрытый ключ.</string>
++  <string name="muteNpubHelpSecret">Храните свой nsec в тайне.</string>
++  <string name="muteNpubHelpWarning">Тот, у кого он есть, сможет войти в ваш аккаунт здесь или публиковать сообщения от вашего имени в Nostr.</string>
++  <string name="muteNpubHelpApps">Вы можете использовать ту же идентичность везде, где поддерживается Nostr. Например, %s — это социальная сеть, похожая на X, где можно подписываться на других людей и получать подписчиков, используя свою идентичность Nostr.</string>
++  <string name="muteNpubHelpPrivacy">Мы используем Nostr, чтобы запрашивать как можно меньше личной информации. Нам не нужен ваш адрес электронной почты. Старайтесь указывать как можно меньше личной информации в открытом профиле.</string>
++  <string name="muteHandleHelpTitle">Постоянный ID вашего аккаунта</string>
++  <string name="muteHandleHelpDerived">Этот ID аккаунта создаётся из сокращённой шестнадцатеричной записи вашего открытого ключа с добавлением префикса n.</string>
++  <string name="muteHandleHelpGeneric">Это уникальный ID вашего аккаунта в Mute Chess.</string>
++  <string name="muteHandleHelpLink">Он обеспечивает постоянную ссылку на ваш профиль. Вы можете изменить имя пользователя — люди с этой ссылкой по-прежнему смогут открыть ваш профиль.</string>
++  <string name="muteAboutNpub">Об этом открытом ключе Nostr</string>
++  <string name="muteAboutHandle">Об этом постоянном ID аккаунта</string>
++  <string name="muteCopyNpub">Скопировать открытый npub</string>
++  <string name="muteCopiedNpub">npub скопирован</string>
++  <string name="muteCopied">Скопировано</string>
++  <string name="muteCopyNpubFailed">Не удалось скопировать npub. Вы можете выделить и скопировать текст вручную.</string>
++  <string name="muteLoginIntro">Ваша идентичность %s даёт доступ к вашему профилю и партиям. Электронная почта не нужна.</string>
++  <string name="muteNewToNostr">Впервые в Nostr?</string>
++  <string name="muteLoginIdentity">%s предоставляет открытую систему идентификации, которую можно использовать в совместимых приложениях. Ваш npub открыт, а nsec — это закрытый ключ для входа.</string>
++  <string name="muteLoginSignerHelp">Приложение для подписи хранит ваш ключ и подтверждает вход за вас. Вы также можете создать или импортировать ключ в этом браузере.</string>
++  <string name="muteLoginSameIdentity">Чтобы войти с другого устройства, используйте тот же ключ или то же приложение для подписи. Создание нового ключа создаёт другую идентичность.</string>
++  <string name="muteContactPublic">Вопросы, отзывы и сообщения об ошибках публикуйте здесь: %s.</string>
++  <string name="muteContactReport">Укажите URL страницы и опишите, что произошло. Не включайте личную информацию в открытые публикации.</string>
++  <string name="muteContactPrivate">По частным вопросам об аккаунте, конфиденциальности, оплате или безопасности напишите %s. Никогда не отправляйте свой nsec, секретный ключ аутентификатора, коды восстановления или сид-фразу кошелька.</string>
++  <string name="muteContactDetails">В сообщении об ошибке укажите URL страницы и опишите, что произошло. Делитесь данными аккаунта или платежей только в личной переписке.</string>
++  <string name="muteForumLabel">Форум Mute Chess</string>
++  <string name="muteNostrContactLabel">Mute Chess в Nostr</string>
  </resources>
 diff --git a/translation/dest/site/zh-CN.xml b/translation/dest/site/zh-CN.xml
-index 176f4d1..5388d14 100644
+index 176f4d1..0ad45f8 100644
 --- a/translation/dest/site/zh-CN.xml
 +++ b/translation/dest/site/zh-CN.xml
-@@ -1022,4 +1022,51 @@
+@@ -1022,4 +1022,79 @@
    <string name="write">撰写</string>
    <string name="preview">预览</string>
    <string name="done">完成</string>
@@ -4448,12 +4695,40 @@ index 176f4d1..5388d14 100644
 +    <string name="muteOthers">其他</string>
 +    <string name="muteMovesByRating">按等级分显示着法</string>
 +    <string name="muteLeadingMoves">主要着法</string>
++  <string name="muteNpubHelpTitle">你的 Nostr 身份</string>
++  <string name="muteNpubHelpIdentity">npub 是你的 %s 公钥，也是你在 Mute Chess 上的唯一身份标识。你可以更改用户名，但 npub 始终不变。npub 是公开信息，可以与任何人分享。</string>
++  <string name="muteNpubHelpPair">npub 和 nsec 组成一对密钥。可以把它们理解为用户名和密码：npub 用于识别你的身份，nsec 则是你的私钥。</string>
++  <string name="muteNpubHelpSecret">请妥善保管 nsec，不要泄露给他人。</string>
++  <string name="muteNpubHelpWarning">持有你的 nsec 的人可以在这里登录你的账户，也可以在 Nostr 上冒充你发布消息。</string>
++  <string name="muteNpubHelpApps">在任何支持 Nostr 的地方，你都可以使用同一个身份。例如，%s 是一个类似 X 的社交网站，你可以用 Nostr 身份关注别人，也可以被别人关注。</string>
++  <string name="muteNpubHelpPrivacy">我们使用 Nostr，是为了尽量减少需要向你索取的个人信息。我们不需要你的电子邮箱地址。也请尽量减少在公开个人资料中分享的个人信息。</string>
++  <string name="muteHandleHelpTitle">你的永久账户 ID</string>
++  <string name="muteHandleHelpDerived">这个账户 ID 由公钥的十六进制表示缩短后，在开头加上字母 n 构成。</string>
++  <string name="muteHandleHelpGeneric">这是你在 Mute Chess 上的唯一账户 ID。</string>
++  <string name="muteHandleHelpLink">它为你的个人资料提供一个永久链接。即使你更改用户名，持有这个链接的人仍然可以访问你的个人资料。</string>
++  <string name="muteAboutNpub">关于此 Nostr 公钥</string>
++  <string name="muteAboutHandle">关于此永久账户 ID</string>
++  <string name="muteCopyNpub">复制公开的 npub</string>
++  <string name="muteCopiedNpub">已复制 npub</string>
++  <string name="muteCopied">已复制</string>
++  <string name="muteCopyNpubFailed">无法复制 npub。你也可以选中文本后自行复制。</string>
++  <string name="muteLoginIntro">使用你的 %s 身份即可访问个人资料和对局，无需电子邮箱。</string>
++  <string name="muteNewToNostr">初次使用 Nostr？</string>
++  <string name="muteLoginIdentity">%s 是一种开放的身份体系，可用于各种兼容的应用。npub 是公开信息；nsec 是你用于登录的私钥。</string>
++  <string name="muteLoginSignerHelp">签名工具会为你保管密钥并批准登录。你也可以在此浏览器中创建或导入密钥。</string>
++  <string name="muteLoginSameIdentity">要在其他设备上再次登录，请使用同一密钥或签名工具。创建新密钥会生成另一个身份。</string>
++  <string name="muteContactPublic">如有问题、反馈或错误报告，请在%s发帖。</string>
++  <string name="muteContactReport">请附上页面网址，并说明发生了什么。请勿在公开帖子中包含个人信息。</string>
++  <string name="muteContactPrivate">如需私下咨询账户、隐私、付款或安全问题，请向%s发送消息。切勿发送你的 nsec、身份验证器密钥、恢复码或钱包种子。</string>
++  <string name="muteContactDetails">报告错误时，请附上页面网址，并说明发生了什么。账户或付款详情请仅通过私下沟通分享。</string>
++  <string name="muteForumLabel">Mute Chess 论坛</string>
++  <string name="muteNostrContactLabel">Nostr 上的 Mute Chess</string>
  </resources>
 diff --git a/translation/source/site.xml b/translation/source/site.xml
-index 8b5a6a1..5503e30 100644
+index 8b5a6a1..e8b80ff 100644
 --- a/translation/source/site.xml
 +++ b/translation/source/site.xml
-@@ -1066,4 +1066,51 @@ Leave empty to start games from the normal initial position.</string>
+@@ -1066,4 +1066,79 @@ Leave empty to start games from the normal initial position.</string>
    <string name="write">Write</string>
    <string name="preview">Preview</string>
    <string name="done">Done</string>
@@ -4504,6 +4779,34 @@ index 8b5a6a1..5503e30 100644
 +    <string name="muteOthers">Others</string>
 +    <string name="muteMovesByRating">Moves by Rating</string>
 +    <string name="muteLeadingMoves">Leading moves</string>
++  <string name="muteNpubHelpTitle">Your Nostr identity</string>
++  <string name="muteNpubHelpIdentity">Your npub is your public %s key and your unique identity on Mute Chess. You can change your username, but your npub stays the same. Your npub is public and can be shared with anyone.</string>
++  <string name="muteNpubHelpPair">Your npub and nsec form a key pair. Think of them as a username and password: the npub identifies you, and the nsec is your private key.</string>
++  <string name="muteNpubHelpSecret">Keep your nsec secret.</string>
++  <string name="muteNpubHelpWarning">Someone who has it could sign in to your account here or post messages as you on Nostr.</string>
++  <string name="muteNpubHelpApps">You can use the same identity anywhere Nostr is supported. For example, %s is a social site similar to X, where you can follow people and be followed using your Nostr identity.</string>
++  <string name="muteNpubHelpPrivacy">We use Nostr to keep the personal information we ask for to a minimum. We don't want your email address. Please minimize the personal information you share in your public profile.</string>
++  <string name="muteHandleHelpTitle">Your permanent account ID</string>
++  <string name="muteHandleHelpDerived">This account ID is made from a shortened hexadecimal form of your public key, with an n prefix.</string>
++  <string name="muteHandleHelpGeneric">This is your unique account ID on Mute Chess.</string>
++  <string name="muteHandleHelpLink">It gives your profile a permanent link. You can change your username, and people with this link will still reach your profile.</string>
++  <string name="muteAboutNpub">About this public Nostr key</string>
++  <string name="muteAboutHandle">About this permanent account ID</string>
++  <string name="muteCopyNpub">Copy public npub</string>
++  <string name="muteCopiedNpub">Copied npub</string>
++  <string name="muteCopied">Copied</string>
++  <string name="muteCopyNpubFailed">Could not copy the npub. You can select and copy the text instead.</string>
++  <string name="muteLoginIntro">Your %s identity connects you to your profile and games. No email needed.</string>
++  <string name="muteNewToNostr">New to Nostr?</string>
++  <string name="muteLoginIdentity">%s is an open identity you can use across compatible apps. Your npub is public; your nsec is the private key you use to sign in.</string>
++  <string name="muteLoginSignerHelp">A signer keeps your key and approves sign-in for you. You can also create or import a key in this browser.</string>
++  <string name="muteLoginSameIdentity">To return on another device, use the same key or signer. Creating a new key creates a different identity.</string>
++  <string name="muteContactPublic">For questions, feedback or bug reports, post in the %s.</string>
++  <string name="muteContactReport">Include the page URL and what happened. Keep personal information out of public posts.</string>
++  <string name="muteContactPrivate">For private account, privacy, payment or security matters, message %s. Never send your nsec, authenticator secret, recovery codes or wallet seed.</string>
++  <string name="muteContactDetails">For a bug report, include the page URL and what happened. Share account or payment details only in private.</string>
++  <string name="muteForumLabel">Mute Chess forum</string>
++  <string name="muteNostrContactLabel">Mute Chess on Nostr</string>
  </resources>
 diff --git a/ui/.build/src/build.ts b/ui/.build/src/build.ts
 index 7d6adeb..b433f0c 100644
@@ -8490,19 +8793,20 @@ index 48a0e33..4bc93c5 100644
      flairPickerLoader(this);
    });
 diff --git a/ui/user/src/user.ts b/ui/user/src/user.ts
-index 5b6c2f1..bf6fb9d 100644
+index 5b6c2f1..3324239 100644
 --- a/ui/user/src/user.ts
 +++ b/ui/user/src/user.ts
-@@ -1,7 +1,7 @@
+@@ -1,7 +1,8 @@
  import { myUserId } from 'lib';
  import { licon } from 'lib/licon';
++import { muteText } from 'lib/nosweat/i18n';
  import { pubsub } from 'lib/pubsub';
 -import { alert, makeLinkPopups } from 'lib/view';
 +import { alert, domDialog, makeLinkPopups } from 'lib/view';
  import * as xhr from 'lib/xhr';
  
  const gamesAngle = document.querySelector<HTMLElement>('.games');
-@@ -11,6 +11,42 @@ export async function initModule(): Promise<void> {
+@@ -11,6 +12,45 @@ export async function initModule(): Promise<void> {
    makeLinkPopups($('.social_links'));
    makeLinkPopups($('.user-infos .bio'));
  
@@ -8530,15 +8834,18 @@ index 5b6c2f1..bf6fb9d 100644
 +      e.preventDefault();
 +      navigator.clipboard.writeText(npubLink.innerText.trim()).then(
 +        () => {
-+          npubLink.title = 'Copied npub';
-+          if (npubFeedback) npubFeedback.textContent = 'Copied';
++          npubLink.title = muteText('CopiedNpub', 'Copied npub');
++          if (npubFeedback) npubFeedback.textContent = muteText('Copied', 'Copied');
 +          clearTimeout(copiedTimer);
 +          copiedTimer = setTimeout(() => {
-+            npubLink.title = 'Copy public npub';
++            npubLink.title = muteText('CopyNpub', 'Copy public npub');
 +            if (npubFeedback) npubFeedback.textContent = '';
 +          }, 900);
 +        },
-+        () => alert('Could not copy the npub. You can select and copy the text instead.'),
++        () =>
++          alert(
++            muteText('CopyNpubFailed', 'Could not copy the npub. You can select and copy the text instead.'),
++          ),
 +      );
 +    });
 +
@@ -10363,13 +10670,14 @@ index 0000000..ea79016
 +    )
 diff --git a/app/views/noSweatInfo.scala b/app/views/noSweatInfo.scala
 new file mode 100644
-index 0000000..4d19dba
+index 0000000..9d16b16
 --- /dev/null
 +++ b/app/views/noSweatInfo.scala
-@@ -0,0 +1,232 @@
+@@ -0,0 +1,227 @@
 +package views
 +
 +import lila.app.UiEnv.{ *, given }
++import lila.core.i18n.I18nKey
 +
 +object noSweatInfo:
 +  private val npub = "npub1w6l8e4mqa4ruqs2vdvwhdxhp9ke9ax8kpncy2wy26tja3d7rzpgq06c9jl"
@@ -10391,10 +10699,10 @@ index 0000000..4d19dba
 +        content(key)
 +      )
 +
-+  private def contactLink = a(href := nostrUrl)("Mute Chess on Nostr")
-+  private def forumLink = a(href := "/forum")("Mute Chess forum")
++  private def contactLink(using Context) = a(href := nostrUrl)(I18nKey("muteNostrContactLabel")())
++  private def forumLink(using Context) = a(href := "/forum")(I18nKey("muteForumLabel")())
 +
-+  private def content(key: String): Frag = key match
++  private def content(key: String)(using Context): Frag = key match
 +    case "about" =>
 +      frag(
 +        p(
@@ -10511,16 +10819,10 @@ index 0000000..4d19dba
 +      )
 +    case "contact" =>
 +      frag(
-+        p("For questions, feedback or bug reports, post in the ", forumLink, "."),
-+        p("Include the page URL and what happened. Keep personal information out of public posts."),
-+        p(
-+          "For private account, privacy, payment or security matters, message ",
-+          contactLink,
-+          ". Never send your nsec, authenticator secret, recovery codes or wallet seed."
-+        ),
-+        p(
-+          "For a bug report, include the page URL and what happened. Share account or payment details only in private."
-+        )
++        p(I18nKey("muteContactPublic")(forumLink)),
++        p(I18nKey("muteContactReport")()),
++        p(I18nKey("muteContactPrivate")(contactLink)),
++        p(I18nKey("muteContactDetails")())
 +      )
 +    case "terms-of-service" =>
 +      frag(
@@ -10601,10 +10903,10 @@ index 0000000..4d19dba
 +    case _ => emptyFrag
 diff --git a/app/views/noSweatLogin.scala b/app/views/noSweatLogin.scala
 new file mode 100644
-index 0000000..7893189
+index 0000000..6064b5c
 --- /dev/null
 +++ b/app/views/noSweatLogin.scala
-@@ -0,0 +1,157 @@
+@@ -0,0 +1,154 @@
 +package views
 +
 +import lila.core.i18n.I18nKey
@@ -10632,22 +10934,19 @@ index 0000000..7893189
 +          ),
 +          h1(I18nKey("muteSignInOrJoin").txt()),
 +          p(cls := "nostr-intro")(
-+            "Your ",
-+            a(href := "https://nostr.org/", targetBlank, rel := "noopener noreferrer")("Nostr"),
-+            " identity connects you to your profile and games. No email needed."
++            I18nKey("muteLoginIntro")(
++              a(href := "https://nostr.org/", targetBlank, rel := "noopener noreferrer")("Nostr")
++            )
 +          ),
 +          details(cls := "nostr-guide")(
-+            summary("New to Nostr?"),
++            summary(I18nKey("muteNewToNostr")()),
 +            p(
-+              a(href := "https://nostr.org/", targetBlank, rel := "noopener noreferrer")("Nostr"),
-+              " is an open identity you can use across compatible apps. Your npub is public; your nsec is the private key you use to sign in."
++              I18nKey("muteLoginIdentity")(
++                a(href := "https://nostr.org/", targetBlank, rel := "noopener noreferrer")("Nostr")
++              )
 +            ),
-+            p(
-+              "A signer keeps your key and approves sign-in for you. You can also create or import a key in this browser."
-+            ),
-+            p(
-+              "To return on another device, use the same key or signer. Creating a new key creates a different identity."
-+            )
++            p(I18nKey("muteLoginSignerHelp")()),
++            p(I18nKey("muteLoginSameIdentity")())
 +          ),
 +          div(id := "nostr-methods", cls := "form3")(
 +            button(id := "nostr-generate", cls := "button button-green")(I18nKey("muteCreateKey").txt()),

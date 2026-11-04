@@ -1,5 +1,16 @@
 # Mute Chess implementation direction
 
+## Required translations for user-facing text (November 4, 2026, #242)
+
+Every added or changed user-facing string must use the existing native i18n
+catalogs and be translated into all ten supported locales: en-GB, de-DE, es-ES,
+fr-FR, hi-IN, ja-JP, ko-KR, pt-BR, ru-RU and zh-CN. This includes help text,
+labels, titles, accessibility labels, errors and transient feedback. English
+fallback alone is not completion. Preserve whole-sentence placeholders and
+escaping, check catalog key/placeholder parity, and verify localized rendering
+before release. Reuse existing translation tools; this requirement does not
+authorize a new translation framework or general tooling.
+
 ## Nostr identity help and forum contact (November 4, 2026, #239/#240)
 
 Keep small information buttons beside the human profile npub and permanent
