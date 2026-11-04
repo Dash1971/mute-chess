@@ -14,11 +14,9 @@ account keeps its identity and does not get recreated when a name is supplied.
 Bots retain their native named identities. The full npub remains the public
 identity and collision checks remain authoritative for shortened native IDs.
 
-The owner explicitly requested migration of `test1` to `n2f2b537576f0256497f`.
-Keep its current display name, keys, session, challenge, patron/donation records
-and other persisted account data. Save its previous native ID for a profile
-redirect. Other existing accounts remain unchanged pending an owner decision.
-No general account migration tool or schema-wide rename is introduced.
+The owner instead approved deleting the disposable Test1 account. No account-ID
+migration or previous-ID redirect is introduced. Other existing accounts remain
+unchanged pending an owner decision.
 
 ## Experience
 

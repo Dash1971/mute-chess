@@ -571,32 +571,10 @@ index 49e260e..2872316 100644
        JsonOk:
          Json.obj(
 diff --git a/app/controllers/User.scala b/app/controllers/User.scala
-index eaaba62..77c4860 100644
+index eaaba62..464bc98 100644
 --- a/app/controllers/User.scala
 +++ b/app/controllers/User.scala
-@@ -63,11 +63,16 @@ final class User(
- 
-   def show(username: UserStr) = OpenBody:
-     WithProxy: proxy ?=>
--      EnabledUser(username, proxy.some): u =>
--        negotiate(
--          renderShow(u),
--          gamesForLichobile(u, GameFilter.all.name, 1)
--        )
-+      env.user.repo
-+        .byPreviousNostrId(username.id)
-+        .flatMap:
-+          case Some(user) => Redirect(routes.User.show(user.username)).toFuccess
-+          case None =>
-+            EnabledUser(username, proxy.some): u =>
-+              negotiate(
-+                renderShow(u),
-+                gamesForLichobile(u, GameFilter.all.name, 1)
-+              )
- 
-   def search(term: String) = Open: _ ?=>
-     UserStr.read(term) match
-@@ -254,22 +259,34 @@ final class User(
+@@ -254,22 +254,34 @@ final class User(
        yield pag
  
    def list = Open:
@@ -647,7 +625,7 @@ index eaaba62..77c4860 100644
  
    def apiList = Anon:
      env.user.cached.top10.get {}.map { leaderboards =>
-@@ -279,11 +296,26 @@ final class User(
+@@ -279,11 +291,26 @@ final class User(
      }
  
    def top(perfKey: PerfKey, page: Int) = Open:
@@ -679,7 +657,7 @@ index eaaba62..77c4860 100644
  
    def topNbApi(nb: Int, perfKey: PerfKey) = Anon:
      if nb == 1 && perfKey == PerfKey.standard then
-@@ -567,6 +599,20 @@ final class User(
+@@ -567,6 +594,20 @@ final class User(
          env.security.forms.signup.firstUsernameError(name) match
            case Some(error) => BadRequest(jsonError(error))
            case None => UserStr.read(name).so(env.user.repo.existsSec).map(JsonOk)
@@ -700,7 +678,7 @@ index eaaba62..77c4860 100644
        else
          get("term")
            .flatMap(UserSearch.read)
-@@ -614,9 +660,20 @@ final class User(
+@@ -614,9 +655,20 @@ final class User(
              yield Ok(result)
  
    def ratingDistribution(perfKey: PerfKey, username: Option[UserStr] = None) = Open:
@@ -3166,7 +3144,7 @@ index 947bee6..d3f3a3f 100644
      mapping(
        "text" -> cleanTextWithSymbols(minLength = 3, maxLength = 2000),
 diff --git a/modules/user/src/main/UserRepo.scala b/modules/user/src/main/UserRepo.scala
-index 45fd497..25d2038 100644
+index 45fd497..122d3fb 100644
 --- a/modules/user/src/main/UserRepo.scala
 +++ b/modules/user/src/main/UserRepo.scala
 @@ -147,8 +147,11 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
@@ -3183,7 +3161,7 @@ index 45fd497..25d2038 100644
  
    def setRealName(id: UserId, name: RealName): Funit =
      coll.updateField(bid(id), s"${F.profile}.realName", name).void
-@@ -236,6 +239,44 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+@@ -236,6 +239,35 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
        coll.insert.one(doc) >> byId(name.id)
  
    def existsPri[U: UserIdOf](u: U): Fu[Boolean] = coll.exists(bid(u.id))
@@ -3204,15 +3182,6 @@ index 45fd497..25d2038 100644
 +    )
 +    coll.insert.one(NoSweatNostrIdentity.mark(doc, pubkey, displayName)).flatMap(_ => byNostr(pubkey))
 +
-+  def byPreviousNostrId(id: UserId): Fu[Option[User]] =
-+    coll.one[User](
-+      enabledSelect ++ bdoc(
-+        "nostrPreviousId" -> id.value,
-+        "nostr" -> bdoc("$exists" -> true),
-+        F.title.neq(PlayerTitle.BOT)
-+      )
-+    )
-+
 +  def createNoSweatBot(name: UserName, catalogIdentity: Option[String] = None): Fu[Option[User]] =
 +    val doc = newUser(
 +      name,
@@ -3228,7 +3197,7 @@ index 45fd497..25d2038 100644
    def existsSec[U: UserIdOf](u: U): Fu[Boolean] = coll.secondary.exists(bid(u.id))
  
    def filterExists(ids: Set[UserId]): Fu[List[UserId]] =
-@@ -247,6 +288,25 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+@@ -247,6 +279,25 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
    def userIdsLikeClosed(text: UserSearch, max: Int = 10): Fu[List[UserId]] =
      userIdsLikeFilter(text, bdoc(F.enabled -> false), max)
  
@@ -3254,7 +3223,7 @@ index 45fd497..25d2038 100644
    private[user] def userIdsLikeFilter(text: UserSearch, filter: Bdoc, max: Int): Fu[List[UserId]] =
      coll
        .find(
-@@ -383,6 +443,7 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+@@ -383,6 +434,7 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
          bdoc(
            F.prevEmail -> lockEmail,
            F.createdAt -> user.createdAt,
@@ -3262,7 +3231,7 @@ index 45fd497..25d2038 100644
            F.deletedAt -> nowInstant
          )
        )
-@@ -573,6 +634,7 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+@@ -573,6 +625,7 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
      bdoc(
        F.id -> name.id,
        F.username -> name.value,
@@ -3270,7 +3239,7 @@ index 45fd497..25d2038 100644
        F.email -> normalizedEmail,
        F.mustConfirmEmail -> mustConfirmEmail.option(now),
        F.bpass -> passwordHash,
-@@ -589,3 +651,25 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+@@ -589,3 +642,25 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
      } ++ {
        kid.yes.so(bdoc(F.kid -> kid))
      }
