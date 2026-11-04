@@ -429,11 +429,12 @@
         },
         {
           "id": "lightning-patronage",
-          "rationale": "Adapt the explicitly requested Lightning/Nostr donation flow to native patron marks and remove unrelated payment entry points. Preserve verification and account binding rather than changing native chess behavior.",
+          "rationale": "Adapt the explicitly requested Lightning/Nostr donation flow to native patron marks and remove unrelated payment entry points. Preserve verification and account binding rather than changing native chess behavior. Issue #247 restores the QR-standard four-module quiet zone and uses a device-resolution canvas while retaining the existing CSS display width and automatic square aspect ratio. Shared QR consumers keep the exact payload, error correction and replacement-invoice initialization; payment creation/validation, receipt and wings semantics are unchanged.",
           "verification": [
             "Adapter lightning tests",
             "Native QR tests/build",
-            "Private invoice and receipt checks without payment"
+            "Private invoice and receipt checks without payment",
+            "Native QR tests exercise default rendering/replacement invoices and a dense payment plus authenticator payload at devicePixelRatio 2: backing dimensions, displayed size and four-module clear border. No real payment or Phoenix device scan is claimed (#247)."
           ],
           "files": [
             "app/controllers/Plan.scala",
