@@ -23,9 +23,9 @@ domain requires additional configuration. The root Node app is a retired prototy
 
 ### Your key, your chess identity
 
-No email or password to remember. Create a Nostr key in your browser, bring an
-existing nsec, or sign in with a NIP-07 browser signer. The same identity connects
-your profile, ratings and saved games. Signing in does not post to Nostr.
+No email or password to remember. Create a [Nostr](https://nostr.org/) key in your
+browser, bring an existing nsec, or sign in with a NIP-07 browser signer. The same identity connects
+your profile, ratings and saved games.
 
 Your npub is your permanent public identity. Chosen usernames can change and are
 unique without regard to capitalization; existing account and bot names are reserved.
@@ -34,6 +34,11 @@ copy-link action for its permanent profile URL. Hovercards show a
 compact npub identity link too. Search accepts a
 full npub or `nostr:npub…` as well as display names. Managed opponents retain
 their names and BOT tag. Native internal IDs keep existing games and links stable.
+
+Information buttons beside the profile npub and permanent `@` account ID explain
+public/private keys, stable profile links and keeping personal information to a
+minimum. Your nsec is secret; your npub can be shared. The introduction links to
+nostr.org and Primal as an example of using the same identity elsewhere.
 
 Your secret key stays with you. Keep a separate backup: browser storage alone
 is not a recovery plan. An optional authenticator adds a second factor to sign-in.

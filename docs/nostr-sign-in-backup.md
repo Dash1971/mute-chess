@@ -5,6 +5,17 @@ The owner authorized implementation and a PR stacked on forum PR #83 on October
 
 ## Experience
 
+Profile information buttons beside the npub and permanent account handle open
+the existing native dialog (#239). They explain the public npub/private nsec pair,
+username changes, permanent profile links, using the identity on other Nostr apps,
+and minimizing personal information. Introductory links use nostr.org, with Primal
+as a social example. The handle explanation calls the `n` plus 19-character hex
+prefix a shortened account ID, not the full public key; legacy non-derived handles
+use the generic permanent-ID explanation. All human Nostr profiles show their
+permanent handle, including those without a chosen username. Managed bots have
+no Nostr help buttons. The help reads no key storage and exposes no private keys.
+The npub's existing click-to-copy and 900ms Copied feedback remain separate.
+
 Keep Create a key and play, Continue with saved key, and Log in with signer as
 direct actions. No required tutorial or backup acknowledgement. A closed “New to
 Nostr?” disclosure explains the public npub, private nsec, signer and using the
