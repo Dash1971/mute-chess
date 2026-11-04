@@ -87,8 +87,9 @@ are unchanged.
 
 Nostr profile headers put trophies in normal flex flow beside the public name.
 The identity block shows the npub first and the permanent @ID directly below it,
-using shared text and information-button columns. Npub copying/feedback and both
-help dialogs are retained. The donation UI omits the direct wallet/Nostr links
+sharing a left edge, with each information button beside its text. Clicking the
+ID copies the full permanent profile URL with the same 900ms feedback as the npub.
+Both help dialogs are retained. The donation UI omits the direct wallet/Nostr links
 and the address suffix under an invoice; the fixed amount remains visible.
 Native trophy content, packing and non-Nostr layout remain intact.
 No deployment is included in this PR.

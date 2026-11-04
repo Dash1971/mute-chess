@@ -1144,7 +1144,7 @@ index 5222d2d..2edd45b 100644
    def apply(
        tourneyWinners: List[lila.tournament.Winner],
 diff --git a/app/views/user/show/header.scala b/app/views/user/show/header.scala
-index 26a6045..e946249 100644
+index 26a6045..a69f1a2 100644
 --- a/app/views/user/show/header.scala
 +++ b/app/views/user/show/header.scala
 @@ -3,6 +3,7 @@ package show
@@ -1243,7 +1243,7 @@ index 26a6045..e946249 100644
          div(cls := "trophies")(
            views.user.bits.perfTrophies(u, info.ranks),
            otherTrophies(info),
-@@ -75,6 +125,21 @@ object header:
+@@ -75,6 +125,32 @@ object header:
          ),
          u.enabled.no.option(span(cls := "closed")("CLOSED"))
        ),
@@ -1257,15 +1257,26 @@ index 26a6045..e946249 100644
 +            )(npub),
 +            identityInfo("npub", I18nKey("muteAboutNpub").txt()),
 +            span(cls := "user-show__nostr-feedback", attr("role") := "status", attr("aria-live") := "polite"),
-+            span(cls := "user-show__handle")(s"@${u.username.value}"),
-+            identityInfo("handle", I18nKey("muteAboutHandle").txt())
++            span(cls := "user-show__handle")(
++              a(
++                cls := "user-show__profile-link",
++                href := userUrl(u.username),
++                ariaTitle(I18nKey("muteCopyProfileLink").txt())
++              )(s"@${u.username.value}"),
++              identityInfo("handle", I18nKey("muteAboutHandle").txt()),
++              span(
++                cls := "user-show__profile-feedback",
++                attr("role") := "status",
++                attr("aria-live") := "polite"
++              )
++            )
 +          ),
 +          identityHelp(u)
 +        ),
        div(cls := "user-show__social")(
          div(cls := "number-menu")(
            u.noBot.option(
-@@ -162,6 +227,7 @@ object header:
+@@ -162,6 +238,7 @@ object header:
                    .so(profile.nonEmptyBio)
                    .map: bio =>
                      p(cls := List("bio" -> true, "muted" -> muted))(richText(bio, nl2br = true)),
@@ -3965,10 +3976,10 @@ index 74906f1..99e482b 100644
  travel-places.map-of-japan
  travel-places.metro
 diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
-index 88adade..23c834d 100644
+index 88adade..d8dbd9a 100644
 --- a/translation/dest/site/de-DE.xml
 +++ b/translation/dest/site/de-DE.xml
-@@ -1064,4 +1064,83 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
+@@ -1064,4 +1064,86 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
    <string name="write">Schreiben</string>
    <string name="preview">Vorschau</string>
    <string name="done">Erledigt</string>
@@ -4051,12 +4062,15 @@ index 88adade..23c834d 100644
 +  <string name="muteDonationWaiting">Zum Bezahlen scannen. Warte auf die Zahlung…</string>
 +  <string name="muteDonationSignInAgain">Bitte melde dich hier erneut an, um eine Rechnung zu erstellen.</string>
 +  <string name="mutePatronThanks">Deine Flügel sind aktiv. Vielen Dank!</string>
++  <string name="muteCopyProfileLink">Dauerhaften Profillink kopieren</string>
++  <string name="muteCopiedProfileLink">Profillink kopiert</string>
++  <string name="muteCopyProfileLinkFailed">Der Link konnte nicht kopiert werden. Verwende die Funktion zum Kopieren von Links in deinem Browser.</string>
  </resources>
 diff --git a/translation/dest/site/es-ES.xml b/translation/dest/site/es-ES.xml
-index 76004f5..152dd26 100644
+index 76004f5..376944a 100644
 --- a/translation/dest/site/es-ES.xml
 +++ b/translation/dest/site/es-ES.xml
-@@ -1064,4 +1064,83 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
+@@ -1064,4 +1064,86 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
    <string name="write">Escribir</string>
    <string name="preview">Vista previa</string>
    <string name="done">Listo</string>
@@ -4139,12 +4153,15 @@ index 76004f5..152dd26 100644
 +  <string name="muteDonationWaiting">Escanea para pagar. Esperando el pago…</string>
 +  <string name="muteDonationSignInAgain">Vuelve a iniciar sesión aquí para crear una factura.</string>
 +  <string name="mutePatronThanks">Tus alas están activas. ¡Gracias!</string>
++  <string name="muteCopyProfileLink">Copiar enlace permanente al perfil</string>
++  <string name="muteCopiedProfileLink">Enlace al perfil copiado</string>
++  <string name="muteCopyProfileLinkFailed">No se ha podido copiar el enlace. Usa la opción de copiar enlaces de tu navegador.</string>
  </resources>
 diff --git a/translation/dest/site/fr-FR.xml b/translation/dest/site/fr-FR.xml
-index 7dfd5f7..b2fddbf 100644
+index 7dfd5f7..8ae7f6f 100644
 --- a/translation/dest/site/fr-FR.xml
 +++ b/translation/dest/site/fr-FR.xml
-@@ -1063,4 +1063,83 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
+@@ -1063,4 +1063,86 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
    <string name="write">Écrire</string>
    <string name="preview">Aperçu</string>
    <string name="done">Terminé</string>
@@ -4227,12 +4244,15 @@ index 7dfd5f7..b2fddbf 100644
 +  <string name="muteDonationWaiting">Scannez pour payer. En attente du paiement…</string>
 +  <string name="muteDonationSignInAgain">Veuillez vous reconnecter ici pour créer une facture.</string>
 +  <string name="mutePatronThanks">Vos ailes sont actives. Merci !</string>
++  <string name="muteCopyProfileLink">Copier le lien permanent du profil</string>
++  <string name="muteCopiedProfileLink">Lien du profil copié</string>
++  <string name="muteCopyProfileLinkFailed">Impossible de copier le lien. Utilisez la fonction de copie des liens de votre navigateur.</string>
  </resources>
 diff --git a/translation/dest/site/hi-IN.xml b/translation/dest/site/hi-IN.xml
-index bbf1703..78b89f9 100644
+index bbf1703..6279b2d 100644
 --- a/translation/dest/site/hi-IN.xml
 +++ b/translation/dest/site/hi-IN.xml
-@@ -893,4 +893,83 @@
+@@ -893,4 +893,86 @@
    <string name="closingAccountWithdrawAppeal">आपका खाता बंद करने से आपकी अपील वापस ले ली जाएगी</string>
    <string name="ourEventTips">कार्यक्रम आयोजित करने कि सलाह</string>
    <string name="nothingToSeeHere">इस समय यहां देखने को कुछ भी नहीं है।</string>
@@ -4315,12 +4335,15 @@ index bbf1703..78b89f9 100644
 +  <string name="muteDonationWaiting">भुगतान करने के लिए स्कैन करें। भुगतान की प्रतीक्षा है…</string>
 +  <string name="muteDonationSignInAgain">इनवॉइस बनाने के लिए कृपया यहाँ फिर से साइन इन करें।</string>
 +  <string name="mutePatronThanks">आपके पंख सक्रिय हैं। धन्यवाद!</string>
++  <string name="muteCopyProfileLink">प्रोफ़ाइल का स्थायी लिंक कॉपी करें</string>
++  <string name="muteCopiedProfileLink">प्रोफ़ाइल लिंक कॉपी हो गया</string>
++  <string name="muteCopyProfileLinkFailed">लिंक कॉपी नहीं हो सका। अपने ब्राउज़र के लिंक कॉपी करने वाले विकल्प का उपयोग करें।</string>
  </resources>
 diff --git a/translation/dest/site/ja-JP.xml b/translation/dest/site/ja-JP.xml
-index e628bdb..4ddb989 100644
+index e628bdb..b054daa 100644
 --- a/translation/dest/site/ja-JP.xml
 +++ b/translation/dest/site/ja-JP.xml
-@@ -1023,4 +1023,83 @@
+@@ -1023,4 +1023,86 @@
    <string name="write">書く</string>
    <string name="preview">プレビュー</string>
    <string name="done">完了</string>
@@ -4403,12 +4426,15 @@ index e628bdb..4ddb989 100644
 +  <string name="muteDonationWaiting">スキャンしてお支払いください。お支払いを待っています…</string>
 +  <string name="muteDonationSignInAgain">請求書を作成するには、ここでもう一度ログインしてください。</string>
 +  <string name="mutePatronThanks">あなたのウィングが有効になりました。ありがとうございます！</string>
++  <string name="muteCopyProfileLink">プロフィールの固定リンクをコピー</string>
++  <string name="muteCopiedProfileLink">プロフィールのリンクをコピーしました</string>
++  <string name="muteCopyProfileLinkFailed">リンクをコピーできませんでした。ブラウザーのリンクをコピーする機能を使ってください。</string>
  </resources>
 diff --git a/translation/dest/site/ko-KR.xml b/translation/dest/site/ko-KR.xml
-index 9341bf0..a9dfb3b 100644
+index 9341bf0..02339f9 100644
 --- a/translation/dest/site/ko-KR.xml
 +++ b/translation/dest/site/ko-KR.xml
-@@ -1022,4 +1022,83 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
+@@ -1022,4 +1022,86 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
    <string name="write">작성</string>
    <string name="preview">미리보기</string>
    <string name="done">완료</string>
@@ -4491,12 +4517,15 @@ index 9341bf0..a9dfb3b 100644
 +  <string name="muteDonationWaiting">스캔하여 결제하세요. 결제를 기다리는 중…</string>
 +  <string name="muteDonationSignInAgain">청구서를 만들려면 여기에서 다시 로그인해 주세요.</string>
 +  <string name="mutePatronThanks">후원 날개가 활성화되었습니다. 감사합니다!</string>
++  <string name="muteCopyProfileLink">프로필 고정 링크 복사</string>
++  <string name="muteCopiedProfileLink">프로필 링크를 복사했습니다</string>
++  <string name="muteCopyProfileLinkFailed">링크를 복사할 수 없습니다. 브라우저의 링크 복사 기능을 사용해 주세요.</string>
  </resources>
 diff --git a/translation/dest/site/pt-BR.xml b/translation/dest/site/pt-BR.xml
-index 569e752..9c32391 100644
+index 569e752..c42fef6 100644
 --- a/translation/dest/site/pt-BR.xml
 +++ b/translation/dest/site/pt-BR.xml
-@@ -1063,4 +1063,83 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
+@@ -1063,4 +1063,86 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
    <string name="write">Escrever</string>
    <string name="preview">Pré-visualizar</string>
    <string name="done">Feito</string>
@@ -4579,12 +4608,15 @@ index 569e752..9c32391 100644
 +  <string name="muteDonationWaiting">Escaneie para pagar. Aguardando o pagamento…</string>
 +  <string name="muteDonationSignInAgain">Entre novamente aqui para criar uma fatura.</string>
 +  <string name="mutePatronThanks">Suas asas estão ativas. Obrigado!</string>
++  <string name="muteCopyProfileLink">Copiar link permanente do perfil</string>
++  <string name="muteCopiedProfileLink">Link do perfil copiado</string>
++  <string name="muteCopyProfileLinkFailed">Não foi possível copiar o link. Use a opção de copiar links do seu navegador.</string>
  </resources>
 diff --git a/translation/dest/site/ru-RU.xml b/translation/dest/site/ru-RU.xml
-index 6384657..b3028ea 100644
+index 6384657..20c58bd 100644
 --- a/translation/dest/site/ru-RU.xml
 +++ b/translation/dest/site/ru-RU.xml
-@@ -1146,4 +1146,83 @@
+@@ -1146,4 +1146,86 @@
    <string name="write">Написать</string>
    <string name="preview">Предпросмотр</string>
    <string name="done">Готово</string>
@@ -4667,12 +4699,15 @@ index 6384657..b3028ea 100644
 +  <string name="muteDonationWaiting">Отсканируйте для оплаты. Ожидаем платёж…</string>
 +  <string name="muteDonationSignInAgain">Войдите здесь ещё раз, чтобы создать счёт.</string>
 +  <string name="mutePatronThanks">Ваши крылья активны. Спасибо!</string>
++  <string name="muteCopyProfileLink">Скопировать постоянную ссылку на профиль</string>
++  <string name="muteCopiedProfileLink">Ссылка на профиль скопирована</string>
++  <string name="muteCopyProfileLinkFailed">Не удалось скопировать ссылку. Используйте функцию копирования ссылки в браузере.</string>
  </resources>
 diff --git a/translation/dest/site/zh-CN.xml b/translation/dest/site/zh-CN.xml
-index 176f4d1..632388b 100644
+index 176f4d1..f9a9fd1 100644
 --- a/translation/dest/site/zh-CN.xml
 +++ b/translation/dest/site/zh-CN.xml
-@@ -1022,4 +1022,83 @@
+@@ -1022,4 +1022,86 @@
    <string name="write">撰写</string>
    <string name="preview">预览</string>
    <string name="done">完成</string>
@@ -4755,12 +4790,15 @@ index 176f4d1..632388b 100644
 +  <string name="muteDonationWaiting">扫码付款，正在等待付款…</string>
 +  <string name="muteDonationSignInAgain">请在此重新登录以创建付款请求。</string>
 +  <string name="mutePatronThanks">你的翅膀已生效，谢谢！</string>
++  <string name="muteCopyProfileLink">复制个人资料的永久链接</string>
++  <string name="muteCopiedProfileLink">个人资料链接已复制</string>
++  <string name="muteCopyProfileLinkFailed">无法复制链接。请使用浏览器的复制链接功能。</string>
  </resources>
 diff --git a/translation/source/site.xml b/translation/source/site.xml
-index 8b5a6a1..722d397 100644
+index 8b5a6a1..5ec1b29 100644
 --- a/translation/source/site.xml
 +++ b/translation/source/site.xml
-@@ -1066,4 +1066,83 @@ Leave empty to start games from the normal initial position.</string>
+@@ -1066,4 +1066,86 @@ Leave empty to start games from the normal initial position.</string>
    <string name="write">Write</string>
    <string name="preview">Preview</string>
    <string name="done">Done</string>
@@ -4843,6 +4881,9 @@ index 8b5a6a1..722d397 100644
 +  <string name="muteDonationWaiting">Scan to pay. Waiting for payment…</string>
 +  <string name="muteDonationSignInAgain">Please sign in again here to create an invoice.</string>
 +  <string name="mutePatronThanks">Your wings are active. Thank you!</string>
++  <string name="muteCopyProfileLink">Copy permanent profile link</string>
++  <string name="muteCopiedProfileLink">Profile link copied</string>
++  <string name="muteCopyProfileLinkFailed">Could not copy the link. Use your browser’s Copy link action.</string>
  </resources>
 diff --git a/ui/.build/src/build.ts b/ui/.build/src/build.ts
 index 7d6adeb..b433f0c 100644
@@ -8715,10 +8756,10 @@ index fc3e09e..2b2a8be 100644
 +  }
 +}
 diff --git a/ui/user/css/_header.scss b/ui/user/css/_header.scss
-index 9443479..98692e6 100644
+index 9443479..efe994b 100644
 --- a/ui/user/css/_header.scss
 +++ b/ui/user/css/_header.scss
-@@ -23,3 +23,95 @@
+@@ -23,3 +23,108 @@
      vertical-align: top;
    }
  }
@@ -8790,7 +8831,20 @@ index 9443479..98692e6 100644
 +  }
 +
 +  .user-show__handle {
-+    grid-column: 1;
++    grid-column: 1 / -1;
++    display: inline-flex;
++  }
++
++  .user-show__profile-link {
++    min-width: 0;
++    color: inherit;
++    overflow-wrap: anywhere;
++  }
++
++  .user-show__profile-feedback {
++    flex: 0 0 4em;
++    font-size: 0.8rem;
++    color: $c-font-dim;
 +  }
 +
 +  &-feedback {
@@ -8846,7 +8900,7 @@ index 48a0e33..4bc93c5 100644
      flairPickerLoader(this);
    });
 diff --git a/ui/user/src/user.ts b/ui/user/src/user.ts
-index 5b6c2f1..3324239 100644
+index 5b6c2f1..d946ea8 100644
 --- a/ui/user/src/user.ts
 +++ b/ui/user/src/user.ts
 @@ -1,7 +1,8 @@
@@ -8859,7 +8913,7 @@ index 5b6c2f1..3324239 100644
  import * as xhr from 'lib/xhr';
  
  const gamesAngle = document.querySelector<HTMLElement>('.games');
-@@ -11,6 +12,45 @@ export async function initModule(): Promise<void> {
+@@ -11,6 +12,72 @@ export async function initModule(): Promise<void> {
    makeLinkPopups($('.social_links'));
    makeLinkPopups($('.user-infos .bio'));
  
@@ -8898,6 +8952,33 @@ index 5b6c2f1..3324239 100644
 +        () =>
 +          alert(
 +            muteText('CopyNpubFailed', 'Could not copy the npub. You can select and copy the text instead.'),
++          ),
++      );
++    });
++
++  const profileLink = document.querySelector<HTMLAnchorElement>('.user-show__profile-link');
++  const profileFeedback = document.querySelector<HTMLElement>('.user-show__profile-feedback');
++  let profileCopiedTimer: ReturnType<typeof setTimeout> | undefined;
++  if (profileLink)
++    profileLink.addEventListener('click', e => {
++      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
++      e.preventDefault();
++      navigator.clipboard.writeText(profileLink.href).then(
++        () => {
++          profileLink.title = muteText('CopiedProfileLink', 'Profile link copied');
++          if (profileFeedback) profileFeedback.textContent = muteText('Copied', 'Copied');
++          clearTimeout(profileCopiedTimer);
++          profileCopiedTimer = setTimeout(() => {
++            profileLink.title = muteText('CopyProfileLink', 'Copy permanent profile link');
++            if (profileFeedback) profileFeedback.textContent = '';
++          }, 900);
++        },
++        () =>
++          alert(
++            muteText(
++              'CopyProfileLinkFailed',
++              'Could not copy the link. Use your browser’s Copy link action.',
++            ),
 +          ),
 +      );
 +    });
