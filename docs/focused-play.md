@@ -195,3 +195,5 @@ payloads and canonical presence/link behavior. The existing automatic CI checks
 native UI tests/types and applies the exact WS patch; it does not compile
 lila-ws. No local full native/UI build, release build, merge or deployment is
 part of this PR.
+
+Issue #264 corrects the live-enter JSON builder: the required display-name string belongs in native `Json.obj`, because the upstream `add` helper accepts only booleans/options. Two WS payload regressions retain canonical identity/playing IDs, chosen-name metadata and empty/missing-name fallback. The exact patched WS source is compiled and tested before the release retry.
