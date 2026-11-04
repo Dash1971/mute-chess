@@ -11229,7 +11229,7 @@ index 0000000..2e275fd
 +        )
 diff --git a/app/views/noSweatPatron.scala b/app/views/noSweatPatron.scala
 new file mode 100644
-index 0000000..5d228de
+index 0000000..a546156
 --- /dev/null
 +++ b/app/views/noSweatPatron.scala
 @@ -0,0 +1,114 @@
@@ -11294,7 +11294,7 @@ index 0000000..5d228de
 +              " for 30-day patron wings, or donate directly below."
 +            )
 +          )(_ =>
-+            frag(
++            div(id := "patron-form")(
 +              p("A confirmed donation gives you patron wings for 30 days."),
 +              div(cls := "patron-fields")(
 +                div(cls := "patron-field")(
@@ -129368,10 +129368,10 @@ index 0000000..6cdffb4
 +@import '../../../lib/css/ceval/engine-settings';
 diff --git a/ui/bits/css/build/bits.patron.scss b/ui/bits/css/build/bits.patron.scss
 new file mode 100644
-index 0000000..fa04c19
+index 0000000..4abc542
 --- /dev/null
 +++ b/ui/bits/css/build/bits.patron.scss
-@@ -0,0 +1,166 @@
+@@ -0,0 +1,170 @@
 +@import '../../../lib/css/plugin';
 +
 +#nostr-patron {
@@ -129487,6 +129487,10 @@ index 0000000..fa04c19
 +  }
 +
 +  &.payment-confirmed {
++    #patron-form {
++      display: none;
++    }
++
 +    .patron-thanks {
 +      text-align: center;
 +      padding: 1em;
