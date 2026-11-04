@@ -9528,6 +9528,20 @@ index 0000000..8efd4b7
 +
 +  def aliasEligible(current: Option[String], username: String, alias: String): Boolean =
 +    current.isEmpty || current.contains(username) || current.contains(alias)
+diff --git a/app/NoSweatDonation.scala b/app/NoSweatDonation.scala
+new file mode 100644
+index 0000000..e1cb129
+--- /dev/null
++++ b/app/NoSweatDonation.scala
+@@ -0,0 +1,8 @@
++package lila.app
++
++import lila.db.dsl.{ *, given }
++
++/** Only the unpaid prompt can be dismissed. Receipt/ledger matching never filters on dismissal. */
++private[app] object NoSweatDonation:
++  def dismissSelector(user: UserId, payment: String): Bdoc =
++    bdoc("_id" -> payment, "userId" -> user, "paid" -> false)
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
 index 0000000..f6251d3
@@ -25469,6 +25483,26 @@ index 0000000..bb36ad1
 +        aliases
 +      )
 +    )
+diff --git a/src/test/scala/NoSweatDonationTest.scala b/src/test/scala/NoSweatDonationTest.scala
+new file mode 100644
+index 0000000..c47a25d
+--- /dev/null
++++ b/src/test/scala/NoSweatDonationTest.scala
+@@ -0,0 +1,14 @@
++package lila.app
++
++import lila.db.dsl.{ *, given }
++
++class NoSweatDonationTest extends munit.FunSuite:
++  test("dismissal atomically binds the exact invoice and authenticated account to unpaid state"):
++    val payment = "a" * 64
++    val selector = NoSweatDonation.dismissSelector(UserId("donor"), payment)
++    assertEquals(selector.getAsOpt[String]("_id"), Some(payment))
++    assertEquals(selector.getAsOpt[UserId]("userId"), Some(UserId("donor")))
++    assertEquals(selector.getAsOpt[Boolean]("paid"), Some(false))
++    assertEquals(selector.elements.map(_.name).toSet, Set("_id", "userId", "paid"))
++    assertNotEquals(selector, NoSweatDonation.dismissSelector(UserId("another"), payment))
++    assertNotEquals(selector, NoSweatDonation.dismissSelector(UserId("donor"), "b" * 64))
 diff --git a/src/test/scala/NoSweatStudyPlanTest.scala b/src/test/scala/NoSweatStudyPlanTest.scala
 new file mode 100644
 index 0000000..806bb5f
@@ -132926,37 +132960,3 @@ index 0000000..5ee372b
 +++ b/ui/site/tests/tsconfig.json
 @@ -0,0 +1 @@
 +{ "extends": "../../.test/tsconfig.test.json" }
-diff --git a/app/NoSweatDonation.scala b/app/NoSweatDonation.scala
-new file mode 100644
-index 0000000..e1cb129
---- /dev/null
-+++ b/app/NoSweatDonation.scala
-@@ -0,0 +1,8 @@
-+package lila.app
-+
-+import lila.db.dsl.{ *, given }
-+
-+/** Only the unpaid prompt can be dismissed. Receipt/ledger matching never filters on dismissal. */
-+private[app] object NoSweatDonation:
-+  def dismissSelector(user: UserId, payment: String): Bdoc =
-+    bdoc("_id" -> payment, "userId" -> user, "paid" -> false)
-diff --git a/src/test/scala/NoSweatDonationTest.scala b/src/test/scala/NoSweatDonationTest.scala
-new file mode 100644
-index 0000000..c47a25d
---- /dev/null
-+++ b/src/test/scala/NoSweatDonationTest.scala
-@@ -0,0 +1,14 @@
-+package lila.app
-+
-+import lila.db.dsl.{ *, given }
-+
-+class NoSweatDonationTest extends munit.FunSuite:
-+  test("dismissal atomically binds the exact invoice and authenticated account to unpaid state"):
-+    val payment = "a" * 64
-+    val selector = NoSweatDonation.dismissSelector(UserId("donor"), payment)
-+    assertEquals(selector.getAsOpt[String]("_id"), Some(payment))
-+    assertEquals(selector.getAsOpt[UserId]("userId"), Some(UserId("donor")))
-+    assertEquals(selector.getAsOpt[Boolean]("paid"), Some(false))
-+    assertEquals(selector.elements.map(_.name).toSet, Set("_id", "userId", "paid"))
-+    assertNotEquals(selector, NoSweatDonation.dismissSelector(UserId("another"), payment))
-+    assertNotEquals(selector, NoSweatDonation.dismissSelector(UserId("donor"), "b" * 64))
