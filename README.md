@@ -8,6 +8,24 @@ Mute Chess is a free, open-source chess project built on Lichess. It combines
 human-like Maia opponents, multiple stacked premoves, and Maia alongside Stockfish
 analysis, with a familiar interface for desktop and mobile browsers.
 
+## Project goals
+
+- Play human-like bots the way you would play humans on Lichess. Click **New game**
+  and be surprised by who you get!
+- No cheating from Maia, at least! I'll trust the honor of our human visitors.
+- Bots that play to the end. Maia is resilient!
+- Aim for ratings that roughly match Lichess in the same time control. See our
+  [rating goal](#rating-goal).
+- Have fun with brillies! Chess.com's algorithm is hard to pin down, but our
+  tests recognize roughly half the moves it considers Brilliant. See
+  [Open Brilly Finder](https://github.com/Dash1971/open-brilly-finder) for the work
+  behind it.
+- A fun cyberpunk theme and vibe.
+- Use Maia for both play and analysis.
+- Keep it simple: games, puzzles, analysis and a forum. No variants.
+- **100% FOSS.** Play at [mutechess.org](https://mutechess.org/), fork the project,
+  or [run your own instance](docs/installation.md).
+
 ## Install and self-host
 
 **Want to play?** Open [mutechess.org](https://mutechess.org/); no app installation
