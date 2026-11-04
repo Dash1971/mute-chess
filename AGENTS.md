@@ -1,5 +1,17 @@
 # Mute Chess implementation direction
 
+## Nostr identity help and forum contact (November 4, 2026, #239/#240)
+
+Keep small information buttons beside the human profile npub and permanent
+account handle, using the native accessible dialog for key/privacy explanations.
+Explain that the n-prefixed handle uses a shortened hex public key, while the
+full npub is the permanent public identity; legacy handles remain valid. Keep
+npub copying separate from the help, and never read or expose an nsec here.
+Link introductory Nostr mentions to nostr.org and use Primal as a social example.
+Remove Flotilla from the public UI; direct public questions and feedback to the
+native forum, retaining private Nostr contact for sensitive matters. Preserve
+authentication, keys, account IDs and normal forum behavior.
+
 ## Mute-only brilliant experiment (owner request, November 2, 2026)
 
 Issue #221 authorizes a draft PR for more generous, transparent brilliant-move

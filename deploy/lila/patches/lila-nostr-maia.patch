@@ -1144,10 +1144,10 @@ index 5222d2d..2edd45b 100644
    def apply(
        tourneyWinners: List[lila.tournament.Winner],
 diff --git a/app/views/user/show/header.scala b/app/views/user/show/header.scala
-index 26a6045..f8fabd2 100644
+index 26a6045..b1e10d7 100644
 --- a/app/views/user/show/header.scala
 +++ b/app/views/user/show/header.scala
-@@ -10,7 +10,7 @@ import lila.web.ui.bits.splitNumber
+@@ -10,11 +10,59 @@ import lila.web.ui.bits.splitNumber
  
  object header:
  
@@ -1156,7 +1156,59 @@ index 26a6045..f8fabd2 100644
  
    private val dataToints = attr("data-toints")
    private val dataTab = attr("data-tab")
-@@ -42,7 +42,7 @@ object header:
+ 
++  private def identityInfo(kind: String, label: String) =
++    button(
++      tpe := "button",
++      cls := "button-empty user-show__identity-info",
++      dataIcon := Icon.InfoCircle,
++      attr("data-nostr-help") := s"nostr-help-$kind",
++      attr("aria-haspopup") := "dialog",
++      aria.label := label,
++      title := label
++    )
++
++  private def identityHelp(u: User) = frag(
++    div(id := "nostr-help-npub", cls := "none")(
++      h2("Your Nostr identity"),
++      p(
++        "Your npub is your public ",
++        a(href := "https://nostr.org/", targetBlank, rel := "noopener noreferrer")("Nostr"),
++        " key and your unique identity on Mute Chess. You can change your username, but your npub stays the same. Your npub is public and can be shared with anyone."
++      ),
++      p(
++        "Your npub and nsec form a key pair. Think of them as a username and password: the npub identifies you, and the nsec is your private key."
++      ),
++      p(
++        strong("Keep your nsec secret."),
++        " Someone who has it could sign in to your account here or post messages as you on Nostr."
++      ),
++      p(
++        "You can use the same identity anywhere Nostr is supported. For example, ",
++        a(href := "https://primal.net/", targetBlank, rel := "noopener noreferrer")("Primal"),
++        " is a social site similar to X, where you can follow people and be followed using your Nostr identity."
++      ),
++      p(
++        "We use Nostr to keep the personal information we ask for to a minimum. We don't want your email address. Please minimize the personal information you share in your public profile."
++      )
++    ),
++    div(id := "nostr-help-handle", cls := "none")(
++      h2("Your permanent account ID"),
++      p(
++        if u.nostrKey.exists(k => u.username.value.equalsIgnoreCase("n" + k.take(19))) then
++          "This account ID is made from a shortened hexadecimal form of your public key, with an n prefix."
++        else "This is your unique account ID on Mute Chess."
++      ),
++      p(
++        "It gives your profile a permanent link. You can change your username, and people with this link will still reach your profile."
++      )
++    )
++  )
++
+   private def possibleSeoBot(u: User) =
+     !u.isVerified && !u.hasTitle && u.count.game < 5 && u.profile.exists(_.hasLinks)
+ 
+@@ -42,7 +90,7 @@ object header:
      )(
        u.isPatron.not.so(lineIcon(u)),
        titleTag(u.title),
@@ -1165,37 +1217,60 @@ index 26a6045..f8fabd2 100644
        if ctx.blind
        then s" : ${if isOnline.exec(u.id) then trans.site.online.txt() else trans.site.offline.txt()}"
        else
-@@ -62,6 +62,10 @@ object header:
+@@ -53,8 +101,13 @@ object header:
+ 
+   def apply(u: User, info: UserInfo, angle: UserInfo.Angle, social: UserInfo.Social)(using ctx: Context) =
+     val showLinks = !possibleSeoBot(u) || isGranted(_.Shadowban)
++    val publicNpub = u.nostrKey.filter(_ => u.noBot).flatMap(lila.core.NostrName.npub)
+     frag(
+-      div(cls := "box__top user-show__header")(
++      div(
++        cls := s"box__top user-show__header${
++            if publicNpub.isDefined then " user-show__header--nostr" else ""
++          }"
++      )(
+         u.patronAndColor.match
+           case Some(p) =>
+             h1(cls := s"user-link ${if isOnline.exec(u.id) then "online" else "offline"}")(
+@@ -62,6 +115,17 @@ object header:
                userDom(u)
              )
            case None => h1(userDom(u)),
-+        u.profile
-+          .flatMap(_.displayName)
-+          .filter(_ != u.username.value)
-+          .map(_ => span(cls := "user-show__handle")(s"@${u.username.value}")),
++        if publicNpub.isDefined then
++          span(cls := "user-show__handle")(
++            s"@${u.username.value}",
++            identityInfo("handle", "About this permanent account ID")
++          )
++        else
++          u.profile
++            .flatMap(_.displayName)
++            .filter(_ != u.username.value)
++            .map(_ => span(cls := "user-show__handle")(s"@${u.username.value}"))
++        ,
          div(cls := "trophies")(
            views.user.bits.perfTrophies(u, info.ranks),
            otherTrophies(info),
-@@ -75,6 +79,18 @@ object header:
+@@ -75,6 +139,19 @@ object header:
          ),
          u.enabled.no.option(span(cls := "closed")("CLOSED"))
        ),
-+      u.nostrKey
-+        .filter(_ => u.noBot)
-+        .flatMap(lila.core.NostrName.npub)
-+        .map: npub =>
++      publicNpub.map: npub =>
++        frag(
 +          div(cls := "user-show__nostr")(
 +            a(
 +              cls := "user-show__nostr-link",
 +              href := s"/@/$npub",
 +              ariaTitle("Copy public npub")
 +            )(npub),
++            identityInfo("npub", "About this public Nostr key"),
 +            span(cls := "user-show__nostr-feedback", attr("role") := "status", attr("aria-live") := "polite")
 +          ),
++          identityHelp(u)
++        ),
        div(cls := "user-show__social")(
          div(cls := "number-menu")(
            u.noBot.option(
-@@ -162,6 +178,7 @@ object header:
+@@ -162,6 +239,7 @@ object header:
                    .so(profile.nonEmptyBio)
                    .map: bio =>
                      p(cls := List("bio" -> true, "muted" -> muted))(richText(bio, nl2br = true)),
@@ -3560,15 +3635,14 @@ index 4d9306b..b8b1950 100644
        )
      )
 diff --git a/modules/web/src/main/ui/bits.scala b/modules/web/src/main/ui/bits.scala
-index 0c0ed10..0fd8c57 100644
+index 0c0ed10..a622f87 100644
 --- a/modules/web/src/main/ui/bits.scala
 +++ b/modules/web/src/main/ui/bits.scala
-@@ -46,29 +46,12 @@ z-index: 99;
+@@ -46,29 +46,8 @@ z-index: 99;
      "This is an empty Lichess preview website, go to lichess.org instead"
  
    val connectLinks: Frag = div(cls := "connect-links")(
-+    a(href := "https://github.com/Dash1971/mute-chess", targetBlank, noFollow)("GitHub"),
-     a(
+-    a(
 -      href := "https://mastodon.online/@lichess",
 -      targetBlank,
 -      noFollow,
@@ -3588,11 +3662,11 @@ index 0c0ed10..0fd8c57 100644
 -    )("YouTube"),
 -    a(
 -      href := "https://www.twitch.tv/lichessdotorg",
-+      href := "https://app.flotilla.social/spaces/mobilemaia.spaces.flotilla.social/foflaythin5",
-       targetBlank,
-       noFollow
+-      targetBlank,
+-      noFollow
 -    )("Twitch")
-+    )("Flotilla")
++    a(href := "https://github.com/Dash1971/mute-chess", targetBlank, noFollow)("GitHub"),
++    a(href := "/forum")("Forum")
    )
  
    val logo = raw:
@@ -8302,13 +8376,64 @@ index fc3e09e..2b2a8be 100644
 +  }
 +}
 diff --git a/ui/user/css/_header.scss b/ui/user/css/_header.scss
-index 9443479..ce1baf0 100644
+index 9443479..735a3d8 100644
 --- a/ui/user/css/_header.scss
 +++ b/ui/user/css/_header.scss
-@@ -23,3 +23,27 @@
+@@ -23,3 +23,78 @@
      vertical-align: top;
    }
  }
++
++.user-show__handle {
++  display: inline-flex;
++  align-items: center;
++  gap: 0.35em;
++  color: $c-font-dim;
++}
++
++.user-show__header--nostr {
++  flex-wrap: wrap;
++  gap: 0.5em 1em;
++
++  .user-show__handle {
++    margin-inline-start: auto;
++  }
++}
++
++.user-show__identity-info {
++  flex: 0 0 auto;
++  padding: 0.25em;
++  color: $c-font-dim;
++  font-size: 1rem;
++  line-height: 1;
++  cursor: pointer;
++
++  &:hover,
++  &:focus-visible {
++    color: $c-link;
++  }
++
++  &:focus-visible {
++    outline: 2px solid $c-link;
++    outline-offset: 2px;
++  }
++}
++
++.nostr-identity-help {
++  width: min(34rem, 80vw);
++  padding: 1.5em;
++  text-align: start;
++  line-height: 1.6;
++
++  h2 {
++    margin-bottom: 0.8em;
++    font-size: 1.4em;
++  }
++
++  p + p {
++    margin-top: 1em;
++  }
++}
 +
 +.user-show__nostr {
 +  display: flex;
@@ -8365,13 +8490,37 @@ index 48a0e33..4bc93c5 100644
      flairPickerLoader(this);
    });
 diff --git a/ui/user/src/user.ts b/ui/user/src/user.ts
-index 5b6c2f1..ffb7192 100644
+index 5b6c2f1..bf6fb9d 100644
 --- a/ui/user/src/user.ts
 +++ b/ui/user/src/user.ts
-@@ -11,6 +11,27 @@ export async function initModule(): Promise<void> {
+@@ -1,7 +1,7 @@
+ import { myUserId } from 'lib';
+ import { licon } from 'lib/licon';
+ import { pubsub } from 'lib/pubsub';
+-import { alert, makeLinkPopups } from 'lib/view';
++import { alert, domDialog, makeLinkPopups } from 'lib/view';
+ import * as xhr from 'lib/xhr';
+ 
+ const gamesAngle = document.querySelector<HTMLElement>('.games');
+@@ -11,6 +11,42 @@ export async function initModule(): Promise<void> {
    makeLinkPopups($('.social_links'));
    makeLinkPopups($('.user-infos .bio'));
  
++  document.querySelectorAll<HTMLButtonElement>('[data-nostr-help]').forEach(button => {
++    button.addEventListener('click', () => {
++      const content = document.getElementById(button.dataset.nostrHelp!);
++      if (!content) return;
++      void domDialog({
++        htmlText: content.innerHTML,
++        class: 'nostr-identity-help',
++        attrs: { dialog: { 'aria-label': button.getAttribute('aria-label')! } },
++        modal: true,
++        show: true,
++        onClose: () => button.focus(),
++      });
++    });
++  });
++
 +  const npubLink = document.querySelector<HTMLAnchorElement>('.user-show__nostr-link');
 +  const npubFeedback = document.querySelector<HTMLElement>('.user-show__nostr-feedback');
 +  let copiedTimer: ReturnType<typeof setTimeout> | undefined;
@@ -10214,10 +10363,10 @@ index 0000000..ea79016
 +    )
 diff --git a/app/views/noSweatInfo.scala b/app/views/noSweatInfo.scala
 new file mode 100644
-index 0000000..e28aa9d
+index 0000000..4d19dba
 --- /dev/null
 +++ b/app/views/noSweatInfo.scala
-@@ -0,0 +1,230 @@
+@@ -0,0 +1,232 @@
 +package views
 +
 +import lila.app.UiEnv.{ *, given }
@@ -10243,6 +10392,7 @@ index 0000000..e28aa9d
 +      )
 +
 +  private def contactLink = a(href := nostrUrl)("Mute Chess on Nostr")
++  private def forumLink = a(href := "/forum")("Mute Chess forum")
 +
 +  private def content(key: String): Frag = key match
 +    case "about" =>
@@ -10302,7 +10452,7 @@ index 0000000..e28aa9d
 +          a(href := "https://github.com/Dash1971/mute-chess")("browse GitHub"),
 +          "."
 +        ),
-+        p(contactLink)
++        p(forumLink)
 +      )
 +    case "faq" =>
 +      frag(
@@ -10357,15 +10507,16 @@ index 0000000..e28aa9d
 +          "Standard chess in desktop browsers is the focus. Other variants and a dedicated mobile app are not offered."
 +        ),
 +        h2("Need help?"),
-+        p(contactLink)
++        p(forumLink)
 +      )
 +    case "contact" =>
 +      frag(
-+        p("Contact the Mute Chess project on Nostr."),
-+        p(contactLink),
-+        p(code(npub)),
++        p("For questions, feedback or bug reports, post in the ", forumLink, "."),
++        p("Include the page URL and what happened. Keep personal information out of public posts."),
 +        p(
-+          "For account, privacy, payment or security questions, use a private message. Never send your nsec, authenticator secret, recovery codes or wallet seed."
++          "For private account, privacy, payment or security matters, message ",
++          contactLink,
++          ". Never send your nsec, authenticator secret, recovery codes or wallet seed."
 +        ),
 +        p(
 +          "For a bug report, include the page URL and what happened. Share account or payment details only in private."
@@ -10435,7 +10586,7 @@ index 0000000..e28aa9d
 +          a(href := "https://www.walletofsatoshi.com/privacy")("Wallet of Satoshi privacy")
 +        ),
 +        p(
-+          "Stockfish and board analysis with Maia run locally in your browser after their assets download. Maia opponents run on our server and receive the position and move history needed to play. Links to Nostr clients, Flotilla and GitHub open independent services with their own policies."
++          "Stockfish and board analysis with Maia run locally in your browser after their assets download. Maia opponents run on our server and receive the position and move history needed to play. Links to Nostr clients and GitHub open independent services with their own policies."
 +        ),
 +        h2("Retention and requests"),
 +        p(
@@ -10450,10 +10601,10 @@ index 0000000..e28aa9d
 +    case _ => emptyFrag
 diff --git a/app/views/noSweatLogin.scala b/app/views/noSweatLogin.scala
 new file mode 100644
-index 0000000..f92346b
+index 0000000..7893189
 --- /dev/null
 +++ b/app/views/noSweatLogin.scala
-@@ -0,0 +1,154 @@
+@@ -0,0 +1,157 @@
 +package views
 +
 +import lila.core.i18n.I18nKey
@@ -10481,15 +10632,18 @@ index 0000000..f92346b
 +          ),
 +          h1(I18nKey("muteSignInOrJoin").txt()),
 +          p(cls := "nostr-intro")(
-+            "Your Nostr identity connects you to your profile and games. No email needed."
++            "Your ",
++            a(href := "https://nostr.org/", targetBlank, rel := "noopener noreferrer")("Nostr"),
++            " identity connects you to your profile and games. No email needed."
 +          ),
 +          details(cls := "nostr-guide")(
 +            summary("New to Nostr?"),
 +            p(
-+              "Nostr is an open identity you can use across compatible apps. Your npub is public; your nsec is the private key you use to sign in."
++              a(href := "https://nostr.org/", targetBlank, rel := "noopener noreferrer")("Nostr"),
++              " is an open identity you can use across compatible apps. Your npub is public; your nsec is the private key you use to sign in."
 +            ),
 +            p(
-+              "A signer keeps your key and approves sign-in for you. You can also create or import a key in this browser. Signing in here does not post to Nostr."
++              "A signer keeps your key and approves sign-in for you. You can also create or import a key in this browser."
 +            ),
 +            p(
 +              "To return on another device, use the same key or signer. Creating a new key creates a different identity."

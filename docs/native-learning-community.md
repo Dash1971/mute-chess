@@ -16,8 +16,9 @@ models and controllers, with standard chess only; no replacement chess applicati
   remain unchanged. No fake content or moderator permissions are seeded. Full-text forum
   and study search are hidden until a search backend is configured. Blog, coaches,
   teams, tournaments and other unsupported navigation entries are removed.
-- Footer community link is the owner's existing Flotilla Mute Chess room:
-  https://app.flotilla.social/spaces/mobilemaia.spaces.flotilla.social/foflaythin5.
+- The footer links to the native forum for questions and feedback. The owner
+  removed the external Flotilla link on November 4, 2026 (#240). Private Nostr
+  contact remains available for sensitive account, privacy, payment or security matters.
 - Puzzle Storm and Streak use the existing verified CC0 puzzle catalog and native
   selection, clocks, scoring, validation and progress. They receive no solving hints
   from Maia. Ordinary puzzle review keeps the Maia integration after completion.

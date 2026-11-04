@@ -127,7 +127,8 @@ Add small Mobile Maia/En Croissant colored circles for quality glyphs on the ori
 The owner requested native forums, Storm/Streak, learning (without coaches),
 watching current games and the remaining supported preference categories. Keep
 native Lichess interfaces and behavior, with our existing bot-only and standard-only
-boundaries. Link the existing Flotilla Mute Chess room alongside GitHub; remove blog
+boundaries. Link the native forum alongside GitHub (the November 4 owner decision
+in #240 replaces the earlier Flotilla link); remove blog
 navigation. See `docs/native-learning-community.md` and `learning/README.md` for
 scope and licensed lesson provenance. The opening explorer is deferred by the
 owner because the live Lichess API now requires separate authentication (#42).
