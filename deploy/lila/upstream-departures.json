@@ -395,11 +395,12 @@
         },
         {
           "id": "branding-and-layout",
-          "rationale": "Apply the owner-approved Mute Chess identity and enhancement layout, keeping native components and upstream attribution/license notices.",
+          "rationale": "Apply the owner-approved Mute Chess identity and enhancement layout, keeping native components and upstream attribution/license notices. Issue #244 overrides the inherited Open Graph site identity only in the focused Mute renderer, replaces fallback Lichess artwork while preserving game/puzzle thumbnails, and makes root-relative preview images absolute. Asset URL joining retains one path slash. The native manifest endpoint reuses the existing Mute manifest, structured project identity omits inherited Lichess legal/social claims, and public puzzle/deleted-player/feed labels identify Mute. Native upstream mode, third-party app/resource references and all credits/licenses remain unchanged. New brand copy uses all ten native catalogs; there are no runtime or deployment changes.",
           "verification": [
             "Full native UI build",
             "Automated browser layout checks",
-            "design/quiet-signal/README.md"
+            "design/quiet-signal/README.md",
+            "Native NoSweatBrandingTest renders homepage/profile/analysis previews, retains game/puzzle images and escaped titles, checks absolute image paths, and preserves upstream Open Graph/organization output. All ten catalogs include the new brand strings; native Scala/UI CI compiles all call sites. Follow-up live preview verification waits for separate deployment authorization (#244)."
           ],
           "files": [
             "app/views/base/page.scala",
@@ -424,7 +425,13 @@
             "public/nosweat/wordmark-light.svg",
             "public/nosweat/wordmark.svg",
             "ui/lib/css/theme/board/_boards.scss",
-            "ui/lib/src/notification.ts"
+            "ui/lib/src/notification.ts",
+            "modules/web/src/main/ui/openGraph.scala",
+            "modules/web/src/main/helper/AssetFullHelper.scala",
+            "modules/web/src/main/StaticContent.scala",
+            "modules/web/src/test/NoSweatBrandingTest.scala",
+            "app/views/puzzle/ui.scala",
+            "modules/puzzle/src/main/ui/PuzzleUi.scala"
           ]
         },
         {
