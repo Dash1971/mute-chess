@@ -29,12 +29,12 @@ const bundle = (await build({
 const account='a'.repeat(64);
 const flush=async()=>{await setImmediate();await setImmediate();};
 async function page(options={}) {
-  const names=['create','amount','currency','quote','copy','check','status','payment','qr','open','invoice-amount','thanks'];
+  const names=['create','amount','currency','quote','copy','check','dismiss','status','payment','qr','open','invoice-amount','thanks'];
   const nodes=new Map(names.map(name=>[name,{dataset:{},value:name==='amount'?'100':name==='currency'?'sats':'',
     textContent:'',hidden:name==='payment'||name==='thanks',disabled:false,listeners:{},
     addEventListener(event,fn){this.listeners[event]=fn;},async click(){return this.listeners.click?.();}}]));
   const classes=new Set(),calls=[],timers=new Map();let timerId=0;
-  const root={dataset:{pubkey:account,paidStatus:'Confirmed locally translated',waiting:'Waiting locally translated',signerNeeded:'Please sign in again here to create an invoice.'},classList:{add(name){classes.add(name);}}};
+  const root={dataset:{pubkey:account,paidStatus:'Confirmed locally translated',waiting:'Waiting locally translated',signerNeeded:'Please sign in again here to create an invoice.',dismissed:'Dismissed locally translated',dismissFailed:'Dismiss failed locally translated'},classList:{add(name){classes.add(name);}}};
   const pools=[];
   const signer=options.signer===false?undefined:{getPublicKey:async()=>options.signerAccount||account,signEvent:async event=>({...event,pubkey:account})};
   class Clock extends Date {static now(){return 120000;}}
@@ -42,14 +42,15 @@ async function page(options={}) {
     pools,destroyed:0,savedLoads:0,savedKey:options.key||null,savedAccount:account,reloads:0,
     details:Object.fromEntries(['old','renewal','new'].map((name,index)=>[name,{createdAt:index?110:80,expiresIn:1000,paymentHash:name,amountMsat:100000}])),
     document:{getElementById(id){return id==='nostr-patron'?root:nodes.get(id.replace('patron-',''));}},
-    window:{nostr:signer,addEventListener(){}},navigator:{clipboard:{async writeText(){}}},
+    window:{nostr:signer,addEventListener(){}},navigator:{clipboard:{async writeText(){await options.copy?.();}}},
     location:{reload(){context.reloads++;}},
     setTimeout(fn,delay){const id=++timerId;timers.set(id,{fn,delay});return id;},clearTimeout(id){timers.delete(id);},
     site:{asset:{async loadEsm(){await options.qr?.();}}},
     fetch:async(path,request)=>{
-      if(path==='/club/patron/pending')return new Response(JSON.stringify(options.pending||[]),{headers:{'X-Mute-Patron-Paid-At':String(options.paidAt||0)}});
+      if(path==='/club/patron/pending'){await options.loadPending?.();return new Response(JSON.stringify(options.pending||[]),{headers:{'X-Mute-Patron-Paid-At':String(options.paidAt||0),'X-Mute-Patron-Dismissed':(options.dismissed||[]).join(',')}});}
       calls.push({path,body:JSON.parse(request.body)});
       if(path==='/club/patron/invoice')return new Response(JSON.stringify({invoice:'new'}));
+      if(path==='/club/patron/dismiss'){await options.dismiss?.();return new Response(JSON.stringify({dismissed:options.dismissAccepted!==false}),{status:options.dismissStatus||200});}
       assert.equal(path,'/club/patron/receipt');
       return new Response(JSON.stringify({confirmed:options.confirmed!==false}));
     },
@@ -119,4 +120,86 @@ test('saved-key fallback is read only on click and wiped; unavailable signing us
   const missing=await page({signer:false});await missing.node('create').click();
   assert.equal(missing.node('status').textContent,'Please sign in again here to create an invoice.');
   assert.equal(missing.calls.length,0);
+});
+
+test('dismissal hides the unpaid prompt, stops stale expiry, and still accepts a late payment',async()=>{
+  const ui=await page({pending:['old']});
+  const expire=[...ui.timers.values()][0].fn;
+  await ui.node('dismiss').click();
+  assert.equal(ui.calls[0].path,'/club/patron/dismiss');
+  assert.deepEqual(ui.calls[0].body,{paymentHash:'old'});
+  assert.equal(ui.node('payment').hidden,true);
+  assert.equal(ui.node('create').disabled,false);
+  assert.equal(ui.node('status').textContent,'Dismissed locally translated');
+  expire();
+  assert.equal(ui.node('status').textContent,'Dismissed locally translated');
+  await ui.receipt();
+  assert.equal(ui.node('status').textContent,'Confirmed locally translated');
+  assert.equal(ui.node('thanks').hidden,false);
+});
+
+test('dismissed invoices stay hidden on reload while newer renewals can be restored',async()=>{
+  const hidden=await page({pending:['old'],dismissed:['old']});
+  assert.equal(hidden.node('payment').hidden,true);
+  await hidden.receipt();
+  assert.equal(hidden.node('thanks').hidden,false);
+  const renewal=await page({pending:['renewal','old'],dismissed:['old'],paidAt:100});
+  assert.equal(renewal.node('payment').hidden,false);
+  assert.equal(renewal.node('qr').dataset.qrUrl,'LIGHTNING:RENEWAL');
+});
+
+test('a rejected dismissal keeps the invoice payable and uses translated feedback',async()=>{
+  for (const options of [{dismissAccepted:false},{dismissStatus:403}]) {
+    const ui=await page({pending:['old'],...options});
+    await ui.node('dismiss').click();
+    assert.equal(ui.node('payment').hidden,false);
+    assert.equal(ui.node('status').textContent,'Dismiss failed locally translated');
+    assert.equal(ui.node('dismiss').disabled,false);
+    assert.equal(ui.classes.has('payment-confirmed'),false);
+  }
+});
+
+test('confirmed payment wins over an in-flight dismissal and later clicks do nothing',async()=>{
+  let finish;
+  const ui=await page({pending:['old'],dismiss:()=>new Promise(resolve=>{finish=resolve;})});
+  const dismissing=ui.node('dismiss').click();await flush();
+  await ui.receipt();finish();await dismissing;
+  assert.equal(ui.node('status').textContent,'Confirmed locally translated');
+  assert.equal(ui.node('create').disabled,true);
+  assert.equal(ui.node('dismiss').disabled,true);
+  await ui.node('dismiss').click();
+  assert.equal(ui.calls.filter(call=>call.path==='/club/patron/dismiss').length,1);
+});
+
+test('in-flight QR and an old pending response cannot restore a dismissed request',async()=>{
+  let finishQr;
+  const ui=await page({pending:['old'],qr:()=>new Promise(resolve=>{finishQr=resolve;})});
+  await ui.node('dismiss').click();finishQr();await flush();
+  assert.equal(ui.node('payment').hidden,true);
+  assert.equal(ui.node('status').textContent,'Dismissed locally translated');
+  await ui.receipt();assert.equal(ui.node('thanks').hidden,false);
+  let finishPending;
+  const stale=await page({pending:['new'],loadPending:()=>new Promise(resolve=>{finishPending=resolve;})});
+  await stale.node('create').click();await stale.node('dismiss').click();
+  finishPending();await flush();
+  assert.equal(stale.node('payment').hidden,true);
+  assert.equal(stale.node('status').textContent,'Dismissed locally translated');
+});
+
+
+test('a late clipboard completion cannot replace dismissed feedback',async()=>{
+  let finish;
+  const ui=await page({pending:['old'],copy:()=>new Promise(resolve=>{finish=resolve;})});
+  await ui.node('copy').click();await ui.node('dismiss').click();finish();await flush();
+  assert.equal(ui.node('status').textContent,'Dismissed locally translated');
+});
+
+test('creating a replacement keeps the dismissed invoice eligible for its late receipt',async()=>{
+  const ui=await page({pending:['old']});
+  await ui.node('dismiss').click();await ui.node('create').click();
+  assert.equal(ui.node('qr').dataset.qrUrl,'LIGHTNING:NEW');
+  assert.equal(ui.pools.length,1);
+  await ui.receipt();
+  assert.equal(ui.node('payment').hidden,true);
+  assert.equal(ui.node('thanks').hidden,false);
 });

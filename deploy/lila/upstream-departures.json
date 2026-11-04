@@ -306,7 +306,7 @@
         },
         {
           "id": "stacked-premoves",
-          "rationale": "Extend native premoves with an optional projected queue and atomic board updates. Native legality, move transport, promotion, clocks, cancellation and committed history stay authoritative.",
+          "rationale": "Extend native premoves with an optional projected queue and atomic board updates. Native legality, move transport, promotion, clocks, cancellation and committed history stay authoritative. Issue #259 adds only optional displayName metadata typing to the two existing friend presence events; canonical protocol fields remain unchanged.",
           "verification": [
             "Native premoveSequence/premoveContinuity tests",
             "Native round/lib UI build",
@@ -328,7 +328,7 @@
         },
         {
           "id": "focused-native-features",
-          "rationale": "Constrain visible navigation and unsupported routes, standard-only tools and bot-game metadata; preserve native puzzles, community and direct friend invitations. Watch/Learn/explorer remain hidden or deferred, and imported practice data uses the licensed subset rather than upstream production data. Owner-requested immediate forum posting (#81) bypasses only the age/game qualification for signed-in humans when nosweat.enabled; native bot denial, category ACLs, captcha, rate limits and moderation remain authoritative. The forum module adds the existing native test dependency for its access regressions. The October 31 owner correction restores header player search and the original native scroll-hide listener (#122/#124). Issue #173 adds a browser-local Engine Analysis action to the existing authenticated account menu; it opens the shared dialog without a new route or account writes. Issue #181 retains native live player/game counters under quick pairing, with native socket number spreaders and no new counting backend. Issue #196 retains native New opponent navigation through the homepage pool. Only the Maia automatic hash join is deferred until after the native lobby constructor returns, so its immediate pairing redraw cannot access uninitialized Snabbdom VNodes; native human pool timing and the existing pairing endpoint are unchanged. Issue #240 replaces the external Flotilla footer link with the native forum and directs public contact/help there, retaining private Nostr contact for sensitive matters. Issue #242 makes the existing footer request-local for translated forum labels, passing the native context through its existing blog callback.",
+          "rationale": "Constrain visible navigation and unsupported routes, standard-only tools and bot-game metadata; preserve native puzzles, community and direct friend invitations. Watch/Learn/explorer remain hidden or deferred, and imported practice data uses the licensed subset rather than upstream production data. Owner-requested immediate forum posting (#81) bypasses only the age/game qualification for signed-in humans when nosweat.enabled; native bot denial, category ACLs, captcha, rate limits and moderation remain authoritative. The forum module adds the existing native test dependency for its access regressions. The October 31 owner correction restores header player search and the original native scroll-hide listener (#122/#124). Issue #173 adds a browser-local Engine Analysis action to the existing authenticated account menu; it opens the shared dialog without a new route or account writes. Issue #181 retains native live player/game counters under quick pairing, with native socket number spreaders and no new counting backend. Issue #196 retains native New opponent navigation through the homepage pool. Only the Maia automatic hash join is deferred until after the native lobby constructor returns, so its immediate pairing redraw cannot access uninitialized Snabbdom VNodes; native human pool timing and the existing pairing endpoint are unchanged. Issue #240 replaces the external Flotilla footer link with the native forum and directs public contact/help there, retaining private Nostr contact for sensitive matters. Issue #242 makes the existing footer request-local for translated forum labels, passing the native context through its existing blog callback. Issue #259 renders the optional public name in online-friend entries for both initial and live-enter events, while keeping canonical names/IDs for presence keys and profile/TV links. Native title/BOT labels, patron colors, ordering/counting and old-payload fallback remain unchanged; untrusted public names use the existing HTML escape helper.",
           "verification": [
             "Native site/editor/puzzle tests and UI build",
             "puzzles/ and learning/ validation",
@@ -337,7 +337,8 @@
             "Private community integration: immediate topic and reply, invalid captcha rejection",
             "Native header hides on downward scroll and reappears upward even without search; restored header search stays native (#122/#124)",
             "Account sidebar Engine Analysis action opens shared settings in place; signed-out/native upstream menu remains unchanged (#173)",
-            "maiaPoolBootstrap.test.ts exercises the real lobby constructor, Snabbdom bootstrap and pool view: signed-in, anonymous and initially-now-playing hash joins send one correctly configured pairing request after initial render and redirect with the native game-start sound enabled; Custom Play exercises the same sound-on-redirect contract (#206). The unfixed source reproduces appVNode-before-initialization failures; full UI format, typed lint, tests and build pass."
+            "maiaPoolBootstrap.test.ts exercises the real lobby constructor, Snabbdom bootstrap and pool view: signed-in, anonymous and initially-now-playing hash joins send one correctly configured pairing request after initial render and redirect with the native game-start sound enabled; Custom Play exercises the same sound-on-redirect contract (#206). The unfixed source reproduces appVNode-before-initialization failures; full UI format, typed lint, tests and build pass.",
+            "Native friends.test.ts covers initial and enter/rename payloads, spaces/HTML escaping, canonical profile/TV links, playing/stopped/leave IDs, empty/legacy fallback and BOT display aliases. Existing UI tests/typecheck run in CI (#259)."
           ],
           "files": [
             "app/controllers/Cms.scala",
@@ -391,7 +392,9 @@
             "ui/site/tests/tsconfig.json",
             "ui/lobby/css/_layout.scss",
             "ui/lobby/tests/maiaPoolBootstrap.test.ts",
-            "modules/ublog/src/main/ui/UblogPostUi.scala"
+            "modules/ublog/src/main/ui/UblogPostUi.scala",
+            "ui/site/src/friends.ts",
+            "ui/site/tests/friends.test.ts"
           ]
         },
         {
@@ -440,13 +443,14 @@
         },
         {
           "id": "lightning-patronage",
-          "rationale": "Adapt the explicitly requested Lightning/Nostr donation flow to native patron marks and remove unrelated payment entry points. Preserve verification and account binding rather than changing native chess behavior. Issue #252 supplies the latest confirmed payment time in an additive authenticated pending-response header, preserving the invoice-array contract and all unpaid records for late settlement. The browser tracks those receipts but restores only newer payment prompts, hides paid controls and uses a brief reduced-motion-aware wing/checkmark completion before the native reload. One Create invoice action selects an available signer or saved key with the same account checks and transient key wiping. New status/recovery copy uses all ten native catalogs; invoice amounts, signature/receipt validation and patron grants remain unchanged. The owner follow-up removes the direct wallet-address/Nostr-zap links and receiver-address suffix from the donation UI, keeping the fixed invoice amount, Open wallet, invoice creation and verification unchanged. Issue #247 restores the QR-standard four-module quiet zone and uses a device-resolution canvas while retaining the existing CSS display width and automatic square aspect ratio. Shared QR consumers keep the exact payload, error correction and replacement-invoice initialization; payment creation/validation, receipt and wings semantics are unchanged.",
+          "rationale": "Adapt the explicitly requested Lightning/Nostr donation flow to native patron marks and remove unrelated payment entry points. Preserve verification and account binding rather than changing native chess behavior. Issue #252 supplies the latest confirmed payment time in an additive authenticated pending-response header, preserving the invoice-array contract and all unpaid records for late settlement. The browser tracks those receipts but restores only newer payment prompts, hides paid controls and uses a brief reduced-motion-aware wing/checkmark completion before the native reload. One Create invoice action selects an available signer or saved key with the same account checks and transient key wiping. New status/recovery copy uses all ten native catalogs; invoice amounts, signature/receipt validation and patron grants remain unchanged. The owner follow-up removes the direct wallet-address/Nostr-zap links and receiver-address suffix from the donation UI, keeping the fixed invoice amount, Open wallet, invoice creation and verification unchanged. Issue #247 restores the QR-standard four-module quiet zone and uses a device-resolution canvas while retaining the existing CSS display width and automatic square aspect ratio. Shared QR consumers keep the exact payload, error correction and replacement-invoice initialization; payment creation/validation, receipt and wings semantics are unchanged. Issue #260 adds account-owned dismissal of the unpaid donation prompt, not wallet invoice revocation. A single atomic owner/hash/paid:false update sets only dismissed; an additive authenticated no-store pending header suppresses restoration while retaining all returned unpaid invoices for verified late receipts. Native grant/receipt/paid ledger, fixed amount and QR payload remain unchanged; all dismissal labels/help/feedback use the ten native catalogs.",
           "verification": [
             "Adapter lightning tests",
             "Native QR tests/build",
             "Private invoice and receipt checks without payment",
             "Six patron-browser VM regressions cover old pending invoices vs newer renewals, late receipts, server confirmation gate, in-flight QR completion, primary signer/account matching, saved-key wipe and plain localized recovery. Full adapter tests and native compile/UI checks; inspect wing header spacing and reduced-motion completion (#252).",
-            "Native QR tests exercise default rendering/replacement invoices and a dense payment plus authenticator payload at devicePixelRatio 2: backing dimensions, displayed size and four-module clear border. No real payment or Phoenix device scan is claimed (#247)."
+            "Native QR tests exercise default rendering/replacement invoices and a dense payment plus authenticator payload at devicePixelRatio 2: backing dimensions, displayed size and four-module clear border. No real payment or Phoenix device scan is claimed (#247).",
+            "Patron browser regressions exercise unpaid dismissal, rejected/paid dismissal, persistence/renewal restoration, late verified receipts, and stale QR/expiry/pending/receipt callbacks. Native NoSweatDonationTest locks the atomic exact-account/exact-hash/unpaid selector. Recheck AuthBody + sameOrigin routing, no receipt dismissal filter, no wallet cancellation call, and all four new keys across ten locales (#260)."
           ],
           "files": [
             "app/controllers/Plan.scala",
@@ -454,7 +458,9 @@
             "modules/plan/src/main/PlanApi.scala",
             "ui/bits/css/build/bits.patron.scss",
             "ui/bits/src/bits.qrcode.ts",
-            "ui/bits/tests/qrcode.test.ts"
+            "ui/bits/tests/qrcode.test.ts",
+            "app/NoSweatDonation.scala",
+            "src/test/scala/NoSweatDonationTest.scala"
           ]
         },
         {
@@ -617,6 +623,18 @@
           "verification": [
             "Compile and stage each pinned native application; inspect resolved and staged Netty/Jackson versions.",
             "Run existing native tests and live HTTP/WebSocket authentication, origin, malformed-frame and game smoke checks after deployment."
+          ]
+        },
+        {
+          "id": "friend-public-names",
+          "rationale": "Issue #259 adds profile.displayName to the existing friend-data projection and mirrors LightUser.publicName nonempty/canonical fallback. Initial Onlines adds a displayNames map keyed by canonical user ID; Enters adds a displayName field. Existing d/titleName strings, IDs, presence/playing events, BOT labels and patron color fields remain byte-compatible for older clients. No identity migration, lookup endpoint or per-friend HTTP calls. The native ten-minute friend-data cache is retained.",
+          "verification": [
+            "Apply/reconstruct the exact pinned WS patch and Scala formatting; inspect both serialization paths. Native friends UI regressions consume both optional metadata forms. Existing automatic CI applies/checks this WS patch but does not compile/test lila-ws; no local full build or release qualification is claimed."
+          ],
+          "files": [
+            "src/main/scala/FriendList.scala",
+            "src/main/scala/Mongo.scala",
+            "src/main/scala/ipc/ClientIn.scala"
           ]
         }
       ]

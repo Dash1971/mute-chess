@@ -1521,7 +1521,7 @@ index 885adb4..06960ae 100644
  
  lazy val forumSearch = module("forumSearch",
 diff --git a/conf/routes b/conf/routes
-index f2a7ab2..df18905 100644
+index f2a7ab2..fc01add 100644
 --- a/conf/routes
 +++ b/conf/routes
 @@ -1,6 +1,29 @@
@@ -1570,13 +1570,14 @@ index f2a7ab2..df18905 100644
  GET   /analysis/pgn/*pgn               controllers.UserAnalysis.pgn(pgn)
  GET   /analysis/*something             controllers.UserAnalysis.parseArg(something)
  GET   /analysis                        controllers.UserAnalysis.index
-@@ -333,6 +358,10 @@ GET   /$lang<\w\w\w?>/learn            controllers.Learn.indexLang(lang: Languag
+@@ -333,6 +358,11 @@ GET   /$lang<\w\w\w?>/learn            controllers.Learn.indexLang(lang: Languag
  
  # Patron
  GET   /patron                          controllers.Plan.index(page: Int ?= 1)
 +GET   /club/patron                     controllers.NoSweat.patronPage
 +GET   /club/patron/pending              controllers.NoSweat.patronPending
 +POST  /club/patron/invoice              controllers.NoSweat.patronInvoice
++POST  /club/patron/dismiss              controllers.NoSweat.patronDismiss
 +POST  /club/patron/receipt              controllers.NoSweat.patronReceipt
  GET   /patron/thanks                   controllers.Plan.thanks
  GET   /patron/list                     controllers.Plan.list
@@ -4466,10 +4467,10 @@ index 74906f1..99e482b 100644
  travel-places.map-of-japan
  travel-places.metro
 diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
-index 88adade..183f910 100644
+index 88adade..cee018f 100644
 --- a/translation/dest/site/de-DE.xml
 +++ b/translation/dest/site/de-DE.xml
-@@ -1064,4 +1064,98 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
+@@ -1064,4 +1064,102 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
    <string name="write">Schreiben</string>
    <string name="preview">Vorschau</string>
    <string name="done">Erledigt</string>
@@ -4567,12 +4568,16 @@ index 88adade..183f910 100644
 +  <string name="muteStudyWelcomeTitle">Willkommen bei den Mute-Chess-Studien!</string>
 +  <string name="muteStudyWelcomeText">Dies ist ein gemeinsames Analysebrett. Du kannst Partien analysieren und kommentieren, Stellungen mit Freunden besprechen oder Schachunterricht geben. Schauen wir uns an, wie es funktioniert.</string>
 +  <string name="muteForumDescription">Schachdiskussionen und Feedback zu Mute Chess.</string>
++<string name="muteDonationDismiss">Rechnung ausblenden</string>
++  <string name="muteDonationDismissHelp">Dies blendet die Anfrage aus. Die Wallet-Rechnung kann bis zu ihrem Ablauf weiterhin bezahlt werden.</string>
++  <string name="muteDonationDismissed">Rechnung ausgeblendet. Sie kann bis zum Ablauf weiterhin bezahlt werden; jede bestätigte Zahlung wird angerechnet.</string>
++  <string name="muteDonationDismissFailed">Diese Rechnung konnte nicht ausgeblendet werden. Prüfe die Zahlung und versuche es erneut.</string>
  </resources>
 diff --git a/translation/dest/site/es-ES.xml b/translation/dest/site/es-ES.xml
-index 76004f5..45d0a59 100644
+index 76004f5..7f731c6 100644
 --- a/translation/dest/site/es-ES.xml
 +++ b/translation/dest/site/es-ES.xml
-@@ -1064,4 +1064,98 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
+@@ -1064,4 +1064,102 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
    <string name="write">Escribir</string>
    <string name="preview">Vista previa</string>
    <string name="done">Listo</string>
@@ -4670,12 +4675,16 @@ index 76004f5..45d0a59 100644
 +  <string name="muteStudyWelcomeTitle">¡Bienvenido a los estudios de Mute Chess!</string>
 +  <string name="muteStudyWelcomeText">Este es un tablero de análisis compartido. Úsalo para analizar y comentar partidas, debatir posiciones con amigos o dar clases de ajedrez. Veamos cómo funciona.</string>
 +  <string name="muteForumDescription">Conversaciones sobre ajedrez y comentarios sobre Mute Chess.</string>
++<string name="muteDonationDismiss">Ocultar factura</string>
++  <string name="muteDonationDismissHelp">Esto oculta la solicitud. La factura del monedero se puede pagar hasta que caduque.</string>
++  <string name="muteDonationDismissed">Factura ocultada. Se puede pagar hasta que caduque; cualquier pago confirmado se tendrá en cuenta.</string>
++  <string name="muteDonationDismissFailed">No se pudo ocultar esta factura. Comprueba el pago y vuelve a intentarlo.</string>
  </resources>
 diff --git a/translation/dest/site/fr-FR.xml b/translation/dest/site/fr-FR.xml
-index 7dfd5f7..5fae0d1 100644
+index 7dfd5f7..4cae042 100644
 --- a/translation/dest/site/fr-FR.xml
 +++ b/translation/dest/site/fr-FR.xml
-@@ -1063,4 +1063,98 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
+@@ -1063,4 +1063,102 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
    <string name="write">Écrire</string>
    <string name="preview">Aperçu</string>
    <string name="done">Terminé</string>
@@ -4773,12 +4782,16 @@ index 7dfd5f7..5fae0d1 100644
 +  <string name="muteStudyWelcomeTitle">Bienvenue dans les études Mute Chess !</string>
 +  <string name="muteStudyWelcomeText">Ceci est un échiquier d’analyse partagé. Utilisez-le pour analyser et annoter des parties, discuter de positions avec vos amis ou donner des cours d’échecs. Voyons comment il fonctionne.</string>
 +  <string name="muteForumDescription">Discussions sur les échecs et retours sur Mute Chess.</string>
++<string name="muteDonationDismiss">Masquer la facture</string>
++  <string name="muteDonationDismissHelp">Cela masque la demande. La facture du portefeuille peut encore être payée jusqu’à son expiration.</string>
++  <string name="muteDonationDismissed">Facture masquée. Elle peut encore être payée avant son expiration ; tout paiement confirmé sera pris en compte.</string>
++  <string name="muteDonationDismissFailed">Impossible de masquer cette facture. Vérifiez le paiement, puis réessayez.</string>
  </resources>
 diff --git a/translation/dest/site/hi-IN.xml b/translation/dest/site/hi-IN.xml
-index bbf1703..8e8a9b3 100644
+index bbf1703..f980f11 100644
 --- a/translation/dest/site/hi-IN.xml
 +++ b/translation/dest/site/hi-IN.xml
-@@ -893,4 +893,98 @@
+@@ -893,4 +893,102 @@
    <string name="closingAccountWithdrawAppeal">आपका खाता बंद करने से आपकी अपील वापस ले ली जाएगी</string>
    <string name="ourEventTips">कार्यक्रम आयोजित करने कि सलाह</string>
    <string name="nothingToSeeHere">इस समय यहां देखने को कुछ भी नहीं है।</string>
@@ -4876,12 +4889,16 @@ index bbf1703..8e8a9b3 100644
 +  <string name="muteStudyWelcomeTitle">Mute Chess अध्ययनों में आपका स्वागत है!</string>
 +  <string name="muteStudyWelcomeText">यह एक साझा विश्लेषण बोर्ड है। इससे खेलों का विश्लेषण करें और टिप्पणियाँ जोड़ें, दोस्तों के साथ स्थितियों पर चर्चा करें या शतरंज सिखाएँ। आइए देखें कि यह कैसे काम करता है।</string>
 +  <string name="muteForumDescription">शतरंज पर चर्चा और Mute Chess के बारे में सुझाव।</string>
++<string name="muteDonationDismiss">इनवॉइस छिपाएँ</string>
++  <string name="muteDonationDismissHelp">इससे अनुरोध छिप जाता है। वॉलेट का इनवॉइस समाप्त होने तक उसका भुगतान किया जा सकता है।</string>
++  <string name="muteDonationDismissed">इनवॉइस छिपा दिया गया है। समाप्त होने तक भुगतान किया जा सकता है; हर पुष्ट भुगतान गिना जाएगा।</string>
++  <string name="muteDonationDismissFailed">यह इनवॉइस छिपाया नहीं जा सका। भुगतान जाँचें, फिर दोबारा कोशिश करें।</string>
  </resources>
 diff --git a/translation/dest/site/ja-JP.xml b/translation/dest/site/ja-JP.xml
-index e628bdb..6bae013 100644
+index e628bdb..81f4e43 100644
 --- a/translation/dest/site/ja-JP.xml
 +++ b/translation/dest/site/ja-JP.xml
-@@ -1023,4 +1023,98 @@
+@@ -1023,4 +1023,102 @@
    <string name="write">書く</string>
    <string name="preview">プレビュー</string>
    <string name="done">完了</string>
@@ -4979,12 +4996,16 @@ index e628bdb..6bae013 100644
 +  <string name="muteStudyWelcomeTitle">Mute Chessのスタディへようこそ！</string>
 +  <string name="muteStudyWelcomeText">これは共有の分析盤です。棋譜の分析や注釈の追加、友達との局面の検討、チェスのレッスンに使えます。使い方を見てみましょう。</string>
 +  <string name="muteForumDescription">チェスの話題やMute Chessへのご意見。</string>
++<string name="muteDonationDismiss">請求書を非表示</string>
++  <string name="muteDonationDismissHelp">この操作で依頼を非表示にします。ウォレットの請求書は有効期限まで支払い可能です。</string>
++  <string name="muteDonationDismissed">請求書を非表示にしました。有効期限までは支払い可能で、確認された支払いは反映されます。</string>
++  <string name="muteDonationDismissFailed">この請求書を非表示にできませんでした。支払いを確認してから、もう一度お試しください。</string>
  </resources>
 diff --git a/translation/dest/site/ko-KR.xml b/translation/dest/site/ko-KR.xml
-index 9341bf0..f2e9dc4 100644
+index 9341bf0..a85b090 100644
 --- a/translation/dest/site/ko-KR.xml
 +++ b/translation/dest/site/ko-KR.xml
-@@ -1022,4 +1022,98 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
+@@ -1022,4 +1022,102 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
    <string name="write">작성</string>
    <string name="preview">미리보기</string>
    <string name="done">완료</string>
@@ -5082,12 +5103,16 @@ index 9341bf0..f2e9dc4 100644
 +  <string name="muteStudyWelcomeTitle">Mute Chess 스터디에 오신 것을 환영합니다!</string>
 +  <string name="muteStudyWelcomeText">함께 사용하는 분석 보드입니다. 대국을 분석하고 주석을 달거나, 친구와 포지션을 토론하거나, 체스 수업에 활용할 수 있습니다. 사용 방법을 살펴보세요.</string>
 +  <string name="muteForumDescription">체스 토론과 Mute Chess에 대한 의견.</string>
++<string name="muteDonationDismiss">청구서 숨기기</string>
++  <string name="muteDonationDismissHelp">요청을 숨깁니다. 지갑의 청구서는 만료될 때까지 결제할 수 있습니다.</string>
++  <string name="muteDonationDismissed">청구서를 숨겼습니다. 만료될 때까지 결제할 수 있으며, 확인된 결제는 모두 반영됩니다.</string>
++  <string name="muteDonationDismissFailed">이 청구서를 숨길 수 없습니다. 결제를 확인한 후 다시 시도하세요.</string>
  </resources>
 diff --git a/translation/dest/site/pt-BR.xml b/translation/dest/site/pt-BR.xml
-index 569e752..ec618a4 100644
+index 569e752..7c4dd80 100644
 --- a/translation/dest/site/pt-BR.xml
 +++ b/translation/dest/site/pt-BR.xml
-@@ -1063,4 +1063,98 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
+@@ -1063,4 +1063,102 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
    <string name="write">Escrever</string>
    <string name="preview">Pré-visualizar</string>
    <string name="done">Feito</string>
@@ -5185,12 +5210,16 @@ index 569e752..ec618a4 100644
 +  <string name="muteStudyWelcomeTitle">Boas-vindas aos estudos do Mute Chess!</string>
 +  <string name="muteStudyWelcomeText">Este é um tabuleiro de análise compartilhado. Use-o para analisar e comentar partidas, discutir posições com amigos ou dar aulas de xadrez. Vamos ver como funciona.</string>
 +  <string name="muteForumDescription">Discussões sobre xadrez e comentários sobre o Mute Chess.</string>
++<string name="muteDonationDismiss">Ocultar fatura</string>
++  <string name="muteDonationDismissHelp">Isso oculta a solicitação. A fatura da carteira ainda pode ser paga até expirar.</string>
++  <string name="muteDonationDismissed">Fatura ocultada. Ela ainda pode ser paga até expirar; qualquer pagamento confirmado será contabilizado.</string>
++  <string name="muteDonationDismissFailed">Não foi possível ocultar esta fatura. Verifique o pagamento e tente novamente.</string>
  </resources>
 diff --git a/translation/dest/site/ru-RU.xml b/translation/dest/site/ru-RU.xml
-index 6384657..799b9c5 100644
+index 6384657..d669e95 100644
 --- a/translation/dest/site/ru-RU.xml
 +++ b/translation/dest/site/ru-RU.xml
-@@ -1146,4 +1146,98 @@
+@@ -1146,4 +1146,102 @@
    <string name="write">Написать</string>
    <string name="preview">Предпросмотр</string>
    <string name="done">Готово</string>
@@ -5288,12 +5317,16 @@ index 6384657..799b9c5 100644
 +  <string name="muteStudyWelcomeTitle">Добро пожаловать в исследования Mute Chess!</string>
 +  <string name="muteStudyWelcomeText">Это общая аналитическая доска. На ней можно анализировать и комментировать партии, обсуждать позиции с друзьями или проводить уроки шахмат. Давайте посмотрим, как она работает.</string>
 +  <string name="muteForumDescription">Обсуждение шахмат и отзывы о Mute Chess.</string>
++<string name="muteDonationDismiss">Скрыть счёт</string>
++  <string name="muteDonationDismissHelp">Запрос будет скрыт. Счёт в кошельке по-прежнему можно оплатить до истечения срока действия.</string>
++  <string name="muteDonationDismissed">Счёт скрыт. Его можно оплатить до истечения срока действия; любой подтверждённый платёж будет учтён.</string>
++  <string name="muteDonationDismissFailed">Не удалось скрыть этот счёт. Проверьте платёж и повторите попытку.</string>
  </resources>
 diff --git a/translation/dest/site/zh-CN.xml b/translation/dest/site/zh-CN.xml
-index 176f4d1..3b7769d 100644
+index 176f4d1..ac8549b 100644
 --- a/translation/dest/site/zh-CN.xml
 +++ b/translation/dest/site/zh-CN.xml
-@@ -1022,4 +1022,98 @@
+@@ -1022,4 +1022,102 @@
    <string name="write">撰写</string>
    <string name="preview">预览</string>
    <string name="done">完成</string>
@@ -5391,12 +5424,16 @@ index 176f4d1..3b7769d 100644
 +  <string name="muteStudyWelcomeTitle">欢迎使用 Mute Chess 研究！</string>
 +  <string name="muteStudyWelcomeText">这是一个共享分析棋盘。你可以用它分析和注释棋局、与朋友讨论局面，或进行国际象棋教学。让我们看看如何使用。</string>
 +  <string name="muteForumDescription">讨论国际象棋并提出对 Mute Chess 的意见。</string>
++<string name="muteDonationDismiss">隐藏账单</string>
++  <string name="muteDonationDismissHelp">此操作会隐藏请求。在到期前，钱包账单仍可支付。</string>
++  <string name="muteDonationDismissed">账单已隐藏。到期前仍可支付；任何已确认的付款都会计入。</string>
++  <string name="muteDonationDismissFailed">无法隐藏此账单。请检查付款状态，然后重试。</string>
  </resources>
 diff --git a/translation/source/site.xml b/translation/source/site.xml
-index 8b5a6a1..f21679f 100644
+index 8b5a6a1..3dffcdf 100644
 --- a/translation/source/site.xml
 +++ b/translation/source/site.xml
-@@ -1066,4 +1066,98 @@ Leave empty to start games from the normal initial position.</string>
+@@ -1066,4 +1066,102 @@ Leave empty to start games from the normal initial position.</string>
    <string name="write">Write</string>
    <string name="preview">Preview</string>
    <string name="done">Done</string>
@@ -5494,6 +5531,10 @@ index 8b5a6a1..f21679f 100644
 +  <string name="muteStudyWelcomeTitle">Welcome to Mute Chess studies!</string>
 +  <string name="muteStudyWelcomeText">This is a shared analysis board. Use it to analyse and annotate games, discuss positions with friends, or give chess lessons. Let's see how it works.</string>
 +  <string name="muteForumDescription">Chess discussions and feedback about Mute Chess.</string>
++<string name="muteDonationDismiss">Dismiss invoice</string>
++  <string name="muteDonationDismissHelp">This hides the request. The wallet invoice can still be paid until it expires.</string>
++  <string name="muteDonationDismissed">Invoice dismissed. It can still be paid until expiry; any confirmed payment will count.</string>
++  <string name="muteDonationDismissFailed">Could not dismiss this invoice. Check payment, then try again.</string>
  </resources>
 diff --git a/ui/.build/src/build.ts b/ui/.build/src/build.ts
 index 7d6adeb..b433f0c 100644
@@ -7914,7 +7955,7 @@ index 4446c0c..8b25105 100644
    });
    notification.onclick = () => window.focus();
 diff --git a/ui/lib/src/pubsub.ts b/ui/lib/src/pubsub.ts
-index 34bdedc..9e747ac 100644
+index 34bdedc..b2d6e1f 100644
 --- a/ui/lib/src/pubsub.ts
 +++ b/ui/lib/src/pubsub.ts
 @@ -29,6 +29,7 @@ export interface PubsubEvents {
@@ -7925,6 +7966,21 @@ index 34bdedc..9e747ac 100644
    'socket.in.blockedBy': (userId: string) => void;
    'socket.in.challenges': (data: any) => void;
    'socket.in.chat_reinstate': (userId: string) => void;
+@@ -46,12 +47,12 @@ export interface PubsubEvents {
+   'socket.in.finish': (data: { id: string; win?: 'b' | 'w' }) => void;
+   'socket.in.following_enters': (
+     titleName: string,
+-    msg: { playing: boolean; patronColor?: PatronColor },
++    msg: { playing: boolean; patronColor?: PatronColor; displayName?: string },
+   ) => void;
+   'socket.in.following_leaves': (titleName: string) => void;
+   'socket.in.following_onlines': (
+     friends: string[],
+-    msg: { playing: string[]; patronColors: PatronColor[] },
++    msg: { playing: string[]; patronColors: PatronColor[]; displayNames?: Record<string, string> },
+   ) => void;
+   'socket.in.following_playing': (titleName: string) => void;
+   'socket.in.following_stopped_playing': (titleName: string) => void;
 diff --git a/ui/lib/src/socket.ts b/ui/lib/src/socket.ts
 index 0efdc62..799834d 100644
 --- a/ui/lib/src/socket.ts
@@ -9317,6 +9373,62 @@ index c89c454..b8d4463 100644
    else if (e.startsWith('/')) command(e.replace(/\//g, ''));
    // 5kr1/p1p2p2/2b2Q2/3q2r1/2p4p/2P4P/P2P1PP1/1R1K3R b - - 1 23
    else if (/^([1-8pnbrqk]+\/){7}.*/i.test(e)) location.href = '/analysis/standard/' + e.replace(/ /g, '_');
+diff --git a/ui/site/src/friends.ts b/ui/site/src/friends.ts
+index e24f6ee..28ab134 100644
+--- a/ui/site/src/friends.ts
++++ b/ui/site/src/friends.ts
+@@ -1,4 +1,5 @@
+ import { api } from 'lib/api';
++import { escapeHtml } from 'lib/common';
+ import { licon } from 'lib/licon';
+ import { profileUrl } from 'lib/view/userLink';
+ 
+@@ -7,6 +8,7 @@ type TitleName = string;
+ interface Friend {
+   id: string;
+   name: string;
++  displayName?: string;
+   title?: string;
+   playing: boolean;
+   patronColor?: PatronColor;
+@@ -41,12 +43,16 @@ export default class OnlineFriends {
+     }
+   };
+ 
+-  receive = (friends: TitleName[], msg: { playing: string[]; patronColors: PatronColor[] }) => {
++  receive = (
++    friends: TitleName[],
++    msg: { playing: string[]; patronColors: PatronColor[]; displayNames?: Record<string, string> },
++  ) => {
+     this.users.clear();
+     this.receivedOnlineFriends = true;
+     friends.forEach((f, i) => {
+       const friend = this.insert(f);
+       friend.patronColor = msg.patronColors[i];
++      friend.displayName = msg.displayNames?.[friend.id!];
+       friend.playing = msg.playing.includes(friend.id!);
+     });
+     this.repaint();
+@@ -82,13 +88,17 @@ export default class OnlineFriends {
+     const tvButton = friend.playing
+       ? `<a data-icon="${licon.AnalogTv}" class="tv ulpt" data-pt-pos="nw" href="${url}/tv" data-href="${url}"></a>`
+       : '';
+-    return `<div><a class="online user-link ulpt" data-pt-pos="nw" href="${url}">${icon}${titleTag}${friend.name}</a>${tvButton}</div>`;
++    return `<div><a class="online user-link ulpt" data-pt-pos="nw" href="${url}">${icon}${titleTag}${escapeHtml(friend.displayName || friend.name)}</a>${tvButton}</div>`;
+   };
+ 
+-  enters = (titleName: TitleName, msg: { playing: boolean; patronColor?: PatronColor }) => {
++  enters = (
++    titleName: TitleName,
++    msg: { playing: boolean; patronColor?: PatronColor; displayName?: string },
++  ) => {
+     const friend = this.insert(titleName);
+     friend.playing = msg.playing;
+     friend.patronColor = msg.patronColor;
++    friend.displayName = msg.displayName;
+     this.repaint();
+   };
+ 
 diff --git a/ui/site/src/topBar.ts b/ui/site/src/topBar.ts
 index 18646b3..5eb1d07 100644
 --- a/ui/site/src/topBar.ts
@@ -9803,12 +9915,26 @@ index 0000000..8efd4b7
 +
 +  def aliasEligible(current: Option[String], username: String, alias: String): Boolean =
 +    current.isEmpty || current.contains(username) || current.contains(alias)
+diff --git a/app/NoSweatDonation.scala b/app/NoSweatDonation.scala
+new file mode 100644
+index 0000000..e1cb129
+--- /dev/null
++++ b/app/NoSweatDonation.scala
+@@ -0,0 +1,8 @@
++package lila.app
++
++import lila.db.dsl.{ *, given }
++
++/** Only the unpaid prompt can be dismissed. Receipt/ledger matching never filters on dismissal. */
++private[app] object NoSweatDonation:
++  def dismissSelector(user: UserId, payment: String): Bdoc =
++    bdoc("_id" -> payment, "userId" -> user, "paid" -> false)
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..5146a4a
+index 0000000..f6251d3
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,923 @@
+@@ -0,0 +1,934 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -9969,14 +10095,25 @@ index 0000000..5146a4a
 +          .map(_.minusSeconds(30L * 86400).getEpochSecond)
 +      )
 +
-+  def patronPending(user: UserModel): Fu[JsValue] =
++  def patronPending(user: UserModel): Fu[(JsValue, List[String])] =
 +    donations
 +      .find(bdoc("userId" -> user.id, "paid" -> false, "expiresAt" -> bdoc("$gt" -> nowInstant)))
 +      .sort(sort.desc("createdAt"))
 +      .cursor[Bdoc]()
 +      .list(5)
 +      .map: docs =>
-+        Json.toJson(docs.flatMap(_.getAsOpt[String]("invoice")))
++        (
++          Json.toJson(docs.flatMap(_.getAsOpt[String]("invoice"))),
++          docs.filter(_.getAsOpt[Boolean]("dismissed").contains(true)).flatMap(_.getAsOpt[String]("_id"))
++        )
++
++  def patronDismiss(user: UserModel, data: JsValue): Fu[JsValue] =
++    val payment = (data \ "paymentHash").as[String]
++    if !payment.matches("[0-9a-f]{64}") then fuccess(Json.obj("dismissed" -> false))
++    else
++      donations.update
++        .one(NoSweatDonation.dismissSelector(user.id, payment), set("dismissed" -> true))
++        .map(result => Json.obj("dismissed" -> (result.n == 1)))
 +
 +  def patronInvoice(user: UserModel, data: JsValue): Fu[JsValue] =
 +    for
@@ -11113,10 +11250,10 @@ index 0000000..703a031
 +  def find(key: String): Option[NoSweatStudyPlan] = plans.find(_.key == key)
 diff --git a/app/controllers/NoSweat.scala b/app/controllers/NoSweat.scala
 new file mode 100644
-index 0000000..bd55869
+index 0000000..aba091e
 --- /dev/null
 +++ b/app/controllers/NoSweat.scala
-@@ -0,0 +1,273 @@
+@@ -0,0 +1,282 @@
 +package controllers
 +
 +import play.api.libs.json.*
@@ -11220,17 +11357,26 @@ index 0000000..bd55869
 +    me ?=>
 +      handle:
 +        for
-+          invoices <- club.patronPending(me.value)
++          pending <- club.patronPending(me.value)
 +          paidAt <- club.patronLastPaidAt(me.value)
-+        yield paidAt.fold(Ok(invoices))(at =>
-+          Ok(invoices).withHeaders("X-Mute-Patron-Paid-At" -> at.toString)
-+        )
++        yield
++          val result = Ok(pending._1).withHeaders(
++            "X-Mute-Patron-Dismissed" -> pending._2.mkString(","),
++            "Cache-Control" -> "no-store"
++          )
++          paidAt.fold(result)(at => result.withHeaders("X-Mute-Patron-Paid-At" -> at.toString))
 +
 +  def patronInvoice = AuthBody(parse.tolerantText(8192)): context ?=>
 +    me ?=>
 +      handle:
 +        sameOrigin
 +        club.patronInvoice(me.value, Json.parse(context.body.body)).map(Ok(_))
++
++  def patronDismiss = AuthBody(parse.tolerantText(256)): context ?=>
++    me ?=>
++      handle:
++        sameOrigin
++        club.patronDismiss(me.value, Json.parse(context.body.body)).map(Ok(_))
 +
 +  def patronReceipt = AuthBody(parse.tolerantText(16384)): context ?=>
 +    me ?=>
@@ -11934,10 +12080,10 @@ index 0000000..2e275fd
 +        )
 diff --git a/app/views/noSweatPatron.scala b/app/views/noSweatPatron.scala
 new file mode 100644
-index 0000000..abf409c
+index 0000000..8afa450
 --- /dev/null
 +++ b/app/views/noSweatPatron.scala
-@@ -0,0 +1,108 @@
+@@ -0,0 +1,116 @@
 +package views
 +
 +import lila.app.UiEnv.{ *, given }
@@ -11964,6 +12110,8 @@ index 0000000..abf409c
 +          attr("data-pubkey") := pubkey.getOrElse(""),
 +          attr("data-paid-status") := I18nKey("muteDonationPaid").txt(),
 +          attr("data-waiting") := I18nKey("muteDonationWaiting").txt(),
++          attr("data-dismissed") := I18nKey("muteDonationDismissed").txt(),
++          attr("data-dismiss-failed") := I18nKey("muteDonationDismissFailed").txt(),
 +          attr("data-signer-needed") := I18nKey("muteDonationSignInAgain").txt()
 +        )(
 +          div(cls := "patron-heading")(
@@ -12035,8 +12183,14 @@ index 0000000..abf409c
 +                p(id := "patron-invoice-amount"),
 +                div(cls := "patron-actions")(
 +                  button(id := "patron-copy", tpe := "button", cls := "button button-empty")("Copy invoice"),
-+                  button(id := "patron-check", tpe := "button", cls := "button button-empty")("Check payment")
-+                )
++                  button(id := "patron-check", tpe := "button", cls := "button button-empty")(
++                    "Check payment"
++                  ),
++                  button(id := "patron-dismiss", tpe := "button", cls := "button button-empty")(
++                    I18nKey("muteDonationDismiss")()
++                  )
++                ),
++                p(cls := "patron-note")(I18nKey("muteDonationDismissHelp")())
 +              )
 +            )
 +          ),
@@ -25716,6 +25870,26 @@ index 0000000..bb36ad1
 +        aliases
 +      )
 +    )
+diff --git a/src/test/scala/NoSweatDonationTest.scala b/src/test/scala/NoSweatDonationTest.scala
+new file mode 100644
+index 0000000..c47a25d
+--- /dev/null
++++ b/src/test/scala/NoSweatDonationTest.scala
+@@ -0,0 +1,14 @@
++package lila.app
++
++import lila.db.dsl.{ *, given }
++
++class NoSweatDonationTest extends munit.FunSuite:
++  test("dismissal atomically binds the exact invoice and authenticated account to unpaid state"):
++    val payment = "a" * 64
++    val selector = NoSweatDonation.dismissSelector(UserId("donor"), payment)
++    assertEquals(selector.getAsOpt[String]("_id"), Some(payment))
++    assertEquals(selector.getAsOpt[UserId]("userId"), Some(UserId("donor")))
++    assertEquals(selector.getAsOpt[Boolean]("paid"), Some(false))
++    assertEquals(selector.elements.map(_.name).toSet, Set("_id", "userId", "paid"))
++    assertNotEquals(selector, NoSweatDonation.dismissSelector(UserId("another"), payment))
++    assertNotEquals(selector, NoSweatDonation.dismissSelector(UserId("donor"), "b" * 64))
 diff --git a/src/test/scala/NoSweatStudyPlanTest.scala b/src/test/scala/NoSweatStudyPlanTest.scala
 new file mode 100644
 index 0000000..806bb5f
@@ -133123,6 +133297,87 @@ index 0000000..9fc8e4d
 +      ],
 +    );
 +  });
++});
+diff --git a/ui/site/tests/friends.test.ts b/ui/site/tests/friends.test.ts
+new file mode 100644
+index 0000000..3a86c43
+--- /dev/null
++++ b/ui/site/tests/friends.test.ts
+@@ -0,0 +1,75 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++
++import OnlineFriends from '../src/friends';
++
++const id = 'n066f8597b3952d996bc';
++const painted = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
++
++function friends() {
++  document.body.innerHTML = `<div id="friend_box"><button class="friend_box_button"></button><span class="friend_box_count"></span><div class="nobody"></div><div class="list"></div></div>`;
++  const root = document.getElementById('friend_box')!;
++  return { root, controller: new OnlineFriends(root) };
++}
++
++test('initial online friends show public names while links, playing and leave use canonical IDs', async () => {
++  const { root, controller } = friends();
++  controller.receive([id], {
++    playing: [id],
++    patronColors: [4],
++    displayNames: { [id]: 'Dash with spaces' },
++  });
++  await painted();
++  const link = root.querySelector<HTMLAnchorElement>('.list .user-link')!;
++  assert.equal(link.textContent, 'Dash with spaces');
++  assert.equal(link.getAttribute('href'), `/@/${id}`);
++  assert.equal(root.querySelector('.tv')?.getAttribute('href'), `/@/${id}/tv`);
++  assert.ok(link.querySelector('.patron.paco4'));
++  controller.stoppedPlaying(id);
++  await painted();
++  assert.equal(root.querySelector('.tv'), null);
++  assert.equal(controller.users.get(id)?.displayName, 'Dash with spaces');
++  controller.leaves(id);
++  await painted();
++  assert.equal(controller.users.size, 0);
++  assert.equal(root.querySelector('.list')?.textContent, '');
++});
++
++test('live enter updates use the latest escaped public name without changing the presence key', async () => {
++  const { root, controller } = friends();
++  controller.receive([], { playing: [], patronColors: [] });
++  controller.enters(id, { playing: false, displayName: 'Dash <img src=x onerror=alert(1)> & "friends"' });
++  await painted();
++  const link = root.querySelector<HTMLAnchorElement>('.list .user-link')!;
++  assert.equal(link.textContent, 'Dash <img src=x onerror=alert(1)> & "friends"');
++  assert.equal(link.getAttribute('href'), `/@/${id}`);
++  assert.equal(link.querySelector('img'), null);
++  assert.ok(link.innerHTML.includes('&lt;img'));
++  controller.enters(id, { playing: true, displayName: 'Renamed Dash' });
++  await painted();
++  assert.equal(controller.users.size, 1);
++  assert.equal(root.querySelector('.list .user-link')?.textContent, 'Renamed Dash');
++  assert.equal(root.querySelector('.tv')?.getAttribute('href'), `/@/${id}/tv`);
++});
++
++test('canonical fallback and native BOT titles remain compatible with older payloads', async () => {
++  const { root, controller } = friends();
++  controller.receive([id, 'BOT NativeBot'], {
++    playing: [],
++    patronColors: [],
++    displayNames: { nativebot: 'Public Bot Alias', [id]: '' },
++  });
++  await painted();
++  const human = root.querySelector<HTMLAnchorElement>(`a[href="/@/${id}"]`)!;
++  const bot = root.querySelector<HTMLAnchorElement>('a[href="/@/NativeBot"]')!;
++  assert.equal(human.textContent, id);
++  assert.equal(bot.querySelector('.utitle[data-bot]')?.textContent, 'BOT');
++  assert.ok(bot.textContent?.endsWith('Public Bot Alias'));
++  controller.enters(id, { playing: false });
++  await painted();
++  assert.equal(root.querySelector(`a[href="/@/${id}"]`)?.textContent, id);
++  controller.playing('nativebot');
++  await painted();
++  assert.equal(controller.users.size, 2);
++  assert.equal(root.querySelector('a.tv[href="/@/NativeBot/tv"]') !== null, true);
 +});
 diff --git a/ui/site/tests/topBar.test.ts b/ui/site/tests/topBar.test.ts
 new file mode 100644

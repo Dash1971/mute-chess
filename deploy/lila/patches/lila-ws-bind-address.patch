@@ -7,6 +7,76 @@ index 7183ff2..e655a3d 100644
  http.port = 9664
  http.use-nginx-forwarded-ip = no
  mongo.uri = "mongodb://localhost:27017/lichess?appName=lila-ws"
+diff --git a/src/main/scala/FriendList.scala b/src/main/scala/FriendList.scala
+index 3ce3dda..8c1c615 100644
+--- a/src/main/scala/FriendList.scala
++++ b/src/main/scala/FriendList.scala
+@@ -74,7 +74,13 @@ final class FriendList(
+ 
+ object FriendList:
+ 
+-  case class UserData(name: User.Name, title: Option[User.Title], patron: Option[User.patron.PatronColor]):
++  case class UserData(
++      name: User.Name,
++      title: Option[User.Title],
++      patron: Option[User.patron.PatronColor],
++      displayName: Option[String] = None
++  ):
++    def publicName: String = displayName.filter(_.nonEmpty).getOrElse(name.value)
+     def titleName = User.TitleName(name, title)
+ 
+   case class UserView(id: User.Id, data: UserData, meta: SocialGraph.UserMeta)
+diff --git a/src/main/scala/Mongo.scala b/src/main/scala/Mongo.scala
+index ec8364d..3d1392c 100644
+--- a/src/main/scala/Mongo.scala
++++ b/src/main/scala/Mongo.scala
+@@ -242,7 +242,13 @@ final class Mongo(config: Config)(using Executor)(using cacheApi: util.CacheApi)
+       )
+ 
+   private val userDataProjection =
+-    BSONDocument("username" -> true, "title" -> true, "plan" -> true, "_id" -> false)
++    BSONDocument(
++      "username" -> true,
++      "title" -> true,
++      "plan" -> true,
++      "profile.displayName" -> true,
++      "_id" -> false
++    )
+   private def userDataReader(doc: BSONDocument) =
+     val patronColor = for
+       plan <- doc.child("plan")
+@@ -255,7 +261,8 @@ final class Mongo(config: Config)(using Executor)(using cacheApi: util.CacheApi)
+       name <- doc.getAsOpt[User.Name]("username")
+       title = doc.getAsOpt[User.Title]("title")
+       patron = patronColor
+-    yield FriendList.UserData(name, title, patron)
++      displayName = doc.child("profile").flatMap(_.getAsOpt[String]("displayName"))
++    yield FriendList.UserData(name, title, patron, displayName)
+ 
+   def loadFollowed(userId: User.Id): Future[Iterable[User.Id]] =
+     relationColl.flatMap:
+diff --git a/src/main/scala/ipc/ClientIn.scala b/src/main/scala/ipc/ClientIn.scala
+index a7524f9..47a8be9 100644
+--- a/src/main/scala/ipc/ClientIn.scala
++++ b/src/main/scala/ipc/ClientIn.scala
+@@ -161,7 +161,8 @@ object ClientIn:
+             "d" -> users.map(_.data.titleName),
+             "playing" -> users.collect { case u if u.meta.playing => u.id },
+             "patrons" -> Json.arr(), // lichobile BC
+-            "patronColors" -> users.map(_.data.patron.fold(0)(_.value))
++            "patronColors" -> users.map(_.data.patron.fold(0)(_.value)),
++            "displayNames" -> users.map(u => u.id.value -> u.data.publicName).toMap
+           )
+         )
+     case class Enters(user: FriendList.UserView) extends ClientIn:
+@@ -174,6 +175,7 @@ object ClientIn:
+           )
+           .add("patron" -> user.data.patron.isDefined) // # app BC
+           .add("patronColor" -> user.data.patron)
++          .add("displayName" -> user.data.publicName)
+ 
+     abstract class Event(key: String) extends ClientIn:
+       def user: User.Id
 diff --git a/src/main/scala/netty/NettyServer.scala b/src/main/scala/netty/NettyServer.scala
 index c9bd110..a7279ae 100644
 --- a/src/main/scala/netty/NettyServer.scala
