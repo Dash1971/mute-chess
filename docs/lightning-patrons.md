@@ -2,7 +2,7 @@
 
 The owner confirmed `dash@walletofsatoshi.com` and the official Mute Chess account `npub1w6l8e4mqa4ruqs2vdvwhdxhp9ke9ax8kpncy2wy26tja3d7rzpgq06c9jl`. These replace the earlier on-chain/mempool settlement proposal and Mobile Maia address lookup. No Mobile Maia or Zapstore configuration is changed.
 
-The header Donate link opens a native-styled support page. Anonymous visitors can scan the direct LNURL or open their wallet. Signed-in Nostr users choose sats or USD (a current browser-side mempool.space quote), sign a NIP-57 profile zap request using NIP-07 or their saved browser key, then scan the returned Lightning invoice. Creating/signing an invoice never pays it. The page also links to the official Nostr profile for direct zaps. The lower Lichess Patron promotion is removed.
+The header Donate link opens a native-styled support page. Anonymous visitors can scan the direct LNURL or open their wallet. Signed-in Nostr users choose sats or USD (a current browser-side mempool.space quote), sign a NIP-57 profile zap request using NIP-07 or their saved browser key, then scan the returned Lightning invoice. Creating/signing an invoice never pays it. The donation UI uses its invoice/QR and Open wallet actions; direct Nostr-zap and wallet-address links are omitted to keep the flow clear. The lower Lichess Patron promotion is removed.
 
 Any confirmed donation through this page grants native patron wings until 30 days after payment. It is a one-time donation, not a subscription. Direct external zaps support the project, but automatic wings require a recorded website invoice. The amount remains pay-what-you-want, at least one whole satoshi within the provider limits.
 
@@ -85,7 +85,10 @@ sign-in-again message. Paid/waiting/thanks/recovery text ships in all ten native
 locales. Payment signing, invoices, recipient, validation and wings duration
 are unchanged.
 
-Nostr profile headers put trophies in normal flex flow, allowing the permanent
-ID and information button to wrap without the absolute-positioned patron wing
-covering them. Native trophy content, packing and non-Nostr layout remain intact.
+Nostr profile headers put trophies in normal flex flow beside the public name.
+The identity block shows the npub first and the permanent @ID directly below it,
+using shared text and information-button columns. Npub copying/feedback and both
+help dialogs are retained. The donation UI omits the direct wallet/Nostr links
+and the address suffix under an invoice; the fixed amount remains visible.
+Native trophy content, packing and non-Nostr layout remain intact.
 No deployment is included in this PR.

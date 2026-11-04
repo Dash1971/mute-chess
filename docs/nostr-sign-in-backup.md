@@ -15,6 +15,8 @@ use the generic permanent-ID explanation. All human Nostr profiles show their
 permanent handle, including those without a chosen username. Managed bots have
 no Nostr help buttons. The help reads no key storage and exposes no private keys.
 The npub's existing click-to-copy and 900ms Copied feedback remain separate.
+The permanent @ID sits immediately below the npub in the same left-aligned grid;
+both information buttons share a column, leaving the heading for the name and trophies.
 Profile help, the introductory login disclosure, contact guidance and copy
 feedback use native translations in all ten supported locales (#242), including
 titles and accessible labels. Linked sentences retain translated placeholders.

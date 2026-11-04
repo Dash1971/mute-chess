@@ -54,7 +54,7 @@ if (page) {
     pending.add(details.paymentHash); invoice = value;
     element('payment').hidden = false;
     element('open').href = 'lightning:' + value;
-    element('invoice-amount').textContent = `${(details.amountMsat / 1000).toLocaleString()} sats · ${support.address}`;
+    element('invoice-amount').textContent = `${(details.amountMsat / 1000).toLocaleString()} sats`;
     await showQr('LIGHTNING:' + value.toUpperCase());
     if (settled) return;
     clearTimeout(expiry);
