@@ -7598,7 +7598,7 @@ index 4446c0c..8b25105 100644
    });
    notification.onclick = () => window.focus();
 diff --git a/ui/lib/src/pubsub.ts b/ui/lib/src/pubsub.ts
-index 34bdedc..9e747ac 100644
+index 34bdedc..b2d6e1f 100644
 --- a/ui/lib/src/pubsub.ts
 +++ b/ui/lib/src/pubsub.ts
 @@ -29,6 +29,7 @@ export interface PubsubEvents {
@@ -7609,6 +7609,21 @@ index 34bdedc..9e747ac 100644
    'socket.in.blockedBy': (userId: string) => void;
    'socket.in.challenges': (data: any) => void;
    'socket.in.chat_reinstate': (userId: string) => void;
+@@ -46,12 +47,12 @@ export interface PubsubEvents {
+   'socket.in.finish': (data: { id: string; win?: 'b' | 'w' }) => void;
+   'socket.in.following_enters': (
+     titleName: string,
+-    msg: { playing: boolean; patronColor?: PatronColor },
++    msg: { playing: boolean; patronColor?: PatronColor; displayName?: string },
+   ) => void;
+   'socket.in.following_leaves': (titleName: string) => void;
+   'socket.in.following_onlines': (
+     friends: string[],
+-    msg: { playing: string[]; patronColors: PatronColor[] },
++    msg: { playing: string[]; patronColors: PatronColor[]; displayNames?: Record<string, string> },
+   ) => void;
+   'socket.in.following_playing': (titleName: string) => void;
+   'socket.in.following_stopped_playing': (titleName: string) => void;
 diff --git a/ui/lib/src/socket.ts b/ui/lib/src/socket.ts
 index 0efdc62..799834d 100644
 --- a/ui/lib/src/socket.ts
@@ -9001,6 +9016,62 @@ index c89c454..b8d4463 100644
    else if (e.startsWith('/')) command(e.replace(/\//g, ''));
    // 5kr1/p1p2p2/2b2Q2/3q2r1/2p4p/2P4P/P2P1PP1/1R1K3R b - - 1 23
    else if (/^([1-8pnbrqk]+\/){7}.*/i.test(e)) location.href = '/analysis/standard/' + e.replace(/ /g, '_');
+diff --git a/ui/site/src/friends.ts b/ui/site/src/friends.ts
+index e24f6ee..28ab134 100644
+--- a/ui/site/src/friends.ts
++++ b/ui/site/src/friends.ts
+@@ -1,4 +1,5 @@
+ import { api } from 'lib/api';
++import { escapeHtml } from 'lib/common';
+ import { licon } from 'lib/licon';
+ import { profileUrl } from 'lib/view/userLink';
+ 
+@@ -7,6 +8,7 @@ type TitleName = string;
+ interface Friend {
+   id: string;
+   name: string;
++  displayName?: string;
+   title?: string;
+   playing: boolean;
+   patronColor?: PatronColor;
+@@ -41,12 +43,16 @@ export default class OnlineFriends {
+     }
+   };
+ 
+-  receive = (friends: TitleName[], msg: { playing: string[]; patronColors: PatronColor[] }) => {
++  receive = (
++    friends: TitleName[],
++    msg: { playing: string[]; patronColors: PatronColor[]; displayNames?: Record<string, string> },
++  ) => {
+     this.users.clear();
+     this.receivedOnlineFriends = true;
+     friends.forEach((f, i) => {
+       const friend = this.insert(f);
+       friend.patronColor = msg.patronColors[i];
++      friend.displayName = msg.displayNames?.[friend.id!];
+       friend.playing = msg.playing.includes(friend.id!);
+     });
+     this.repaint();
+@@ -82,13 +88,17 @@ export default class OnlineFriends {
+     const tvButton = friend.playing
+       ? `<a data-icon="${licon.AnalogTv}" class="tv ulpt" data-pt-pos="nw" href="${url}/tv" data-href="${url}"></a>`
+       : '';
+-    return `<div><a class="online user-link ulpt" data-pt-pos="nw" href="${url}">${icon}${titleTag}${friend.name}</a>${tvButton}</div>`;
++    return `<div><a class="online user-link ulpt" data-pt-pos="nw" href="${url}">${icon}${titleTag}${escapeHtml(friend.displayName || friend.name)}</a>${tvButton}</div>`;
+   };
+ 
+-  enters = (titleName: TitleName, msg: { playing: boolean; patronColor?: PatronColor }) => {
++  enters = (
++    titleName: TitleName,
++    msg: { playing: boolean; patronColor?: PatronColor; displayName?: string },
++  ) => {
+     const friend = this.insert(titleName);
+     friend.playing = msg.playing;
+     friend.patronColor = msg.patronColor;
++    friend.displayName = msg.displayName;
+     this.repaint();
+   };
+ 
 diff --git a/ui/site/src/topBar.ts b/ui/site/src/topBar.ts
 index 18646b3..5eb1d07 100644
 --- a/ui/site/src/topBar.ts
@@ -132807,6 +132878,87 @@ index 0000000..9fc8e4d
 +      ],
 +    );
 +  });
++});
+diff --git a/ui/site/tests/friends.test.ts b/ui/site/tests/friends.test.ts
+new file mode 100644
+index 0000000..3a86c43
+--- /dev/null
++++ b/ui/site/tests/friends.test.ts
+@@ -0,0 +1,75 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++
++import OnlineFriends from '../src/friends';
++
++const id = 'n066f8597b3952d996bc';
++const painted = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
++
++function friends() {
++  document.body.innerHTML = `<div id="friend_box"><button class="friend_box_button"></button><span class="friend_box_count"></span><div class="nobody"></div><div class="list"></div></div>`;
++  const root = document.getElementById('friend_box')!;
++  return { root, controller: new OnlineFriends(root) };
++}
++
++test('initial online friends show public names while links, playing and leave use canonical IDs', async () => {
++  const { root, controller } = friends();
++  controller.receive([id], {
++    playing: [id],
++    patronColors: [4],
++    displayNames: { [id]: 'Dash with spaces' },
++  });
++  await painted();
++  const link = root.querySelector<HTMLAnchorElement>('.list .user-link')!;
++  assert.equal(link.textContent, 'Dash with spaces');
++  assert.equal(link.getAttribute('href'), `/@/${id}`);
++  assert.equal(root.querySelector('.tv')?.getAttribute('href'), `/@/${id}/tv`);
++  assert.ok(link.querySelector('.patron.paco4'));
++  controller.stoppedPlaying(id);
++  await painted();
++  assert.equal(root.querySelector('.tv'), null);
++  assert.equal(controller.users.get(id)?.displayName, 'Dash with spaces');
++  controller.leaves(id);
++  await painted();
++  assert.equal(controller.users.size, 0);
++  assert.equal(root.querySelector('.list')?.textContent, '');
++});
++
++test('live enter updates use the latest escaped public name without changing the presence key', async () => {
++  const { root, controller } = friends();
++  controller.receive([], { playing: [], patronColors: [] });
++  controller.enters(id, { playing: false, displayName: 'Dash <img src=x onerror=alert(1)> & "friends"' });
++  await painted();
++  const link = root.querySelector<HTMLAnchorElement>('.list .user-link')!;
++  assert.equal(link.textContent, 'Dash <img src=x onerror=alert(1)> & "friends"');
++  assert.equal(link.getAttribute('href'), `/@/${id}`);
++  assert.equal(link.querySelector('img'), null);
++  assert.ok(link.innerHTML.includes('&lt;img'));
++  controller.enters(id, { playing: true, displayName: 'Renamed Dash' });
++  await painted();
++  assert.equal(controller.users.size, 1);
++  assert.equal(root.querySelector('.list .user-link')?.textContent, 'Renamed Dash');
++  assert.equal(root.querySelector('.tv')?.getAttribute('href'), `/@/${id}/tv`);
++});
++
++test('canonical fallback and native BOT titles remain compatible with older payloads', async () => {
++  const { root, controller } = friends();
++  controller.receive([id, 'BOT NativeBot'], {
++    playing: [],
++    patronColors: [],
++    displayNames: { nativebot: 'Public Bot Alias', [id]: '' },
++  });
++  await painted();
++  const human = root.querySelector<HTMLAnchorElement>(`a[href="/@/${id}"]`)!;
++  const bot = root.querySelector<HTMLAnchorElement>('a[href="/@/NativeBot"]')!;
++  assert.equal(human.textContent, id);
++  assert.equal(bot.querySelector('.utitle[data-bot]')?.textContent, 'BOT');
++  assert.ok(bot.textContent?.endsWith('Public Bot Alias'));
++  controller.enters(id, { playing: false });
++  await painted();
++  assert.equal(root.querySelector(`a[href="/@/${id}"]`)?.textContent, id);
++  controller.playing('nativebot');
++  await painted();
++  assert.equal(controller.users.size, 2);
++  assert.equal(root.querySelector('a.tv[href="/@/NativeBot/tv"]') !== null, true);
 +});
 diff --git a/ui/site/tests/topBar.test.ts b/ui/site/tests/topBar.test.ts
 new file mode 100644
