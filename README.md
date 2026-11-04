@@ -345,3 +345,6 @@ See [third-party notices](THIRD_PARTY.md),
 [analysis source provenance](analysis/PROVENANCE.md), and the
 [pinned upstream source inventory](docs/chess-sources.json) for the components,
 source versions, and reproduction references.
+
+For research, code and labeled data on brilliant-move classification, see
+[Open Brilly Finder](https://github.com/Dash1971/open-brilly-finder).
