@@ -151,3 +151,23 @@ References: [NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md)
 defines public-key encoding and hex storage; [NIP-21](https://github.com/nostr-protocol/nips/blob/master/21.md)
 defines the public `nostr:` URI. Existing known vectors plus checksum, padding,
 case/type negatives, search validation and header routing tests cover this adapter.
+
+
+## Native friend and challenge routing (#253)
+
+The public gateway forwards native `POST /api/rel/{follow,unfollow,block,unblock}/:user`
+as well as the existing legacy `/rel/` aliases. The native UI uses the API paths;
+blocking them prevented follow records from being saved and left the online-friends
+count at zero. The same stable account identifiers, authentication, preferences,
+blocks and native rate limits remain authoritative. The online count continues to
+mean connected followed accounts; a follow does not force presence.
+
+Direct challenge pages use `/challenge/:id/socket/v5` for room reload events after
+cancel/decline/accept. That exact room socket family is now included in the gateway
+allowlist. The existing native page can receive its canceled state rather than
+waiting indefinitely with its AJAX loader. Foreign origins, malformed IDs and
+unrelated paths remain denied; no socket port or service exposure changes.
+
+Focused handler tests use mocked HTTP transports without binding ports or changing
+live relations/challenges. No native game, challenge ownership or friendship
+semantics are replaced. This correction is PR-only until separately released.
