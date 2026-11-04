@@ -627,14 +627,16 @@
         },
         {
           "id": "friend-public-names",
-          "rationale": "Issue #259 adds profile.displayName to the existing friend-data projection and mirrors LightUser.publicName nonempty/canonical fallback. Initial Onlines adds a displayNames map keyed by canonical user ID; Enters adds a displayName field. Existing d/titleName strings, IDs, presence/playing events, BOT labels and patron color fields remain byte-compatible for older clients. No identity migration, lookup endpoint or per-friend HTTP calls. The native ten-minute friend-data cache is retained.",
+          "rationale": "Issue #259 adds profile.displayName to the existing friend-data projection and mirrors LightUser.publicName nonempty/canonical fallback. Initial Onlines adds a displayNames map keyed by canonical user ID; Enters adds a displayName field. Existing d/titleName strings, IDs, presence/playing events, BOT labels and patron color fields remain byte-compatible for older clients. No identity migration, lookup endpoint or per-friend HTTP calls. The native ten-minute friend-data cache is retained. Issue #264 puts the required string directly in Json.obj; the upstream add extension accepts only Boolean or Option values.",
           "verification": [
-            "Apply/reconstruct the exact pinned WS patch and Scala formatting; inspect both serialization paths. Native friends UI regressions consume both optional metadata forms. Existing automatic CI applies/checks this WS patch but does not compile/test lila-ws; no local full build or release qualification is claimed."
+            "Apply/reconstruct the exact pinned WS patch and Scala formatting; inspect both serialization paths. Native friends UI regressions consume both optional metadata forms. Existing automatic CI applies/checks this WS patch but does not compile/test lila-ws; no local full build or release qualification is claimed.",
+            "Compile/test exact WS source before release; FriendPayloadTest checks initial/live JSON, canonical IDs/playing IDs, punctuation and missing/empty chosen-name fallback."
           ],
           "files": [
             "src/main/scala/FriendList.scala",
             "src/main/scala/Mongo.scala",
-            "src/main/scala/ipc/ClientIn.scala"
+            "src/main/scala/ipc/ClientIn.scala",
+            "src/test/scala/FriendPayloadTest.scala"
           ]
         }
       ]
