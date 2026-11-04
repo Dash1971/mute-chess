@@ -93,3 +93,27 @@ Both help dialogs are retained. The donation UI omits the direct wallet/Nostr li
 and the address suffix under an invoice; the fixed amount remains visible.
 Native trophy content, packing and non-Nostr layout remain intact.
 No deployment is included in this PR.
+
+
+## QR scanning and display resolution (#247)
+
+The native QR renderer uses a four-module quiet zone, as required by
+[DENSO's QR guidance](https://www.qrcode.com/en/howto/code.html/index.html).
+It renders its backing canvas at device-pixel resolution and retains the
+requested CSS width (320px by default), with automatic height so existing
+max-width rules preserve the square on narrow screens. The same rule applies
+to authenticator QR codes; payloads and requested display sizes are unchanged.
+
+The donation browser already uppercases `LIGHTNING:` plus its invoice/LNURL
+for compact QR encoding. Phoenix's [native parser](https://github.com/ACINQ/phoenix/blob/master/phoenix-shared/src/commonMain/kotlin/fr.acinq.phoenix/utils/Parser.kt)
+accepts that prefix case-insensitively. This correction addresses rendering,
+not invoice content, provider routing or settlement. In particular, replacing
+an invoice with a direct LNURL could lose the recorded donation identity and
+is not part of the fix.
+
+Focused native tests check replacement invoices and dense payment/authenticator
+payloads, clear borders, backing resolution and displayed dimensions. The
+owner confirmed the camera does not recognize the current QR. The corrected
+rendering still needs a scan test on a Phoenix device;
+no wallet payment or end-to-end compatibility claim is made. This PR remains
+undeployed pending the owner's instruction.

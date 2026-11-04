@@ -58,3 +58,37 @@ login on the new domain.
 No public smoke test or remote deployment was run. The native Scala application
 was not rebuilt locally; the required native UI/build checks still run in CI
 before a future release.
+
+## Shared public preview identity (#244)
+
+The inherited Open Graph case class defaults to `lichess.org`. The focused
+Mute page renderer now overrides that identity with `mutechess.org` for every
+page that supplies Open Graph metadata, including the homepage, profiles,
+analysis, saved games and puzzles. It uses the existing Mute social image only
+when a page has no image or uses Lichess's generic tile; position thumbnails and
+other page-specific images remain intact. Root-relative position images become
+absolute URLs, and the native asset helper joins the origin and asset path with
+one slash. Native titles, descriptions, canonical game/profile paths and escaping
+remain authoritative. Twitter cards have no independent inherited identity tag
+in the pinned source; consumers can use the corrected Open Graph fields.
+
+The fallback description and homepage preview copy use all ten supported native
+catalogs. Public puzzle previews/embeds, deleted-player copy and the default feed
+link also use Mute identity. The existing native `/manifest.json` endpoint points
+to the already-branded Mute manifest rather than advertising Lichess's mobile
+apps. Mute organization metadata contains its own name, origin, logo and GitHub
+link; it does not inherit Lichess's legal registration, tax ID, contact address,
+founding date or social accounts. The ordinary upstream branch remains intact.
+
+The native source comment, About/Donate credits, licenses, third-party notices
+and genuine Lichess project/resource/app references retain their attribution.
+Technical names, routes, account IDs, browser storage, services and configuration
+are unchanged. This is a focused branding PR; no deployment or live-data change
+is included. Existing previews may remain cached by external clients after any
+later deployment; fresh rendered metadata is the source of truth.
+
+Validation uses the existing native CI with a focused `NoSweatBrandingTest`, XML
+catalog checks and the exact-path departure register. The test covers generic
+fallback art, meaningful game/puzzle images, escaping and unchanged upstream
+identity. A real fresh link preview remains a post-deployment check once the
+owner authorizes a release.

@@ -318,10 +318,20 @@ index ede74af..51e2daa 100644
  
    def masterGame(id: GameId, orientation: Color) = Open:
 diff --git a/app/controllers/Main.scala b/app/controllers/Main.scala
-index 7c65f4c..ad9cdc3 100644
+index 7c65f4c..a473d7a 100644
 --- a/app/controllers/Main.scala
 +++ b/app/controllers/Main.scala
-@@ -83,11 +83,11 @@ final class Main(env: Env, assetsC: ExternalAssets) extends LilaController(env):
+@@ -70,7 +70,8 @@ final class Main(env: Env, assetsC: ExternalAssets) extends LilaController(env):
+     .publicCache(1.hour)
+ 
+   val manifest = Anon:
+-    Ok(env.web.static.manifest).publicCache(1.hour)
++    if env.noSweat.enabled then Redirect("/assets/nosweat/manifest.json").publicCache(1.hour)
++    else Ok(env.web.static.manifest).publicCache(1.hour)
+ 
+   def getFishnet = Open:
+     pageHit
+@@ -83,11 +84,11 @@ final class Main(env: Env, assetsC: ExternalAssets) extends LilaController(env):
  
    def contact = Open:
      pageHit
@@ -868,11 +878,42 @@ index 3fb4283..712b229 100644
      val side = views.game.side(pov, initialFen, none, simul = simul, userTv = userTv, bookmarked = bookmarked)
  
 diff --git a/app/views/base/page.scala b/app/views/base/page.scala
-index b408a91..91c6e41 100644
+index b408a91..e1c909a 100644
 --- a/app/views/base/page.scala
 +++ b/app/views/base/page.scala
-@@ -78,7 +78,7 @@ object page:
-             content := p.openGraph.fold(trans.site.siteDescription.txt())(o => o.description),
+@@ -4,6 +4,7 @@ import scalalib.StringUtils.escapeHtmlRaw
+ 
+ import lila.app.UiEnv.{ *, given }
+ import lila.common.String.html.safeJsonValue
++import lila.core.i18n.I18nKey
+ import lila.mon.extensions.*
+ import lila.ui.{ PageFlags, RenderedPage }
+ 
+@@ -47,6 +48,15 @@ object page:
+       p.pageModule.so(module => esmPage(module.name)) ++
+       ctx.needsFp.so(fingerprintTag) ++
+       anonOnboarding.isDefined.so(esmInitBit("emailErrorCheck"))
++    val graph = p.openGraph.map: graph =>
++      if env.noSweat.enabled then
++        lila.web.ui.muteChessOpenGraph(
++          graph,
++          netBaseUrl,
++          assetFullUrl("nosweat/social.png"),
++          assetFullUrl("logo/lichess-tile-wide.png")
++        )
++      else graph
+     val zenable = p.flags(PageFlags.zen)
+     val playing = p.flags(PageFlags.playing)
+     val preventIndexing =
+@@ -75,14 +85,17 @@ object page:
+           ctx.blind.option(cssTag("bits.blind")),
+           p.cssKeys.map(cssTag),
+           meta(
+-            content := p.openGraph.fold(trans.site.siteDescription.txt())(o => o.description),
++            content := graph.fold(
++              if env.noSweat.enabled then I18nKey("muteSiteDescription").txt()
++              else trans.site.siteDescription.txt()
++            )(o => o.description),
              name := "description"
            ),
 -          link(rel := "mask-icon", href := staticAssetPath("logo/lichess.svg"), attr("color") := "black"),
@@ -880,7 +921,12 @@ index b408a91..91c6e41 100644
            favicons,
            preventIndexing.option(noRobots),
            noTranslate,
-@@ -157,7 +157,8 @@ object page:
+-          p.openGraph.map(lila.web.ui.openGraph),
++          graph.map(lila.web.ui.openGraph),
+           atomLinkTag.tupled(p.atomLink | dailyNewsAtom),
+           pref.isTransparentBg
+             .option(pref.bgImgUrl)
+@@ -157,7 +170,8 @@ object page:
                error = ctx.data.error,
                topnav = topnav(
                  seesClassMenu = ctx.seesClassMenu,
@@ -891,10 +937,16 @@ index b408a91..91c6e41 100644
              )
            ,
 diff --git a/app/views/lobby/home.scala b/app/views/lobby/home.scala
-index 2db52a9..5cb8466 100644
+index 2db52a9..6f794d9 100644
 --- a/app/views/lobby/home.scala
 +++ b/app/views/lobby/home.scala
-@@ -10,22 +10,6 @@ object home:
+@@ -5,27 +5,12 @@ import play.api.libs.json.Json
+ import lila.app.UiEnv.{ *, given }
+ import lila.app.mashup.Preload.Homepage
+ import lila.core.perf.UserWithPerfs
++import lila.core.i18n.I18nKey
+ 
+ object home:
  
    def apply(homepage: Homepage)(using ctx: Context) =
      import homepage.*
@@ -917,7 +969,7 @@ index 2db52a9..5cb8466 100644
      Page("")
        .copy(fullTitle = s"$siteName • ${trans.site.freeOnlineChess.txt()}".some)
        .i18n(_.variant)
-@@ -35,6 +19,7 @@ object home:
+@@ -35,6 +20,7 @@ object home:
            Json
              .obj(
                "data" -> data,
@@ -925,7 +977,7 @@ index 2db52a9..5cb8466 100644
                "showRatings" -> ctx.pref.showRatings
              )
              .add("hasUnreadLichessMessage", hasUnreadLichessMessage)
-@@ -45,10 +30,14 @@ object home:
+@@ -45,10 +31,14 @@ object home:
        .css("lobby")
        .graph(
          OpenGraph(
@@ -933,17 +985,17 @@ index 2db52a9..5cb8466 100644
 -          title = "The best free, adless Chess server",
 +          image = assetFullUrl(if env.noSweat.enabled then "nosweat/social.png"
 +          else "logo/lichess-tile-wide.png").some,
-+          title = if env.noSweat.enabled then "Mute Chess — Stay human. Play bots."
++          title = if env.noSweat.enabled then I18nKey("muteSiteTitle").txt()
 +          else "The best free, adless Chess server",
            url = netBaseUrl.into(Url),
 -          description = trans.site.siteDescription.txt()
 +          description =
-+            if env.noSweat.enabled then "Free, open-source chess with human-like Maia opponents."
++            if env.noSweat.enabled then I18nKey("muteSiteDescription").txt()
 +            else trans.site.siteDescription.txt()
          )
        )
        .hrefLangs(lila.ui.LangPath("/")):
-@@ -56,53 +45,63 @@ object home:
+@@ -56,53 +46,63 @@ object home:
          main(
            cls := List(
              "lobby" -> true,
@@ -1051,7 +1103,7 @@ index 2db52a9..5cb8466 100644
            ),
            currentGame
              .map(bits.currentGameInfo)
-@@ -114,42 +113,32 @@ object home:
+@@ -114,42 +114,32 @@ object home:
                if ctx.blind then blindLobby(blindGames) else bits.lobbyApp
            ,
            div(cls := "lobby__table")(
@@ -1109,6 +1161,30 @@ index 2db52a9..5cb8466 100644
              views.bits.connectLinks
            )
          )
+diff --git a/app/views/puzzle/ui.scala b/app/views/puzzle/ui.scala
+index 92c93c4..e995921 100644
+--- a/app/views/puzzle/ui.scala
++++ b/app/views/puzzle/ui.scala
+@@ -5,11 +5,17 @@ import lila.puzzle.DailyPuzzle
+ lazy val bits = lila.puzzle.ui.PuzzleBits(helpers)
+ lazy val ui =
+   lila.puzzle.ui
+-    .PuzzleUi(helpers, bits)(views.analyse.ui.bits.cspExternalEngine, analyseEndpoints.externalEngine)
++    .PuzzleUi(helpers, bits)(
++      views.analyse.ui.bits.cspExternalEngine,
++      analyseEndpoints.externalEngine,
++      focused = env.noSweat.enabled
++    )
+ 
+ def embed(daily: DailyPuzzle.WithHtml)(using config: EmbedContext) =
+   views.base.embed.minimal(
+-    title = "lichess.org chess puzzle",
++    title = if env.noSweat.enabled then
++      s"mutechess.org • ${trans.puzzle.puzzleOfTheDay.txt()(using config.translate)}"
++    else "lichess.org chess puzzle",
+     cssKeys = List("bits.tv.embed"),
+     modules = Esm("site.puzzleEmbed")
+   )(
 diff --git a/app/views/ui.scala b/app/views/ui.scala
 index ab74f28..37b206a 100644
 --- a/app/views/ui.scala
@@ -1285,10 +1361,14 @@ index 26a6045..a69f1a2 100644
                    profile.officialRating.map: r =>
                      div(r.name.toUpperCase, " rating: ", strong(r.rating)),
 diff --git a/app/views/user/show/page.scala b/app/views/user/show/page.scala
-index 9688ca7..f6a2f8b 100644
+index 9688ca7..4ee94fd 100644
 --- a/app/views/user/show/page.scala
 +++ b/app/views/user/show/page.scala
-@@ -9,7 +9,7 @@ import lila.core.data.SafeJsonStr
+@@ -6,10 +6,11 @@ import play.api.data.Form
+ import lila.app.UiEnv.{ *, given }
+ import lila.app.mashup.UserInfo
+ import lila.core.data.SafeJsonStr
++import lila.core.i18n.I18nKey
  import lila.game.GameFilter
  import lila.rating.UserWithPerfs.titleUsernameWithBestRating
  
@@ -1297,6 +1377,24 @@ index 9688ca7..f6a2f8b 100644
  
  object page:
  
+@@ -83,12 +84,15 @@ object page:
+     info.ratingChart.map: rc =>
+       PageModule("chart.ratingHistory", SafeJsonStr(s"""{"data":$rc}"""))
+ 
+-  def deleted(canCreate: Boolean) =
++  def deleted(canCreate: Boolean)(using Context) =
+     Page("No such player"):
+       main(cls := "page-small box box-pad page")(
+         h1(cls := "box__top")("No such player"),
+         div(
+-          p("This username doesn't match any Lichess player."),
++          p(
++            if env.noSweat.enabled then I18nKey("mutePlayerNotFound")()
++            else "This username doesn't match any Lichess player."
++          ),
+           canCreate.not.option(p("It cannot be used to create a new account."))
+         )
+       )
 diff --git a/app/views/user/ui.scala b/app/views/user/ui.scala
 index 200c983..28b7a25 100644
 --- a/app/views/user/ui.scala
@@ -2492,6 +2590,31 @@ index 19217e6..57087b9 100644
          .add("replay" -> replay.map(replayJson))
          .add(
            "angle",
+diff --git a/modules/puzzle/src/main/ui/PuzzleUi.scala b/modules/puzzle/src/main/ui/PuzzleUi.scala
+index 39e8c64..2084d7d 100644
+--- a/modules/puzzle/src/main/ui/PuzzleUi.scala
++++ b/modules/puzzle/src/main/ui/PuzzleUi.scala
+@@ -12,7 +12,8 @@ import lila.ui.ScalatagsTemplate.{ *, given }
+ 
+ final class PuzzleUi(helpers: Helpers, val bits: PuzzleBits)(
+     analyseCsp: Update[ContentSecurityPolicy],
+-    externalEngineEndpoint: String
++    externalEngineEndpoint: String,
++    focused: Boolean = false
+ ):
+   import helpers.{ *, given }
+ 
+@@ -64,7 +65,9 @@ final class PuzzleUi(helpers: Helpers, val bits: PuzzleBits)(
+                 trans.puzzle.findTheBestMoveForWhite.txt(),
+                 trans.puzzle.findTheBestMoveForBlack.txt()
+               )
+-              s"Lichess tactic trainer: $findMove. Played by ${puzzle.plays} players."
++              if focused then
++                s"mutechess.org • $findMove • ${trans.puzzle.playedXTimes.pluralTxt(puzzle.plays, puzzle.plays.localize)}"
++              else s"Lichess tactic trainer: $findMove. Played by ${puzzle.plays} players."
+         )
+       )
+       .hrefLangs(langPath)
 diff --git a/modules/relation/src/main/ui/RelationUi.scala b/modules/relation/src/main/ui/RelationUi.scala
 index 07b5211..4e34c7e 100644
 --- a/modules/relation/src/main/ui/RelationUi.scala
@@ -3021,7 +3144,7 @@ index 947bee6..d3f3a3f 100644
      mapping(
        "text" -> cleanTextWithSymbols(minLength = 3, maxLength = 2000),
 diff --git a/modules/user/src/main/UserRepo.scala b/modules/user/src/main/UserRepo.scala
-index 45fd497..621a09f 100644
+index 45fd497..122d3fb 100644
 --- a/modules/user/src/main/UserRepo.scala
 +++ b/modules/user/src/main/UserRepo.scala
 @@ -147,8 +147,11 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
@@ -3038,7 +3161,7 @@ index 45fd497..621a09f 100644
  
    def setRealName(id: UserId, name: RealName): Funit =
      coll.updateField(bid(id), s"${F.profile}.realName", name).void
-@@ -236,6 +239,34 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+@@ -236,6 +239,35 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
        coll.insert.one(doc) >> byId(name.id)
  
    def existsPri[U: UserIdOf](u: U): Fu[Boolean] = coll.exists(bid(u.id))
@@ -3046,7 +3169,8 @@ index 45fd497..621a09f 100644
 +  // Nostr is an identity credential, never a password or an email recovery path.
 +  def byNostr(pubkey: String): Fu[Option[User]] = coll.one[User](bdoc("nostr" -> pubkey))
 +
-+  def createNostr(name: UserName, pubkey: String): Fu[Option[User]] =
++  def createNostr(pubkey: String, displayName: Option[String]): Fu[Option[User]] =
++    val name = NoSweatNostrIdentity.name(pubkey)
 +    val doc = newUser(
 +      name,
 +      HashedPassword(Array.emptyByteArray),
@@ -3055,8 +3179,8 @@ index 45fd497..621a09f 100644
 +      false,
 +      None,
 +      KidMode.No
-+    ) ++ bdoc("nostr" -> pubkey, "len" -> name.value.length)
-+    coll.insert.one(doc).flatMap(_ => byNostr(pubkey))
++    )
++    coll.insert.one(NoSweatNostrIdentity.mark(doc, pubkey, displayName)).flatMap(_ => byNostr(pubkey))
 +
 +  def createNoSweatBot(name: UserName, catalogIdentity: Option[String] = None): Fu[Option[User]] =
 +    val doc = newUser(
@@ -3073,7 +3197,7 @@ index 45fd497..621a09f 100644
    def existsSec[U: UserIdOf](u: U): Fu[Boolean] = coll.secondary.exists(bid(u.id))
  
    def filterExists(ids: Set[UserId]): Fu[List[UserId]] =
-@@ -247,6 +278,25 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+@@ -247,6 +279,25 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
    def userIdsLikeClosed(text: UserSearch, max: Int = 10): Fu[List[UserId]] =
      userIdsLikeFilter(text, bdoc(F.enabled -> false), max)
  
@@ -3099,7 +3223,7 @@ index 45fd497..621a09f 100644
    private[user] def userIdsLikeFilter(text: UserSearch, filter: Bdoc, max: Int): Fu[List[UserId]] =
      coll
        .find(
-@@ -383,6 +433,7 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+@@ -383,6 +434,7 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
          bdoc(
            F.prevEmail -> lockEmail,
            F.createdAt -> user.createdAt,
@@ -3107,7 +3231,7 @@ index 45fd497..621a09f 100644
            F.deletedAt -> nowInstant
          )
        )
-@@ -573,6 +624,7 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+@@ -573,6 +625,7 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
      bdoc(
        F.id -> name.id,
        F.username -> name.value,
@@ -3115,7 +3239,7 @@ index 45fd497..621a09f 100644
        F.email -> normalizedEmail,
        F.mustConfirmEmail -> mustConfirmEmail.option(now),
        F.bpass -> passwordHash,
-@@ -589,3 +641,8 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+@@ -589,3 +642,25 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
      } ++ {
        kid.yes.so(bdoc(F.kid -> kid))
      }
@@ -3124,6 +3248,23 @@ index 45fd497..621a09f 100644
 +private[user] object NoSweatBotIdentity:
 +  def mark(doc: Bdoc, catalogIdentity: Option[String]): Bdoc =
 +    doc ++ catalogIdentity.fold(BSONDocument.empty)(identity => bdoc("noSweatCatalogIdentity" -> identity))
++
++/** Commit the permanent key-derived identity and optional chosen name in one insert. */
++private[user] object NoSweatNostrIdentity:
++  def name(pubkey: String): UserName =
++    require(pubkey.matches("[0-9a-f]{64}"), "Invalid public key")
++    UserName("n" + pubkey.take(19))
++
++  def mark(doc: Bdoc, pubkey: String, displayName: Option[String]): Bdoc =
++    val canonical = name(pubkey)
++    require(doc.getAsOpt[String]("_id").contains(canonical.id.value))
++    require(doc.getAsOpt[String]("username").contains(canonical.value))
++    BSONDocument(doc.elements.filterNot(_.name == "nameKeys").map(e => e.name -> e.value)) ++ bdoc(
++      "nostr" -> pubkey,
++      "len" -> canonical.value.length,
++      "nameKeys" -> PublicNameKeys(canonical.id.value, displayName),
++      "profile" -> displayName.map(chosen => bdoc("displayName" -> chosen))
++    )
 diff --git a/modules/user/src/main/ui/UserActionMenu.scala b/modules/user/src/main/ui/UserActionMenu.scala
 index 55cb8a7..062a1a3 100644
 --- a/modules/user/src/main/ui/UserActionMenu.scala
@@ -3450,6 +3591,104 @@ index 90a91f3..198ea83 100644
                    )
                  )
                ),
+diff --git a/modules/web/src/main/StaticContent.scala b/modules/web/src/main/StaticContent.scala
+index 9f475eb..fc08663 100644
+--- a/modules/web/src/main/StaticContent.scala
++++ b/modules/web/src/main/StaticContent.scala
+@@ -115,38 +115,48 @@ Allow: /game/export/gif/thumbnail/
+       case _ => faq
+ 
+   val organizationScript = lila.ui.bits.structuredData("Organization"):
+-    Json.obj(
+-      "url" -> net.baseUrl,
+-      "sameAs" -> List(
+-        "https://www.wikidata.org/wiki/Q19831807",
+-        "https://en.wikipedia.org/wiki/Lichess", // only one WP language version is needed, the rest can be discovered from Wikidata
+-        "https://github.com/lichess-org",
+-        "https://crowdin.com/translate/lichess",
+-        "https://mastodon.online/@lichess",
+-        "https://bsky.app/profile/lichess.org",
+-        "https://www.instagram.com/lichessdotorg",
+-        "https://www.facebook.com/lichessdotorg/",
+-        "https://youtube.com/@LichessDotOrg",
+-        "https://www.twitch.tv/lichessdotorg",
+-        "https://discord.gg/lichess",
+-        "https://www.reddit.com/r/lichessdotorg/",
+-        "https://telegram.me/lichessdotorg",
+-        "https://whatsapp.com/channel/0029VaDXYlD2f3ENRMZQHF0K",
+-        "https://www.tiktok.com/@lichessdotorg",
+-        "https://www.linkedin.com/company/lichess",
+-        "https://www.threads.net/@lichessdotorg",
+-        "https://huggingface.co/Lichess",
+-        "https://www.kaggle.com/organizations/lichess"
+-      ),
+-      "logo" -> s"${net.baseUrl}/assets/logo/lichess.svg",
+-      "name" -> "Lichess",
+-      "legalName" -> "LICHESS.ORG",
+-      "description" -> "The (really) free, no-ads, open source chess server.", // should be kept in English unless /about receives more localisations
+-      "email" -> "contact@lichess.org",
+-      "foundingDate" -> "2010-06-20",
+-      "taxID" -> "830378717", // SIREN
+-      "iso6523Code" -> "0009:830378717" // French ICD:SIREN
+-    )
++    if net.siteName.startsWith("Mute Chess") || net.siteName.startsWith("MuteChess") ||
++      net.siteName.startsWith("No Sweat Chess") || net.domain.value == "mutechess.org"
++    then
++      Json.obj(
++        "url" -> net.baseUrl,
++        "name" -> "Mute Chess",
++        "logo" -> s"${net.baseUrl.value.stripSuffix("/")}/assets/nosweat/icon.svg",
++        "sameAs" -> List("https://github.com/Dash1971/mute-chess")
++      )
++    else
++      Json.obj(
++        "url" -> net.baseUrl,
++        "sameAs" -> List(
++          "https://www.wikidata.org/wiki/Q19831807",
++          "https://en.wikipedia.org/wiki/Lichess", // only one WP language version is needed, the rest can be discovered from Wikidata
++          "https://github.com/lichess-org",
++          "https://crowdin.com/translate/lichess",
++          "https://mastodon.online/@lichess",
++          "https://bsky.app/profile/lichess.org",
++          "https://www.instagram.com/lichessdotorg",
++          "https://www.facebook.com/lichessdotorg/",
++          "https://youtube.com/@LichessDotOrg",
++          "https://www.twitch.tv/lichessdotorg",
++          "https://discord.gg/lichess",
++          "https://www.reddit.com/r/lichessdotorg/",
++          "https://telegram.me/lichessdotorg",
++          "https://whatsapp.com/channel/0029VaDXYlD2f3ENRMZQHF0K",
++          "https://www.tiktok.com/@lichessdotorg",
++          "https://www.linkedin.com/company/lichess",
++          "https://www.threads.net/@lichessdotorg",
++          "https://huggingface.co/Lichess",
++          "https://www.kaggle.com/organizations/lichess"
++        ),
++        "logo" -> s"${net.baseUrl}/assets/logo/lichess.svg",
++        "name" -> "Lichess",
++        "legalName" -> "LICHESS.ORG",
++        "description" -> "The (really) free, no-ads, open source chess server.", // should be kept in English unless /about receives more localisations
++        "email" -> "contact@lichess.org",
++        "foundingDate" -> "2010-06-20",
++        "taxID" -> "830378717", // SIREN
++        "iso6523Code" -> "0009:830378717" // French ICD:SIREN
++      )
+ 
+ object StaticContent:
+ 
+diff --git a/modules/web/src/main/helper/AssetFullHelper.scala b/modules/web/src/main/helper/AssetFullHelper.scala
+index 8473021..806ac82 100644
+--- a/modules/web/src/main/helper/AssetFullHelper.scala
++++ b/modules/web/src/main/helper/AssetFullHelper.scala
+@@ -23,7 +23,7 @@ trait AssetFullHelper:
+ 
+   def assetVersion = lila.core.net.AssetVersion.current
+ 
+-  def assetFullUrl(path: String): Url = Url(s"$netBaseUrl/${assetPath(path)}")
++  def assetFullUrl(path: String): Url = Url(s"${netBaseUrl.value.stripSuffix("/")}${assetPath(path)}")
+ 
+   def assetPath(path: String): Path = Path:
+     s"/assets/${manifest.hashed(path).getOrElse(s"_$assetVersion/$path")}"
 diff --git a/modules/web/src/main/ui/BoardEditorUi.scala b/modules/web/src/main/ui/BoardEditorUi.scala
 index 28e5bc4..66c01ad 100644
 --- a/modules/web/src/main/ui/BoardEditorUi.scala
@@ -3701,7 +3940,7 @@ index 0c0ed10..27b56bb 100644
  
    val logo = raw:
 diff --git a/modules/web/src/main/ui/layout.scala b/modules/web/src/main/ui/layout.scala
-index 1c7a30b..691b973 100644
+index 1c7a30b..561e130 100644
 --- a/modules/web/src/main/ui/layout.scala
 +++ b/modules/web/src/main/ui/layout.scala
 @@ -17,8 +17,17 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
@@ -3781,6 +4020,15 @@ index 1c7a30b..691b973 100644
        div(id := "dasher_app", cls := "dropdown")
      )
  
+@@ -199,7 +234,7 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
+       .filter(100 >=)
+   } | 80
+ 
+-  val dailyNewsAtom = (routes.Feed.atom, "Lichess Updates Feed")
++  val dailyNewsAtom = (routes.Feed.atom, if isMuteChess then "mutechess.org" else "Lichess Updates Feed")
+   def atomLinkTag(call: Call, title: String) =
+     link(href := call, st.title := title, tpe := "application/atom+xml", rel := "alternate")
+ 
 @@ -306,16 +341,43 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
        header(id := "top")(
          div(cls := "site-title-nav")(
@@ -3839,6 +4087,34 @@ index 1c7a30b..691b973 100644
                    dasher(me)
                  )
                .getOrElse:
+diff --git a/modules/web/src/main/ui/openGraph.scala b/modules/web/src/main/ui/openGraph.scala
+index cc4a793..6c6e871 100644
+--- a/modules/web/src/main/ui/openGraph.scala
++++ b/modules/web/src/main/ui/openGraph.scala
+@@ -1,6 +1,7 @@
+ package lila.web
+ package ui
+ 
++import lila.core.config.BaseUrl
+ import lila.ui.*
+ import lila.ui.ScalatagsTemplate.*
+ 
+@@ -19,3 +20,15 @@ def openGraph(graph: OpenGraph): List[Frag] =
+     "type" -> `type`,
+     "site_name" -> siteName
+   ).map(tag) ::: image.map(i => tag("image", i.value)).toList
++
++// Apply only from the focused Mute Chess page renderer, retaining page-specific previews.
++def muteChessOpenGraph(graph: OpenGraph, baseUrl: BaseUrl, image: Url, upstreamImage: Url): OpenGraph =
++  val preview = graph.image.filterNot(_ == upstreamImage).getOrElse(image)
++  graph.copy(
++    siteName = "mutechess.org",
++    image = Some(
++      if preview.value.startsWith("/") && !preview.value.startsWith("//") then
++        Url(s"${baseUrl.value.stripSuffix("/")}${preview.value}")
++      else preview
++    )
++  )
 diff --git a/public/flair/list.txt b/public/flair/list.txt
 index 74906f1..99e482b 100644
 --- a/public/flair/list.txt
@@ -3976,10 +4252,10 @@ index 74906f1..99e482b 100644
  travel-places.map-of-japan
  travel-places.metro
 diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
-index 88adade..d8dbd9a 100644
+index 88adade..c102abf 100644
 --- a/translation/dest/site/de-DE.xml
 +++ b/translation/dest/site/de-DE.xml
-@@ -1064,4 +1064,86 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
+@@ -1064,4 +1064,89 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
    <string name="write">Schreiben</string>
    <string name="preview">Vorschau</string>
    <string name="done">Erledigt</string>
@@ -4065,12 +4341,15 @@ index 88adade..d8dbd9a 100644
 +  <string name="muteCopyProfileLink">Dauerhaften Profillink kopieren</string>
 +  <string name="muteCopiedProfileLink">Profillink kopiert</string>
 +  <string name="muteCopyProfileLinkFailed">Der Link konnte nicht kopiert werden. Verwende die Funktion zum Kopieren von Links in deinem Browser.</string>
++<string name="muteSiteTitle">Mute Chess — Bleib menschlich. Spiel gegen Bots.</string>
++  <string name="muteSiteDescription">Kostenloses Open-Source-Schach mit menschenähnlichen Maia-Gegnern.</string>
++  <string name="mutePlayerNotFound">Dieser Benutzername gehört zu keinem Spieler auf Mute Chess.</string>
  </resources>
 diff --git a/translation/dest/site/es-ES.xml b/translation/dest/site/es-ES.xml
-index 76004f5..376944a 100644
+index 76004f5..e9c7023 100644
 --- a/translation/dest/site/es-ES.xml
 +++ b/translation/dest/site/es-ES.xml
-@@ -1064,4 +1064,86 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
+@@ -1064,4 +1064,89 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
    <string name="write">Escribir</string>
    <string name="preview">Vista previa</string>
    <string name="done">Listo</string>
@@ -4156,12 +4435,15 @@ index 76004f5..376944a 100644
 +  <string name="muteCopyProfileLink">Copiar enlace permanente al perfil</string>
 +  <string name="muteCopiedProfileLink">Enlace al perfil copiado</string>
 +  <string name="muteCopyProfileLinkFailed">No se ha podido copiar el enlace. Usa la opción de copiar enlaces de tu navegador.</string>
++<string name="muteSiteTitle">Mute Chess — Sigue siendo humano. Juega contra bots.</string>
++  <string name="muteSiteDescription">Ajedrez gratuito y de código abierto con rivales Maia que juegan como humanos.</string>
++  <string name="mutePlayerNotFound">Este nombre de usuario no corresponde a ningún jugador de Mute Chess.</string>
  </resources>
 diff --git a/translation/dest/site/fr-FR.xml b/translation/dest/site/fr-FR.xml
-index 7dfd5f7..8ae7f6f 100644
+index 7dfd5f7..988f878 100644
 --- a/translation/dest/site/fr-FR.xml
 +++ b/translation/dest/site/fr-FR.xml
-@@ -1063,4 +1063,86 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
+@@ -1063,4 +1063,89 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
    <string name="write">Écrire</string>
    <string name="preview">Aperçu</string>
    <string name="done">Terminé</string>
@@ -4247,12 +4529,15 @@ index 7dfd5f7..8ae7f6f 100644
 +  <string name="muteCopyProfileLink">Copier le lien permanent du profil</string>
 +  <string name="muteCopiedProfileLink">Lien du profil copié</string>
 +  <string name="muteCopyProfileLinkFailed">Impossible de copier le lien. Utilisez la fonction de copie des liens de votre navigateur.</string>
++<string name="muteSiteTitle">Mute Chess — Restez humain. Jouez contre des bots.</string>
++  <string name="muteSiteDescription">Des échecs gratuits et libres, avec des adversaires Maia qui jouent comme des humains.</string>
++  <string name="mutePlayerNotFound">Ce nom d’utilisateur ne correspond à aucun joueur de Mute Chess.</string>
  </resources>
 diff --git a/translation/dest/site/hi-IN.xml b/translation/dest/site/hi-IN.xml
-index bbf1703..6279b2d 100644
+index bbf1703..c751d65 100644
 --- a/translation/dest/site/hi-IN.xml
 +++ b/translation/dest/site/hi-IN.xml
-@@ -893,4 +893,86 @@
+@@ -893,4 +893,89 @@
    <string name="closingAccountWithdrawAppeal">आपका खाता बंद करने से आपकी अपील वापस ले ली जाएगी</string>
    <string name="ourEventTips">कार्यक्रम आयोजित करने कि सलाह</string>
    <string name="nothingToSeeHere">इस समय यहां देखने को कुछ भी नहीं है।</string>
@@ -4338,12 +4623,15 @@ index bbf1703..6279b2d 100644
 +  <string name="muteCopyProfileLink">प्रोफ़ाइल का स्थायी लिंक कॉपी करें</string>
 +  <string name="muteCopiedProfileLink">प्रोफ़ाइल लिंक कॉपी हो गया</string>
 +  <string name="muteCopyProfileLinkFailed">लिंक कॉपी नहीं हो सका। अपने ब्राउज़र के लिंक कॉपी करने वाले विकल्प का उपयोग करें।</string>
++<string name="muteSiteTitle">Mute Chess — इंसान बने रहें। बॉट्स से खेलें।</string>
++  <string name="muteSiteDescription">इंसानों की तरह खेलने वाले Maia प्रतिद्वंद्वियों के साथ मुफ़्त, ओपन-सोर्स शतरंज।</string>
++  <string name="mutePlayerNotFound">यह उपयोगकर्ता नाम किसी भी Mute Chess खिलाड़ी से मेल नहीं खाता।</string>
  </resources>
 diff --git a/translation/dest/site/ja-JP.xml b/translation/dest/site/ja-JP.xml
-index e628bdb..b054daa 100644
+index e628bdb..50e9006 100644
 --- a/translation/dest/site/ja-JP.xml
 +++ b/translation/dest/site/ja-JP.xml
-@@ -1023,4 +1023,86 @@
+@@ -1023,4 +1023,89 @@
    <string name="write">書く</string>
    <string name="preview">プレビュー</string>
    <string name="done">完了</string>
@@ -4429,12 +4717,15 @@ index e628bdb..b054daa 100644
 +  <string name="muteCopyProfileLink">プロフィールの固定リンクをコピー</string>
 +  <string name="muteCopiedProfileLink">プロフィールのリンクをコピーしました</string>
 +  <string name="muteCopyProfileLinkFailed">リンクをコピーできませんでした。ブラウザーのリンクをコピーする機能を使ってください。</string>
++<string name="muteSiteTitle">Mute Chess — 人間らしく。ボットと対局。</string>
++  <string name="muteSiteDescription">人間らしく指すMaiaと対局できる、無料のオープンソース・チェス。</string>
++  <string name="mutePlayerNotFound">このユーザー名に該当するMute Chessのプレイヤーはいません。</string>
  </resources>
 diff --git a/translation/dest/site/ko-KR.xml b/translation/dest/site/ko-KR.xml
-index 9341bf0..02339f9 100644
+index 9341bf0..78cfb62 100644
 --- a/translation/dest/site/ko-KR.xml
 +++ b/translation/dest/site/ko-KR.xml
-@@ -1022,4 +1022,86 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
+@@ -1022,4 +1022,89 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
    <string name="write">작성</string>
    <string name="preview">미리보기</string>
    <string name="done">완료</string>
@@ -4520,12 +4811,15 @@ index 9341bf0..02339f9 100644
 +  <string name="muteCopyProfileLink">프로필 고정 링크 복사</string>
 +  <string name="muteCopiedProfileLink">프로필 링크를 복사했습니다</string>
 +  <string name="muteCopyProfileLinkFailed">링크를 복사할 수 없습니다. 브라우저의 링크 복사 기능을 사용해 주세요.</string>
++<string name="muteSiteTitle">Mute Chess — 사람답게. 봇과 대국하세요.</string>
++  <string name="muteSiteDescription">사람처럼 두는 Maia 상대와 즐기는 무료 오픈 소스 체스.</string>
++  <string name="mutePlayerNotFound">이 사용자 이름에 해당하는 Mute Chess 플레이어가 없습니다.</string>
  </resources>
 diff --git a/translation/dest/site/pt-BR.xml b/translation/dest/site/pt-BR.xml
-index 569e752..c42fef6 100644
+index 569e752..98e00cf 100644
 --- a/translation/dest/site/pt-BR.xml
 +++ b/translation/dest/site/pt-BR.xml
-@@ -1063,4 +1063,86 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
+@@ -1063,4 +1063,89 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
    <string name="write">Escrever</string>
    <string name="preview">Pré-visualizar</string>
    <string name="done">Feito</string>
@@ -4611,12 +4905,15 @@ index 569e752..c42fef6 100644
 +  <string name="muteCopyProfileLink">Copiar link permanente do perfil</string>
 +  <string name="muteCopiedProfileLink">Link do perfil copiado</string>
 +  <string name="muteCopyProfileLinkFailed">Não foi possível copiar o link. Use a opção de copiar links do seu navegador.</string>
++<string name="muteSiteTitle">Mute Chess — Continue humano. Jogue contra bots.</string>
++  <string name="muteSiteDescription">Xadrez gratuito e de código aberto com adversários Maia que jogam como humanos.</string>
++  <string name="mutePlayerNotFound">Este nome de usuário não corresponde a nenhum jogador do Mute Chess.</string>
  </resources>
 diff --git a/translation/dest/site/ru-RU.xml b/translation/dest/site/ru-RU.xml
-index 6384657..20c58bd 100644
+index 6384657..47d453e 100644
 --- a/translation/dest/site/ru-RU.xml
 +++ b/translation/dest/site/ru-RU.xml
-@@ -1146,4 +1146,86 @@
+@@ -1146,4 +1146,89 @@
    <string name="write">Написать</string>
    <string name="preview">Предпросмотр</string>
    <string name="done">Готово</string>
@@ -4702,12 +4999,15 @@ index 6384657..20c58bd 100644
 +  <string name="muteCopyProfileLink">Скопировать постоянную ссылку на профиль</string>
 +  <string name="muteCopiedProfileLink">Ссылка на профиль скопирована</string>
 +  <string name="muteCopyProfileLinkFailed">Не удалось скопировать ссылку. Используйте функцию копирования ссылки в браузере.</string>
++<string name="muteSiteTitle">Mute Chess — Оставайтесь людьми. Играйте с ботами.</string>
++  <string name="muteSiteDescription">Бесплатные шахматы с открытым исходным кодом и соперниками Maia, играющими как люди.</string>
++  <string name="mutePlayerNotFound">Это имя пользователя не принадлежит ни одному игроку Mute Chess.</string>
  </resources>
 diff --git a/translation/dest/site/zh-CN.xml b/translation/dest/site/zh-CN.xml
-index 176f4d1..f9a9fd1 100644
+index 176f4d1..5e186ff 100644
 --- a/translation/dest/site/zh-CN.xml
 +++ b/translation/dest/site/zh-CN.xml
-@@ -1022,4 +1022,86 @@
+@@ -1022,4 +1022,89 @@
    <string name="write">撰写</string>
    <string name="preview">预览</string>
    <string name="done">完成</string>
@@ -4793,12 +5093,15 @@ index 176f4d1..f9a9fd1 100644
 +  <string name="muteCopyProfileLink">复制个人资料的永久链接</string>
 +  <string name="muteCopiedProfileLink">个人资料链接已复制</string>
 +  <string name="muteCopyProfileLinkFailed">无法复制链接。请使用浏览器的复制链接功能。</string>
++<string name="muteSiteTitle">Mute Chess — 保持人性，与机器人对弈。</string>
++  <string name="muteSiteDescription">免费开源的国际象棋，与像人类一样下棋的 Maia 对手对弈。</string>
++  <string name="mutePlayerNotFound">没有 Mute Chess 玩家使用此用户名。</string>
  </resources>
 diff --git a/translation/source/site.xml b/translation/source/site.xml
-index 8b5a6a1..5ec1b29 100644
+index 8b5a6a1..dfbcce1 100644
 --- a/translation/source/site.xml
 +++ b/translation/source/site.xml
-@@ -1066,4 +1066,86 @@ Leave empty to start games from the normal initial position.</string>
+@@ -1066,4 +1066,89 @@ Leave empty to start games from the normal initial position.</string>
    <string name="write">Write</string>
    <string name="preview">Preview</string>
    <string name="done">Done</string>
@@ -4884,6 +5187,9 @@ index 8b5a6a1..5ec1b29 100644
 +  <string name="muteCopyProfileLink">Copy permanent profile link</string>
 +  <string name="muteCopiedProfileLink">Profile link copied</string>
 +  <string name="muteCopyProfileLinkFailed">Could not copy the link. Use your browser’s Copy link action.</string>
++<string name="muteSiteTitle">Mute Chess — Stay human. Play bots.</string>
++  <string name="muteSiteDescription">Free, open-source chess with human-like Maia opponents.</string>
++  <string name="mutePlayerNotFound">This username doesn't match any Mute Chess player.</string>
  </resources>
 diff --git a/ui/.build/src/build.ts b/ui/.build/src/build.ts
 index 7d6adeb..b433f0c 100644
@@ -6556,10 +6862,10 @@ index 277b44a..aee157d 100644
      svg: $html`
        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
 diff --git a/ui/bits/src/bits.qrcode.ts b/ui/bits/src/bits.qrcode.ts
-index a53a9f6..4b9c0e3 100644
+index a53a9f6..c67156d 100644
 --- a/ui/bits/src/bits.qrcode.ts
 +++ b/ui/bits/src/bits.qrcode.ts
-@@ -1,12 +1,18 @@
+@@ -1,12 +1,21 @@
  import QRCode from 'qrcode';
  
 -const qrs = document.querySelectorAll<HTMLCanvasElement>('canvas.qrcode');
@@ -6576,12 +6882,15 @@ index a53a9f6..4b9c0e3 100644
 +    qr => qr.dataset.qrUrl,
 +  );
 +  await Promise.all(
-+    qrs.map(qr =>
-+      QRCode.toCanvas(qr, qr.dataset.qrUrl!, {
-+        margin: 2,
-+        width: qr.dataset.width ? parseInt(qr.dataset.width) : 320,
-+      }),
-+    ),
++    qrs.map(async qr => {
++      const width = qr.dataset.width ? parseInt(qr.dataset.width) : 320;
++      await QRCode.toCanvas(qr, qr.dataset.qrUrl!, {
++        margin: 4,
++        width: Math.round(width * Math.max(1, globalThis.devicePixelRatio || 1)),
++      });
++      qr.style.width = `${width}px`;
++      qr.style.height = 'auto';
++    }),
 +  );
  }
 +
@@ -9180,10 +9489,10 @@ index 0000000..8efd4b7
 +    current.isEmpty || current.contains(username) || current.contains(alias)
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..0412f0d
+index 0000000..5146a4a
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,922 @@
+@@ -0,0 +1,923 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -9563,7 +9872,8 @@ index 0000000..0412f0d
 +            requireThat(user.enabled.yes && !user.isBot, 403, "Account unavailable")
 +            fuccess(user)
 +          case None =>
-+            val name = requested.filter(_.nonEmpty).getOrElse("n" + pubkey.take(19))
++            val displayName = requested.filter(_.nonEmpty)
++            val name = displayName.getOrElse("n" + pubkey.take(19))
 +            requireThat(name.matches("[A-Za-z][A-Za-z0-9_-]{2,19}"), 400, "Use a 3–20 character username")
 +            val reserved = Set(
 +              "lichess",
@@ -9595,7 +9905,7 @@ index 0000000..0412f0d
 +              .flatMap: occupied =>
 +                requireThat(!occupied, 409, "Username already taken")
 +                env.user.repo
-+                  .createNostr(UserName(name), pubkey)
++                  .createNostr(pubkey, displayName)
 +                  .map:
 +                    _.getOrElse(throw NoSweatError(503, "Could not create identity"))
 +                  .recover(
@@ -12541,6 +12851,51 @@ index 0000000..443ecc5
 +    assertEquals(inserted.getAsOpt[Boolean]("noSweatBot"), Some(true))
 +    assertEquals(inserted.child("count").flatMap(_.getAsOpt[Int]("game")), Some(0))
 +    assertEquals(inserted.getAsOpt[String]("noSweatSeedVersion"), None)
+diff --git a/modules/user/src/test/NoSweatNostrIdentityTest.scala b/modules/user/src/test/NoSweatNostrIdentityTest.scala
+new file mode 100644
+index 0000000..62183d7
+--- /dev/null
++++ b/modules/user/src/test/NoSweatNostrIdentityTest.scala
+@@ -0,0 +1,39 @@
++package lila.user
++
++import lila.db.dsl.{ *, given }
++
++class NoSweatNostrIdentityTest extends munit.FunSuite:
++  private val key = "2f2b537576f0256497f" + "0" * 45
++  private val canonical = "n2f2b537576f0256497f"
++  private val base = bdoc(
++    "_id" -> canonical,
++    "username" -> canonical,
++    "nameKeys" -> List(canonical),
++    "count" -> bdoc("game" -> 0)
++  )
++
++  test("chosen names never determine the permanent account ID"):
++    List(None, Some("Test1"), Some("AnotherName")).foreach: chosen =>
++      val doc = NoSweatNostrIdentity.mark(base, key, chosen)
++      assertEquals(doc.getAsOpt[String]("_id"), Some(canonical))
++      assertEquals(doc.getAsOpt[String]("username"), Some(canonical))
++      assertEquals(doc.getAsOpt[String]("nostr"), Some(key))
++      assertEquals(doc.child("profile").flatMap(_.getAsOpt[String]("displayName")), chosen)
++      assertEquals(doc.getAsOpt[List[String]]("nameKeys"), Some(PublicNameKeys(canonical, chosen)))
++      assertEquals(doc.elements.count(_.name == "nameKeys"), 1)
++      assertEquals(doc.child("count").flatMap(_.getAsOpt[Int]("game")), Some(0))
++
++  test("an unnamed signup retains the compact npub fallback and no empty profile"):
++    val doc = NoSweatNostrIdentity.mark(base, key, None)
++    assertEquals(doc.child("profile"), None)
++    assert(lila.core.NostrName.display(canonical, None, Some(key)).isDefined)
++
++  test("the native unique index receives both canonical and normalized chosen-name claims atomically"):
++    val doc = NoSweatNostrIdentity.mark(base, key, Some("TeSt1"))
++    assertEquals(doc.getAsOpt[List[String]]("nameKeys"), Some(List(canonical, "test1")))
++
++  test("an invalid public key or name-derived base ID cannot be inserted"):
++    intercept[IllegalArgumentException](NoSweatNostrIdentity.name("not-a-public-key"))
++    intercept[IllegalArgumentException](
++      NoSweatNostrIdentity.mark(bdoc("_id" -> "test1", "username" -> "Test1"), key, Some("Test1"))
++    )
 diff --git a/modules/user/src/test/NoSweatPlayerRatingsTest.scala b/modules/user/src/test/NoSweatPlayerRatingsTest.scala
 new file mode 100644
 index 0000000..2560107
@@ -12658,6 +13013,80 @@ index 0000000..9869ce0
 +    assertEquals(bind(old, Some(old)), Right(Some(old)))
 +    assert(bind("a" * 21, Some(old)).isLeft)
 +    assertEquals(bind("Short name", Some(old)), Right(Some("Short name")))
+diff --git a/modules/web/src/test/NoSweatBrandingTest.scala b/modules/web/src/test/NoSweatBrandingTest.scala
+new file mode 100644
+index 0000000..95e8955
+--- /dev/null
++++ b/modules/web/src/test/NoSweatBrandingTest.scala
+@@ -0,0 +1,68 @@
++package lila.web
++
++import lila.core.config.{ BaseUrl, NetConfig, NetDomain, RateLimit }
++import lila.core.data.Url
++import lila.core.email.EmailAddress
++import lila.ui.OpenGraph
++
++class NoSweatBrandingTest extends munit.FunSuite:
++  private val origin = BaseUrl("https://mutechess.org")
++  private val image = Url("https://mutechess.org/assets/nosweat/social.png")
++  private val upstreamImage = Url("https://mutechess.org/assets/logo/lichess-tile-wide.png")
++
++  test("shared homepage, profile and analysis previews identify Mute Chess and replace fallback artwork"):
++    for (path, oldImage) <- List(
++        "/" -> Some(image),
++        "/@/player" -> Some(upstreamImage),
++        "/analysis" -> None
++      )
++    do
++      val original = OpenGraph("A & B", "Page description", Url(s"${origin.value}$path"), image = oldImage)
++      val branded = ui.muteChessOpenGraph(original, origin, image, upstreamImage)
++      val html = ui.openGraph(branded).map(_.render).mkString
++      assert(html.contains("property=\"og:site_name\" content=\"mutechess.org\""))
++      assert(html.contains(s"property=\"og:image\" content=\"${image.value}\""))
++      assert(html.contains("A &amp; B"))
++      assertEquals(branded.url, original.url)
++      assertEquals(branded.description, original.description)
++      assertEquals(original.siteName, "lichess.org")
++      assert(!html.contains("lichess.org"))
++
++  test("game and puzzle preview positions remain intact with absolute image URLs"):
++    for path <- List("/game/export/png/abcdefgh.png", "/training/export/png/12345.png") do
++      val original =
++        OpenGraph("Position", "Position description", Url(s"${origin.value}$path"), image = Some(Url(path)))
++      val branded = ui.muteChessOpenGraph(original, BaseUrl(origin.value + "/"), image, upstreamImage)
++      assertEquals(branded.image, Some(Url(origin.value + path)))
++      val external = original.copy(image = Some(Url("https://example.org/position.png")))
++      assertEquals(ui.muteChessOpenGraph(external, origin, image, upstreamImage).image, external.image)
++
++  test("native Open Graph rendering keeps its original upstream identity unless explicitly branded"):
++    val original = OpenGraph("Native page", "Description", Url("https://lichess.org/analysis"))
++    assert(ui.openGraph(original).map(_.render).mkString.contains("content=\"lichess.org\""))
++
++  private def staticContent(site: String, domain: String) = new StaticContent(
++    NetConfig(
++      domain = NetDomain(domain),
++      prodDomain = NetDomain(domain),
++      baseUrl = BaseUrl(s"https://$domain"),
++      stageBanner = false,
++      siteName = site,
++      socketDomains = Nil,
++      socketAlts = Nil,
++      crawlable = true,
++      rateLimit = RateLimit(false),
++      email = EmailAddress("unused@example.org"),
++      logRequests = false
++    )
++  )
++
++  test("Mute organization metadata never inherits Lichess legal identifiers or social accounts"):
++    val branded = staticContent("Mute Chess", "mutechess.org").organizationScript.render
++    assert(branded.contains("Mute Chess"))
++    assert(branded.contains("https://github.com/Dash1971/mute-chess"))
++    for inherited <- List("lichess.org", "LICHESS", "legalName", "taxID", "iso6523Code", "foundingDate") do
++      assert(!branded.contains(inherited), inherited)
++    val upstream = staticContent("lichess.org", "lichess.org").organizationScript.render
++    assert(upstream.contains("LICHESS.ORG"))
++    assert(upstream.contains("830378717"))
 diff --git a/public/flair/img/symbols.mute-circuit-knight.webp b/public/flair/img/symbols.mute-circuit-knight.webp
 new file mode 100644
 index 0000000000000000000000000000000000000000..48957d18fdd3bcdff6db5c598f259562c378b806
@@ -129608,12 +130037,13 @@ index 0000000..17b255d
 +}
 diff --git a/ui/bits/tests/qrcode.test.ts b/ui/bits/tests/qrcode.test.ts
 new file mode 100644
-index 0000000..418a874
+index 0000000..d08abb2
 --- /dev/null
 +++ b/ui/bits/tests/qrcode.test.ts
-@@ -0,0 +1,33 @@
+@@ -0,0 +1,87 @@
 +import assert from 'node:assert/strict';
 +import { test } from 'node:test';
++import QRCode from 'qrcode';
 +
 +test('the native QR module initializes dynamically and redraws a replacement invoice', async () => {
 +  const original = globalThis.document;
@@ -129643,6 +130073,59 @@ index 0000000..418a874
 +    assert.notDeepEqual(frames.at(-1), first);
 +  } finally {
 +    globalThis.document = original;
++  }
++});
++
++test('payment and authenticator QR codes retain four quiet modules at Retina resolution', async () => {
++  const originalDocument = globalThis.document;
++  const originalRatio = Object.getOwnPropertyDescriptor(globalThis, 'devicePixelRatio');
++  let frame: Uint8ClampedArray | undefined;
++  const canvas = {
++    dataset: { qrUrl: 'LIGHTNING:LNBC1' + 'A'.repeat(1500), width: '320' },
++    width: 0,
++    height: 0,
++    style: { width: '', height: '' },
++    getContext: () => ({
++      createImageData: (width: number, height: number) => ({
++        data: new Uint8ClampedArray(width * height * 4),
++      }),
++      clearRect: () => {},
++      putImageData: (image: { data: Uint8ClampedArray }) => {
++        frame = image.data.slice();
++      },
++    }),
++  };
++  globalThis.document = { querySelectorAll: () => [canvas] } as unknown as Document;
++  Object.defineProperty(globalThis, 'devicePixelRatio', { value: 2, configurable: true });
++  try {
++    const { initModule } = await import('../src/bits.qrcode');
++    for (const [payload, width] of [
++      [canvas.dataset.qrUrl, 320],
++      ['otpauth://totp/Mute%20Chess:player?secret=TEST&issuer=Mute%20Chess', 200],
++    ] as const) {
++      canvas.dataset.qrUrl = payload;
++      canvas.dataset.width = String(width);
++      await initModule();
++      assert.equal(canvas.width, width * 2);
++      assert.equal(canvas.height, width * 2);
++      assert.equal(canvas.style.width, `${width}px`);
++      assert.equal(canvas.style.height, 'auto');
++      assert.ok(frame);
++      const cells = QRCode.create(payload).modules.size + 8;
++      const border = Math.floor((canvas.width * 4) / cells);
++      let darkPixels = 0;
++      for (let y = 0; y < canvas.height; y++)
++        for (let x = 0; x < canvas.width; x++)
++          if (frame[(y * canvas.width + x) * 4] === 0) {
++            darkPixels++;
++            assert.ok(x >= border && y >= border && x < canvas.width - border && y < canvas.height - border);
++          }
++      assert.ok(darkPixels > 0);
++    }
++  } finally {
++    globalThis.document = originalDocument;
++    if (originalRatio) Object.defineProperty(globalThis, 'devicePixelRatio', originalRatio);
++    else Reflect.deleteProperty(globalThis, 'devicePixelRatio');
 +  }
 +});
 diff --git a/ui/chart/src/moveClassifications.ts b/ui/chart/src/moveClassifications.ts

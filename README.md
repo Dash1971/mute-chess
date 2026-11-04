@@ -42,6 +42,9 @@ No email or password to remember. Create a [Nostr](https://nostr.org/) key in yo
 browser, bring an existing nsec, or sign in with a NIP-07 browser signer. The same identity connects
 your profile, ratings and saved games.
 
+New human accounts always get a public-key-derived account ID, including when
+a name is chosen during signup. That chosen name is an editable display name.
+
 Your npub is your permanent public identity. Chosen usernames can change and are
 unique without regard to capitalization; existing account and bot names are reserved.
 Human profiles show a subtle npub link: click to copy the npub, or use the browser's
