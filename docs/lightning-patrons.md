@@ -58,3 +58,34 @@ Invoice failures distinguish invalid/expired signed requests, provider network
 or HTTP failures, unreadable responses, and unverified invoices. Public messages
 suggest a safe retry; adapter logs retain only a bounded error code, without
 signed requests, donor IDs, invoices, tokens or provider payloads.
+
+
+## Payment completion and patron presentation (#252)
+
+The pending response remains an array of all active unpaid invoices. Its
+additive authenticated `X-Mute-Patron-Paid-At` header identifies the latest
+confirmed donation time, derived from the existing receipt-backed `patronUntil`
+minus 30 days. The client keeps every returned invoice eligible for a late
+receipt but restores a payment prompt only for an invoice created afterwards.
+This prevents an older unpaid request from reappearing after a successful
+payment, while preserving a genuinely newer renewal request. No ledger record
+is deleted or marked paid by this presentation rule.
+
+Only a server-confirmed receipt hides the QR/actions and shows the translated
+paid status, wing and checkmark. A brief pop/glow respects reduced motion, then
+the existing native page refresh updates account furniture. Settled guards stop
+an in-flight QR render or stale subscription from restoring waiting/expiry
+state. Unconfirmed responses never trigger the animation or patron state.
+
+The single Create invoice action uses an available browser signer, otherwise
+reads the saved browser key only on that click. It retains account matching and
+zeroes the transient key after use. The duplicate saved-key button and technical
+helper paragraph are removed. Missing signing access uses a short translated
+sign-in-again message. Paid/waiting/thanks/recovery text ships in all ten native
+locales. Payment signing, invoices, recipient, validation and wings duration
+are unchanged.
+
+Nostr profile headers put trophies in normal flex flow, allowing the permanent
+ID and information button to wrap without the absolute-positioned patron wing
+covering them. Native trophy content, packing and non-Nostr layout remain intact.
+No deployment is included in this PR.

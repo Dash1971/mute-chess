@@ -7,11 +7,11 @@ import { call } from './auth-client.mjs';
 const page = typeof document === 'undefined' ? null : document.getElementById('nostr-patron');
 if (page) {
   const element = name => document.getElementById('patron-' + name);
-  const status = text => { element('status').textContent = text; };
+  const status = text => { if (!settled) element('status').textContent = text; };
   const account = page.dataset.pubkey;
   const pool = new SimplePool();
   const seen = new Set(), pending = new Set();
-  let subscription, invoice, expiry, quote, busy = false, settled = false, generation = 0;
+  let subscription, invoice, expiry, reloadTimer, quote, busy = false, settled = false, generation = 0;
   async function showQr(value) {
     element('qr').hidden = true;
     element('qr').dataset.qrUrl = value;
@@ -26,7 +26,7 @@ if (page) {
       since: Math.floor(Date.now() / 1000) - 30 * 86400, limit: 200,
     }, {
       async onevent(receipt) {
-        if (seen.has(receipt.id)) return;
+        if (settled || current !== generation || seen.has(receipt.id)) return;
         seen.add(receipt.id);
         if (seen.size > 2000) seen.delete(seen.values().next().value);
         try {
@@ -35,28 +35,34 @@ if (page) {
           const paidInvoice = receipt.tags.find(t => t[0] === 'bolt11')?.[1];
           if (!pending.has(invoiceDetails(paidInvoice).paymentHash)) return;
           const result = await call('/club/patron/receipt', { receipt });
-          if (!result.confirmed) return;
-          settled = true; clearTimeout(expiry); subscription?.close(); pool.destroy();
-          status('Payment confirmed. Your wings are active. Thank you!');
-          location.reload();
+          if (!result.confirmed || settled || current !== generation) return;
+          settled = true; generation++; clearTimeout(expiry); clearTimeout(reloadTimer); subscription?.close(); pool.destroy();
+          element('payment').hidden = true;
+          element('create').disabled = true;
+          element('thanks').hidden = false;
+          page.classList.add('payment-confirmed');
+          element('status').textContent = page.dataset.paidStatus || 'Payment confirmed. Thank you!';
+          reloadTimer = setTimeout(() => location.reload(), 2500);
         } catch { /* Ignore unrelated/untrusted relay data; only the server awards wings. */ }
       },
       onclose() { if (invoice && !settled && current === generation) status('Connection lost. Use Check payment to reconnect.'); },
     });
   }
   async function display(value) {
+    if (settled) return;
     const details = invoiceDetails(value);
     pending.add(details.paymentHash); invoice = value;
     element('payment').hidden = false;
     element('open').href = 'lightning:' + value;
     element('invoice-amount').textContent = `${(details.amountMsat / 1000).toLocaleString()} sats · ${support.address}`;
     await showQr('LIGHTNING:' + value.toUpperCase());
+    if (settled) return;
     clearTimeout(expiry);
     const remaining = (details.createdAt + details.expiresIn) * 1000 - Date.now();
     if (remaining <= 0) {
       element('payment').hidden = true; status('Invoice expired. Create a new invoice.');
     } else {
-      status('Scan to pay. Waiting for payment…');
+      status(page.dataset.waiting || 'Scan to pay. Waiting for payment…');
       const expire = () => {
         const left = (details.createdAt + details.expiresIn) * 1000 - Date.now();
         if (left > 0) { expiry = setTimeout(expire, Math.min(left, 2147483647)); return; }
@@ -90,21 +96,20 @@ if (page) {
         ? `Approximately ${amount.toLocaleString()} sats. The invoice fixes the Bitcoin amount.` : '';
     } catch (error) { element('quote').textContent = error.message; }
   }
-  async function create(saved) {
-    if (busy) return;
+  async function create() {
+    if (busy || settled) return;
     busy = true; let key;
-    for (const id of ['create', 'saved']) element(id).disabled = true;
+    element('create').disabled = true;
     try {
       status('Preparing donation…');
       const amount = await sats();
       if (amount < 1 || amount > 100000000) throw Error('Choose between 1 and 100,000,000 sats.');
       let signer = window.nostr;
-      if (saved) {
+      if (!signer?.getPublicKey || !signer?.signEvent) {
         key = await loadKey();
-        if (!key) throw Error('No key is saved in this browser. Use a NIP-07 signer.');
+        if (!key) throw Error(page.dataset.signerNeeded || 'Please sign in again here to create an invoice.');
         signer = { getPublicKey: () => getPublicKey(key), signEvent: event => finalizeEvent(event, key) };
       }
-      if (!signer?.getPublicKey || !signer?.signEvent) throw Error('Enable a NIP-07 browser signer, then try again.');
       if (await signer.getPublicKey() !== account) throw Error('Use the Nostr key for your signed-in account.');
       const request = await signer.signEvent({ kind: 9734, created_at: Math.floor(Date.now() / 1000),
         content: 'Support Mute Chess', tags: [
@@ -115,11 +120,10 @@ if (page) {
       if (details.amountMsat !== amount * 1000) throw Error('The invoice amount does not match your donation.');
       await display(result.invoice);
     } catch (error) { status(error.message || 'Could not create a Lightning invoice.'); }
-    finally { key?.fill(0); busy = false; for (const id of ['create', 'saved']) element(id).disabled = false; }
+    finally { key?.fill(0); busy = false; element('create').disabled = settled; }
   }
   if (account) {
-    element('create').addEventListener('click', () => create(false));
-    element('saved').addEventListener('click', () => create(true));
+    element('create').addEventListener('click', create);
     element('currency').addEventListener('change', () => {
       const usd = element('currency').value === 'USD';
       element('amount').value = usd ? '5' : '1000';
@@ -130,16 +134,23 @@ if (page) {
     element('amount').addEventListener('change', updateQuote);
     element('copy').addEventListener('click', () => navigator.clipboard.writeText(invoice).then(() => status('Invoice copied.')));
     element('check').addEventListener('click', () => { seen.clear(); status('Checking payment…'); watch(); });
-    loadKey().then(key => { element('saved').hidden = !key; key?.fill(0); }).catch(() => {});
     fetch('/club/patron/pending', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
-      .then(r => { if (!r.ok) throw Error(); return r.json(); })
-      .then(values => {
+      .then(async r => {
+        if (!r.ok) throw Error();
+        return { values: await r.json(), paidAt: Number(r.headers.get('X-Mute-Patron-Paid-At')) || 0 };
+      })
+      .then(({ values, paidAt }) => {
+        if (settled) return;
         for (const value of values) pending.add(invoiceDetails(value).paymentHash);
-        if (values.length) return display(values[0]);
-      }).catch(() => status('Previous invoices could not be loaded. You can create a new one.'));
+        if (invoice) return;
+        const current = values.find(value => invoiceDetails(value).createdAt > paidAt);
+        if (current) return display(current);
+        // Older invoices stay eligible for late receipts, without resurfacing a payment prompt.
+        if (values.length) watch();
+      }).catch(() => { if (!settled && !invoice) status('Previous invoices could not be loaded. You can create a new one.'); });
   } else {
     element('open').href = 'lightning:' + lnurl;
     void showQr('LIGHTNING:' + lnurl.toUpperCase());
   }
-  window.addEventListener('pagehide', () => { generation++; clearTimeout(expiry); subscription?.close(); pool.destroy(); }, { once: true });
+  window.addEventListener('pagehide', () => { generation++; clearTimeout(expiry); clearTimeout(reloadTimer); subscription?.close(); pool.destroy(); }, { once: true });
 }
