@@ -12,7 +12,7 @@ const nostrIdentity = Buffer.from(JSON.stringify({
   relays: { [nostrPubkey]: ['wss://relay.damus.io', 'wss://nos.lol', 'wss://relay.primal.net'] },
 }));
 const buckets = new Map();
-const websocketPaths = /^\/(?:socket(?:\/v\d+)?|analysis\/socket(?:\/v\d+)?|lobby\/socket(?:\/v\d+)?|study\/[A-Za-z0-9]{8}\/socket\/v\d+|play\/[A-Za-z0-9]{12}\/v\d+|watch\/[A-Za-z0-9]{8}\/(?:white|black)\/v\d+)$/;
+const websocketPaths = /^\/(?:socket(?:\/v\d+)?|analysis\/socket(?:\/v\d+)?|lobby\/socket(?:\/v\d+)?|study\/[A-Za-z0-9]{8}\/socket\/v\d+|challenge\/[A-Za-z0-9]{8}\/socket\/v\d+|play\/[A-Za-z0-9]{12}\/v\d+|watch\/[A-Za-z0-9]{8}\/(?:white|black)\/v\d+)$/;
 function pathOf(req) {
   try { return decodeURIComponent(new URL(req.url, 'http://local').pathname).replace(/\/+/g, '/'); }
   catch { return ''; }
@@ -129,7 +129,7 @@ const server = http.createServer((req, res) => {
     (post && /^\/challenge\/[A-Za-z0-9]{8}\/(?:accept|decline|cancel)$/.test(path)) ||
     (post && path === '/setup/friend') ||
     (read && path === '/rel/blocks') ||
-    (post && /^\/rel\/(?:follow|unfollow|block|unblock)\/[A-Za-z0-9_-]{1,30}$/.test(path));
+    (post && /^\/(?:api\/)?rel\/(?:follow|unfollow|block|unblock)\/[A-Za-z0-9_-]{1,30}$/.test(path));
   const patronRoute = path === '/patron' && ['GET', 'HEAD'].includes(req.method);
   const languageHome = read && /^\/(?:en|de|fr|ru|pt|hi|ja|zh|ko|es)$/.test(path);
   const infoRoute = read && /^\/(?:about|faq|contact|terms-of-service|privacy)$/.test(path);
