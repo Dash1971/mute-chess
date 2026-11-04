@@ -2,7 +2,7 @@
 
 The owner confirmed `dash@walletofsatoshi.com` and the official Mute Chess account `npub1w6l8e4mqa4ruqs2vdvwhdxhp9ke9ax8kpncy2wy26tja3d7rzpgq06c9jl`. These replace the earlier on-chain/mempool settlement proposal and Mobile Maia address lookup. No Mobile Maia or Zapstore configuration is changed.
 
-The header Donate link opens a native-styled support page. Anonymous visitors can scan the direct LNURL or open their wallet. Signed-in Nostr users choose sats or USD (a current browser-side mempool.space quote), sign a NIP-57 profile zap request using NIP-07 or their saved browser key, then scan the returned Lightning invoice. Creating/signing an invoice never pays it. The page also links to the official Nostr profile for direct zaps. The lower Lichess Patron promotion is removed.
+The header Donate link opens a native-styled support page. Anonymous visitors can scan the direct LNURL or open their wallet. Signed-in Nostr users choose sats or USD (a current browser-side mempool.space quote), sign a NIP-57 profile zap request using NIP-07 or their saved browser key, then scan the returned Lightning invoice. Creating/signing an invoice never pays it. The donation UI uses its invoice/QR and Open wallet actions; direct Nostr-zap and wallet-address links are omitted to keep the flow clear. The lower Lichess Patron promotion is removed.
 
 Any confirmed donation through this page grants native patron wings until 30 days after payment. It is a one-time donation, not a subscription. Direct external zaps support the project, but automatic wings require a recorded website invoice. The amount remains pay-what-you-want, at least one whole satoshi within the provider limits.
 
@@ -58,3 +58,38 @@ Invoice failures distinguish invalid/expired signed requests, provider network
 or HTTP failures, unreadable responses, and unverified invoices. Public messages
 suggest a safe retry; adapter logs retain only a bounded error code, without
 signed requests, donor IDs, invoices, tokens or provider payloads.
+
+
+## Payment completion and patron presentation (#252)
+
+The pending response remains an array of all active unpaid invoices. Its
+additive authenticated `X-Mute-Patron-Paid-At` header identifies the latest
+confirmed donation time, derived from the existing receipt-backed `patronUntil`
+minus 30 days. The client keeps every returned invoice eligible for a late
+receipt but restores a payment prompt only for an invoice created afterwards.
+This prevents an older unpaid request from reappearing after a successful
+payment, while preserving a genuinely newer renewal request. No ledger record
+is deleted or marked paid by this presentation rule.
+
+Only a server-confirmed receipt hides the QR/actions and shows the translated
+paid status, wing and checkmark. A brief pop/glow respects reduced motion, then
+the existing native page refresh updates account furniture. Settled guards stop
+an in-flight QR render or stale subscription from restoring waiting/expiry
+state. Unconfirmed responses never trigger the animation or patron state.
+
+The single Create invoice action uses an available browser signer, otherwise
+reads the saved browser key only on that click. It retains account matching and
+zeroes the transient key after use. The duplicate saved-key button and technical
+helper paragraph are removed. Missing signing access uses a short translated
+sign-in-again message. Paid/waiting/thanks/recovery text ships in all ten native
+locales. Payment signing, invoices, recipient, validation and wings duration
+are unchanged.
+
+Nostr profile headers put trophies in normal flex flow beside the public name.
+The identity block shows the npub first and the permanent @ID directly below it,
+sharing a left edge, with each information button beside its text. Clicking the
+ID copies the full permanent profile URL with the same 900ms feedback as the npub.
+Both help dialogs are retained. The donation UI omits the direct wallet/Nostr links
+and the address suffix under an invoice; the fixed amount remains visible.
+Native trophy content, packing and non-Nostr layout remain intact.
+No deployment is included in this PR.
