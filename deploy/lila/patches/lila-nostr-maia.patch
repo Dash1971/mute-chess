@@ -1432,7 +1432,7 @@ index 885adb4..06960ae 100644
  
  lazy val forumSearch = module("forumSearch",
 diff --git a/conf/routes b/conf/routes
-index f2a7ab2..df18905 100644
+index f2a7ab2..fc01add 100644
 --- a/conf/routes
 +++ b/conf/routes
 @@ -1,6 +1,29 @@
@@ -1481,13 +1481,14 @@ index f2a7ab2..df18905 100644
  GET   /analysis/pgn/*pgn               controllers.UserAnalysis.pgn(pgn)
  GET   /analysis/*something             controllers.UserAnalysis.parseArg(something)
  GET   /analysis                        controllers.UserAnalysis.index
-@@ -333,6 +358,10 @@ GET   /$lang<\w\w\w?>/learn            controllers.Learn.indexLang(lang: Languag
+@@ -333,6 +358,11 @@ GET   /$lang<\w\w\w?>/learn            controllers.Learn.indexLang(lang: Languag
  
  # Patron
  GET   /patron                          controllers.Plan.index(page: Int ?= 1)
 +GET   /club/patron                     controllers.NoSweat.patronPage
 +GET   /club/patron/pending              controllers.NoSweat.patronPending
 +POST  /club/patron/invoice              controllers.NoSweat.patronInvoice
++POST  /club/patron/dismiss              controllers.NoSweat.patronDismiss
 +POST  /club/patron/receipt              controllers.NoSweat.patronReceipt
  GET   /patron/thanks                   controllers.Plan.thanks
  GET   /patron/list                     controllers.Plan.list
@@ -4252,10 +4253,10 @@ index 74906f1..99e482b 100644
  travel-places.map-of-japan
  travel-places.metro
 diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
-index 88adade..c102abf 100644
+index 88adade..c1c2b09 100644
 --- a/translation/dest/site/de-DE.xml
 +++ b/translation/dest/site/de-DE.xml
-@@ -1064,4 +1064,89 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
+@@ -1064,4 +1064,93 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
    <string name="write">Schreiben</string>
    <string name="preview">Vorschau</string>
    <string name="done">Erledigt</string>
@@ -4344,12 +4345,16 @@ index 88adade..c102abf 100644
 +<string name="muteSiteTitle">Mute Chess — Bleib menschlich. Spiel gegen Bots.</string>
 +  <string name="muteSiteDescription">Kostenloses Open-Source-Schach mit menschenähnlichen Maia-Gegnern.</string>
 +  <string name="mutePlayerNotFound">Dieser Benutzername gehört zu keinem Spieler auf Mute Chess.</string>
++  <string name="muteDonationDismiss">Rechnung ausblenden</string>
++  <string name="muteDonationDismissHelp">Dies blendet die Anfrage aus. Die Wallet-Rechnung kann bis zu ihrem Ablauf weiterhin bezahlt werden.</string>
++  <string name="muteDonationDismissed">Rechnung ausgeblendet. Sie kann bis zum Ablauf weiterhin bezahlt werden; jede bestätigte Zahlung wird angerechnet.</string>
++  <string name="muteDonationDismissFailed">Diese Rechnung konnte nicht ausgeblendet werden. Prüfe die Zahlung und versuche es erneut.</string>
  </resources>
 diff --git a/translation/dest/site/es-ES.xml b/translation/dest/site/es-ES.xml
-index 76004f5..e9c7023 100644
+index 76004f5..6917056 100644
 --- a/translation/dest/site/es-ES.xml
 +++ b/translation/dest/site/es-ES.xml
-@@ -1064,4 +1064,89 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
+@@ -1064,4 +1064,93 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
    <string name="write">Escribir</string>
    <string name="preview">Vista previa</string>
    <string name="done">Listo</string>
@@ -4438,12 +4443,16 @@ index 76004f5..e9c7023 100644
 +<string name="muteSiteTitle">Mute Chess — Sigue siendo humano. Juega contra bots.</string>
 +  <string name="muteSiteDescription">Ajedrez gratuito y de código abierto con rivales Maia que juegan como humanos.</string>
 +  <string name="mutePlayerNotFound">Este nombre de usuario no corresponde a ningún jugador de Mute Chess.</string>
++  <string name="muteDonationDismiss">Ocultar factura</string>
++  <string name="muteDonationDismissHelp">Esto oculta la solicitud. La factura del monedero se puede pagar hasta que caduque.</string>
++  <string name="muteDonationDismissed">Factura ocultada. Se puede pagar hasta que caduque; cualquier pago confirmado se tendrá en cuenta.</string>
++  <string name="muteDonationDismissFailed">No se pudo ocultar esta factura. Comprueba el pago y vuelve a intentarlo.</string>
  </resources>
 diff --git a/translation/dest/site/fr-FR.xml b/translation/dest/site/fr-FR.xml
-index 7dfd5f7..988f878 100644
+index 7dfd5f7..eb0ce7d 100644
 --- a/translation/dest/site/fr-FR.xml
 +++ b/translation/dest/site/fr-FR.xml
-@@ -1063,4 +1063,89 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
+@@ -1063,4 +1063,93 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
    <string name="write">Écrire</string>
    <string name="preview">Aperçu</string>
    <string name="done">Terminé</string>
@@ -4532,12 +4541,16 @@ index 7dfd5f7..988f878 100644
 +<string name="muteSiteTitle">Mute Chess — Restez humain. Jouez contre des bots.</string>
 +  <string name="muteSiteDescription">Des échecs gratuits et libres, avec des adversaires Maia qui jouent comme des humains.</string>
 +  <string name="mutePlayerNotFound">Ce nom d’utilisateur ne correspond à aucun joueur de Mute Chess.</string>
++  <string name="muteDonationDismiss">Masquer la facture</string>
++  <string name="muteDonationDismissHelp">Cela masque la demande. La facture du portefeuille peut encore être payée jusqu’à son expiration.</string>
++  <string name="muteDonationDismissed">Facture masquée. Elle peut encore être payée avant son expiration ; tout paiement confirmé sera pris en compte.</string>
++  <string name="muteDonationDismissFailed">Impossible de masquer cette facture. Vérifiez le paiement, puis réessayez.</string>
  </resources>
 diff --git a/translation/dest/site/hi-IN.xml b/translation/dest/site/hi-IN.xml
-index bbf1703..c751d65 100644
+index bbf1703..25c7808 100644
 --- a/translation/dest/site/hi-IN.xml
 +++ b/translation/dest/site/hi-IN.xml
-@@ -893,4 +893,89 @@
+@@ -893,4 +893,93 @@
    <string name="closingAccountWithdrawAppeal">आपका खाता बंद करने से आपकी अपील वापस ले ली जाएगी</string>
    <string name="ourEventTips">कार्यक्रम आयोजित करने कि सलाह</string>
    <string name="nothingToSeeHere">इस समय यहां देखने को कुछ भी नहीं है।</string>
@@ -4626,12 +4639,16 @@ index bbf1703..c751d65 100644
 +<string name="muteSiteTitle">Mute Chess — इंसान बने रहें। बॉट्स से खेलें।</string>
 +  <string name="muteSiteDescription">इंसानों की तरह खेलने वाले Maia प्रतिद्वंद्वियों के साथ मुफ़्त, ओपन-सोर्स शतरंज।</string>
 +  <string name="mutePlayerNotFound">यह उपयोगकर्ता नाम किसी भी Mute Chess खिलाड़ी से मेल नहीं खाता।</string>
++  <string name="muteDonationDismiss">इनवॉइस छिपाएँ</string>
++  <string name="muteDonationDismissHelp">इससे अनुरोध छिप जाता है। वॉलेट का इनवॉइस समाप्त होने तक उसका भुगतान किया जा सकता है।</string>
++  <string name="muteDonationDismissed">इनवॉइस छिपा दिया गया है। समाप्त होने तक भुगतान किया जा सकता है; हर पुष्ट भुगतान गिना जाएगा।</string>
++  <string name="muteDonationDismissFailed">यह इनवॉइस छिपाया नहीं जा सका। भुगतान जाँचें, फिर दोबारा कोशिश करें।</string>
  </resources>
 diff --git a/translation/dest/site/ja-JP.xml b/translation/dest/site/ja-JP.xml
-index e628bdb..50e9006 100644
+index e628bdb..6a79186 100644
 --- a/translation/dest/site/ja-JP.xml
 +++ b/translation/dest/site/ja-JP.xml
-@@ -1023,4 +1023,89 @@
+@@ -1023,4 +1023,93 @@
    <string name="write">書く</string>
    <string name="preview">プレビュー</string>
    <string name="done">完了</string>
@@ -4720,12 +4737,16 @@ index e628bdb..50e9006 100644
 +<string name="muteSiteTitle">Mute Chess — 人間らしく。ボットと対局。</string>
 +  <string name="muteSiteDescription">人間らしく指すMaiaと対局できる、無料のオープンソース・チェス。</string>
 +  <string name="mutePlayerNotFound">このユーザー名に該当するMute Chessのプレイヤーはいません。</string>
++  <string name="muteDonationDismiss">請求書を非表示</string>
++  <string name="muteDonationDismissHelp">この操作で依頼を非表示にします。ウォレットの請求書は有効期限まで支払い可能です。</string>
++  <string name="muteDonationDismissed">請求書を非表示にしました。有効期限までは支払い可能で、確認された支払いは反映されます。</string>
++  <string name="muteDonationDismissFailed">この請求書を非表示にできませんでした。支払いを確認してから、もう一度お試しください。</string>
  </resources>
 diff --git a/translation/dest/site/ko-KR.xml b/translation/dest/site/ko-KR.xml
-index 9341bf0..78cfb62 100644
+index 9341bf0..26be99a 100644
 --- a/translation/dest/site/ko-KR.xml
 +++ b/translation/dest/site/ko-KR.xml
-@@ -1022,4 +1022,89 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
+@@ -1022,4 +1022,93 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
    <string name="write">작성</string>
    <string name="preview">미리보기</string>
    <string name="done">완료</string>
@@ -4814,12 +4835,16 @@ index 9341bf0..78cfb62 100644
 +<string name="muteSiteTitle">Mute Chess — 사람답게. 봇과 대국하세요.</string>
 +  <string name="muteSiteDescription">사람처럼 두는 Maia 상대와 즐기는 무료 오픈 소스 체스.</string>
 +  <string name="mutePlayerNotFound">이 사용자 이름에 해당하는 Mute Chess 플레이어가 없습니다.</string>
++  <string name="muteDonationDismiss">청구서 숨기기</string>
++  <string name="muteDonationDismissHelp">요청을 숨깁니다. 지갑의 청구서는 만료될 때까지 결제할 수 있습니다.</string>
++  <string name="muteDonationDismissed">청구서를 숨겼습니다. 만료될 때까지 결제할 수 있으며, 확인된 결제는 모두 반영됩니다.</string>
++  <string name="muteDonationDismissFailed">이 청구서를 숨길 수 없습니다. 결제를 확인한 후 다시 시도하세요.</string>
  </resources>
 diff --git a/translation/dest/site/pt-BR.xml b/translation/dest/site/pt-BR.xml
-index 569e752..98e00cf 100644
+index 569e752..e3cb136 100644
 --- a/translation/dest/site/pt-BR.xml
 +++ b/translation/dest/site/pt-BR.xml
-@@ -1063,4 +1063,89 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
+@@ -1063,4 +1063,93 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
    <string name="write">Escrever</string>
    <string name="preview">Pré-visualizar</string>
    <string name="done">Feito</string>
@@ -4908,12 +4933,16 @@ index 569e752..98e00cf 100644
 +<string name="muteSiteTitle">Mute Chess — Continue humano. Jogue contra bots.</string>
 +  <string name="muteSiteDescription">Xadrez gratuito e de código aberto com adversários Maia que jogam como humanos.</string>
 +  <string name="mutePlayerNotFound">Este nome de usuário não corresponde a nenhum jogador do Mute Chess.</string>
++  <string name="muteDonationDismiss">Ocultar fatura</string>
++  <string name="muteDonationDismissHelp">Isso oculta a solicitação. A fatura da carteira ainda pode ser paga até expirar.</string>
++  <string name="muteDonationDismissed">Fatura ocultada. Ela ainda pode ser paga até expirar; qualquer pagamento confirmado será contabilizado.</string>
++  <string name="muteDonationDismissFailed">Não foi possível ocultar esta fatura. Verifique o pagamento e tente novamente.</string>
  </resources>
 diff --git a/translation/dest/site/ru-RU.xml b/translation/dest/site/ru-RU.xml
-index 6384657..47d453e 100644
+index 6384657..10a6aec 100644
 --- a/translation/dest/site/ru-RU.xml
 +++ b/translation/dest/site/ru-RU.xml
-@@ -1146,4 +1146,89 @@
+@@ -1146,4 +1146,93 @@
    <string name="write">Написать</string>
    <string name="preview">Предпросмотр</string>
    <string name="done">Готово</string>
@@ -5002,12 +5031,16 @@ index 6384657..47d453e 100644
 +<string name="muteSiteTitle">Mute Chess — Оставайтесь людьми. Играйте с ботами.</string>
 +  <string name="muteSiteDescription">Бесплатные шахматы с открытым исходным кодом и соперниками Maia, играющими как люди.</string>
 +  <string name="mutePlayerNotFound">Это имя пользователя не принадлежит ни одному игроку Mute Chess.</string>
++  <string name="muteDonationDismiss">Скрыть счёт</string>
++  <string name="muteDonationDismissHelp">Запрос будет скрыт. Счёт в кошельке по-прежнему можно оплатить до истечения срока действия.</string>
++  <string name="muteDonationDismissed">Счёт скрыт. Его можно оплатить до истечения срока действия; любой подтверждённый платёж будет учтён.</string>
++  <string name="muteDonationDismissFailed">Не удалось скрыть этот счёт. Проверьте платёж и повторите попытку.</string>
  </resources>
 diff --git a/translation/dest/site/zh-CN.xml b/translation/dest/site/zh-CN.xml
-index 176f4d1..5e186ff 100644
+index 176f4d1..b4b8753 100644
 --- a/translation/dest/site/zh-CN.xml
 +++ b/translation/dest/site/zh-CN.xml
-@@ -1022,4 +1022,89 @@
+@@ -1022,4 +1022,93 @@
    <string name="write">撰写</string>
    <string name="preview">预览</string>
    <string name="done">完成</string>
@@ -5096,12 +5129,16 @@ index 176f4d1..5e186ff 100644
 +<string name="muteSiteTitle">Mute Chess — 保持人性，与机器人对弈。</string>
 +  <string name="muteSiteDescription">免费开源的国际象棋，与像人类一样下棋的 Maia 对手对弈。</string>
 +  <string name="mutePlayerNotFound">没有 Mute Chess 玩家使用此用户名。</string>
++  <string name="muteDonationDismiss">隐藏账单</string>
++  <string name="muteDonationDismissHelp">此操作会隐藏请求。在到期前，钱包账单仍可支付。</string>
++  <string name="muteDonationDismissed">账单已隐藏。到期前仍可支付；任何已确认的付款都会计入。</string>
++  <string name="muteDonationDismissFailed">无法隐藏此账单。请检查付款状态，然后重试。</string>
  </resources>
 diff --git a/translation/source/site.xml b/translation/source/site.xml
-index 8b5a6a1..dfbcce1 100644
+index 8b5a6a1..f9bf293 100644
 --- a/translation/source/site.xml
 +++ b/translation/source/site.xml
-@@ -1066,4 +1066,89 @@ Leave empty to start games from the normal initial position.</string>
+@@ -1066,4 +1066,93 @@ Leave empty to start games from the normal initial position.</string>
    <string name="write">Write</string>
    <string name="preview">Preview</string>
    <string name="done">Done</string>
@@ -5190,6 +5227,10 @@ index 8b5a6a1..dfbcce1 100644
 +<string name="muteSiteTitle">Mute Chess — Stay human. Play bots.</string>
 +  <string name="muteSiteDescription">Free, open-source chess with human-like Maia opponents.</string>
 +  <string name="mutePlayerNotFound">This username doesn't match any Mute Chess player.</string>
++  <string name="muteDonationDismiss">Dismiss invoice</string>
++  <string name="muteDonationDismissHelp">This hides the request. The wallet invoice can still be paid until it expires.</string>
++  <string name="muteDonationDismissed">Invoice dismissed. It can still be paid until expiry; any confirmed payment will count.</string>
++  <string name="muteDonationDismissFailed">Could not dismiss this invoice. Check payment, then try again.</string>
  </resources>
 diff --git a/ui/.build/src/build.ts b/ui/.build/src/build.ts
 index 7d6adeb..b433f0c 100644
@@ -9489,10 +9530,10 @@ index 0000000..8efd4b7
 +    current.isEmpty || current.contains(username) || current.contains(alias)
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..5146a4a
+index 0000000..f6251d3
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,923 @@
+@@ -0,0 +1,934 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -9653,14 +9694,25 @@ index 0000000..5146a4a
 +          .map(_.minusSeconds(30L * 86400).getEpochSecond)
 +      )
 +
-+  def patronPending(user: UserModel): Fu[JsValue] =
++  def patronPending(user: UserModel): Fu[(JsValue, List[String])] =
 +    donations
 +      .find(bdoc("userId" -> user.id, "paid" -> false, "expiresAt" -> bdoc("$gt" -> nowInstant)))
 +      .sort(sort.desc("createdAt"))
 +      .cursor[Bdoc]()
 +      .list(5)
 +      .map: docs =>
-+        Json.toJson(docs.flatMap(_.getAsOpt[String]("invoice")))
++        (
++          Json.toJson(docs.flatMap(_.getAsOpt[String]("invoice"))),
++          docs.filter(_.getAsOpt[Boolean]("dismissed").contains(true)).flatMap(_.getAsOpt[String]("_id"))
++        )
++
++  def patronDismiss(user: UserModel, data: JsValue): Fu[JsValue] =
++    val payment = (data \ "paymentHash").as[String]
++    if !payment.matches("[0-9a-f]{64}") then fuccess(Json.obj("dismissed" -> false))
++    else
++      donations.update
++        .one(NoSweatDonation.dismissSelector(user.id, payment), set("dismissed" -> true))
++        .map(result => Json.obj("dismissed" -> (result.n == 1)))
 +
 +  def patronInvoice(user: UserModel, data: JsValue): Fu[JsValue] =
 +    for
@@ -10797,10 +10849,10 @@ index 0000000..703a031
 +  def find(key: String): Option[NoSweatStudyPlan] = plans.find(_.key == key)
 diff --git a/app/controllers/NoSweat.scala b/app/controllers/NoSweat.scala
 new file mode 100644
-index 0000000..bd55869
+index 0000000..aba091e
 --- /dev/null
 +++ b/app/controllers/NoSweat.scala
-@@ -0,0 +1,273 @@
+@@ -0,0 +1,282 @@
 +package controllers
 +
 +import play.api.libs.json.*
@@ -10904,17 +10956,26 @@ index 0000000..bd55869
 +    me ?=>
 +      handle:
 +        for
-+          invoices <- club.patronPending(me.value)
++          pending <- club.patronPending(me.value)
 +          paidAt <- club.patronLastPaidAt(me.value)
-+        yield paidAt.fold(Ok(invoices))(at =>
-+          Ok(invoices).withHeaders("X-Mute-Patron-Paid-At" -> at.toString)
-+        )
++        yield
++          val result = Ok(pending._1).withHeaders(
++            "X-Mute-Patron-Dismissed" -> pending._2.mkString(","),
++            "Cache-Control" -> "no-store"
++          )
++          paidAt.fold(result)(at => result.withHeaders("X-Mute-Patron-Paid-At" -> at.toString))
 +
 +  def patronInvoice = AuthBody(parse.tolerantText(8192)): context ?=>
 +    me ?=>
 +      handle:
 +        sameOrigin
 +        club.patronInvoice(me.value, Json.parse(context.body.body)).map(Ok(_))
++
++  def patronDismiss = AuthBody(parse.tolerantText(256)): context ?=>
++    me ?=>
++      handle:
++        sameOrigin
++        club.patronDismiss(me.value, Json.parse(context.body.body)).map(Ok(_))
 +
 +  def patronReceipt = AuthBody(parse.tolerantText(16384)): context ?=>
 +    me ?=>
@@ -11618,10 +11679,10 @@ index 0000000..2e275fd
 +        )
 diff --git a/app/views/noSweatPatron.scala b/app/views/noSweatPatron.scala
 new file mode 100644
-index 0000000..abf409c
+index 0000000..8afa450
 --- /dev/null
 +++ b/app/views/noSweatPatron.scala
-@@ -0,0 +1,108 @@
+@@ -0,0 +1,116 @@
 +package views
 +
 +import lila.app.UiEnv.{ *, given }
@@ -11648,6 +11709,8 @@ index 0000000..abf409c
 +          attr("data-pubkey") := pubkey.getOrElse(""),
 +          attr("data-paid-status") := I18nKey("muteDonationPaid").txt(),
 +          attr("data-waiting") := I18nKey("muteDonationWaiting").txt(),
++          attr("data-dismissed") := I18nKey("muteDonationDismissed").txt(),
++          attr("data-dismiss-failed") := I18nKey("muteDonationDismissFailed").txt(),
 +          attr("data-signer-needed") := I18nKey("muteDonationSignInAgain").txt()
 +        )(
 +          div(cls := "patron-heading")(
@@ -11719,8 +11782,14 @@ index 0000000..abf409c
 +                p(id := "patron-invoice-amount"),
 +                div(cls := "patron-actions")(
 +                  button(id := "patron-copy", tpe := "button", cls := "button button-empty")("Copy invoice"),
-+                  button(id := "patron-check", tpe := "button", cls := "button button-empty")("Check payment")
-+                )
++                  button(id := "patron-check", tpe := "button", cls := "button button-empty")(
++                    "Check payment"
++                  ),
++                  button(id := "patron-dismiss", tpe := "button", cls := "button button-empty")(
++                    I18nKey("muteDonationDismiss")()
++                  )
++                ),
++                p(cls := "patron-note")(I18nKey("muteDonationDismissHelp")())
 +              )
 +            )
 +          ),
@@ -132857,3 +132926,37 @@ index 0000000..5ee372b
 +++ b/ui/site/tests/tsconfig.json
 @@ -0,0 +1 @@
 +{ "extends": "../../.test/tsconfig.test.json" }
+diff --git a/app/NoSweatDonation.scala b/app/NoSweatDonation.scala
+new file mode 100644
+index 0000000..e1cb129
+--- /dev/null
++++ b/app/NoSweatDonation.scala
+@@ -0,0 +1,8 @@
++package lila.app
++
++import lila.db.dsl.{ *, given }
++
++/** Only the unpaid prompt can be dismissed. Receipt/ledger matching never filters on dismissal. */
++private[app] object NoSweatDonation:
++  def dismissSelector(user: UserId, payment: String): Bdoc =
++    bdoc("_id" -> payment, "userId" -> user, "paid" -> false)
+diff --git a/src/test/scala/NoSweatDonationTest.scala b/src/test/scala/NoSweatDonationTest.scala
+new file mode 100644
+index 0000000..c47a25d
+--- /dev/null
++++ b/src/test/scala/NoSweatDonationTest.scala
+@@ -0,0 +1,14 @@
++package lila.app
++
++import lila.db.dsl.{ *, given }
++
++class NoSweatDonationTest extends munit.FunSuite:
++  test("dismissal atomically binds the exact invoice and authenticated account to unpaid state"):
++    val payment = "a" * 64
++    val selector = NoSweatDonation.dismissSelector(UserId("donor"), payment)
++    assertEquals(selector.getAsOpt[String]("_id"), Some(payment))
++    assertEquals(selector.getAsOpt[UserId]("userId"), Some(UserId("donor")))
++    assertEquals(selector.getAsOpt[Boolean]("paid"), Some(false))
++    assertEquals(selector.elements.map(_.name).toSet, Set("_id", "userId", "paid"))
++    assertNotEquals(selector, NoSweatDonation.dismissSelector(UserId("another"), payment))
++    assertNotEquals(selector, NoSweatDonation.dismissSelector(UserId("donor"), "b" * 64))

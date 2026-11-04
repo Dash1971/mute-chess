@@ -437,13 +437,14 @@
         },
         {
           "id": "lightning-patronage",
-          "rationale": "Adapt the explicitly requested Lightning/Nostr donation flow to native patron marks and remove unrelated payment entry points. Preserve verification and account binding rather than changing native chess behavior. Issue #252 supplies the latest confirmed payment time in an additive authenticated pending-response header, preserving the invoice-array contract and all unpaid records for late settlement. The browser tracks those receipts but restores only newer payment prompts, hides paid controls and uses a brief reduced-motion-aware wing/checkmark completion before the native reload. One Create invoice action selects an available signer or saved key with the same account checks and transient key wiping. New status/recovery copy uses all ten native catalogs; invoice amounts, signature/receipt validation and patron grants remain unchanged. The owner follow-up removes the direct wallet-address/Nostr-zap links and receiver-address suffix from the donation UI, keeping the fixed invoice amount, Open wallet, invoice creation and verification unchanged. Issue #247 restores the QR-standard four-module quiet zone and uses a device-resolution canvas while retaining the existing CSS display width and automatic square aspect ratio. Shared QR consumers keep the exact payload, error correction and replacement-invoice initialization; payment creation/validation, receipt and wings semantics are unchanged.",
+          "rationale": "Adapt the explicitly requested Lightning/Nostr donation flow to native patron marks and remove unrelated payment entry points. Preserve verification and account binding rather than changing native chess behavior. Issue #252 supplies the latest confirmed payment time in an additive authenticated pending-response header, preserving the invoice-array contract and all unpaid records for late settlement. The browser tracks those receipts but restores only newer payment prompts, hides paid controls and uses a brief reduced-motion-aware wing/checkmark completion before the native reload. One Create invoice action selects an available signer or saved key with the same account checks and transient key wiping. New status/recovery copy uses all ten native catalogs; invoice amounts, signature/receipt validation and patron grants remain unchanged. The owner follow-up removes the direct wallet-address/Nostr-zap links and receiver-address suffix from the donation UI, keeping the fixed invoice amount, Open wallet, invoice creation and verification unchanged. Issue #247 restores the QR-standard four-module quiet zone and uses a device-resolution canvas while retaining the existing CSS display width and automatic square aspect ratio. Shared QR consumers keep the exact payload, error correction and replacement-invoice initialization; payment creation/validation, receipt and wings semantics are unchanged. Issue #260 adds account-owned dismissal of the unpaid donation prompt, not wallet invoice revocation. A single atomic owner/hash/paid:false update sets only dismissed; an additive authenticated no-store pending header suppresses restoration while retaining all returned unpaid invoices for verified late receipts. Native grant/receipt/paid ledger, fixed amount and QR payload remain unchanged; all dismissal labels/help/feedback use the ten native catalogs.",
           "verification": [
             "Adapter lightning tests",
             "Native QR tests/build",
             "Private invoice and receipt checks without payment",
             "Six patron-browser VM regressions cover old pending invoices vs newer renewals, late receipts, server confirmation gate, in-flight QR completion, primary signer/account matching, saved-key wipe and plain localized recovery. Full adapter tests and native compile/UI checks; inspect wing header spacing and reduced-motion completion (#252).",
-            "Native QR tests exercise default rendering/replacement invoices and a dense payment plus authenticator payload at devicePixelRatio 2: backing dimensions, displayed size and four-module clear border. No real payment or Phoenix device scan is claimed (#247)."
+            "Native QR tests exercise default rendering/replacement invoices and a dense payment plus authenticator payload at devicePixelRatio 2: backing dimensions, displayed size and four-module clear border. No real payment or Phoenix device scan is claimed (#247).",
+            "Patron browser regressions exercise unpaid dismissal, rejected/paid dismissal, persistence/renewal restoration, late verified receipts, and stale QR/expiry/pending/receipt callbacks. Native NoSweatDonationTest locks the atomic exact-account/exact-hash/unpaid selector. Recheck AuthBody + sameOrigin routing, no receipt dismissal filter, no wallet cancellation call, and all four new keys across ten locales (#260)."
           ],
           "files": [
             "app/controllers/Plan.scala",
@@ -451,7 +452,9 @@
             "modules/plan/src/main/PlanApi.scala",
             "ui/bits/css/build/bits.patron.scss",
             "ui/bits/src/bits.qrcode.ts",
-            "ui/bits/tests/qrcode.test.ts"
+            "ui/bits/tests/qrcode.test.ts",
+            "app/NoSweatDonation.scala",
+            "src/test/scala/NoSweatDonationTest.scala"
           ]
         },
         {
