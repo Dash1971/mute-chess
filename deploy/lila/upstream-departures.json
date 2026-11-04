@@ -396,12 +396,13 @@
         },
         {
           "id": "branding-and-layout",
-          "rationale": "Apply the owner-approved Mute Chess identity and enhancement layout, keeping native components and upstream attribution/license notices. Issue #244 overrides the inherited Open Graph site identity only in the focused Mute renderer, replaces fallback Lichess artwork while preserving game/puzzle thumbnails, and makes root-relative preview images absolute. Asset URL joining retains one path slash. The native manifest endpoint reuses the existing Mute manifest, structured project identity omits inherited Lichess legal/social claims, and public puzzle/deleted-player/feed labels identify Mute. Native upstream mode, third-party app/resource references and all credits/licenses remain unchanged. New brand copy uses all ten native catalogs; there are no runtime or deployment changes.",
+          "rationale": "Apply the owner-approved Mute Chess identity and enhancement layout, keeping native components and upstream attribution/license notices. Issue #244 overrides the inherited Open Graph site identity only in the focused Mute renderer, replaces fallback Lichess artwork while preserving game/puzzle thumbnails, and makes root-relative preview images absolute. Asset URL joining retains one path slash. The native manifest endpoint reuses the existing Mute manifest, structured project identity omits inherited Lichess legal/social claims, and public puzzle/deleted-player/feed labels identify Mute. Native upstream mode, third-party app/resource references and all credits/licenses remain unchanged. New brand copy uses all ten native catalogs; there are no runtime or deployment changes. Issue #258 covers focused new-player welcome copy and supported destinations, the invitation heading, study help and forum metadata/body heading. Constructors default to upstream mode; focused study translations are passed only through its existing page-module options. Native routes, study/presence protocols, privacy/account guards and Lichess/source/CC0 attribution remain intact. Blocked kid/tournament/video invitations are omitted from the focused welcome instead of advertising unavailable features.",
           "verification": [
             "Full native UI build",
             "Automated browser layout checks",
             "design/quiet-signal/README.md",
-            "Native NoSweatBrandingTest renders homepage/profile/analysis previews, retains game/puzzle images and escaped titles, checks absolute image paths, and preserves upstream Open Graph/organization output. All ten catalogs include the new brand strings; native Scala/UI CI compiles all call sites. Follow-up live preview verification waits for separate deployment authorization (#244)."
+            "Native NoSweatBrandingTest renders homepage/profile/analysis previews, retains game/puzzle images and escaped titles, checks absolute image paths, and preserves upstream Open Graph/organization output. All ten catalogs include the new brand strings; native Scala/UI CI compiles all call sites. Follow-up live preview verification waits for separate deployment authorization (#244).",
+            "Issue #258: review focused/upstream welcome branches and supported route targets; native Scala and TypeScript formatting/lint; all nine new messages and placeholder parity in ten XML catalogs; normal required CI checks. No release build, merge or deployment is authorized."
           ],
           "files": [
             "app/views/base/page.scala",
@@ -432,7 +433,9 @@
             "modules/web/src/main/StaticContent.scala",
             "modules/web/src/test/NoSweatBrandingTest.scala",
             "app/views/puzzle/ui.scala",
-            "modules/puzzle/src/main/ui/PuzzleUi.scala"
+            "modules/puzzle/src/main/ui/PuzzleUi.scala",
+            "modules/challenge/src/main/ui/ChallengeUi.scala",
+            "app/views/study.scala"
           ]
         },
         {

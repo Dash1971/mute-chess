@@ -1185,8 +1185,79 @@ index 92c93c4..e995921 100644
      cssKeys = List("bits.tv.embed"),
      modules = Esm("site.puzzleEmbed")
    )(
+diff --git a/app/views/study.scala b/app/views/study.scala
+index 692c27c..fa8ae33 100644
+--- a/app/views/study.scala
++++ b/app/views/study.scala
+@@ -6,6 +6,7 @@ import play.api.libs.json.Json
+ 
+ import lila.app.UiEnv.{ *, given }
+ import lila.common.Json.given
++import lila.core.i18n.I18nKey
+ import lila.core.socket.SocketVersion
+ import lila.core.study.IdName
+ 
+@@ -71,27 +72,37 @@ def show(
+     .js(
+       PageModule(
+         "analyse.study",
+-        Json.obj(
+-          "study" -> data.study
+-            .add("admin", isGranted(_.StudyAdmin))
+-            .add("showRatings", ctx.pref.showRatings),
+-          "data" -> data.analysis,
+-          "tagTypes" -> lila.study.StudyPgnTags.typesToString,
+-          "userId" -> ctx.userId,
+-          "chat" -> chatOption.map: c =>
+-            views.chat.json(
+-              c.chat,
+-              c.lines,
+-              name = trans.site.chatRoom.txt(),
+-              timeout = c.timeout,
+-              writeable = ctx.userId.exists(s.canChat),
+-              public = true,
+-              resource = lila.core.chat.PublicSource.Study(s.id),
+-              localMod = ctx.userId.exists(s.canContribute)
+-            ),
+-          "socketUrl" -> socketUrl(s.id),
+-          "socketVersion" -> socketVersion
+-        ) ++ views.analyse.ui.explorerAndCevalConfig
++        Json
++          .obj(
++            "study" -> data.study
++              .add("admin", isGranted(_.StudyAdmin))
++              .add("showRatings", ctx.pref.showRatings),
++            "data" -> data.analysis,
++            "tagTypes" -> lila.study.StudyPgnTags.typesToString,
++            "userId" -> ctx.userId,
++            "chat" -> chatOption.map: c =>
++              views.chat.json(
++                c.chat,
++                c.lines,
++                name = trans.site.chatRoom.txt(),
++                timeout = c.timeout,
++                writeable = ctx.userId.exists(s.canChat),
++                public = true,
++                resource = lila.core.chat.PublicSource.Study(s.id),
++                localMod = ctx.userId.exists(s.canContribute)
++              ),
++            "socketUrl" -> socketUrl(s.id),
++            "socketVersion" -> socketVersion
++          )
++          .add(
++            "muteStudyWelcome",
++            Option.when(env.noSweat.enabled)(
++              Json.obj(
++                "title" -> I18nKey("muteStudyWelcomeTitle").txt(),
++                "text" -> I18nKey("muteStudyWelcomeText").txt()
++              )
++            )
++          ) ++ views.analyse.ui.explorerAndCevalConfig
+       )
+     )
+     .flag(_.noRobots, !s.isPublic)
 diff --git a/app/views/ui.scala b/app/views/ui.scala
-index ab74f28..37b206a 100644
+index ab74f28..aeb8799 100644
 --- a/app/views/ui.scala
 +++ b/app/views/ui.scala
 @@ -7,7 +7,7 @@ val captcha = lila.web.ui.CaptchaUi(helpers)
@@ -1206,6 +1277,24 @@ index ab74f28..37b206a 100644
 +val relation = lila.relation.ui.RelationUi(helpers, env.noSweat.enabled)
  
  val auth = lila.web.ui.AuthUi(helpers)
+ 
+@@ -62,7 +62,7 @@ object forum:
+   import lila.forum.ui.*
+   val bits = ForumBits(helpers)
+   val post = PostUi(helpers, bits)
+-  val categ = CategUi(helpers, bits)
++  val categ = CategUi(helpers, bits, env.noSweat.enabled)
+   val topic = TopicUi(helpers, bits, post)(
+     captcha.apply,
+     lila.msg.MsgPreset.forumDeletion.presets
+@@ -83,7 +83,7 @@ val storm = lila.storm.ui.StormUi(helpers)
+ 
+ val racer = lila.racer.ui.RacerUi(helpers)
+ 
+-val challenge = lila.challenge.ui.ChallengeUi(helpers)
++val challenge = lila.challenge.ui.ChallengeUi(helpers, env.noSweat.enabled)
+ 
+ val dev = lila.web.ui.DevUi(helpers)(views.mod.ui.menu)
  
 diff --git a/app/views/user/list.scala b/app/views/user/list.scala
 index 5222d2d..2edd45b 100644
@@ -1643,6 +1732,37 @@ index 365892c..3b6f6c2 100644
  
    def getUsers = usersCache.get({})
  
+diff --git a/modules/challenge/src/main/ui/ChallengeUi.scala b/modules/challenge/src/main/ui/ChallengeUi.scala
+index 06f8ecd..2b48cec 100644
+--- a/modules/challenge/src/main/ui/ChallengeUi.scala
++++ b/modules/challenge/src/main/ui/ChallengeUi.scala
+@@ -4,6 +4,7 @@ package ui
+ import play.api.libs.json.{ JsObject, Json }
+ 
+ import lila.challenge.Challenge.Status
++import lila.core.i18n.I18nKey
+ import lila.core.LightUser
+ import lila.core.game.GameRule
+ import lila.core.relation.Relation
+@@ -11,7 +12,7 @@ import lila.core.user.WithPerf
+ import lila.ui.*
+ import lila.ui.ScalatagsTemplate.{ *, given }
+ 
+-final class ChallengeUi(helpers: Helpers):
++final class ChallengeUi(helpers: Helpers, focused: Boolean = false):
+   import helpers.{ *, given }
+ 
+   def page(c: Challenge, json: JsObject, owner: Boolean, color: Option[Color] = None)(using
+@@ -149,7 +150,8 @@ final class ChallengeUi(helpers: Helpers):
+                       ),
+                       ctx.isAuth.option(
+                         div(cls := "invite__user")(
+-                          h2(cls := "ninja-title", trans.challenge.inviteLichessUser()),
++                          h2(cls := "ninja-title")(if focused then I18nKey("muteInvitePlayer")()
++                          else trans.challenge.inviteLichessUser()),
+                           friends.nonEmpty.option(
+                             div(cls := "invite__user__recent")(
+                               friends.map: user =>
 diff --git a/modules/chat/src/main/ChatApi.scala b/modules/chat/src/main/ChatApi.scala
 index 7e5965e..2df0c1d 100644
 --- a/modules/chat/src/main/ChatApi.scala
@@ -1868,19 +1988,43 @@ index cfd6d7b..986bc92 100644
  
    def isGrantedMod(categId: ForumCategId)(using meOpt: Option[Me]): Fu[Boolean] = meOpt.soUse:
 diff --git a/modules/forum/src/main/ui/CategUi.scala b/modules/forum/src/main/ui/CategUi.scala
-index bfd027c..790cd09 100644
+index bfd027c..d8394fc 100644
 --- a/modules/forum/src/main/ui/CategUi.scala
 +++ b/modules/forum/src/main/ui/CategUi.scala
-@@ -21,7 +21,7 @@ final class CategUi(helpers: Helpers, bits: ForumBits):
+@@ -3,10 +3,11 @@ package ui
+ 
+ import scalalib.paginator.Paginator
+ 
++import lila.core.i18n.I18nKey
+ import lila.ui.*
+ import lila.ui.ScalatagsTemplate.{ *, given }
+ 
+-final class CategUi(helpers: Helpers, bits: ForumBits):
++final class CategUi(helpers: Helpers, bits: ForumBits, focused: Boolean = false):
+   import helpers.{ *, given }
+ 
+   def index(categs: List[CategView])(using Context) =
+@@ -14,14 +15,16 @@ final class CategUi(helpers: Helpers, bits: ForumBits):
+       .css("bits.forum")
+       .csp(_.withInlineIconFont)
+       .graph(
+-        title = "Lichess community forum",
++        title = if focused then I18nKey("muteForumLabel").txt() else "Lichess community forum",
+         url = routeUrl(routes.ForumCateg.index),
+-        description = "Chess discussions and feedback about Lichess development"
++        description = if focused then I18nKey("muteForumDescription").txt()
++        else "Chess discussions and feedback about Lichess development"
+       ):
          val (teamCategs, globalCategs) = categs.partition(_.categ.isTeam)
          main(cls := "forum index box")(
            boxTop(
 -            h1(dataIcon := Icon.BubbleConvo, cls := "text")("Lichess Forum"),
-+            h1(dataIcon := Icon.BubbleConvo, cls := "text")("Mute Chess Forum"),
++            h1(dataIcon := Icon.BubbleConvo, cls := "text")(if focused then I18nKey("muteForumLabel")()
++            else "Lichess Forum"),
              bits.searchForm()
            ),
            showCategs(globalCategs),
-@@ -38,7 +38,7 @@ final class CategUi(helpers: Helpers, bits: ForumBits):
+@@ -38,7 +41,7 @@ final class CategUi(helpers: Helpers, bits: ForumBits):
        topics: Paginator[TopicView],
        canWrite: Boolean,
        stickyPosts: List[TopicView]
@@ -1889,7 +2033,7 @@ index bfd027c..790cd09 100644
  
      def showTopic(sticky: Boolean)(topic: TopicView) =
        tr(cls := List("sticky" -> sticky))(
-@@ -95,6 +95,12 @@ final class CategUi(helpers: Helpers, bits: ForumBits):
+@@ -95,6 +98,12 @@ final class CategUi(helpers: Helpers, bits: ForumBits):
                )
              )
            ),
@@ -3516,10 +3660,16 @@ index aa2948a..607eadf 100644
        online: List[UserWithPerfs],
        leaderboards: lila.rating.UserPerfs.Leaderboards,
 diff --git a/modules/user/src/main/ui/UserShow.scala b/modules/user/src/main/ui/UserShow.scala
-index 90a91f3..198ea83 100644
+index 90a91f3..272f2f4 100644
 --- a/modules/user/src/main/ui/UserShow.scala
 +++ b/modules/user/src/main/ui/UserShow.scala
-@@ -6,7 +6,7 @@ import lila.core.user.Flag
+@@ -1,12 +1,13 @@
+ package lila.user
+ package ui
+ 
++import lila.core.i18n.I18nKey
+ import lila.core.perf.UserWithPerfs
+ import lila.core.user.Flag
  import lila.ui.*
  import lila.ui.ScalatagsTemplate.{ *, given }
  
@@ -3528,7 +3678,7 @@ index 90a91f3..198ea83 100644
    import helpers.{ *, given }
  
    def mini(
-@@ -38,6 +38,15 @@ final class UserShow(helpers: Helpers, bits: UserBits):
+@@ -38,6 +39,15 @@ final class UserShow(helpers: Helpers, bits: UserBits):
            ,
            ping.map(bits.signalBars)
          ),
@@ -3544,7 +3694,7 @@ index 90a91f3..198ea83 100644
          realName.map(div(cls := "upt__info__realname")(_)),
          if u.lame && ctx.isnt(u) && !Granter.opt(_.AccountInfo)
          then div(cls := "upt__info__warning")(trans.site.thisAccountViolatedTos())
-@@ -49,25 +58,31 @@ final class UserShow(helpers: Helpers, bits: UserBits):
+@@ -49,25 +59,31 @@ final class UserShow(helpers: Helpers, bits: UserBits):
          frag(
            (myId.isnt(u.id) && u.enabled.yes).option(
              div(cls := "upt__actions btn-rack")(
@@ -3591,6 +3741,70 @@ index 90a91f3..198ea83 100644
                    )
                  )
                ),
+@@ -88,29 +104,49 @@ final class UserShow(helpers: Helpers, bits: UserBits):
+   def newPlayer(u: User)(using Translate) =
+     import trans.onboarding as tro
+     div(cls := "new-player")(
+-      h2(tro.welcomeToLichess()),
++      h2(if focused then I18nKey("muteWelcomeTitle")() else tro.welcomeToLichess()),
+       p(tro.thisIsYourProfilePage()),
+-      p(
+-        if u.kid.yes then trans.site.kidModeIsEnabled()
+-        else
+-          tro.enabledKidModeSuggestion:
+-            a(href := routes.Account.kid)(trans.site.kidMode())
++      (!focused).option(
++        p(
++          if u.kid.yes then trans.site.kidModeIsEnabled()
++          else
++            tro.enabledKidModeSuggestion:
++              a(href := routes.Account.kid)(trans.site.kidMode())
++        )
+       ),
+       p(tro.whatNowSuggestions()),
+       ul(
+         li(a(href := routes.Learn.index)(tro.learnChessRules())),
+         li(a(href := routes.Puzzle.home)(tro.improveWithChessTacticsPuzzles())),
+-        li(a(href := s"${routes.Lobby.home}#ai")(tro.playTheArtificialIntelligence())),
+-        li(a(href := s"${routes.Lobby.home}#hook")(tro.playOpponentsFromAroundTheWorld())),
+-        li(a(href := routes.User.list)(tro.followYourFriendsOnLichess())),
+-        li(a(href := routes.Tournament.home)(tro.playInTournaments())),
++        if focused then li(a(href := routes.Lobby.home)(I18nKey("muteWelcomePlayMaia")()))
++        else
++          frag(
++            li(a(href := s"${routes.Lobby.home}#ai")(tro.playTheArtificialIntelligence())),
++            li(a(href := s"${routes.Lobby.home}#hook")(tro.playOpponentsFromAroundTheWorld()))
++          )
++        ,
++        li(
++          a(href := routes.User.list)(
++            if focused then I18nKey("muteWelcomeFindFriends")() else tro.followYourFriendsOnLichess()
++          )
++        ),
++        if focused then li(a(href := routes.UserAnalysis.index)(I18nKey("muteWelcomeAnalyze")()))
++        else
++          frag(
++            li(a(href := routes.Tournament.home)(tro.playInTournaments())),
++            li(
++              tro.learnFromXAndY(
++                a(href := routes.Study.allDefault())(trans.site.toStudy()),
++                a(href := routes.Video.index)(trans.learn.videos())
++              )
++            )
++          )
++        ,
+         li(
+-          tro.learnFromXAndY(
+-            a(href := routes.Study.allDefault())(trans.site.toStudy()),
+-            a(href := routes.Video.index)(trans.learn.videos())
++          a(href := routes.Pref.form("display"))(
++            if focused then I18nKey("muteWelcomeSettings")() else tro.configureLichess()
+           )
+         ),
+-        li(a(href := routes.Pref.form("display"))(tro.configureLichess())),
+         li(tro.exploreTheSiteAndHaveFun())
+       )
+     )
 diff --git a/modules/web/src/main/StaticContent.scala b/modules/web/src/main/StaticContent.scala
 index 9f475eb..fc08663 100644
 --- a/modules/web/src/main/StaticContent.scala
@@ -4252,10 +4466,10 @@ index 74906f1..99e482b 100644
  travel-places.map-of-japan
  travel-places.metro
 diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
-index 88adade..c102abf 100644
+index 88adade..183f910 100644
 --- a/translation/dest/site/de-DE.xml
 +++ b/translation/dest/site/de-DE.xml
-@@ -1064,4 +1064,89 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
+@@ -1064,4 +1064,98 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
    <string name="write">Schreiben</string>
    <string name="preview">Vorschau</string>
    <string name="done">Erledigt</string>
@@ -4344,12 +4558,21 @@ index 88adade..c102abf 100644
 +<string name="muteSiteTitle">Mute Chess — Bleib menschlich. Spiel gegen Bots.</string>
 +  <string name="muteSiteDescription">Kostenloses Open-Source-Schach mit menschenähnlichen Maia-Gegnern.</string>
 +  <string name="mutePlayerNotFound">Dieser Benutzername gehört zu keinem Spieler auf Mute Chess.</string>
++  <string name="muteWelcomeTitle">Willkommen bei Mute Chess!</string>
++  <string name="muteWelcomePlayMaia">Spiele gegen Maia mit menschlichem Spielstil.</string>
++  <string name="muteWelcomeFindFriends">Finde deine Freunde und folge ihnen.</string>
++  <string name="muteWelcomeAnalyze">Analysiere eine Partie oder Stellung.</string>
++  <string name="muteWelcomeSettings">Passe Mute Chess nach deinen Wünschen an.</string>
++  <string name="muteInvitePlayer">Oder lade jemanden von Mute Chess ein:</string>
++  <string name="muteStudyWelcomeTitle">Willkommen bei den Mute-Chess-Studien!</string>
++  <string name="muteStudyWelcomeText">Dies ist ein gemeinsames Analysebrett. Du kannst Partien analysieren und kommentieren, Stellungen mit Freunden besprechen oder Schachunterricht geben. Schauen wir uns an, wie es funktioniert.</string>
++  <string name="muteForumDescription">Schachdiskussionen und Feedback zu Mute Chess.</string>
  </resources>
 diff --git a/translation/dest/site/es-ES.xml b/translation/dest/site/es-ES.xml
-index 76004f5..e9c7023 100644
+index 76004f5..45d0a59 100644
 --- a/translation/dest/site/es-ES.xml
 +++ b/translation/dest/site/es-ES.xml
-@@ -1064,4 +1064,89 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
+@@ -1064,4 +1064,98 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
    <string name="write">Escribir</string>
    <string name="preview">Vista previa</string>
    <string name="done">Listo</string>
@@ -4438,12 +4661,21 @@ index 76004f5..e9c7023 100644
 +<string name="muteSiteTitle">Mute Chess — Sigue siendo humano. Juega contra bots.</string>
 +  <string name="muteSiteDescription">Ajedrez gratuito y de código abierto con rivales Maia que juegan como humanos.</string>
 +  <string name="mutePlayerNotFound">Este nombre de usuario no corresponde a ningún jugador de Mute Chess.</string>
++  <string name="muteWelcomeTitle">¡Bienvenido a Mute Chess!</string>
++  <string name="muteWelcomePlayMaia">Juega contra Maia, un rival con estilo humano.</string>
++  <string name="muteWelcomeFindFriends">Encuentra y sigue a tus amigos.</string>
++  <string name="muteWelcomeAnalyze">Analiza una partida o una posición.</string>
++  <string name="muteWelcomeSettings">Configura Mute Chess a tu gusto.</string>
++  <string name="muteInvitePlayer">O invita a un jugador de Mute Chess:</string>
++  <string name="muteStudyWelcomeTitle">¡Bienvenido a los estudios de Mute Chess!</string>
++  <string name="muteStudyWelcomeText">Este es un tablero de análisis compartido. Úsalo para analizar y comentar partidas, debatir posiciones con amigos o dar clases de ajedrez. Veamos cómo funciona.</string>
++  <string name="muteForumDescription">Conversaciones sobre ajedrez y comentarios sobre Mute Chess.</string>
  </resources>
 diff --git a/translation/dest/site/fr-FR.xml b/translation/dest/site/fr-FR.xml
-index 7dfd5f7..988f878 100644
+index 7dfd5f7..5fae0d1 100644
 --- a/translation/dest/site/fr-FR.xml
 +++ b/translation/dest/site/fr-FR.xml
-@@ -1063,4 +1063,89 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
+@@ -1063,4 +1063,98 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
    <string name="write">Écrire</string>
    <string name="preview">Aperçu</string>
    <string name="done">Terminé</string>
@@ -4532,12 +4764,21 @@ index 7dfd5f7..988f878 100644
 +<string name="muteSiteTitle">Mute Chess — Restez humain. Jouez contre des bots.</string>
 +  <string name="muteSiteDescription">Des échecs gratuits et libres, avec des adversaires Maia qui jouent comme des humains.</string>
 +  <string name="mutePlayerNotFound">Ce nom d’utilisateur ne correspond à aucun joueur de Mute Chess.</string>
++  <string name="muteWelcomeTitle">Bienvenue sur Mute Chess !</string>
++  <string name="muteWelcomePlayMaia">Affrontez Maia, un adversaire au style humain.</string>
++  <string name="muteWelcomeFindFriends">Retrouvez vos amis et suivez-les.</string>
++  <string name="muteWelcomeAnalyze">Analysez une partie ou une position.</string>
++  <string name="muteWelcomeSettings">Configurez Mute Chess à votre goût.</string>
++  <string name="muteInvitePlayer">Ou invitez un joueur de Mute Chess :</string>
++  <string name="muteStudyWelcomeTitle">Bienvenue dans les études Mute Chess !</string>
++  <string name="muteStudyWelcomeText">Ceci est un échiquier d’analyse partagé. Utilisez-le pour analyser et annoter des parties, discuter de positions avec vos amis ou donner des cours d’échecs. Voyons comment il fonctionne.</string>
++  <string name="muteForumDescription">Discussions sur les échecs et retours sur Mute Chess.</string>
  </resources>
 diff --git a/translation/dest/site/hi-IN.xml b/translation/dest/site/hi-IN.xml
-index bbf1703..c751d65 100644
+index bbf1703..8e8a9b3 100644
 --- a/translation/dest/site/hi-IN.xml
 +++ b/translation/dest/site/hi-IN.xml
-@@ -893,4 +893,89 @@
+@@ -893,4 +893,98 @@
    <string name="closingAccountWithdrawAppeal">आपका खाता बंद करने से आपकी अपील वापस ले ली जाएगी</string>
    <string name="ourEventTips">कार्यक्रम आयोजित करने कि सलाह</string>
    <string name="nothingToSeeHere">इस समय यहां देखने को कुछ भी नहीं है।</string>
@@ -4626,12 +4867,21 @@ index bbf1703..c751d65 100644
 +<string name="muteSiteTitle">Mute Chess — इंसान बने रहें। बॉट्स से खेलें।</string>
 +  <string name="muteSiteDescription">इंसानों की तरह खेलने वाले Maia प्रतिद्वंद्वियों के साथ मुफ़्त, ओपन-सोर्स शतरंज।</string>
 +  <string name="mutePlayerNotFound">यह उपयोगकर्ता नाम किसी भी Mute Chess खिलाड़ी से मेल नहीं खाता।</string>
++  <string name="muteWelcomeTitle">Mute Chess में आपका स्वागत है!</string>
++  <string name="muteWelcomePlayMaia">इंसानों की तरह खेलने वाले Maia प्रतिद्वंद्वी से खेलें।</string>
++  <string name="muteWelcomeFindFriends">अपने दोस्तों को खोजें और फ़ॉलो करें।</string>
++  <string name="muteWelcomeAnalyze">किसी खेल या स्थिति का विश्लेषण करें।</string>
++  <string name="muteWelcomeSettings">Mute Chess को अपनी पसंद के अनुसार सेट करें।</string>
++  <string name="muteInvitePlayer">या Mute Chess के किसी खिलाड़ी को आमंत्रित करें:</string>
++  <string name="muteStudyWelcomeTitle">Mute Chess अध्ययनों में आपका स्वागत है!</string>
++  <string name="muteStudyWelcomeText">यह एक साझा विश्लेषण बोर्ड है। इससे खेलों का विश्लेषण करें और टिप्पणियाँ जोड़ें, दोस्तों के साथ स्थितियों पर चर्चा करें या शतरंज सिखाएँ। आइए देखें कि यह कैसे काम करता है।</string>
++  <string name="muteForumDescription">शतरंज पर चर्चा और Mute Chess के बारे में सुझाव।</string>
  </resources>
 diff --git a/translation/dest/site/ja-JP.xml b/translation/dest/site/ja-JP.xml
-index e628bdb..50e9006 100644
+index e628bdb..6bae013 100644
 --- a/translation/dest/site/ja-JP.xml
 +++ b/translation/dest/site/ja-JP.xml
-@@ -1023,4 +1023,89 @@
+@@ -1023,4 +1023,98 @@
    <string name="write">書く</string>
    <string name="preview">プレビュー</string>
    <string name="done">完了</string>
@@ -4720,12 +4970,21 @@ index e628bdb..50e9006 100644
 +<string name="muteSiteTitle">Mute Chess — 人間らしく。ボットと対局。</string>
 +  <string name="muteSiteDescription">人間らしく指すMaiaと対局できる、無料のオープンソース・チェス。</string>
 +  <string name="mutePlayerNotFound">このユーザー名に該当するMute Chessのプレイヤーはいません。</string>
++  <string name="muteWelcomeTitle">Mute Chessへようこそ！</string>
++  <string name="muteWelcomePlayMaia">人間らしく指すMaiaと対局しましょう。</string>
++  <string name="muteWelcomeFindFriends">友達を見つけてフォローしましょう。</string>
++  <string name="muteWelcomeAnalyze">棋譜や局面を分析しましょう。</string>
++  <string name="muteWelcomeSettings">Mute Chessを好みに合わせて設定しましょう。</string>
++  <string name="muteInvitePlayer">またはMute Chessのプレイヤーを招待：</string>
++  <string name="muteStudyWelcomeTitle">Mute Chessのスタディへようこそ！</string>
++  <string name="muteStudyWelcomeText">これは共有の分析盤です。棋譜の分析や注釈の追加、友達との局面の検討、チェスのレッスンに使えます。使い方を見てみましょう。</string>
++  <string name="muteForumDescription">チェスの話題やMute Chessへのご意見。</string>
  </resources>
 diff --git a/translation/dest/site/ko-KR.xml b/translation/dest/site/ko-KR.xml
-index 9341bf0..78cfb62 100644
+index 9341bf0..f2e9dc4 100644
 --- a/translation/dest/site/ko-KR.xml
 +++ b/translation/dest/site/ko-KR.xml
-@@ -1022,4 +1022,89 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
+@@ -1022,4 +1022,98 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
    <string name="write">작성</string>
    <string name="preview">미리보기</string>
    <string name="done">완료</string>
@@ -4814,12 +5073,21 @@ index 9341bf0..78cfb62 100644
 +<string name="muteSiteTitle">Mute Chess — 사람답게. 봇과 대국하세요.</string>
 +  <string name="muteSiteDescription">사람처럼 두는 Maia 상대와 즐기는 무료 오픈 소스 체스.</string>
 +  <string name="mutePlayerNotFound">이 사용자 이름에 해당하는 Mute Chess 플레이어가 없습니다.</string>
++  <string name="muteWelcomeTitle">Mute Chess에 오신 것을 환영합니다!</string>
++  <string name="muteWelcomePlayMaia">사람처럼 두는 Maia와 대국하세요.</string>
++  <string name="muteWelcomeFindFriends">친구를 찾아 팔로우하세요.</string>
++  <string name="muteWelcomeAnalyze">대국이나 포지션을 분석하세요.</string>
++  <string name="muteWelcomeSettings">Mute Chess를 원하는 대로 설정하세요.</string>
++  <string name="muteInvitePlayer">또는 Mute Chess 플레이어를 초대하세요:</string>
++  <string name="muteStudyWelcomeTitle">Mute Chess 스터디에 오신 것을 환영합니다!</string>
++  <string name="muteStudyWelcomeText">함께 사용하는 분석 보드입니다. 대국을 분석하고 주석을 달거나, 친구와 포지션을 토론하거나, 체스 수업에 활용할 수 있습니다. 사용 방법을 살펴보세요.</string>
++  <string name="muteForumDescription">체스 토론과 Mute Chess에 대한 의견.</string>
  </resources>
 diff --git a/translation/dest/site/pt-BR.xml b/translation/dest/site/pt-BR.xml
-index 569e752..98e00cf 100644
+index 569e752..ec618a4 100644
 --- a/translation/dest/site/pt-BR.xml
 +++ b/translation/dest/site/pt-BR.xml
-@@ -1063,4 +1063,89 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
+@@ -1063,4 +1063,98 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
    <string name="write">Escrever</string>
    <string name="preview">Pré-visualizar</string>
    <string name="done">Feito</string>
@@ -4908,12 +5176,21 @@ index 569e752..98e00cf 100644
 +<string name="muteSiteTitle">Mute Chess — Continue humano. Jogue contra bots.</string>
 +  <string name="muteSiteDescription">Xadrez gratuito e de código aberto com adversários Maia que jogam como humanos.</string>
 +  <string name="mutePlayerNotFound">Este nome de usuário não corresponde a nenhum jogador do Mute Chess.</string>
++  <string name="muteWelcomeTitle">Boas-vindas ao Mute Chess!</string>
++  <string name="muteWelcomePlayMaia">Jogue contra Maia, um adversário com estilo humano.</string>
++  <string name="muteWelcomeFindFriends">Encontre e siga seus amigos.</string>
++  <string name="muteWelcomeAnalyze">Analise uma partida ou posição.</string>
++  <string name="muteWelcomeSettings">Configure o Mute Chess ao seu gosto.</string>
++  <string name="muteInvitePlayer">Ou convide um jogador do Mute Chess:</string>
++  <string name="muteStudyWelcomeTitle">Boas-vindas aos estudos do Mute Chess!</string>
++  <string name="muteStudyWelcomeText">Este é um tabuleiro de análise compartilhado. Use-o para analisar e comentar partidas, discutir posições com amigos ou dar aulas de xadrez. Vamos ver como funciona.</string>
++  <string name="muteForumDescription">Discussões sobre xadrez e comentários sobre o Mute Chess.</string>
  </resources>
 diff --git a/translation/dest/site/ru-RU.xml b/translation/dest/site/ru-RU.xml
-index 6384657..47d453e 100644
+index 6384657..799b9c5 100644
 --- a/translation/dest/site/ru-RU.xml
 +++ b/translation/dest/site/ru-RU.xml
-@@ -1146,4 +1146,89 @@
+@@ -1146,4 +1146,98 @@
    <string name="write">Написать</string>
    <string name="preview">Предпросмотр</string>
    <string name="done">Готово</string>
@@ -5002,12 +5279,21 @@ index 6384657..47d453e 100644
 +<string name="muteSiteTitle">Mute Chess — Оставайтесь людьми. Играйте с ботами.</string>
 +  <string name="muteSiteDescription">Бесплатные шахматы с открытым исходным кодом и соперниками Maia, играющими как люди.</string>
 +  <string name="mutePlayerNotFound">Это имя пользователя не принадлежит ни одному игроку Mute Chess.</string>
++  <string name="muteWelcomeTitle">Добро пожаловать в Mute Chess!</string>
++  <string name="muteWelcomePlayMaia">Сыграйте с Maia, имитирующей игру человека.</string>
++  <string name="muteWelcomeFindFriends">Находите друзей и подписывайтесь на них.</string>
++  <string name="muteWelcomeAnalyze">Проанализируйте партию или позицию.</string>
++  <string name="muteWelcomeSettings">Настройте Mute Chess по своему вкусу.</string>
++  <string name="muteInvitePlayer">Или пригласите игрока Mute Chess:</string>
++  <string name="muteStudyWelcomeTitle">Добро пожаловать в исследования Mute Chess!</string>
++  <string name="muteStudyWelcomeText">Это общая аналитическая доска. На ней можно анализировать и комментировать партии, обсуждать позиции с друзьями или проводить уроки шахмат. Давайте посмотрим, как она работает.</string>
++  <string name="muteForumDescription">Обсуждение шахмат и отзывы о Mute Chess.</string>
  </resources>
 diff --git a/translation/dest/site/zh-CN.xml b/translation/dest/site/zh-CN.xml
-index 176f4d1..5e186ff 100644
+index 176f4d1..3b7769d 100644
 --- a/translation/dest/site/zh-CN.xml
 +++ b/translation/dest/site/zh-CN.xml
-@@ -1022,4 +1022,89 @@
+@@ -1022,4 +1022,98 @@
    <string name="write">撰写</string>
    <string name="preview">预览</string>
    <string name="done">完成</string>
@@ -5096,12 +5382,21 @@ index 176f4d1..5e186ff 100644
 +<string name="muteSiteTitle">Mute Chess — 保持人性，与机器人对弈。</string>
 +  <string name="muteSiteDescription">免费开源的国际象棋，与像人类一样下棋的 Maia 对手对弈。</string>
 +  <string name="mutePlayerNotFound">没有 Mute Chess 玩家使用此用户名。</string>
++  <string name="muteWelcomeTitle">欢迎来到 Mute Chess！</string>
++  <string name="muteWelcomePlayMaia">与模拟人类棋风的 Maia 对弈。</string>
++  <string name="muteWelcomeFindFriends">寻找并关注你的朋友。</string>
++  <string name="muteWelcomeAnalyze">分析棋局或局面。</string>
++  <string name="muteWelcomeSettings">按你的喜好设置 Mute Chess。</string>
++  <string name="muteInvitePlayer">或邀请一位 Mute Chess 玩家：</string>
++  <string name="muteStudyWelcomeTitle">欢迎使用 Mute Chess 研究！</string>
++  <string name="muteStudyWelcomeText">这是一个共享分析棋盘。你可以用它分析和注释棋局、与朋友讨论局面，或进行国际象棋教学。让我们看看如何使用。</string>
++  <string name="muteForumDescription">讨论国际象棋并提出对 Mute Chess 的意见。</string>
  </resources>
 diff --git a/translation/source/site.xml b/translation/source/site.xml
-index 8b5a6a1..dfbcce1 100644
+index 8b5a6a1..f21679f 100644
 --- a/translation/source/site.xml
 +++ b/translation/source/site.xml
-@@ -1066,4 +1066,89 @@ Leave empty to start games from the normal initial position.</string>
+@@ -1066,4 +1066,98 @@ Leave empty to start games from the normal initial position.</string>
    <string name="write">Write</string>
    <string name="preview">Preview</string>
    <string name="done">Done</string>
@@ -5190,6 +5485,15 @@ index 8b5a6a1..dfbcce1 100644
 +<string name="muteSiteTitle">Mute Chess — Stay human. Play bots.</string>
 +  <string name="muteSiteDescription">Free, open-source chess with human-like Maia opponents.</string>
 +  <string name="mutePlayerNotFound">This username doesn't match any Mute Chess player.</string>
++  <string name="muteWelcomeTitle">Welcome to Mute Chess!</string>
++  <string name="muteWelcomePlayMaia">Play a human-like Maia opponent.</string>
++  <string name="muteWelcomeFindFriends">Find and follow your friends.</string>
++  <string name="muteWelcomeAnalyze">Analyze a game or position.</string>
++  <string name="muteWelcomeSettings">Configure Mute Chess to your liking.</string>
++  <string name="muteInvitePlayer">Or invite a Mute Chess player:</string>
++  <string name="muteStudyWelcomeTitle">Welcome to Mute Chess studies!</string>
++  <string name="muteStudyWelcomeText">This is a shared analysis board. Use it to analyse and annotate games, discuss positions with friends, or give chess lessons. Let's see how it works.</string>
++  <string name="muteForumDescription">Chess discussions and feedback about Mute Chess.</string>
  </resources>
 diff --git a/ui/.build/src/build.ts b/ui/.build/src/build.ts
 index 7d6adeb..b433f0c 100644
@@ -5668,7 +5972,7 @@ index 10247d7..a17474f 100644
 +  analysisKey?: string;
 +};
 diff --git a/ui/analyse/src/interfaces.ts b/ui/analyse/src/interfaces.ts
-index 00f9d9a..b2c6b05 100644
+index 00f9d9a..5bef818 100644
 --- a/ui/analyse/src/interfaces.ts
 +++ b/ui/analyse/src/interfaces.ts
 @@ -49,6 +49,7 @@ export interface AnalyseData {
@@ -5679,10 +5983,11 @@ index 00f9d9a..b2c6b05 100644
    forecast?: ForecastData;
    sidelines?: TreeNode[][];
    treeParts: TreeNodeBase[];
-@@ -159,6 +160,7 @@ export interface AnalysisMetaSide {
+@@ -159,6 +160,8 @@ export interface AnalysisMetaSide {
  }
  
  export interface AnalyseOpts {
++  muteStudyWelcome?: { title: string; text: string };
 +  standardOnly?: boolean;
    element: HTMLElement;
    data: AnalyseData;
@@ -6378,9 +6683,20 @@ index cfbd78b..cc51dad 100644
      $panels.find('form.future-game-analysis').on('submit', function (this: HTMLFormElement) {
        if ($(this).hasClass('must-login')) {
 diff --git a/ui/analyse/src/study/analyse.study.tour.ts b/ui/analyse/src/study/analyse.study.tour.ts
-index 9f368b9..00623a6 100644
+index 9f368b9..63ec034 100644
 --- a/ui/analyse/src/study/analyse.study.tour.ts
 +++ b/ui/analyse/src/study/analyse.study.tour.ts
+@@ -37,8 +37,8 @@ export function initModule(): StudyTour {
+ 
+     const steps: Shepherd.Step.StepOptions[] = [
+       {
+-        title: i18n.study.welcomeToLichessStudyTitle,
+-        text: i18n.study.welcomeToLichessStudyText,
++        title: ctrl.opts.muteStudyWelcome?.title ?? i18n.study.welcomeToLichessStudyTitle,
++        text: ctrl.opts.muteStudyWelcome?.text ?? i18n.study.welcomeToLichessStudyText,
+         attachTo: { element: helpButtonSelector, on: 'top' },
+       },
+       {
 @@ -146,12 +146,6 @@ export function initModule(): StudyTour {
          attachTo: { element: `${viewSel} .tabs-horiz .pgn`, on: 'top' },
          when: onTab('pgn'),

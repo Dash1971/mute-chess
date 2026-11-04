@@ -92,3 +92,8 @@ catalog checks and the exact-path departure register. The test covers generic
 fallback art, meaningful game/puzzle images, escaping and unchanged upstream
 identity. A real fresh link preview remains a post-deployment check once the
 owner authorizes a release.
+
+
+The follow-up [account and onboarding audit](account-branding-audit.md) (#258)
+covers the zero-game welcome, invitations, study help and forum copy. It retains
+real upstream attribution and explicitly lists blocked/native-only surfaces.
