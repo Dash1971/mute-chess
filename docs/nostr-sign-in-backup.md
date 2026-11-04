@@ -3,6 +3,23 @@
 The owner authorized implementation and a PR stacked on forum PR #83 on October
 30, 2026, superseding the issue's original idea-only hold.
 
+## Consistent signup identity (#256)
+
+Every new human Nostr account uses `n` followed by the first 19 hexadecimal
+characters of its verified public key as its native ID, whether or not a name
+is supplied at signup. A supplied name is saved as the editable profile
+`displayName`; both canonical and chosen-name uniqueness claims commit in the
+same user insert. Login still resolves the full public key first, so an existing
+account keeps its identity and does not get recreated when a name is supplied.
+Bots retain their native named identities. The full npub remains the public
+identity and collision checks remain authoritative for shortened native IDs.
+
+The owner explicitly requested migration of `test1` to `n2f2b537576f0256497f`.
+Keep its current display name, keys, session, challenge, patron/donation records
+and other persisted account data. Save its previous native ID for a profile
+redirect. Other existing accounts remain unchanged pending an owner decision.
+No general account migration tool or schema-wide rename is introduced.
+
 ## Experience
 
 Profile information buttons beside the npub and permanent account handle open
