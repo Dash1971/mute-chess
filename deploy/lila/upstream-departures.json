@@ -641,7 +641,8 @@
           "verification": [
             "Compile native views and controllers; root NoSweatInsightsTest checks the allowed game/rating queries and rejection of engine/variant queries.",
             "Build the native Insights client with localized labels, empty/failure states, presets and stable result colors. Verify all 52 catalog keys and placeholders in all ten locales.",
-            "Existing actual-handler gateway tests check Insights method exposure, blog/community/profile feature notices, fixed upstream target and preserved private/write/unknown-route rejection."
+            "Existing actual-handler gateway tests check Insights method exposure, blog/community/profile feature notices, fixed upstream target and preserved private/write/unknown-route rejection.",
+            "NoSweatInsightsLocaleTest loads and renders through all ten compiled native catalogs, checking notice text, metric labels and formatted counts without English fallback."
           ],
           "files": [
             "app/controllers/Insight.scala",
@@ -660,7 +661,8 @@
             "ui/insight/src/presets.ts",
             "ui/insight/src/table.ts",
             "ui/insight/src/text.ts",
-            "ui/insight/src/view.ts"
+            "ui/insight/src/view.ts",
+            "src/test/scala/NoSweatInsightsLocaleTest.scala"
           ]
         }
       ]

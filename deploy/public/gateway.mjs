@@ -138,16 +138,15 @@ const server = http.createServer((req, res) => {
     (post && /^\/insights\/(?:data|refresh)\/[A-Za-z0-9_-]{1,30}$/.test(path));
   // Known inherited feature links get a translated native notice, never their blocked controller.
   const unsupportedFeature = (
-    /^\/(?:blog|ublog|coach|tournament|simul|team|teams|broadcast|tv|racer|tutor|video|streamer|mobile|paste|import)(?:\.atom|\/|$)/.test(path) ||
-    /^\/@\/[A-Za-z0-9_-]{1,30}\/blog(?:\.atom|\/|$)/.test(path) ||
+    /^\/(?:blog|ublog|coach|tournament|simul|team|teams|broadcast|tv|racer|tutor|video|streamer|mobile|paste|import|report|inbox|page)(?:\.atom$|\/|$)/.test(path) ||
+    /^\/@\/[A-Za-z0-9_-]{1,30}\/blog(?:\.atom$|\/|$)/.test(path) ||
     /^\/(?:forum|study|games)\/search(?:\/|$)/.test(path) ||
     /^\/player\/(?:bots|top\/correspondence)$/.test(path) ||
     /^\/stat\/rating\/distribution\/correspondence$/.test(path)
   );
-  const unsupportedRead = read && unsupportedFeature;
-  if (unsupportedFeature && !read) return reject(res, 404, "This page is unavailable. Return to the homepage.");
+  const unsupportedRead = read && (unsupportedFeature || path === "/account/kid");
   const supported = insightsRoute || unsupportedRead || languageHome || analysisExportRoute || friendRoute || infoRoute || featureRoute || patronRoute || puzzleRoute || profileRoute || path === '/' || /^\/(?:club(?:\/|$)|analysis(?:\/|$)|editor(?:\/|$)|game(?:\/|$)|@\/|login$|signup$|logout$|player-count$|account\/now-playing$|lobby\/seeks$|timeline$|pref(?:\/|$)|whats-next\/|opening(?:\/|$)|api\/cloud-eval$)/.test(path) || /^\/[A-Za-z0-9]{8}(?:[A-Za-z0-9]{4})?(?:\/(?:white|black))?$/.test(path);
-  if (!supported) return reject(res, 404, 'This page is unavailable. Return to the homepage.');
+  if (!supported || ((unsupportedFeature || path === "/account/kid") && !read)) return reject(res, 404, 'This page is unavailable. Return to the homepage.');
   if (Number(req.headers['content-length'] ?? 0) > 16 * 1024 * 1024) return reject(res, 413, 'Request too large');
   const upstream = http.request({ hostname: '127.0.0.1', port: 29663, path: unsupportedRead ? "/club/unsupported" : req.url,
     method: req.method, headers: headers(req), timeout: 30000 }, response => {

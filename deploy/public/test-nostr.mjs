@@ -79,9 +79,8 @@ try {
     ['/run/captcha/00000000?solution=e2e4','GET'], ['/notify','GET'], ['/notify/clear','POST'],
   ]) assert.equal((await request(path, method)).status, 209, `${method} ${path}`);
   for (const [path, method] of [
-    ['/paste?pgn=test','POST'], ['/import','POST'], 
-
-    ['/ja','POST'], ['/ar','GET'], ['/it','GET'], ['/translation/select','GET'], ['/translation/other','POST'], ['/player','POST'],  ['/player/top/network','GET'], ['/player/top/blitz','POST'],
+    ['/paste?pgn=test','POST'], ['/import','POST'],
+    ['/ja','POST'], ['/ar','GET'], ['/it','GET'], ['/translation/select','GET'], ['/translation/other','POST'], ['/player','POST'], ['/player/top/network','GET'], ['/player/top/blitz','POST'],
     ['/stat/rating/distribution/network','GET'], ['/stat/rating/distribution/blitz','POST'],
     ['/export/fen.gif','POST'], ['/export/other','GET'], ['/embed/analysis','POST'], ['/embed/other','GET'],
     ['/player/search/QuietProxy','POST'], ['/player/search/a/b','GET'],
@@ -90,14 +89,14 @@ try {
     ['/challenge','POST'], ['/rel/follow/friend','GET'], ['/rel/delete/friend','POST'],
     ['/about','POST'], ['/privacy','POST'], ['/account/preferences/engine-analysis','POST'], ['/account/preferences/network','GET'], ['/account/preferences/network','POST'], ['/account/passwd','POST'],
     ['/account/oauth/token','GET'], ['/api/account/preferences','GET'], ['/api/study','POST'],
-    ['/api/streak/27','POST'], ['/storm','DELETE'], ['/learn','DELETE'], ['/games/atomic','GET'], 
-     ['/club/internal/games','GET'],
+    ['/api/streak/27','POST'], ['/storm','DELETE'], ['/learn','DELETE'], ['/games/atomic','GET'], ['/club/internal/games','GET'],
   ]) assert.equal((await request(path, method)).status, 404, `${method} ${path}`);
   // Known unsupported view links proxy only the fixed notice, not their original controller.
   for (const path of ['/ublog', '/ublog/community', '/ublog/month/2026/11', '/ublog/topic/chess', '/blog',
-    '/ublog/liked', '/ublog/friends', '/ublog/User/new', '/@/User/blog', '/@/User/blog/drafts',
+    '/ublog/liked', '/ublog.atom', '/@/User/blog.atom', '/ublog/friends', '/ublog/User/new', '/@/User/blog', '/@/User/blog/drafts',
     '/racer', '/coach', '/tutor', '/tournament', '/simul', '/team/all', '/broadcast', '/tv',
-    '/forum/search', '/study/search', '/games/search', '/paste', '/import', '/player/bots',
+    '/forum/search', '/study/search', '/games/search', '/page/forum-etiquette',
+    '/report?username=User', '/inbox/User', '/account/kid', '/paste', '/import', '/player/bots',
     '/player/top/correspondence', '/stat/rating/distribution/correspondence']) {
     const res = await request(path);
     assert.equal(res.status, 209, path);
@@ -107,7 +106,7 @@ try {
   for (const [path, method] of [['/insights/User', 'GET'], ['/insights/User/result/color', 'GET'],
     ['/insights/User/result/openingFamily/color:white', 'GET'], ['/insights/data/User', 'POST'],
     ['/insights/refresh/User', 'POST']]) assert.equal((await request(path, method)).status, 209, path);
-  for (const [path, method] of [['/ublog/User/new', 'POST'], ['/@/User/blog', 'POST'], ['/tournament', 'POST'],
+  for (const [path, method] of [['/ublog/User/new', 'POST'], ['/report', 'POST'], ['/inbox/User', 'POST'], ['/account/kid', 'POST'], ['/@/User/blog', 'POST'], ['/tournament', 'POST'],
     ['/insights/data/User', 'GET'], ['/insights/refresh/User', 'GET'], ['/insights/User', 'DELETE'],
     ['/some-missing-page', 'GET'], ['/club/internal/activity', 'GET']])
     assert.equal((await request(path, method)).status, 404, path);
