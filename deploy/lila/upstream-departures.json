@@ -592,6 +592,20 @@
             "Compile and stage each pinned native application; inspect resolved and staged Netty/Jackson versions.",
             "Run existing native tests and live HTTP/WebSocket authentication, origin, malformed-frame and game smoke checks after deployment."
           ]
+        },
+        {
+          "id": "chat-public-names",
+          "rationale": "Issue #273 uses existing LightUser public display names as optional chat presentation metadata while retaining canonical stored authorship and native link/moderation semantics. Both loaded and live lines use the same writer and renderer; older clients ignore the new field.",
+          "verification": [
+            "Run chat/testOnly lila.chat.ChatPublicNameTest and native chatPublicNames DOM tests; compile/format both serialization and view paths. No new UI text or translation keys."
+          ],
+          "files": [
+            "modules/chat/src/main/ChatJsonView.scala",
+            "modules/chat/src/test/ChatPublicNameTest.scala",
+            "ui/lib/src/chat/interfaces.ts",
+            "ui/lib/src/chat/discussion.ts",
+            "ui/lib/tests/chatPublicNames.test.ts"
+          ]
         }
       ]
     },
