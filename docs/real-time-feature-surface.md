@@ -1,0 +1,13 @@
+# Supported real-time surface (#267, #269–272)
+
+Learn has exactly Chess basics (`/learn`) and Practice (`/practice`), matching the owner’s clarified Lichess reference. The original native labels are reused in every locale. Other Learn dropdown entries are absent only from the focused Mute navigation.
+
+Correspondence and Puzzle Racer are absent from focused profile sidebars. Correspondence also leaves exposed leaderboards and rating-distribution selectors. Stored ratings, Racer scores and historical game records are retained; historical replay/statistics URLs are not rewritten or deleted. Storm, Streak and ordinary puzzles remain supported.
+
+Custom Maia and direct-friend setup offer only real-time clocks. Old saved and URL-forced correspondence/unlimited choices reset to real-time while retaining valid minutes/increment. The public Maia endpoint rejects non-real-time modes before admission and builds only clocked games. Native friend creation and acceptance reject clockless requests, including old pending invitations. The shared focused insertion gate also rejects playable games without a real-time clock, covering rematches/bypasses without changing moves, finishes, native clock math or ratings. Existing games may finish; this change does not cancel or migrate them. Outside the focused flag, native setup/insertion behavior remains unchanged.
+
+Public Import game navigation and its GET/POST endpoints are disabled. Its Request a computer analysis checkbox invoked the server-side Fishnet analyser, not browser review; Mute has no Fishnet service. PGN/FEN import on the analysis board, study PGN imports, exports and existing imported-game replays remain intact. Old imported replay metadata shows a translated non-link label rather than pointing to the disabled form. The obsolete focused PGN-variant guard inside the now-disabled public importer is removed; pure import/parser services are unchanged.
+
+Trade-off: users can no longer create a new public, saved game URL through the old importer; the analysis board and studies remain the supported import destinations. Existing correspondence/unlimited history stays readable, but new games and rematches in those modes are rejected. No accounts, ratings, scores or histories are deleted.
+
+Validation: 13 native UI regressions cover setup normalization plus the existing real lobby/bootstrap/game-start-sound flow. Existing gateway boundary tests exercise the actual handler and deny import/Racer/correspondence routes while retaining analysis/study/learn/practice routes. Native formatting and exact patch/departure coverage are checked; new messages and reused Learn labels are verified in all ten supported catalogs. This is PR preparation only: no merge or deployment.
