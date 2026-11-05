@@ -111,7 +111,15 @@ The model and training code are openly published. En Croissant decides its
 Brilliant badge using developer-written rules; our model learns patterns from
 Chess.com’s labeled examples.
 
-On **400 test moves from 215 games** not used to train the model:
+Using the site's **Stockfish 19 1MB engine and default Fast full-game review**,
+automated replays of **400 test moves from 215 games** not used to train the model
+recognized **108 of 200 Chess.com Brilliants (54%)**, with **3 wrong awards among
+200 explicitly non-Brilliant moves**. The complete-window confirmation fix
+retains those results. These are local replays of the native engine and review
+code; timed searches can vary across browsers and devices. See the
+[native review results](docs/brilliant-native-review-validation.md).
+
+In the separate comparison using fixed Stockfish 18 research analysis:
 
 | | Mute Selective | En Croissant |
 | --- | ---: | ---: |
@@ -119,7 +127,8 @@ On **400 test moves from 215 games** not used to train the model:
 | Undeserved Brilliant badges | **3 / 200** | 3 / 200 |
 
 That is about **twice as many Brilliants with the same number of wrong badges**
-in our tests. Other methods recognized more Brilliants, but gave too many wrong
+under those research settings. Those figures are not the site's Fast-mode result.
+Other methods recognized more Brilliants, but gave too many wrong
 awards to justify choosing them. Our plan is to train improved versions on more
 labeled examples while keeping wrong awards low. We can reuse the current test examples for training, then check
 the new model on different games it has never seen.

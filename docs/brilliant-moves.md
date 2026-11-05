@@ -22,6 +22,23 @@ No human manual testing is claimed.
 
 ## What the tests show
 
+With the site's **Stockfish 19 1MB engine and default Fast full-game review**,
+automated replays recognized **108 / 200 Chess.com Brilliants (54%)**, with
+**3 / 200 wrong awards** among explicitly non-Brilliant moves. Both the existing
+confirmation path and the complete-window correction produce those totals and
+the same 400 target decisions. The model and cutoff were unchanged.
+
+The test uses 215 complete games, including earlier moves and the six-search
+confirmation allowance. All games are separate from the original model's
+training games. It runs the native engine assets, snapshot parser and classifier
+locally, rather than clicking through 400 browser reviews. Of the negative
+examples, 139 have Best, Excellent, Good or `!` labels (two wrong awards); the
+remaining 61 have error labels (one wrong award). See the
+[native review validation](brilliant-native-review-validation.md) and
+[all 400 outcomes](../analysis/data/brilliants-native-fast-2026-11-06.json).
+
+### Fixed research-engine comparison
+
 The [illustrated study](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md)
 compares unchanged classifiers on **400 labeled moves from 215 games** that were
 not used to train the model. There are 200 confirmed Chess.com Brilliants and
@@ -62,11 +79,12 @@ for each candidate and compare it with this fixed baseline.
 
 The samples emphasize nearby tactical comparisons from five established
 accounts. They do not establish ordinary-game badge frequency, beginner behavior,
-population precision or measured fun. The fixed SF18 research inputs and saved
-native parity do not establish classification accuracy under native SF19 or
-variable timed review profiles. The recent native History review does not
-validate this selective model. Browser interaction and human testing remain
-outside the completed evidence.
+population precision or measured fun. The SF19 Fast replay measures this native
+full-game path on one Mac; it does not establish the same results for Balanced,
+Thorough, other engine choices, the legacy additive path, every browser or every
+device. Changing review modes can change badges. The SF18 comparison and saved
+source-parity checks are separate evidence. Browser interaction across the full
+corpus and human testing remain outside the completed evidence.
 
 ## Exact frozen classifier
 
@@ -171,10 +189,11 @@ validation, confirmation, actual worker dispatch, cancellation and glyph/import
 protection. These checks validate implementation parity, not a second independent
 accuracy test. The fresh set must not be used to retune this model or threshold.
 
-The research used Stockfish 18, one thread, 64 MB hash and 300,000 requested nodes
+The fixed research comparison used Stockfish 18, one thread, 64 MB hash and 300,000 requested nodes
 per position with full PGN history. Native Stockfish 19 and timed modes produce
 different inputs. Even changing only the research node budget changed predictions,
-so source parity cannot establish native accuracy. Saved-input parity does not establish behavior on every browser or device;
+so source parity alone cannot establish native accuracy. The separate 400-move
+SF19 Fast replay above addresses that profile. Saved-input parity does not establish behavior on every browser or device;
 human review remains an important validation step.
 
 The independent EC score/material sources are pinned to v0.15.0 commit
