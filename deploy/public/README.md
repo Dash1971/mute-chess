@@ -155,3 +155,8 @@ Native session management is available at `/account/security`; password/email an
 ## Lightning patrons
 
 The header Donate link uses the owner-confirmed Wallet of Satoshi address and official Mute Chess npub. Signed-in donors can choose sats/USD and generate a NIP-57 invoice for native patron wings after a verified receipt; anonymous direct LNURL support remains available. The adapter has narrowly scoped provider HTTPS/DNS egress. See [the payment flow, settlement checks and qualification](../../docs/lightning-patrons.md). No private wallet or recipient signing key is deployed.
+
+
+## Security version inventory
+
+At release preparation, update `docs/security-inventory.json` for changed runtimes, pins or overrides, and verify it against staged jars/locks and the running services after activation. OpenClaw reads the deployed copy at `/opt/nosweatchess/current/corresponding-source/docs/security-inventory.json` together with the active `RELEASE.json`. Follow [the advisory review instructions](../../docs/security-maintenance.md); private Redis and Python environments are maintained separately from host APT.

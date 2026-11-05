@@ -163,3 +163,6 @@ fixed inputs. Native game creation, matching, clocks, ratings, completion, old
 frozen games and study policies remain unchanged. Rebase checks must verify the
 perf key/default at admission, authenticated freeze forwarding, input bounds,
 versioned compatibility and unchanged self/history/sampling/timing controls.
+
+
+Security maintenance #279 also aligns existing jsoup/Guava/Jakarta Mail dependencies and the native browser/build graph while retaining upstream pins. See [the maintained version inventory](security-inventory.json) and [advisory review instructions](security-maintenance.md). Update this inventory and verify staged/runtime versions whenever changing private runtimes or security overrides.

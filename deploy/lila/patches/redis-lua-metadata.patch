@@ -1,0 +1,145 @@
+From e4eb89782d70c26b07a29b956472004cb8a78b80 Mon Sep 17 00:00:00 2001
+From: Slavomir Kaslev <slavomir.kaslev@gmail.com>
+Date: Thu, 22 Oct 2026 14:05:00 +0300
+Subject: [PATCH] Fix lua shebang/function metadata RESP injection (#16032)
+
+Parsing lua shebang (during SCRIPT LOAD) or function metadata (during
+FUNCTION LOAD) may cause RESP injection into the reply stream of the
+client which may cause desync.
+Fix the parsing so it returns proper errors in error cases
+
+(cherry picked from commit c90c984474bfeb28836fa501f6dd9d4fd24cac34)
+
+Co-authored-by: Mincho Paskalev <minchopaskal@gmail.com>
+---
+ src/eval.c               | 11 +++++++++++
+ src/functions.c          |  9 +++++++++
+ tests/unit/functions.tcl | 26 ++++++++++++++++++++++++++
+ tests/unit/scripting.tcl | 35 +++++++++++++++++++++++++++++++++++
+ 4 files changed, 81 insertions(+)
+
+diff --git a/src/eval.c b/src/eval.c
+index 0edea5ddd74..52f63a27bd2 100644
+--- a/src/eval.c
++++ b/src/eval.c
+@@ -344,6 +344,17 @@ int evalExtractShebangFlags(sds body, uint64_t *out_flags, ssize_t *out_shebang_
+             sdsfreesplitres(parts, numparts);
+             return C_ERR;
+         }
++        /* sdssplitargs decodes escapes in quoted arguments. Reject CR/LF in
++         * every token before any of them can be included in an error reply. */
++        for (j = 0; j < numparts; j++) {
++            if (memchr(parts[j], '\r', sdslen(parts[j])) ||
++                memchr(parts[j], '\n', sdslen(parts[j]))) {
++                if (err)
++                    *err = sdsnew("Invalid symbols in script shebang");
++                sdsfreesplitres(parts, numparts);
++                return C_ERR;
++            }
++        }
+         /* Verify lua interpreter was specified */
+         if (strcmp(parts[0], "#!lua")) {
+             if (err)
+diff --git a/src/functions.c b/src/functions.c
+index 22b5b167d77..f2c55f1921b 100644
+--- a/src/functions.c
++++ b/src/functions.c
+@@ -916,6 +916,15 @@ int functionExtractLibMetaData(sds payload, functionsLibMetaData *md, sds *err)
+         sdsfreesplitres(parts, numparts);
+         return C_ERR;
+     }
++    /* sdssplitargs decodes escapes in quoted arguments. Reject CR/LF before
++     * metadata, including the engine name, can be included in an error reply. */
++    for (int i = 0; i < numparts; i++) {
++        if (memchr(parts[i], '\r', sdslen(parts[i])) ||
++            memchr(parts[i], '\n', sdslen(parts[i]))) {
++            *err = sdsnew("Invalid symbols in library metadata");
++            goto error;
++        }
++    }
+     engine = sdsdup(parts[0]);
+     sdsrange(engine, 2, -1);
+     for (int i = 1 ; i < numparts ; ++i) {
+diff --git a/tests/unit/functions.tcl b/tests/unit/functions.tcl
+index 00233a8fa0d..80cefb86c2f 100644
+--- a/tests/unit/functions.tcl
++++ b/tests/unit/functions.tcl
+@@ -1248,6 +1248,32 @@ start_server {tags {"scripting"}} {
+         set _ $e
+     } {ERR Invalid metadata value given: foo=bar}
+ 
++    foreach {field shebang} {
++        engine {#!"lua%s" name=metadata_test}
++        name {#!lua name="metadata_test%s"}
++        option {#!lua name=metadata_test "bad=%s"}
++    } {
++        test "FUNCTION - Reject CR and LF in library metadata - $field" {
++            # Quoted metadata decodes escapes, including hex and NUL bytes.
++            foreach symbols [list {\r} {\n} {\r\n+INJECTED\r\n} \
++                                  {\x0d} {\x0a} {\x0d\x0a+INJECTED\x0d\x0a} \
++                                  {\x00\r} {\x00\n} "\r"] {
++                set code "[format $shebang $symbols]\nredis.register_function('metadata_test', function() return 1 end)"
++                assert_error {ERR Invalid symbols in library metadata} {
++                    r function load $code
++                }
++                # An injected reply must not be left on the connection.
++                assert_equal PONG [r ping]
++            }
++        }
++    }
++
++    test {FUNCTION - Quoted library metadata with CRLF line endings} {
++        assert_equal metadata_test [r function load "#!\"lua\" name=\"metadata_test\"\r\nredis.register_function('metadata_test', function() return 1 end)"]
++        assert_equal 1 [r fcall metadata_test 0]
++        r function delete metadata_test
++    } {OK}
++
+     test {FUNCTION - function test no name} {
+          catch {r function load replace {#!lua
+             redis.register_function('foo', function() return 1 end)
+diff --git a/tests/unit/scripting.tcl b/tests/unit/scripting.tcl
+index d6bcfa5c804..c2df2166289 100644
+--- a/tests/unit/scripting.tcl
++++ b/tests/unit/scripting.tcl
+@@ -2433,6 +2433,41 @@ start_server {tags {"scripting"}} {
+         assert_match {*Unexpected flag in script shebang*} $e
+     }
+ 
++    foreach command {eval eval_ro {script load}} {
++        foreach {field shebang} {
++            engine {#!"lua%s" flags=no-writes}
++            option {#!lua flags=no-writes "bad=%s"}
++            flags {#!lua flags="no-writes,bad%s,allow-oom"}
++        } {
++            test "Reject CR and LF in shebang $field - $command" {
++                # Quoted shebang arguments decode escapes, including hex escapes.
++                # Check the entire token, even after an embedded NUL byte.
++                foreach symbols [list {\r} {\n} {\r\n+INJECTED\r\n} \
++                                      {\x0d} {\x0a} {\x0d\x0a+INJECTED\x0d\x0a} \
++                                      {\x00\r} {\x00\n} "\r"] {
++                    set script "[format $shebang $symbols]\nreturn 1"
++                    set args [list $script]
++                    if {$command ne "script load"} {lappend args 0}
++                    assert_error {ERR Invalid symbols in script shebang} {
++                        r {*}$command {*}$args
++                    }
++                    # An injected reply must not be left on the connection.
++                    assert_equal PONG [r ping]
++                }
++            }
++        }
++
++        test "Quoted shebang tokens with CRLF line endings - $command" {
++            set script "#!\"lua\" flags=\"no-writes,allow-oom\"\r\nreturn 1 -- $command"
++            if {$command eq "script load"} {
++                set sha [r script load $script]
++                assert_equal 1 [r evalsha_ro $sha 0]
++            } else {
++                assert_equal 1 [r $command $script 0]
++            }
++        }
++    }
++
+     test "allow-oom shebang flag" {
+         r set x 123
+     

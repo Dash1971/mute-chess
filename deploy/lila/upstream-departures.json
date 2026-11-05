@@ -591,13 +591,18 @@
         },
         {
           "id": "security-dependency-alignment",
-          "rationale": "Issue #232 aligns existing Netty modules at 4.2.19.Final and the Jackson 2.x family at 2.18.11 to replace vulnerable transitive parser libraries. This changes build dependency selection only; upstream revisions, chess rules, authentication, protocols and data semantics are retained. Remove the overrides when the pinned upstream builds resolve equivalent patched versions.",
+          "rationale": "Issue #232 aligns existing Netty modules at 4.2.19.Final and the Jackson 2.x family at 2.18.11 to replace vulnerable transitive parser libraries. This changes build dependency selection only; upstream revisions, chess rules, authentication, protocols and data semantics are retained. Remove the overrides when the pinned upstream builds resolve equivalent patched versions. Lila also aligns its existing jsoup, Guava and Jakarta Mail dependencies to 1.23.2, 33.7.2-jre and 1.6.8; the browser/build graph uses exact security overrides and a regenerated native lock (#279).",
           "files": [
-            "security-dependencies.sbt"
+            "security-dependencies.sbt",
+            "pnpm-workspace.yaml",
+            "pnpm-lock.yaml",
+            "ui/bits/patches/@toast-ui__editor.patch",
+            "ui/bits/tests/editorSanitizer.test.ts"
           ],
           "verification": [
             "Compile and stage each pinned native application; inspect resolved and staged Netty/Jackson versions.",
-            "Run existing native tests and live HTTP/WebSocket authentication, origin, malformed-frame and game smoke checks after deployment."
+            "Run existing native tests and live HTTP/WebSocket authentication, origin, malformed-frame and game smoke checks after deployment.",
+            "Verify the staged jsoup/Guava/Jakarta Mail jars and resolved browser/build versions; exercise editor sanitization and normal forum content (#279)."
           ]
         },
         {

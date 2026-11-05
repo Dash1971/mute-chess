@@ -35,13 +35,25 @@ fi
 if [[ ! -x "$task_root/tools/mongosh/node_modules/.bin/mongosh" ]]; then
   npm install --prefix "$task_root/tools/mongosh" --no-audit --no-fund mongosh@2.14.0
 fi
-mkdir -p "$task_root/tools/redis-packages" "$task_root/tools/redis"
-if [[ ! -x "$task_root/tools/redis/usr/bin/redis-server" || ! -f "$task_root/tools/redis/usr/lib/x86_64-linux-gnu/liblzf.so.1" ]]; then
-  (
-    cd "$task_root/tools/redis-packages"
-    apt-get download redis-server redis-tools liblzf1
-    for package in ./*.deb; do dpkg-deb --extract "$package" "$task_root/tools/redis"; done
-  )
+# Redis is a private runtime: host apt upgrades do not refresh this copy.
+# Requires the normal C build prerequisites (build-essential and libssl-dev).
+redis_version=8.2.11
+redis_patch=e4eb89782d70c26b07a29b956472004cb8a78b80
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+redis_sha256=fba14b77c4bdcb2d5418b6741fc0cdaac4b78bc73eab9b2e5f3c255d597f16fa
+if [[ ! -f "$task_root/tools/redis/VERSION" ]] || [[ $(cat "$task_root/tools/redis/VERSION") != "$redis_version+$redis_patch" ]]; then
+  command -v make
+  command -v cc
+  curl --fail --silent --show-error --location "https://download.redis.io/releases/redis-$redis_version.tar.gz" -o "$task_root/tools/redis-$redis_version.tar.gz"
+  printf '%s  %s\n' "$redis_sha256" "$task_root/tools/redis-$redis_version.tar.gz" | sha256sum --check
+  tar -xzf "$task_root/tools/redis-$redis_version.tar.gz" -C "$task_root/tools"
+  git -C "$task_root/tools/redis-$redis_version" apply "$script_dir/patches/redis-lua-metadata.patch"
+  make -C "$task_root/tools/redis-$redis_version" -j2 BUILD_TLS=yes
+  mkdir -p "$task_root/tools/redis/usr/bin"
+  for binary in redis-server redis-cli redis-check-rdb redis-check-aof; do
+    install -m 755 "$task_root/tools/redis-$redis_version/src/$binary" "$task_root/tools/redis/usr/bin/$binary"
+  done
+  printf '%s\n' "$redis_version+$redis_patch" > "$task_root/tools/redis/VERSION"
 fi
 export LD_LIBRARY_PATH="$task_root/tools/redis/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 pnpm --version
