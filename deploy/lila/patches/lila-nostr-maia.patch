@@ -4467,10 +4467,10 @@ index 74906f1..99e482b 100644
  travel-places.map-of-japan
  travel-places.metro
 diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
-index 88adade..cee018f 100644
+index 88adade..0aa3c4a 100644
 --- a/translation/dest/site/de-DE.xml
 +++ b/translation/dest/site/de-DE.xml
-@@ -1064,4 +1064,102 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
+@@ -1064,4 +1064,103 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
    <string name="write">Schreiben</string>
    <string name="preview">Vorschau</string>
    <string name="done">Erledigt</string>
@@ -4572,12 +4572,13 @@ index 88adade..cee018f 100644
 +  <string name="muteDonationDismissHelp">Dies blendet die Anfrage aus. Die Wallet-Rechnung kann bis zu ihrem Ablauf weiterhin bezahlt werden.</string>
 +  <string name="muteDonationDismissed">Rechnung ausgeblendet. Sie kann bis zum Ablauf weiterhin bezahlt werden; jede bestätigte Zahlung wird angerechnet.</string>
 +  <string name="muteDonationDismissFailed">Diese Rechnung konnte nicht ausgeblendet werden. Prüfe die Zahlung und versuche es erneut.</string>
++  <string name="muteCopyKeyFailed">Der Schlüssel konnte nicht kopiert werden. Verwende stattdessen „Herunterladen“.</string>
  </resources>
 diff --git a/translation/dest/site/es-ES.xml b/translation/dest/site/es-ES.xml
-index 76004f5..7f731c6 100644
+index 76004f5..df0845d 100644
 --- a/translation/dest/site/es-ES.xml
 +++ b/translation/dest/site/es-ES.xml
-@@ -1064,4 +1064,102 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
+@@ -1064,4 +1064,103 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
    <string name="write">Escribir</string>
    <string name="preview">Vista previa</string>
    <string name="done">Listo</string>
@@ -4679,12 +4680,13 @@ index 76004f5..7f731c6 100644
 +  <string name="muteDonationDismissHelp">Esto oculta la solicitud. La factura del monedero se puede pagar hasta que caduque.</string>
 +  <string name="muteDonationDismissed">Factura ocultada. Se puede pagar hasta que caduque; cualquier pago confirmado se tendrá en cuenta.</string>
 +  <string name="muteDonationDismissFailed">No se pudo ocultar esta factura. Comprueba el pago y vuelve a intentarlo.</string>
++  <string name="muteCopyKeyFailed">No se pudo copiar la clave. Usa Descargar.</string>
  </resources>
 diff --git a/translation/dest/site/fr-FR.xml b/translation/dest/site/fr-FR.xml
-index 7dfd5f7..4cae042 100644
+index 7dfd5f7..84e6324 100644
 --- a/translation/dest/site/fr-FR.xml
 +++ b/translation/dest/site/fr-FR.xml
-@@ -1063,4 +1063,102 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
+@@ -1063,4 +1063,103 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
    <string name="write">Écrire</string>
    <string name="preview">Aperçu</string>
    <string name="done">Terminé</string>
@@ -4786,12 +4788,13 @@ index 7dfd5f7..4cae042 100644
 +  <string name="muteDonationDismissHelp">Cela masque la demande. La facture du portefeuille peut encore être payée jusqu’à son expiration.</string>
 +  <string name="muteDonationDismissed">Facture masquée. Elle peut encore être payée avant son expiration ; tout paiement confirmé sera pris en compte.</string>
 +  <string name="muteDonationDismissFailed">Impossible de masquer cette facture. Vérifiez le paiement, puis réessayez.</string>
++  <string name="muteCopyKeyFailed">Impossible de copier la clé. Utilisez Télécharger.</string>
  </resources>
 diff --git a/translation/dest/site/hi-IN.xml b/translation/dest/site/hi-IN.xml
-index bbf1703..f980f11 100644
+index bbf1703..65ed030 100644
 --- a/translation/dest/site/hi-IN.xml
 +++ b/translation/dest/site/hi-IN.xml
-@@ -893,4 +893,102 @@
+@@ -893,4 +893,103 @@
    <string name="closingAccountWithdrawAppeal">आपका खाता बंद करने से आपकी अपील वापस ले ली जाएगी</string>
    <string name="ourEventTips">कार्यक्रम आयोजित करने कि सलाह</string>
    <string name="nothingToSeeHere">इस समय यहां देखने को कुछ भी नहीं है।</string>
@@ -4893,12 +4896,13 @@ index bbf1703..f980f11 100644
 +  <string name="muteDonationDismissHelp">इससे अनुरोध छिप जाता है। वॉलेट का इनवॉइस समाप्त होने तक उसका भुगतान किया जा सकता है।</string>
 +  <string name="muteDonationDismissed">इनवॉइस छिपा दिया गया है। समाप्त होने तक भुगतान किया जा सकता है; हर पुष्ट भुगतान गिना जाएगा।</string>
 +  <string name="muteDonationDismissFailed">यह इनवॉइस छिपाया नहीं जा सका। भुगतान जाँचें, फिर दोबारा कोशिश करें।</string>
++  <string name="muteCopyKeyFailed">कुंजी कॉपी नहीं हो सकी। इसके बजाय डाउनलोड करें।</string>
  </resources>
 diff --git a/translation/dest/site/ja-JP.xml b/translation/dest/site/ja-JP.xml
-index e628bdb..81f4e43 100644
+index e628bdb..48082eb 100644
 --- a/translation/dest/site/ja-JP.xml
 +++ b/translation/dest/site/ja-JP.xml
-@@ -1023,4 +1023,102 @@
+@@ -1023,4 +1023,103 @@
    <string name="write">書く</string>
    <string name="preview">プレビュー</string>
    <string name="done">完了</string>
@@ -5000,12 +5004,13 @@ index e628bdb..81f4e43 100644
 +  <string name="muteDonationDismissHelp">この操作で依頼を非表示にします。ウォレットの請求書は有効期限まで支払い可能です。</string>
 +  <string name="muteDonationDismissed">請求書を非表示にしました。有効期限までは支払い可能で、確認された支払いは反映されます。</string>
 +  <string name="muteDonationDismissFailed">この請求書を非表示にできませんでした。支払いを確認してから、もう一度お試しください。</string>
++  <string name="muteCopyKeyFailed">鍵をコピーできませんでした。代わりにダウンロードしてください。</string>
  </resources>
 diff --git a/translation/dest/site/ko-KR.xml b/translation/dest/site/ko-KR.xml
-index 9341bf0..a85b090 100644
+index 9341bf0..3982465 100644
 --- a/translation/dest/site/ko-KR.xml
 +++ b/translation/dest/site/ko-KR.xml
-@@ -1022,4 +1022,102 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
+@@ -1022,4 +1022,103 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
    <string name="write">작성</string>
    <string name="preview">미리보기</string>
    <string name="done">완료</string>
@@ -5107,12 +5112,13 @@ index 9341bf0..a85b090 100644
 +  <string name="muteDonationDismissHelp">요청을 숨깁니다. 지갑의 청구서는 만료될 때까지 결제할 수 있습니다.</string>
 +  <string name="muteDonationDismissed">청구서를 숨겼습니다. 만료될 때까지 결제할 수 있으며, 확인된 결제는 모두 반영됩니다.</string>
 +  <string name="muteDonationDismissFailed">이 청구서를 숨길 수 없습니다. 결제를 확인한 후 다시 시도하세요.</string>
++  <string name="muteCopyKeyFailed">키를 복사하지 못했습니다. 대신 다운로드하세요.</string>
  </resources>
 diff --git a/translation/dest/site/pt-BR.xml b/translation/dest/site/pt-BR.xml
-index 569e752..7c4dd80 100644
+index 569e752..c3775fb 100644
 --- a/translation/dest/site/pt-BR.xml
 +++ b/translation/dest/site/pt-BR.xml
-@@ -1063,4 +1063,102 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
+@@ -1063,4 +1063,103 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
    <string name="write">Escrever</string>
    <string name="preview">Pré-visualizar</string>
    <string name="done">Feito</string>
@@ -5214,12 +5220,13 @@ index 569e752..7c4dd80 100644
 +  <string name="muteDonationDismissHelp">Isso oculta a solicitação. A fatura da carteira ainda pode ser paga até expirar.</string>
 +  <string name="muteDonationDismissed">Fatura ocultada. Ela ainda pode ser paga até expirar; qualquer pagamento confirmado será contabilizado.</string>
 +  <string name="muteDonationDismissFailed">Não foi possível ocultar esta fatura. Verifique o pagamento e tente novamente.</string>
++  <string name="muteCopyKeyFailed">Não foi possível copiar a chave. Use Baixar.</string>
  </resources>
 diff --git a/translation/dest/site/ru-RU.xml b/translation/dest/site/ru-RU.xml
-index 6384657..d669e95 100644
+index 6384657..913a0be 100644
 --- a/translation/dest/site/ru-RU.xml
 +++ b/translation/dest/site/ru-RU.xml
-@@ -1146,4 +1146,102 @@
+@@ -1146,4 +1146,103 @@
    <string name="write">Написать</string>
    <string name="preview">Предпросмотр</string>
    <string name="done">Готово</string>
@@ -5321,12 +5328,13 @@ index 6384657..d669e95 100644
 +  <string name="muteDonationDismissHelp">Запрос будет скрыт. Счёт в кошельке по-прежнему можно оплатить до истечения срока действия.</string>
 +  <string name="muteDonationDismissed">Счёт скрыт. Его можно оплатить до истечения срока действия; любой подтверждённый платёж будет учтён.</string>
 +  <string name="muteDonationDismissFailed">Не удалось скрыть этот счёт. Проверьте платёж и повторите попытку.</string>
++  <string name="muteCopyKeyFailed">Не удалось скопировать ключ. Используйте «Скачать».</string>
  </resources>
 diff --git a/translation/dest/site/zh-CN.xml b/translation/dest/site/zh-CN.xml
-index 176f4d1..ac8549b 100644
+index 176f4d1..c9f4e0c 100644
 --- a/translation/dest/site/zh-CN.xml
 +++ b/translation/dest/site/zh-CN.xml
-@@ -1022,4 +1022,102 @@
+@@ -1022,4 +1022,103 @@
    <string name="write">撰写</string>
    <string name="preview">预览</string>
    <string name="done">完成</string>
@@ -5428,12 +5436,13 @@ index 176f4d1..ac8549b 100644
 +  <string name="muteDonationDismissHelp">此操作会隐藏请求。在到期前，钱包账单仍可支付。</string>
 +  <string name="muteDonationDismissed">账单已隐藏。到期前仍可支付；任何已确认的付款都会计入。</string>
 +  <string name="muteDonationDismissFailed">无法隐藏此账单。请检查付款状态，然后重试。</string>
++  <string name="muteCopyKeyFailed">无法复制密钥。请改用下载。</string>
  </resources>
 diff --git a/translation/source/site.xml b/translation/source/site.xml
-index 8b5a6a1..3dffcdf 100644
+index 8b5a6a1..a7aaf7c 100644
 --- a/translation/source/site.xml
 +++ b/translation/source/site.xml
-@@ -1066,4 +1066,102 @@ Leave empty to start games from the normal initial position.</string>
+@@ -1066,4 +1066,103 @@ Leave empty to start games from the normal initial position.</string>
    <string name="write">Write</string>
    <string name="preview">Preview</string>
    <string name="done">Done</string>
@@ -5535,6 +5544,7 @@ index 8b5a6a1..3dffcdf 100644
 +  <string name="muteDonationDismissHelp">This hides the request. The wallet invoice can still be paid until it expires.</string>
 +  <string name="muteDonationDismissed">Invoice dismissed. It can still be paid until expiry; any confirmed payment will count.</string>
 +  <string name="muteDonationDismissFailed">Could not dismiss this invoice. Check payment, then try again.</string>
++  <string name="muteCopyKeyFailed">Could not copy the key. Use Download instead.</string>
  </resources>
 diff --git a/ui/.build/src/build.ts b/ui/.build/src/build.ts
 index 7d6adeb..b433f0c 100644
@@ -11826,10 +11836,10 @@ index 0000000..9d16b16
 +    case _ => emptyFrag
 diff --git a/app/views/noSweatLogin.scala b/app/views/noSweatLogin.scala
 new file mode 100644
-index 0000000..6064b5c
+index 0000000..668b360
 --- /dev/null
 +++ b/app/views/noSweatLogin.scala
-@@ -0,0 +1,154 @@
+@@ -0,0 +1,166 @@
 +package views
 +
 +import lila.core.i18n.I18nKey
@@ -11841,7 +11851,7 @@ index 0000000..6064b5c
 +    Page(I18nKey("muteSignIn").txt())
 +      .css("bits.auth")
 +      .headAppend(link(rel := "stylesheet", href := s"${assetPath("nosweat/nostr.css")}?v=key-backup2"))
-+      .headAppend(script(src := s"${assetPath("nosweat/nostr.js")}?v=key-backup2", defer)):
++      .headAppend(script(src := s"${assetPath("nosweat/nostr.js")}?v=key-copy3", defer)):
 +        main(cls := "auth auth-login box box-pad")(
 +          div(cls := "auth__brand")(
 +            img(
@@ -11886,7 +11896,13 @@ index 0000000..6064b5c
 +                aria.label := "Your new Nostr secret key"
 +              ),
 +              div(cls := "nostr-key-actions")(
-+                button(id := "nostr-copy", cls := "button button-metal")(I18nKey("muteCopyKey").txt()),
++                button(
++                  id := "nostr-copy",
++                  cls := "button button-metal",
++                  aria.live := "polite",
++                  attr("data-copied") := I18nKey("muteCopied").txt(),
++                  attr("data-copy-failed") := I18nKey("muteCopyKeyFailed").txt()
++                )(I18nKey("muteCopyKey").txt()),
 +                button(id := "nostr-download", cls := "button button-metal")(
 +                  I18nKey("muteDownloadKey").txt()
 +                ),
@@ -11917,7 +11933,13 @@ index 0000000..6064b5c
 +                summary("Back up your saved key"),
 +                p("Copy it to your password manager or download a private .txt copy."),
 +                div(cls := "nostr-key-actions")(
-+                  button(id := "nostr-copy-saved", cls := "button button-metal")(
++                  button(
++                    id := "nostr-copy-saved",
++                    cls := "button button-metal",
++                    aria.live := "polite",
++                    attr("data-copied") := I18nKey("muteCopied").txt(),
++                    attr("data-copy-failed") := I18nKey("muteCopyKeyFailed").txt()
++                  )(
 +                    I18nKey("muteCopyKey").txt()
 +                  ),
 +                  button(id := "nostr-download-saved", cls := "button button-metal")(

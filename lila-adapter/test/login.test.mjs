@@ -11,7 +11,7 @@ const bundle=(await build({entryPoints:[fileURLToPath(new URL('../browser/login.
 async function page(login,signer,options={}){
   if (!options.keepSaved) await forgetKey();
   const names=['generate','backup','created','copy','download','copy-saved','download-saved','persist','reveal','create-login','username','extension','saved','use-saved','forget','nsec','import','status','methods','second-factor','token','verify','back'];
-  const nodes=new Map(names.map(name=>[name,{dataset:{},value:'',textContent:'',hidden:['created','saved','second-factor'].includes(name),disabled:false,listeners:{},addEventListener(type,fn){this.listeners[type]=fn;},focus(){this.focused=true;},scrollIntoView(){},async click(){await this.listeners.click?.();}}]));
+  const nodes=new Map(names.map(name=>[name,{dataset:{copied:'Copied',copyFailed:'Could not copy the key. Use Download instead.'},style:{minInlineSize:''},getBoundingClientRect(){return {width:180};},value:'',textContent:name.startsWith('copy')?'Copy key':'',hidden:['created','saved','second-factor'].includes(name),disabled:false,listeners:{},addEventListener(type,fn){this.listeners[type]=fn;},focus(){this.focused=true;},scrollIntoView(){},async click(){await this.listeners.click?.();}}]));
   const attempts=[],destinations=[],downloads=[],blobs=new Map(),revoked=[],events=new Map();let nonce=0,clipboard='';
   class BrowserURL extends URL {
     static createObjectURL(blob){const url='blob:http://127.0.0.1:19663/'+blobs.size;blobs.set(url,blob);return url;}
@@ -116,4 +116,41 @@ test('a login response after leaving and returning cannot save a wiped key or re
   reply({status:200,body:{url:'/'}});await login;
   assert.equal(await loadKey(),null);
   assert.equal(ui.destinations.length,0);
+});
+
+
+test('key-copy feedback is local, brief, repeatable and clears on page exit', async t => {
+  t.mock.timers.enable({apis:['setTimeout']});
+  const ui=await page(()=>({status:200,body:{url:'/'}}));
+  ui.node('copy').dataset.copied='コピーしました';
+  await ui.node('generate').click();
+  const secret=ui.node('backup').value;
+  await ui.node('copy').click();
+  assert.equal(ui.clipboard,secret);
+  assert.equal(ui.node('copy').textContent,'コピーしました');
+  assert.equal(ui.node('copy').style.minInlineSize,'180px');
+  assert.ok(!ui.node('status').textContent.includes(secret));
+  t.mock.timers.tick(800);
+  await ui.node('copy').click();
+  t.mock.timers.tick(200);
+  assert.equal(ui.node('copy').textContent,'コピーしました');
+  t.mock.timers.tick(700);
+  assert.equal(ui.node('copy').textContent,'Copy key');
+  assert.equal(ui.node('copy').style.minInlineSize,'');
+  await ui.node('copy').click();
+  ui.fire('pagehide');
+  assert.equal(ui.node('copy').textContent,'Copy key');
+  t.mock.timers.tick(1000);
+  assert.equal(ui.node('backup').value,'');
+});
+
+test('clipboard denial uses localized failure and never shows copied', async()=>{
+  const ui=await page(()=>({status:200,body:{url:'/'}}),undefined,{clipboardFails:true});
+  ui.node('copy').dataset.copyFailed='鍵をコピーできませんでした。';
+  await ui.node('generate').click();
+  await ui.node('copy').click();
+  assert.equal(ui.node('copy').textContent,'Copy key');
+  assert.equal(ui.node('status').textContent,'鍵をコピーできませんでした。');
+  assert.equal(ui.node('status').dataset.state,'error');
+  assert.equal(ui.clipboard,'');
 });
