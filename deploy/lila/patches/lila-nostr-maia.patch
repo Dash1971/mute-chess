@@ -1954,6 +1954,18 @@ index 7e5965e..2df0c1d 100644
  
      private def makeLine(chatId: ChatId, color: Color, t1: String): Option[Line] =
        Writer
+diff --git a/modules/chat/src/main/ChatJsonView.scala b/modules/chat/src/main/ChatJsonView.scala
+index f46546d..184cae5 100644
+--- a/modules/chat/src/main/ChatJsonView.scala
++++ b/modules/chat/src/main/ChatJsonView.scala
+@@ -79,6 +79,7 @@ object ChatJsonView:
+       .add("r" -> l.troll)
+       .add("d" -> l.deleted)
+       .add("pc" -> u.patronAndColor.map(_.color))
++      .add("displayName" -> u.displayName.filter(_.nonEmpty))
+       .add("f" -> u.flair)
+       .add("title" -> u.title)
+ 
 diff --git a/modules/common/src/main/Json.scala b/modules/common/src/main/Json.scala
 index 9eaae2b..60120b9 100644
 --- a/modules/common/src/main/Json.scala
@@ -8038,6 +8050,49 @@ index a571135..695c8a3 100644
  export type Search = { by: SearchBy; multiPv: number; indeterminate?: boolean };
  export type NodeEfficiencyVsFishnet = Partial<Record<'chess' | 'variant', number>>;
  
+diff --git a/ui/lib/src/chat/discussion.ts b/ui/lib/src/chat/discussion.ts
+index 7ab9af2..a87a178 100644
+--- a/ui/lib/src/chat/discussion.ts
++++ b/ui/lib/src/chat/discussion.ts
+@@ -245,8 +245,13 @@ function renderText(t: string, opts?: enhance.EnhanceOpts) {
+   return snabH('t', processedText);
+ }
+ 
+-const userThunk = (name: string, title?: string, patronColor?: PatronColor, flair?: Flair) =>
+-  userLink({ name, title, patronColor, line: !!patronColor, flair, online: !!patronColor });
++const userThunk = (
++  name: string,
++  title?: string,
++  patronColor?: PatronColor,
++  flair?: Flair,
++  displayName?: string,
++) => userLink({ name, displayName, title, patronColor, line: !!patronColor, flair, online: !!patronColor });
+ 
+ const actionIcons = (ctrl: ChatCtrl, line: Line): Array<VNode | null> => {
+   if (!ctrl.data.userId || !line.u || ctrl.data.userId === line.u) return [];
+@@ -274,7 +279,7 @@ function renderLine(ctrl: ChatCtrl, line: Line): VNode {
+ 
+   if (line.c) return li([span('.color', '[' + line.c + ']'), textNode]);
+ 
+-  const userNode = thunk('a', line.u, userThunk, [line.u, line.title, line.pc, line.f]);
++  const userNode = thunk('a', line.u, userThunk, [line.u, line.title, line.pc, line.f, line.displayName]);
+   const userId = line.u?.toLowerCase();
+ 
+   const myUserId = ctrl.data.userId;
+diff --git a/ui/lib/src/chat/interfaces.ts b/ui/lib/src/chat/interfaces.ts
+index 85bf8fb..90cc475 100644
+--- a/ui/lib/src/chat/interfaces.ts
++++ b/ui/lib/src/chat/interfaces.ts
+@@ -43,7 +43,8 @@ export interface ChatData {
+ }
+ 
+ export interface Line {
+-  u?: string; // username
++  u?: string; // canonical username: ownership, moderation and links
++  displayName?: string; // optional public label
+   t: string; // text
+   d: boolean; // deleted
+   c?: Color;
 diff --git a/ui/lib/src/game/glyphs.ts b/ui/lib/src/game/glyphs.ts
 index f565ff3..368d53c 100644
 --- a/ui/lib/src/game/glyphs.ts
@@ -12707,6 +12762,40 @@ index 0000000..bf47918
 +      (0L until 6L).map(PublicBotActivity.speed).toList,
 +      List(PerfKey.blitz, PerfKey.rapid, PerfKey.blitz, PerfKey.rapid, PerfKey.blitz, PerfKey.rapid)
 +    )
+diff --git a/modules/chat/src/test/ChatPublicNameTest.scala b/modules/chat/src/test/ChatPublicNameTest.scala
+new file mode 100644
+index 0000000..7d8f241
+--- /dev/null
++++ b/modules/chat/src/test/ChatPublicNameTest.scala
+@@ -0,0 +1,28 @@
++package lila.chat
++
++import lila.core.LightUser
++
++class ChatPublicNameTest extends munit.FunSuite:
++  private val name = UserName("n066f8597b3952d996bc")
++  private val line = UserLine(name, "Good game", troll = false, deleted = false)
++
++  test("initial and live line writer adds a public label without changing canonical authorship"):
++    val user = LightUser.fallback(name).copy(displayName = Some("Dash <&>"))
++    val json = ChatJsonView.userLineWriter(Map(user.id -> user)).writes(line)
++    assertEquals((json \ "u").as[String], name.value)
++    assertEquals((json \ "displayName").as[String], "Dash <&>")
++    assertEquals((json \ "t").as[String], "Good game")
++    assertEquals(Line.userLineToStr(line), s"${name.value} Good game")
++
++  test("missing or empty labels preserve old payloads and BOT titles remain independent"):
++    for label <- List(None, Some("")) do
++      val user = LightUser.fallback(name).copy(displayName = label)
++      val json = ChatJsonView.userLineWriter(Map(user.id -> user)).writes(line)
++      assertEquals((json \ "u").as[String], name.value)
++      assertEquals((json \ "displayName").asOpt[String], None)
++    val bot =
++      LightUser.fallback(name).copy(title = Some(chess.PlayerTitle.BOT), displayName = Some("LynxSocket"))
++    val json = ChatJsonView.userLineWriter(Map(bot.id -> bot)).writes(line)
++    assertEquals((json \ "title").as[String], "BOT")
++    assertEquals((json \ "displayName").as[String], "LynxSocket")
++    assertEquals((json \ "u").as[String], name.value)
 diff --git a/modules/core/src/main/NostrName.scala b/modules/core/src/main/NostrName.scala
 new file mode 100644
 index 0000000..76cc855
@@ -131994,6 +132083,61 @@ index 0000000..547bb63
 +    emitted.at(-1)!.pvs.map(pv => pv.moves[0]),
 +    ['e2e4', 'd2d4'],
 +  );
++});
+diff --git a/ui/lib/tests/chatPublicNames.test.ts b/ui/lib/tests/chatPublicNames.test.ts
+new file mode 100644
+index 0000000..2636819
+--- /dev/null
++++ b/ui/lib/tests/chatPublicNames.test.ts
+@@ -0,0 +1,49 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++import { init, attributesModule, classModule, type VNode } from 'snabbdom';
++
++document.documentElement.lang = 'en-US';
++const { default: discussion } = await import('../src/chat/discussion');
++import type { ChatCtrl, Line } from '../src/chat/interfaces';
++
++const canonical = 'n066f8597b3952d996bc';
++const patch = init([attributesModule, classModule]);
++function author(line: Line, previous?: VNode) {
++  const ctrl = {
++    chatEnabled: () => true,
++    canPostArbitraryText: () => false,
++    data: { lines: [line], userId: canonical, resourceId: 'game/abcdefgh' },
++    vm: { domVersion: 0, writeable: false },
++    opts: {},
++    preset: { group: () => undefined },
++  } as unknown as ChatCtrl;
++  const message = discussion(ctrl)[0]!.children![0] as VNode;
++  assert.equal(message.data!.class!.me, line.u?.toLowerCase() === canonical);
++  const link = (message.children as VNode[]).find(node => node.sel === 'a')!;
++  const mount = previous || document.body.appendChild(document.createElement('div'));
++  return patch(mount, link);
++}
++
++test('loaded and updated author labels retain canonical links and safely render names', () => {
++  document.body.innerHTML = '';
++  let node = author({ u: canonical, displayName: 'Dash', t: 'Good game', d: false });
++  assert.equal(node.elm!.textContent, 'Dash');
++  node = author({ u: canonical, displayName: 'Dash <img src=x>', t: 'Good game', d: false }, node);
++  const link = node.elm as HTMLAnchorElement;
++  assert.equal(link.textContent, 'Dash <img src=x>');
++  assert.equal(link.getAttribute('href'), '/@/' + canonical);
++  assert.equal(link.querySelector('img'), null);
++});
++
++test('old and empty-label packets fall back without altering BOT badges', () => {
++  document.body.innerHTML = '';
++  for (const displayName of [undefined, '']) {
++    const node = author({ u: canonical, displayName, t: 'Good game', d: false });
++    assert.equal(node.elm!.textContent, canonical);
++  }
++  const bot = author({ u: 'lynxsocket', title: 'BOT', displayName: 'Lynx Socket', t: 'ty, gg', d: false });
++  const link = bot.elm as HTMLAnchorElement;
++  assert.equal(link.getAttribute('href'), '/@/lynxsocket');
++  assert.equal(link.querySelector('[data-bot]')?.textContent?.trim(), 'BOT');
++  assert.ok(link.textContent!.includes('Lynx Socket'));
 +});
 diff --git a/ui/lib/tests/gamePhases.test.ts b/ui/lib/tests/gamePhases.test.ts
 new file mode 100644
