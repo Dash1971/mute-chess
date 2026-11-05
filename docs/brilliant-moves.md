@@ -131,17 +131,19 @@ confirmation requirements.
 Full review retains its existing six-search confirmation allowance. Fast targets
 depth 12 / 500 ms per position, Balanced 14 / 1,000 ms, and Thorough 16 / 1,500 ms.
 Only unsupported standout candidates consume that allowance, targeting two more
-depths with the selected mode's time cap. The forest adds no Stockfish searches
-or roots. Its legal/material work runs in the cancellable classification worker;
+depths with the selected mode's time cap. Confirmation searches the same available
+prior/before/after window as the initial decision: three positions, or two when
+there is no preceding position. The six-search ceiling remains unchanged, so two
+three-position confirmations can exhaust it. The forest itself adds no Stockfish
+searches or roots. Its legal/material work runs in the cancellable classification worker;
 worker failure, cancellation or the existing 10-second watchdog publishes no
 result. Results are checked again before committing glyphs.
 
 The legacy additive verifier supplies only two board positions, so prior history
-and prior engine features are honestly missing. Full review normally supplies
-three positions, but its two-review confirmation of `!!` also leaves the second
-window's prior engine features missing. These paths are not equivalent to the
-saved three-position, fixed-budget research evidence and remain native validation
-caveats. No fabricated history or extra search fills the gap.
+and prior engine features are honestly missing. Full review supplies the available
+three-position context to both the initial decision and any additional confirmation.
+The additive path remains different from full review. Neither path is equivalent
+to the saved fixed-budget SF18 research evidence merely because its source matches.
 
 When the forest does not award `!!`, ordinary EC annotations retain their normal
 meaning and confirmation. Sacrifice-derived `!!`/`!?` is cleared if there is no
