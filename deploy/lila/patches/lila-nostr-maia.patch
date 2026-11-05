@@ -2248,7 +2248,7 @@ index b916ee3..3775c75 100644
        HookPoolLimit(
          member,
 diff --git a/modules/perfStat/src/main/PerfStatUi.scala b/modules/perfStat/src/main/PerfStatUi.scala
-index fbe7c01..fdc4eff 100644
+index fbe7c01..189066e 100644
 --- a/modules/perfStat/src/main/PerfStatUi.scala
 +++ b/modules/perfStat/src/main/PerfStatUi.scala
 @@ -10,7 +10,7 @@ import lila.rating.PerfType
@@ -2260,7 +2260,35 @@ index fbe7c01..fdc4eff 100644
    import helpers.{ *, given }
    import trans.perfStat as tps
  
-@@ -373,7 +373,10 @@ final class PerfStatUi(helpers: Helpers)(communityMenu: Context ?=> Frag):
+@@ -19,7 +19,8 @@ final class PerfStatUi(helpers: Helpers)(communityMenu: Context ?=> Frag):
+   ) =
+     import data.{ user, stat }
+     import stat.perfType
+-    Page(s"${user.username} - ${trans.perfStat.perfStats.txt(perfType.trans)}")
++    val publicName = if focused then user.user.publicName else user.username.value
++    Page(s"$publicName - ${trans.perfStat.perfStats.txt(perfType.trans)}")
+       .flag(_.noRobots)
+       .js(Esm("user"))
+       .js(ratingChart.map: rc =>
+@@ -36,7 +37,7 @@ final class PerfStatUi(helpers: Helpers)(communityMenu: Context ?=> Frag):
+               div(cls := "box__top__title")(
+                 perfTrophies,
+                 h1(
+-                  a(href := routes.User.show(user.username))(user.username),
++                  a(href := routes.User.show(user.username))(publicName),
+                   span(tps.perfStats(perfType.trans))
+                 )
+               ),
+@@ -61,7 +62,7 @@ final class PerfStatUi(helpers: Helpers)(communityMenu: Context ?=> Frag):
+       )
+     else
+       trans.site.userIsBetterThanPercentOfPerfTypePlayers(
+-        a(href := routes.User.show(u.username))(u.username),
++        a(href := routes.User.show(u.username))(if focused then u.publicName else u.username.value),
+         a(href := routes.User.ratingDistribution(pk, u.username.some))(
+           strong(percentile, "%")
+         ),
+@@ -373,7 +374,10 @@ final class PerfStatUi(helpers: Helpers)(communityMenu: Context ?=> Frag):
        me: Option[UserWithPerfs]
    ) =
      val myVisiblePerfs = me.map(_.perfs).ifTrue(ctx.pref.showRatings)
@@ -2272,7 +2300,16 @@ index fbe7c01..fdc4eff 100644
        .css("user.rating.stats")
        .flag(_.fullScreen)
        .js(
-@@ -392,11 +395,13 @@ final class PerfStatUi(helpers: Helpers)(communityMenu: Context ?=> Frag):
+@@ -383,7 +387,7 @@ final class PerfStatUi(helpers: Helpers)(communityMenu: Context ?=> Frag):
+             "freq" -> data,
+             "myRating" -> myVisiblePerfs.map(_(perfType).intRating),
+             "otherRating" -> otherUser.ifTrue(ctx.pref.showRatings).map(_.perfs(perfType).intRating),
+-            "otherPlayer" -> otherUser.map(_.username)
++            "otherPlayer" -> otherUser.map(u => if focused then u.user.publicName else u.username.value)
+           )
+         )
+       ):
+@@ -392,11 +396,13 @@ final class PerfStatUi(helpers: Helpers)(communityMenu: Context ?=> Frag):
            div(cls := "rating-stats page-menu__content box box-pad")(
              boxTop(
                h1(
@@ -2288,7 +2325,7 @@ index fbe7c01..fdc4eff 100644
                        .map(PerfType(_))
                        .map: pt =>
                          a(
-@@ -409,36 +414,42 @@ final class PerfStatUi(helpers: Helpers)(communityMenu: Context ?=> Frag):
+@@ -409,36 +415,42 @@ final class PerfStatUi(helpers: Helpers)(communityMenu: Context ?=> Frag):
                )
              ),
              div(cls := "desc", dataIcon := perfType.icon)(
