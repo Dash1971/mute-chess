@@ -127,6 +127,7 @@ if not (base / 'tools/node').exists():
     (base / 'tools/node').chmod(0o755)
 if not (base / 'venv/bin/python').exists():
     subprocess.run(['python3', '-m', 'venv', str(base / 'venv')], check=True)
+    subprocess.run([str(base / 'venv/bin/pip'), 'install', 'pip==26.2.0'], check=True)
     subprocess.run([str(base / 'venv/bin/pip'), 'install', '-r', str(payload / 'requirements.txt')], check=True)
 model = data / 'maia3-79m.onnx'
 if not model.exists():

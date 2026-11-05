@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "kind": "release-targets",
+  "reviewedAt": "2026-11-05",
+  "deploymentIdentity": "Read RELEASE.json from the SAME current release. These targets are not proof of installation; compare with SECURITY279_BUILD.json and actual running versions. Recheck after every release or host/tool update.",
+  "upstreamPins": {
+    "lila": {
+      "repository": "https://github.com/lichess-org/lila",
+      "commit": "b551752d2a0e7a63459d9812825d95a633a98737",
+      "localPatch": "deploy/lila/patches/lila-nostr-maia.patch"
+    },
+    "lila-ws": {
+      "repository": "https://github.com/lichess-org/lila-ws",
+      "commit": "5089b84b5fe2da3f3e9e69d29363115cfddfc758",
+      "localPatch": "deploy/lila/patches/lila-ws-bind-address.patch"
+    },
+    "lila-gif": {
+      "repository": "https://github.com/lichess-org/lila-gif",
+      "commit": "a92511ae3be69c0c0a4002c39fa6cf92f4c93768",
+      "lock": "deploy/public/gif-renderer.json",
+      "coverage": "Cargo dependencies not exhaustively audited in this review."
+    }
+  },
+  "runtime": {
+    "node": {
+      "version": "24.22.1",
+      "embeddedUndici": "7.30.1",
+      "location": "/opt/nosweatchess/tools/node"
+    },
+    "mongodb": {
+      "version": "8.0.34",
+      "location": "/opt/nosweatchess/tools/mongodb/bin/mongod",
+      "exposure": "loopback27019; app/ws/root identities only"
+    },
+    "redis": {
+      "version": "8.2.11",
+      "backport": "e4eb89782d70c26b07a29b956472004cb8a78b80",
+      "backportFile": "deploy/lila/patches/redis-lua-metadata.patch",
+      "backportSha256": "ca616ae1a1c9fc21106d632832612ba267119ecb486c5b9fed1ff585c16eb119",
+      "source": "https://download.redis.io/releases/redis-8.2.11.tar.gz",
+      "sourceSha256": "fba14b77c4bdcb2d5418b6741fc0cdaac4b78bc73eab9b2e5f3c255d597f16fa",
+      "build": "make -j2 BUILD_TLS=yes; core only, no optional modules",
+      "location": "/opt/nosweatchess/tools/redis/usr/bin/redis-server",
+      "exposure": "standalone, loopback16380; app/ws/root identities only",
+      "maintenance": "Private binary, NOT updated by host apt upgrade."
+    },
+    "jvm": {
+      "Netty": "4.2.19.Final",
+      "Jackson": "2.18.11",
+      "org.jsoup:jsoup": "1.23.2",
+      "com.google.guava:guava": "33.7.2-jre",
+      "com.sun.mail:jakarta.mail": "1.6.8",
+      "source": "native security-dependencies.sbt; verify actual lila/lib and ws/lib jars"
+    },
+    "python": {
+      "onnxruntime": "1.31.1",
+      "numpy": "2.5.4",
+      "chess": "1.11.2",
+      "lock": "worker/requirements.txt"
+    },
+    "adapter": {
+      "lock": "lila-adapter/package-lock.json",
+      "note": "Installed with production dependencies only; assess advisory ranges against this graph, not the retired root Node prototype."
+    },
+    "cloudflared": {
+      "observedVersion": "2026.10.7",
+      "observedAt": "2026-11-05",
+      "maintenance": "APT managed; read actual cloudflared --version, not a frozen assumption."
+    }
+  },
+  "browser": {
+    "dompurify": {
+      "version": "3.4.17",
+      "via": "@toast-ui/editor3.2.2",
+      "important": "Toast UI ships bundled DOMPurify2.3.3. Our existing Toast UI patch imports the maintained package instead; a lockfile override alone is insufficient."
+    },
+    "uuid": "11.1.1",
+    "deepmerge": {
+      "version": "4.3.1",
+      "advisory": "GHSA-gcqx-w48m-w2h4",
+      "status": "affected-version-present; no fixed release in reviewed advisory",
+      "context": "Via shepherd.js study/round tours. Inspected options are code-defined; no attacker-controlled merge-options path established. Not a blanket suppression; re-evaluate on upstream fix or input-path change."
+    }
+  },
+  "buildAndTest": {
+    "undici": "8.12.2",
+    "js-yaml": "4.3.2",
+    "source-map-js": "1.2.2",
+    "fast-uri": "3.1.9",
+    "minimatch": "11.0.1 (override only >=7 <11.0.1)",
+    "pip": "26.2.0",
+    "pnpm": "12.9.0",
+    "lock": "native pnpm-lock.yaml and pnpm-workspace.yaml",
+    "note": "cheerio/jsdom fetch and CSS/YAML/glob processing are build/test paths. pip is installation tooling. Node embedded Undici is a separate component."
+  },
+  "knownAdvisoryDecisions": [
+    {
+      "ids": [
+        "GHSA-25xh-q7f9-6v6v"
+      ],
+      "status": "fixed-in-pinned-source",
+      "evidence": "Voice chat removed by ancestor28924c0644fdcf6eda6c32ab55e4c89e06a3bfaf; source and compiled voiceChat module absent."
+    },
+    {
+      "ids": [
+        "GHSA-hm8f-rrm8-728c"
+      ],
+      "status": "fixed-in-pinned-source",
+      "evidence": "Ancestorcf699f718065fb479d7c891e8453768c222c7b9f; deployed markdownImgResizer escapes src and alt."
+    },
+    {
+      "ids": [
+        "CVE-2026-96297",
+        "CVE-2026-104004",
+        "CVE-2026-103965"
+      ],
+      "status": "not-affected-at8.0.34",
+      "evidence": "MongoDB CNA8.0 affected range is <8.0.34."
+    },
+    {
+      "ids": [
+        "CVE-2026-96299",
+        "CVE-2026-104005"
+      ],
+      "status": "not-affected-branch",
+      "evidence": "MongoDB CNA lists8.3/9.0, not8.0."
+    },
+    {
+      "ids": [
+        "GHSA-xxph-c9ww-hj94"
+      ],
+      "status": "fixed-version-targeted",
+      "context": "Native Java deserialization precondition; direct source path found reads bundled translation resources, not remote serialized input."
+    },
+    {
+      "ids": [
+        "GHSA-65r4-943x-97jj",
+        "GHSA-pmhh-3w7g-xqp8"
+      ],
+      "status": "fixed-version-targeted",
+      "context": "XML parser/custom raw-text Safelist preconditions were not established for public requests."
+    },
+    {
+      "ids": [
+        "GHSA-9342-92gg-6v29"
+      ],
+      "status": "fixed-version-targeted",
+      "context": "SMTP usage/reachability must be assessed separately."
+    }
+  ],
+  "dailyReportRules": [
+    "Verify release identity and inventory freshness before claiming an item fixed or deployed. Report drift or uncertainty explicitly.",
+    "Match exact ecosystem/package, branch, version range and local backports before counting an advisory. Compare actual runtime, not just upstream commit keyword matches.",
+    "Distinguish public browser/request paths, authorized internal services, build/test tooling and package-install tooling. Browser code still ships even if its npm dependency is transitive.",
+    "Use official vendor advisories and fixed commits/releases. Advisory publication/update date is not necessarily patch date.",
+    "Report actionable new applicable findings with minimal fix and evidence; group already-fixed/not-affected findings and deduplicate aliases. Missing reachability proof is not proof of safety.",
+    "Do not count CI/docs/release-process commits as runtime vulnerabilities without evidence.",
+    "Keep unresolved items such as deepmerge visible. This inventory is not an exhaustive security audit or permission to update/restart services."
+  ],
+  "outOfScopeSources": {
+    "retiredRootPrototype": "Root package.json/pnpm-lock.yaml describe the stopped Node prototype; do not conflate with the active native service.",
+    "fullNativeBrowserLock": "current/lila/pnpm-lock.yaml",
+    "allJVMArtifacts": "current/lila/lib and current/ws/lib",
+    "pythonInstalled": "/opt/nosweatchess/venv/bin/python -m pip list --format=json",
+    "hostOS": "Read current OS/APT and Java versions; these are OS managed, not inferred from application pins.",
+    "networkRouter": "Separate OpenWrt25.12.6 maintenance completed2026-11-03; verify router separately."
+  }
+}
