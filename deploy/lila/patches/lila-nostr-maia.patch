@@ -89,6 +89,50 @@ index efdcfe5..1639aed 100644
    def loginLang = LangPage(routes.Auth.login)(serveLogin)
  
    private def serveLogin(using ctx: Context, referrer: Option[ValidReferrer]) = NoBot:
+diff --git a/app/controllers/Challenge.scala b/app/controllers/Challenge.scala
+index cfd1602..9682383 100644
+--- a/app/controllers/Challenge.scala
++++ b/app/controllers/Challenge.scala
+@@ -97,21 +97,24 @@ final class Challenge(env: Env) extends LilaController(env):
+   def accept(id: ChallengeId, color: Option[Color]) = Open:
+     Found(api.byId(id)): c =>
+       isForMe(c).so:
+-        allow:
+-          api
+-            .accept(c, ctx.req.sid.map(_.value), color)
+-            .flatMap:
+-              _.fold("The Challenge has already been accepted".raise): pov =>
+-                negotiateApi(
+-                  html = Redirect(routes.Round.watcher(pov.gameId, color | Color.white)),
+-                  api = _ => env.api.roundApi.player(pov, scalalib.data.Preload.none, none).map { Ok(_) }
+-                )
+-            .flatMap(withChallengeAnonCookie(ctx.isAnon, c, owner = false))
+-        .rescue: err =>
+-          negotiate(
+-            Redirect(routes.Round.watcher(c.gameId, color | Color.white)),
+-            notFoundJson(err)
+-          )
++        if env.noSweat.enabled && (c.unlimited || c.daysPerTurn.isDefined) then
++          fuccess(JsonBadRequest(lila.core.i18n.I18nKey("muteRealTimeOnly").txt()))
++        else
++          allow:
++            api
++              .accept(c, ctx.req.sid.map(_.value), color)
++              .flatMap:
++                _.fold("The Challenge has already been accepted".raise): pov =>
++                  negotiateApi(
++                    html = Redirect(routes.Round.watcher(pov.gameId, color | Color.white)),
++                    api = _ => env.api.roundApi.player(pov, scalalib.data.Preload.none, none).map { Ok(_) }
++                  )
++              .flatMap(withChallengeAnonCookie(ctx.isAnon, c, owner = false))
++          .rescue: err =>
++            negotiate(
++              Redirect(routes.Round.watcher(c.gameId, color | Color.white)),
++              notFoundJson(err)
++            )
+ 
+   private def eitherBotLimitResponse(l: lila.bot.EitherBotLimit) = fuccess:
+     l match
 diff --git a/app/controllers/Cms.scala b/app/controllers/Cms.scala
 index 6d2fee0..06daf05 100644
 --- a/app/controllers/Cms.scala
@@ -214,13 +258,32 @@ index 713f452..583812e 100644
        code =>
          val lang = lila.i18n.LangPicker.byStr(code).err("Universe is collapsing")
 diff --git a/app/controllers/Importer.scala b/app/controllers/Importer.scala
-index ede74af..51e2daa 100644
+index ede74af..d872a6d 100644
 --- a/app/controllers/Importer.scala
 +++ b/app/controllers/Importer.scala
-@@ -27,48 +27,58 @@ final class Importer(env: Env) extends LilaController(env):
-           jsonFormError(err)
-         ),
-       data =>
+@@ -13,63 +13,67 @@ import lila.common.Json.given
+ final class Importer(env: Env) extends LilaController(env):
+ 
+   def importGame = OpenBody:
+-    val pgn = ~get("pgn")
+-    val data = lila.game.importer.ImportData(PgnStr(pgn), None)
+-    Ok.page(views.game.ui.importer(lila.game.importer.form.fill(data)))
++    if env.noSweat.enabled then notFound
++    else
++      val pgn = ~get("pgn")
++      val data = lila.game.importer.ImportData(PgnStr(pgn), None)
++      Ok.page(views.game.ui.importer(lila.game.importer.form.fill(data)))
+ 
+   def sendGame = OpenOrScopedBody(parse.anyContent)()(doSendGame)
+   def apiSendGame = AnonOrScopedBody(parse.anyContent)()(doSendGame)
+   private def doSendGame(using ctx: BodyContext[Any]) =
+-    bindForm(lila.game.importer.form)(
+-      err =>
+-        negotiate(
+-          BadRequest.page(views.game.ui.importer(err)),
+-          jsonFormError(err)
+-        ),
+-      data =>
 -        limit.gameImport(ctx.ip, () => rateLimited): () =>
 -          env.game.importer
 -            .importAsGame(data.pgn)
@@ -243,16 +306,15 @@ index ede74af..51e2daa 100644
 -                            ip = ctx.ip.some,
 -                            mod = isGranted(_.UserEvaluate),
 -                            system = false
-+        val nonStandard = chess.format.pgn.Parser
-+          .tags(data.pgn)
-+          .toOption
-+          .flatMap(tags => tags(_.Variant))
-+          .exists(v =>
-+            !Set("standard", "chess", "normal", "fromposition")
-+              .contains(v.toLowerCase.replaceAll("[\\s_-]", ""))
-+          )
-+        if env.noSweat.enabled && nonStandard then fuccess(BadRequest("Only standard chess is supported."))
-+        else
++    if env.noSweat.enabled then notFound
++    else
++      bindForm(lila.game.importer.form)(
++        err =>
++          negotiate(
++            BadRequest.page(views.game.ui.importer(err)),
++            jsonFormError(err)
++          ),
++        data =>
 +          limit.gameImport(ctx.ip, () => rateLimited): () =>
 +            env.game.importer
 +              .importAsGame(data.pgn)
@@ -296,6 +358,7 @@ index ede74af..51e2daa 100644
 -                  BadRequest(jsonError(error))
 -                )
 -            }
+-    )
 +                          .void
 +                      .inject(Redirect(routes.Round.watcher(game.id, Color.white))),
 +                    json =
@@ -314,9 +377,10 @@ index ede74af..51e2daa 100644
 +                    BadRequest(jsonError(error))
 +                  )
 +              }
-     )
++      )
  
    def masterGame(id: GameId, orientation: Color) = Open:
+     Found(env.explorer.importer(id)): game =>
 diff --git a/app/controllers/Main.scala b/app/controllers/Main.scala
 index 7c65f4c..a473d7a 100644
 --- a/app/controllers/Main.scala
@@ -431,10 +495,10 @@ index af2f389..0519934 100644
  
    def sides(gameId: GameId, color: Color) = Open:
 diff --git a/app/controllers/Setup.scala b/app/controllers/Setup.scala
-index 7d5ec39..0600592 100644
+index 7d5ec39..6c26c95 100644
 --- a/app/controllers/Setup.scala
 +++ b/app/controllers/Setup.scala
-@@ -44,47 +44,55 @@ final class Setup(
+@@ -44,47 +44,57 @@ final class Setup(
                origUser <- ctx.user.traverse(env.user.perfsRepo.withPerf(_, config.perfType))
                destUser <- userId.so(env.user.api.enabledWithPerf(_, config.perfType))
                denied <- destUser.so(u => env.challenge.granter.isDenied(u.user, config.perfKey.some))
@@ -446,7 +510,9 @@ index 7d5ec39..0600592 100644
 -                    forbiddenJson(message), // TODO test
 -                    JsonBadRequest(message)
 +              result <-
-+                if env.noSweat.enabled && (
++                if env.noSweat.enabled && config.makeClock.isEmpty then
++                  fuccess(JsonBadRequest(lila.core.i18n.I18nKey("muteRealTimeOnly").txt()))
++                else if env.noSweat.enabled && (
 +                    origUser.isEmpty || destUser.isEmpty || origUser.exists(_.user.isBot) ||
 +                      destUser.exists(_.user.isBot) || destUser.exists(u => ctx.is(u.user)) ||
 +                      config.variant != chess.variant.Standard
@@ -936,6 +1002,20 @@ index b408a91..e1c909a 100644
                )
              )
            ,
+diff --git a/app/views/game/side.scala b/app/views/game/side.scala
+index be5368e..655df91 100644
+--- a/app/views/game/side.scala
++++ b/app/views/game/side.scala
+@@ -40,7 +40,8 @@ def meta(
+               views.bookmark.toggle(game, bookmarked),
+               if game.sourceIs(_.Import) then
+                 div(
+-                  a(href := routes.Importer.importGame, title := trans.site.importGame.txt())("IMPORT"),
++                  if env.noSweat.enabled then span(lila.core.i18n.I18nKey("muteImportedGame")())
++                  else a(href := routes.Importer.importGame, title := trans.site.importGame.txt())("IMPORT"),
+                   separator,
+                   variantLink(game.variant, game.perfType, initialFen = initialFen, shortName = true)
+                 )
 diff --git a/app/views/lobby/home.scala b/app/views/lobby/home.scala
 index 2db52a9..6f794d9 100644
 --- a/app/views/lobby/home.scala
@@ -1450,10 +1530,10 @@ index 26a6045..a69f1a2 100644
                    profile.officialRating.map: r =>
                      div(r.name.toUpperCase, " rating: ", strong(r.rating)),
 diff --git a/app/views/user/show/page.scala b/app/views/user/show/page.scala
-index 9688ca7..4ee94fd 100644
+index 9688ca7..ea45358 100644
 --- a/app/views/user/show/page.scala
 +++ b/app/views/user/show/page.scala
-@@ -6,10 +6,11 @@ import play.api.data.Form
+@@ -6,14 +6,15 @@ import play.api.data.Form
  import lila.app.UiEnv.{ *, given }
  import lila.app.mashup.UserInfo
  import lila.core.data.SafeJsonStr
@@ -1465,6 +1545,11 @@ index 9688ca7..4ee94fd 100644
 +lazy val ui = lila.user.ui.UserShow(helpers, bits, env.noSweat.enabled)
  
  object page:
+ 
+-  lazy val side = lila.user.ui.UserShowSide(helpers)
++  lazy val side = lila.user.ui.UserShowSide(helpers, env.noSweat.enabled)
+ 
+   private def indexable(u: User) = u.isVerified || u.count.game >= 10
  
 @@ -83,12 +84,15 @@ object page:
      info.ratingChart.map: rc =>
@@ -2071,10 +2156,10 @@ index 6fa1cc3..bdf092f 100644
    def authorLink(post: ForumPost, cssClass: Option[String] = None, withOnline: Boolean = true)(using
        Context
 diff --git a/modules/game/src/main/Env.scala b/modules/game/src/main/Env.scala
-index 43d76ae..ccbf972 100644
+index 43d76ae..71d022d 100644
 --- a/modules/game/src/main/Env.scala
 +++ b/modules/game/src/main/Env.scala
-@@ -34,7 +34,93 @@ final class Env(
+@@ -34,7 +34,95 @@ final class Env(
  )(using scheduler: Scheduler)(using Executor, Materializer):
    private val config = appConfig.get[GameConfig]("game")(using AutoConfig.loader)
  
@@ -2094,6 +2179,8 @@ index 43d76ae..ccbf972 100644
 +  private def admitNoSweat(game: lila.core.game.Game): Funit =
 +    import lila.db.dsl.{ *, given }
 +    if !noSweatOnly || !game.playable then funit
++    else if game.clock.isEmpty || game.daysPerTurn.isDefined then
++      fufail(NoSweatGameAdmission.RealTimeRequired)
 +    else if game.variant.standard && game.sourceIs(_.Friend) && game.userIds.distinct.size == 2 then
 +      // Native ChallengeJoiner and Rematcher enforce invitation ownership/consent.
 +      // Keep their Friend source path; human pool/lobby games still require Maia admission.
@@ -2248,7 +2335,7 @@ index b916ee3..3775c75 100644
        HookPoolLimit(
          member,
 diff --git a/modules/perfStat/src/main/PerfStatUi.scala b/modules/perfStat/src/main/PerfStatUi.scala
-index fbe7c01..fdc4eff 100644
+index fbe7c01..48becd3 100644
 --- a/modules/perfStat/src/main/PerfStatUi.scala
 +++ b/modules/perfStat/src/main/PerfStatUi.scala
 @@ -10,7 +10,7 @@ import lila.rating.PerfType
@@ -2272,7 +2359,7 @@ index fbe7c01..fdc4eff 100644
        .css("user.rating.stats")
        .flag(_.fullScreen)
        .js(
-@@ -392,11 +395,13 @@ final class PerfStatUi(helpers: Helpers)(communityMenu: Context ?=> Frag):
+@@ -392,11 +395,14 @@ final class PerfStatUi(helpers: Helpers)(communityMenu: Context ?=> Frag):
            div(cls := "rating-stats page-menu__content box box-pad")(
              boxTop(
                h1(
@@ -2283,12 +2370,13 @@ index fbe7c01..fdc4eff 100644
                      "variant-stats",
                      span(perfType.trans),
 -                    lila.rating.PerfType.leaderboardable
-+                    (if focused then lila.rating.PerfType.standardWithUltra
++                    (if focused then
++                       lila.rating.PerfType.standardWithUltra.filterNot(_ == PerfKey.correspondence)
 +                     else lila.rating.PerfType.leaderboardable)
                        .map(PerfType(_))
                        .map: pt =>
                          a(
-@@ -409,36 +414,42 @@ final class PerfStatUi(helpers: Helpers)(communityMenu: Context ?=> Frag):
+@@ -409,36 +415,42 @@ final class PerfStatUi(helpers: Helpers)(communityMenu: Context ?=> Frag):
                )
              ),
              div(cls := "desc", dataIcon := perfType.icon)(
@@ -3216,7 +3304,7 @@ index 6f5e768..83f5df7 100644
  
    export realNameCache.{ sync as realName, preloadMany as preloadRealNames }
 diff --git a/modules/user/src/main/UserApi.scala b/modules/user/src/main/UserApi.scala
-index 5c99667..0c0b2a9 100644
+index 5c99667..463120f 100644
 --- a/modules/user/src/main/UserApi.scala
 +++ b/modules/user/src/main/UserApi.scala
 @@ -293,3 +293,40 @@ final class UserApi(userRepo: UserRepo, perfsRepo: UserPerfsRepo, cacheApi: Cach
@@ -3227,7 +3315,7 @@ index 5c99667..0c0b2a9 100644
 +  // A read-only directory of current site ratings, including managed players.
 +  // Competitive ranking eligibility and Glicko writes remain native.
 +  object currentPlayers:
-+    val speeds = PerfType.standardWithUltra
++    val speeds = PerfType.standardWithUltra.filterNot(_ == PerfKey.correspondence)
 +
 +    def apply(pk: PerfKey): Fu[List[lila.core.user.LightPerf]] =
 +      if speeds.contains(pk) then cache.get(pk) else fuccess(Nil)
@@ -3806,6 +3894,37 @@ index 90a91f3..272f2f4 100644
          li(tro.exploreTheSiteAndHaveFun())
        )
      )
+diff --git a/modules/user/src/main/ui/UserShowSide.scala b/modules/user/src/main/ui/UserShowSide.scala
+index 2c470e6..4bb6eaa 100644
+--- a/modules/user/src/main/ui/UserShowSide.scala
++++ b/modules/user/src/main/ui/UserShowSide.scala
+@@ -8,7 +8,7 @@ import lila.rating.UserWithPerfs.hasVariantRating
+ import lila.ui.*
+ import lila.ui.ScalatagsTemplate.{ *, given }
+ 
+-final class UserShowSide(helpers: Helpers):
++final class UserShowSide(helpers: Helpers, focused: Boolean = false):
+   import helpers.{ *, given }
+ 
+   def apply(
+@@ -79,7 +79,7 @@ final class UserShowSide(helpers: Helpers):
+           showPerf(u.perfs.blitz, PerfKey.blitz),
+           showPerf(u.perfs.rapid, PerfKey.rapid),
+           showPerf(u.perfs.classical, PerfKey.classical),
+-          showPerf(u.perfs.correspondence, PerfKey.correspondence),
++          (!focused).option(showPerf(u.perfs.correspondence, PerfKey.correspondence)),
+           u.hasVariantRating.option(hr),
+           showNonEmptyPerf(u.perfs.crazyhouse, PerfKey.crazyhouse),
+           showNonEmptyPerf(u.perfs.chess960, PerfKey.chess960),
+@@ -94,7 +94,7 @@ final class UserShowSide(helpers: Helpers):
+               hr,
+               showPerf(u.perfs.puzzle, PerfKey.puzzle),
+               showStorm(u.perfs.storm, u),
+-              showRacer(u.perfs.racer),
++              (!focused).option(showRacer(u.perfs.racer)),
+               showStreak(u.perfs.streak)
+             )
+           )
 diff --git a/modules/web/src/main/StaticContent.scala b/modules/web/src/main/StaticContent.scala
 index 9f475eb..fc08663 100644
 --- a/modules/web/src/main/StaticContent.scala
@@ -3927,10 +4046,10 @@ index 28e5bc4..66c01ad 100644
        )
        .add("fen" -> fen)
 diff --git a/modules/web/src/main/ui/TopNav.scala b/modules/web/src/main/ui/TopNav.scala
-index 4d9306b..b8b1950 100644
+index 4d9306b..ef2e2f6 100644
 --- a/modules/web/src/main/ui/TopNav.scala
 +++ b/modules/web/src/main/ui/TopNav.scala
-@@ -12,92 +12,98 @@ final class TopNav(helpers: Helpers):
+@@ -12,92 +12,105 @@ final class TopNav(helpers: Helpers):
    private def linkTitle(url: String, name: Frag)(using ctx: Context) =
      if ctx.blind then h3(name) else a(href := url)(name)
  
@@ -3962,34 +4081,21 @@ index 4d9306b..b8b1950 100644
 -          if ctx.noBot then a(href := s"${langHref("/")}?any#hook")(trans.site.createLobbyGame())
 -          else a(href := "/?any#friend")(trans.site.challengeAFriend()),
 -          Option.when(ctx.noBot):
-+        st.section(
-+          linkTitle(routes.ForumCateg.index.url, trans.site.community()),
-+          div(role := "group")(a(href := routes.ForumCateg.index)(trans.site.forum()))
-+        ),
-+        toolsMenu
-+      )
-+    else
-+      st.nav(id := "topnav", cls := "hover")(
-+        st.section(
-+          linkTitle(
-+            "/",
-             frag(
+-            frag(
 -              a(href := langHref(routes.Tournament.home))(trans.arena.arenaTournaments()),
 -              a(href := langHref(routes.Swiss.home))(trans.swiss.swissTournaments()),
 -              a(href := langHref(routes.Simul.home))(trans.site.simultaneousExhibitions()),
 -              hasDgt.option(a(href := routes.DgtCtrl.index)(trans.dgt.dgtBoard())),
 -              (ctx.kid.no && !ctx.me.exists(_.isPatron)).option:
 -                a(cls := "community-patron mobile-only", href := routes.Plan.index())(trans.patron.donate())
-+              span(cls := "play")(trans.site.play()),
-+              span(cls := "home")("lichess.org")
-             )
+-            )
 -        )
 -      ),
 -      Option.when(ctx.noBot):
 -        val puzzleUrl = langHref(routes.Puzzle.home.url)
--        st.section(
+         st.section(
 -          linkTitle(puzzleUrl, trans.site.puzzles()),
-+          ),
++          linkTitle(routes.Learn.index.url, trans.site.learnMenu()),
            div(role := "group")(
 -            a(href := puzzleUrl)(trans.site.puzzles()),
 -            a(href := langHref(routes.Puzzle.themes))(trans.puzzle.puzzleThemes()),
@@ -3997,6 +4103,36 @@ index 4d9306b..b8b1950 100644
 -            a(href := langHref(routes.Puzzle.streak))("Puzzle Streak"),
 -            a(href := langHref(routes.Storm.home))("Puzzle Storm"),
 -            a(href := langHref(routes.Racer.home))("Puzzle Racer")
++            a(href := routes.Learn.index)(trans.site.chessBasics()),
++            a(href := routes.Practice.index)(trans.site.practice())
+           )
+-        )
+-      ,
+-      st.section(
+-        linkTitle(routes.Learn.index.url, trans.site.learnMenu()),
+-        div(role := "group")(
+-          Option.when(ctx.noBot):
++        ),
++        st.section(
++          linkTitle(routes.ForumCateg.index.url, trans.site.community()),
++          div(role := "group")(a(href := routes.ForumCateg.index)(trans.site.forum()))
++        ),
++        toolsMenu(compact)
++      )
++    else
++      st.nav(id := "topnav", cls := "hover")(
++        st.section(
++          linkTitle(
++            "/",
+             frag(
+-              a(href := langHref(routes.Learn.index))(trans.site.chessBasics()),
+-              a(href := langHref(routes.Practice.index))(trans.site.practice()),
+-              a(href := langHref(routes.Coordinate.home))(trans.coordinates.coordinates())
++              span(cls := "play")(trans.site.play()),
++              span(cls := "home")("lichess.org")
++            )
++          ),
++          div(role := "group")(
 +            if ctx.noBot then a(href := s"${langHref("/")}?any#hook")(trans.site.createLobbyGame())
 +            else a(href := "/?any#friend")(trans.site.challengeAFriend()),
 +            Option.when(ctx.noBot):
@@ -4005,17 +4141,7 @@ index 4d9306b..b8b1950 100644
 +                (ctx.kid.no && !ctx.me.exists(_.isPatron)).option:
 +                  a(cls := "community-patron mobile-only", href := routes.Plan.index())(trans.patron.donate())
 +              )
-           )
--        )
--      ,
--      st.section(
--        linkTitle(routes.Learn.index.url, trans.site.learnMenu()),
--        div(role := "group")(
--          Option.when(ctx.noBot):
--            frag(
--              a(href := langHref(routes.Learn.index))(trans.site.chessBasics()),
--              a(href := langHref(routes.Practice.index))(trans.site.practice()),
--              a(href := langHref(routes.Coordinate.home))(trans.coordinates.coordinates())
++          )
 +        ),
 +        Option.when(ctx.noBot):
 +          val puzzleUrl = langHref(routes.Puzzle.home.url)
@@ -4055,21 +4181,13 @@ index 4d9306b..b8b1950 100644
 +        ),
 +        st.section(
 +          linkTitle(routes.Tv.games.url, trans.site.watch()),
-+          div(role := "group")(
-+            a(href := routes.Tv.games)(trans.site.currentGames())
-+          )
-+        ),
-+        st.section(
-+          linkTitle(routes.ForumCateg.index.url, trans.site.community()),
            div(role := "group")(
 -            a(href := routes.RelayTour.index())(trans.broadcast.broadcasts()),
 -            a(href := langHref(routes.Tv.index))("Lichess TV"),
 -            a(href := routes.Tv.games)(trans.site.currentGames()),
 -            (ctx.kid.no && ctx.noBot).option(a(href := routes.Streamer.index())(trans.site.streamersMenu())),
 -            ctx.noBot.option(a(href := langHref(routes.Video.index))(trans.site.videoLibrary()))
-+            ctx.kid.no.option(a(href := routes.ForumCateg.index)(trans.site.forum())),
-+            (ctx.kid.no && ctx.me.exists(_.isPatron))
-+              .option(a(cls := "community-patron", href := routes.Plan.index())(trans.patron.donate()))
++            a(href := routes.Tv.games)(trans.site.currentGames())
            )
 -        )
 -      ,
@@ -4095,16 +4213,24 @@ index 4d9306b..b8b1950 100644
 -          a(href := routes.Search.index())(trans.search.advancedSearch())
 -        )
 +        ),
-+        toolsMenu
++        st.section(
++          linkTitle(routes.ForumCateg.index.url, trans.site.community()),
++          div(role := "group")(
++            ctx.kid.no.option(a(href := routes.ForumCateg.index)(trans.site.forum())),
++            (ctx.kid.no && ctx.me.exists(_.isPatron))
++              .option(a(cls := "community-patron", href := routes.Plan.index())(trans.patron.donate()))
++          )
++        ),
++        toolsMenu(compact)
 +      )
 +
-+  private def toolsMenu(using Context) =
++  private def toolsMenu(compact: Boolean)(using Context) =
 +    st.section(
 +      linkTitle(routes.UserAnalysis.index.url, trans.site.tools()),
 +      div(role := "group")(
 +        a(href := routes.UserAnalysis.index)(trans.site.analysis()),
 +        a(href := routes.Editor.index)(trans.site.boardEditor()),
-+        a(href := routes.Importer.importGame)(trans.site.importGame())
++        (!compact).option(a(href := routes.Importer.importGame)(trans.site.importGame()))
        )
      )
 diff --git a/modules/web/src/main/ui/bits.scala b/modules/web/src/main/ui/bits.scala
@@ -4467,10 +4593,10 @@ index 74906f1..99e482b 100644
  travel-places.map-of-japan
  travel-places.metro
 diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
-index 88adade..cee018f 100644
+index 88adade..350f7f4 100644
 --- a/translation/dest/site/de-DE.xml
 +++ b/translation/dest/site/de-DE.xml
-@@ -1064,4 +1064,102 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
+@@ -1064,4 +1064,104 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
    <string name="write">Schreiben</string>
    <string name="preview">Vorschau</string>
    <string name="done">Erledigt</string>
@@ -4572,12 +4698,14 @@ index 88adade..cee018f 100644
 +  <string name="muteDonationDismissHelp">Dies blendet die Anfrage aus. Die Wallet-Rechnung kann bis zu ihrem Ablauf weiterhin bezahlt werden.</string>
 +  <string name="muteDonationDismissed">Rechnung ausgeblendet. Sie kann bis zum Ablauf weiterhin bezahlt werden; jede bestätigte Zahlung wird angerechnet.</string>
 +  <string name="muteDonationDismissFailed">Diese Rechnung konnte nicht ausgeblendet werden. Prüfe die Zahlung und versuche es erneut.</string>
++  <string name="muteRealTimeOnly">Es werden nur Echtzeitpartien unterstützt.</string>
++  <string name="muteImportedGame">Importierte Partie</string>
  </resources>
 diff --git a/translation/dest/site/es-ES.xml b/translation/dest/site/es-ES.xml
-index 76004f5..7f731c6 100644
+index 76004f5..fd534e6 100644
 --- a/translation/dest/site/es-ES.xml
 +++ b/translation/dest/site/es-ES.xml
-@@ -1064,4 +1064,102 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
+@@ -1064,4 +1064,104 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
    <string name="write">Escribir</string>
    <string name="preview">Vista previa</string>
    <string name="done">Listo</string>
@@ -4679,12 +4807,14 @@ index 76004f5..7f731c6 100644
 +  <string name="muteDonationDismissHelp">Esto oculta la solicitud. La factura del monedero se puede pagar hasta que caduque.</string>
 +  <string name="muteDonationDismissed">Factura ocultada. Se puede pagar hasta que caduque; cualquier pago confirmado se tendrá en cuenta.</string>
 +  <string name="muteDonationDismissFailed">No se pudo ocultar esta factura. Comprueba el pago y vuelve a intentarlo.</string>
++  <string name="muteRealTimeOnly">Solo se admiten partidas en tiempo real.</string>
++  <string name="muteImportedGame">Partida importada</string>
  </resources>
 diff --git a/translation/dest/site/fr-FR.xml b/translation/dest/site/fr-FR.xml
-index 7dfd5f7..4cae042 100644
+index 7dfd5f7..a121fd6 100644
 --- a/translation/dest/site/fr-FR.xml
 +++ b/translation/dest/site/fr-FR.xml
-@@ -1063,4 +1063,102 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
+@@ -1063,4 +1063,104 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
    <string name="write">Écrire</string>
    <string name="preview">Aperçu</string>
    <string name="done">Terminé</string>
@@ -4786,12 +4916,14 @@ index 7dfd5f7..4cae042 100644
 +  <string name="muteDonationDismissHelp">Cela masque la demande. La facture du portefeuille peut encore être payée jusqu’à son expiration.</string>
 +  <string name="muteDonationDismissed">Facture masquée. Elle peut encore être payée avant son expiration ; tout paiement confirmé sera pris en compte.</string>
 +  <string name="muteDonationDismissFailed">Impossible de masquer cette facture. Vérifiez le paiement, puis réessayez.</string>
++  <string name="muteRealTimeOnly">Seules les parties en temps réel sont prises en charge.</string>
++  <string name="muteImportedGame">Partie importée</string>
  </resources>
 diff --git a/translation/dest/site/hi-IN.xml b/translation/dest/site/hi-IN.xml
-index bbf1703..f980f11 100644
+index bbf1703..ac14313 100644
 --- a/translation/dest/site/hi-IN.xml
 +++ b/translation/dest/site/hi-IN.xml
-@@ -893,4 +893,102 @@
+@@ -893,4 +893,104 @@
    <string name="closingAccountWithdrawAppeal">आपका खाता बंद करने से आपकी अपील वापस ले ली जाएगी</string>
    <string name="ourEventTips">कार्यक्रम आयोजित करने कि सलाह</string>
    <string name="nothingToSeeHere">इस समय यहां देखने को कुछ भी नहीं है।</string>
@@ -4893,12 +5025,14 @@ index bbf1703..f980f11 100644
 +  <string name="muteDonationDismissHelp">इससे अनुरोध छिप जाता है। वॉलेट का इनवॉइस समाप्त होने तक उसका भुगतान किया जा सकता है।</string>
 +  <string name="muteDonationDismissed">इनवॉइस छिपा दिया गया है। समाप्त होने तक भुगतान किया जा सकता है; हर पुष्ट भुगतान गिना जाएगा।</string>
 +  <string name="muteDonationDismissFailed">यह इनवॉइस छिपाया नहीं जा सका। भुगतान जाँचें, फिर दोबारा कोशिश करें।</string>
++  <string name="muteRealTimeOnly">केवल रियल-टाइम खेल समर्थित हैं।</string>
++  <string name="muteImportedGame">आयात किया गया खेल</string>
  </resources>
 diff --git a/translation/dest/site/ja-JP.xml b/translation/dest/site/ja-JP.xml
-index e628bdb..81f4e43 100644
+index e628bdb..f5e6171 100644
 --- a/translation/dest/site/ja-JP.xml
 +++ b/translation/dest/site/ja-JP.xml
-@@ -1023,4 +1023,102 @@
+@@ -1023,4 +1023,104 @@
    <string name="write">書く</string>
    <string name="preview">プレビュー</string>
    <string name="done">完了</string>
@@ -5000,12 +5134,14 @@ index e628bdb..81f4e43 100644
 +  <string name="muteDonationDismissHelp">この操作で依頼を非表示にします。ウォレットの請求書は有効期限まで支払い可能です。</string>
 +  <string name="muteDonationDismissed">請求書を非表示にしました。有効期限までは支払い可能で、確認された支払いは反映されます。</string>
 +  <string name="muteDonationDismissFailed">この請求書を非表示にできませんでした。支払いを確認してから、もう一度お試しください。</string>
++  <string name="muteRealTimeOnly">リアルタイム対局のみ対応しています。</string>
++  <string name="muteImportedGame">インポートした棋譜</string>
  </resources>
 diff --git a/translation/dest/site/ko-KR.xml b/translation/dest/site/ko-KR.xml
-index 9341bf0..a85b090 100644
+index 9341bf0..05302a6 100644
 --- a/translation/dest/site/ko-KR.xml
 +++ b/translation/dest/site/ko-KR.xml
-@@ -1022,4 +1022,102 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
+@@ -1022,4 +1022,104 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
    <string name="write">작성</string>
    <string name="preview">미리보기</string>
    <string name="done">완료</string>
@@ -5107,12 +5243,14 @@ index 9341bf0..a85b090 100644
 +  <string name="muteDonationDismissHelp">요청을 숨깁니다. 지갑의 청구서는 만료될 때까지 결제할 수 있습니다.</string>
 +  <string name="muteDonationDismissed">청구서를 숨겼습니다. 만료될 때까지 결제할 수 있으며, 확인된 결제는 모두 반영됩니다.</string>
 +  <string name="muteDonationDismissFailed">이 청구서를 숨길 수 없습니다. 결제를 확인한 후 다시 시도하세요.</string>
++  <string name="muteRealTimeOnly">실시간 대국만 지원합니다.</string>
++  <string name="muteImportedGame">가져온 기보</string>
  </resources>
 diff --git a/translation/dest/site/pt-BR.xml b/translation/dest/site/pt-BR.xml
-index 569e752..7c4dd80 100644
+index 569e752..38e92b0 100644
 --- a/translation/dest/site/pt-BR.xml
 +++ b/translation/dest/site/pt-BR.xml
-@@ -1063,4 +1063,102 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
+@@ -1063,4 +1063,104 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
    <string name="write">Escrever</string>
    <string name="preview">Pré-visualizar</string>
    <string name="done">Feito</string>
@@ -5214,12 +5352,14 @@ index 569e752..7c4dd80 100644
 +  <string name="muteDonationDismissHelp">Isso oculta a solicitação. A fatura da carteira ainda pode ser paga até expirar.</string>
 +  <string name="muteDonationDismissed">Fatura ocultada. Ela ainda pode ser paga até expirar; qualquer pagamento confirmado será contabilizado.</string>
 +  <string name="muteDonationDismissFailed">Não foi possível ocultar esta fatura. Verifique o pagamento e tente novamente.</string>
++  <string name="muteRealTimeOnly">Apenas partidas em tempo real são compatíveis.</string>
++  <string name="muteImportedGame">Partida importada</string>
  </resources>
 diff --git a/translation/dest/site/ru-RU.xml b/translation/dest/site/ru-RU.xml
-index 6384657..d669e95 100644
+index 6384657..d636dbc 100644
 --- a/translation/dest/site/ru-RU.xml
 +++ b/translation/dest/site/ru-RU.xml
-@@ -1146,4 +1146,102 @@
+@@ -1146,4 +1146,104 @@
    <string name="write">Написать</string>
    <string name="preview">Предпросмотр</string>
    <string name="done">Готово</string>
@@ -5321,12 +5461,14 @@ index 6384657..d669e95 100644
 +  <string name="muteDonationDismissHelp">Запрос будет скрыт. Счёт в кошельке по-прежнему можно оплатить до истечения срока действия.</string>
 +  <string name="muteDonationDismissed">Счёт скрыт. Его можно оплатить до истечения срока действия; любой подтверждённый платёж будет учтён.</string>
 +  <string name="muteDonationDismissFailed">Не удалось скрыть этот счёт. Проверьте платёж и повторите попытку.</string>
++  <string name="muteRealTimeOnly">Поддерживаются только партии в реальном времени.</string>
++  <string name="muteImportedGame">Импортированная партия</string>
  </resources>
 diff --git a/translation/dest/site/zh-CN.xml b/translation/dest/site/zh-CN.xml
-index 176f4d1..ac8549b 100644
+index 176f4d1..d61b5d1 100644
 --- a/translation/dest/site/zh-CN.xml
 +++ b/translation/dest/site/zh-CN.xml
-@@ -1022,4 +1022,102 @@
+@@ -1022,4 +1022,104 @@
    <string name="write">撰写</string>
    <string name="preview">预览</string>
    <string name="done">完成</string>
@@ -5428,12 +5570,14 @@ index 176f4d1..ac8549b 100644
 +  <string name="muteDonationDismissHelp">此操作会隐藏请求。在到期前，钱包账单仍可支付。</string>
 +  <string name="muteDonationDismissed">账单已隐藏。到期前仍可支付；任何已确认的付款都会计入。</string>
 +  <string name="muteDonationDismissFailed">无法隐藏此账单。请检查付款状态，然后重试。</string>
++  <string name="muteRealTimeOnly">仅支持实时对局。</string>
++  <string name="muteImportedGame">已导入的棋局</string>
  </resources>
 diff --git a/translation/source/site.xml b/translation/source/site.xml
-index 8b5a6a1..3dffcdf 100644
+index 8b5a6a1..e821a76 100644
 --- a/translation/source/site.xml
 +++ b/translation/source/site.xml
-@@ -1066,4 +1066,102 @@ Leave empty to start games from the normal initial position.</string>
+@@ -1066,4 +1066,104 @@ Leave empty to start games from the normal initial position.</string>
    <string name="write">Write</string>
    <string name="preview">Preview</string>
    <string name="done">Done</string>
@@ -5535,6 +5679,8 @@ index 8b5a6a1..3dffcdf 100644
 +  <string name="muteDonationDismissHelp">This hides the request. The wallet invoice can still be paid until it expires.</string>
 +  <string name="muteDonationDismissed">Invoice dismissed. It can still be paid until expiry; any confirmed payment will count.</string>
 +  <string name="muteDonationDismissFailed">Could not dismiss this invoice. Check payment, then try again.</string>
++  <string name="muteRealTimeOnly">Only real-time games are supported.</string>
++  <string name="muteImportedGame">Imported game</string>
  </resources>
 diff --git a/ui/.build/src/build.ts b/ui/.build/src/build.ts
 index 7d6adeb..b433f0c 100644
@@ -8240,19 +8386,36 @@ index 610f89d..d248296 100644
      xhr.text(
        xhr.url(`/setup/hook/${site.sri}/like/${gameId}`, { deltaMin: ratingMin, deltaMax: ratingMax }),
 diff --git a/ui/lobby/src/setupCtrl.ts b/ui/lobby/src/setupCtrl.ts
-index 42d03af..1413a3b 100644
+index 42d03af..7b4e140 100644
 --- a/ui/lobby/src/setupCtrl.ts
 +++ b/ui/lobby/src/setupCtrl.ts
-@@ -73,7 +73,7 @@ export default class SetupController {
+@@ -57,7 +57,7 @@ export default class SetupController {
+     storedJsonProp<SetupStore>(this.storeKey(gameType), () => ({
+       variant: 'standard',
+       fen: '',
+-      timeMode: gameType === 'hook' ? 'realTime' : 'unlimited',
++      timeMode: this.root.opts.noSweat || gameType === 'hook' ? 'realTime' : 'unlimited',
+       time: 5,
+       increment: 3,
+       days: 2,
+@@ -73,10 +73,13 @@ export default class SetupController {
      // Load props from the store, but override any store values with values found in forceOptions
      this.variant = propWithEffect(forceOptions?.variant || storeProps.variant, this.onDropdownChange);
      this.fen = this.propWithApply(forceOptions?.fen || storeProps.fen);
 -    const canChangeTimeMode = !!this.root.me || this.gameType !== 'hook';
 +    const canChangeTimeMode = !!this.root.me || this.gameType !== 'hook' || !!this.root.opts.noSweat;
      this.timeControl = timeControlFromStoredValues(
-       propWithEffect(forceOptions?.timeMode || storeProps.timeMode, this.onDropdownChange),
-       canChangeTimeMode ? timeModes : ['realTime'],
-@@ -89,6 +89,7 @@ export default class SetupController {
+-      propWithEffect(forceOptions?.timeMode || storeProps.timeMode, this.onDropdownChange),
+-      canChangeTimeMode ? timeModes : ['realTime'],
++      propWithEffect(
++        this.root.opts.noSweat ? 'realTime' : forceOptions?.timeMode || storeProps.timeMode,
++        this.onDropdownChange,
++      ),
++      !this.root.opts.noSweat && canChangeTimeMode ? timeModes : ['realTime'],
+       forceOptions?.time ?? storeProps.time,
+       forceOptions?.increment ?? storeProps.increment,
+       forceOptions?.days ?? storeProps.days,
+@@ -89,6 +92,7 @@ export default class SetupController {
      this.aiLevel = this.propWithApply(storeProps.aiLevel);
      this.color(forceOptions?.color || storeProps.color || 'random');
  
@@ -8260,7 +8423,7 @@ index 42d03af..1413a3b 100644
      this.enforcePropRules();
      // Upon loading the props from the store, overriding with forced options, and enforcing rules,
      // immediately save them to the store. This way, the user can know that whatever they saw last
-@@ -176,7 +177,7 @@ export default class SetupController {
+@@ -176,7 +180,7 @@ export default class SetupController {
      friendUser?: string,
    ) => {
      this.root.leavePool();
@@ -8269,7 +8432,7 @@ index 42d03af..1413a3b 100644
      this.loading = false;
      this.fenError = false;
      this.lastValidFen = '';
-@@ -292,6 +293,21 @@ export default class SetupController {
+@@ -292,6 +296,21 @@ export default class SetupController {
    minimumTimeIfReal = () => (this.gameType === 'ai' && this.variant() === 'fromPosition' ? 1 : 0);
  
    submit = async () => {
@@ -9931,10 +10094,10 @@ index 0000000..e1cb129
 +    bdoc("_id" -> payment, "userId" -> user, "paid" -> false)
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..f6251d3
+index 0000000..d9c6440
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,934 @@
+@@ -0,0 +1,933 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -10529,7 +10692,7 @@ index 0000000..f6251d3
 +          )
 +          val mode = (data \ "timeMode").asOpt[String].getOrElse("realTime")
 +          requireThat(
-+            Set("realTime", "correspondence", "unlimited").contains(mode),
++            mode == "realTime",
 +            400,
 +            "Invalid time control"
 +          )
@@ -10538,17 +10701,16 @@ index 0000000..f6251d3
 +          requireThat(
 +            lila.setup.HookConfig.validateTime(minutes) &&
 +              lila.setup.HookConfig.validateIncrement(Clock.IncrementSeconds(increment)) &&
-+              (mode != "realTime" || minutes * 60 + increment > 0),
++              minutes * 60 + increment > 0,
 +            400,
 +            "Invalid clock"
 +          )
-+          val days = (data \ "days").asOpt[Int].getOrElse(2)
-+          requireThat(Set(1, 2, 3, 5, 7, 10, 14).contains(days), 400, "Invalid correspondence time")
-+          val clock = Option.when(mode == "realTime")(
-+            Clock.Config(Clock.LimitSeconds((minutes * 60).toInt), Clock.IncrementSeconds(increment))
++          val clock = Clock.Config(
++            Clock.LimitSeconds((minutes * 60).toInt),
++            Clock.IncrementSeconds(increment)
 +          )
-+          val perfKey = lila.rating.PerfType(chess.variant.Standard, chess.Speed(clock)).key
-+          val rated = user.isDefined && mode != "unlimited" && (data \ "rated").asOpt[Boolean].getOrElse(true)
++          val perfKey = lila.rating.PerfType(chess.variant.Standard, chess.Speed(Some(clock))).key
++          val rated = user.isDefined && (data \ "rated").asOpt[Boolean].getOrElse(true)
 +          val busy = games.flatMap(g => occupied(g._1)).toSet ++ studyBusy._2
 +          for
 +            _ <- env.game.noSweatAdmission.check
@@ -10573,14 +10735,14 @@ index 0000000..f6251d3
 +              .newGame(
 +                chess = chess.Game(
 +                  position = chess.variant.Standard.initialPosition,
-+                  clock = clock.map(_.toClock.start)
++                  clock = Some(clock.toClock.start)
 +                ),
 +                players =
 +                  ByColor(c => lila.game.Player.make(c, if c == humanColor then human else opponent.some)),
 +                rated = Rated(rated),
 +                source = Source.Pool,
 +                pgnImport = None,
-+                daysPerTurn = Option.when(mode == "correspondence")(scalalib.model.Days(days)),
++                daysPerTurn = None,
 +                rules = Set(GameRule.noRematch, GameRule.noGiveTime, GameRule.noClaimWin)
 +              )
 +              .withId(id)
@@ -10597,7 +10759,7 @@ index 0000000..f6251d3
 +                "rated" -> rated,
 +                "snapshot" -> Json.stringify(policy),
 +                "createdAt" -> nowInstant,
-+                "control" -> clock.fold(mode)(_.show),
++                "control" -> clock.show,
 +                "matchedRating" -> rating,
 +                "opponentRating" -> opponent.perf.intRating.value
 +              )
@@ -11250,10 +11412,10 @@ index 0000000..703a031
 +  def find(key: String): Option[NoSweatStudyPlan] = plans.find(_.key == key)
 diff --git a/app/controllers/NoSweat.scala b/app/controllers/NoSweat.scala
 new file mode 100644
-index 0000000..aba091e
+index 0000000..31963af
 --- /dev/null
 +++ b/app/controllers/NoSweat.scala
-@@ -0,0 +1,282 @@
+@@ -0,0 +1,285 @@
 +package controllers
 +
 +import play.api.libs.json.*
@@ -11457,21 +11619,24 @@ index 0000000..aba091e
 +                )
 +              )
 +      setup.flatMap: data =>
-+        env.security.lilaCookie.ensureAndGet: sid =>
-+          club
-+            .play(context.user, sid.value, data)
-+            .map: game =>
-+              val result = Ok(game)
-+              if (game \ "anonymous").as[Boolean] then
-+                result.withCookies(
-+                  env.security.lilaCookie.cookie(
-+                    lila.game.AnonCookie.name,
-+                    (game \ "url").as[String].takeRight(4),
-+                    maxAge = lila.game.AnonCookie.maxAge.some,
-+                    httpOnly = false.some
++        if (data \ "timeMode").asOpt[String].exists(_ != "realTime") then
++          fuccess(BadRequest(Json.obj("error" -> lila.core.i18n.I18nKey("muteRealTimeOnly").txt())))
++        else
++          env.security.lilaCookie.ensureAndGet: sid =>
++            club
++              .play(context.user, sid.value, data)
++              .map: game =>
++                val result = Ok(game)
++                if (game \ "anonymous").as[Boolean] then
++                  result.withCookies(
++                    env.security.lilaCookie.cookie(
++                      lila.game.AnonCookie.name,
++                      (game \ "url").as[String].takeRight(4),
++                      maxAge = lila.game.AnonCookie.maxAge.some,
++                      httpOnly = false.some
++                    )
 +                  )
-+                )
-+              else result
++                else result
 +
 +  def experimentStatus = Anon:
 +    handle:
@@ -12797,10 +12962,10 @@ index 0000000..a4729c5
 +        .flatMap(_ => importer.parseImport(pgn, none))
 diff --git a/modules/game/src/main/NoSweatGameAdmission.scala b/modules/game/src/main/NoSweatGameAdmission.scala
 new file mode 100644
-index 0000000..cf45ee5
+index 0000000..4860bf0
 --- /dev/null
 +++ b/modules/game/src/main/NoSweatGameAdmission.scala
-@@ -0,0 +1,26 @@
+@@ -0,0 +1,27 @@
 +package lila.game
 +
 +/** Serialize maintenance changes with native insertion, never with moves or finishing games. */
@@ -12826,6 +12991,7 @@ index 0000000..cf45ee5
 +  def pause(value: Boolean): Funit = serial(writePaused(value))
 +
 +object NoSweatGameAdmission:
++  case object RealTimeRequired extends RuntimeException
 +  case object Paused extends RuntimeException("Server maintenance: new games are temporarily paused")
 diff --git a/modules/game/src/main/NoSweatStudyScope.scala b/modules/game/src/main/NoSweatStudyScope.scala
 new file mode 100644
@@ -132362,6 +132528,57 @@ index 0000000..f5e4c01
 +    assert.equal(ctrl.poolMember, undefined);
 +    t.mock.timers.reset();
 +  });
+diff --git a/ui/lobby/tests/noSweatTimeControls.test.ts b/ui/lobby/tests/noSweatTimeControls.test.ts
+new file mode 100644
+index 0000000..079924f
+--- /dev/null
++++ b/ui/lobby/tests/noSweatTimeControls.test.ts
+@@ -0,0 +1,45 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++
++import type LobbyController from '../src/ctrl';
++import type { GameType } from '../src/interfaces';
++import SetupController from '../src/setupCtrl';
++
++const makeRoot = (focused: boolean, signedIn: boolean) =>
++  ({
++    opts: { noSweat: focused },
++    me: signedIn ? { username: 'ClockTest' } : undefined,
++    data: { ratingMap: null },
++    pools: [],
++    leavePool() {},
++    redraw() {},
++  }) as unknown as LobbyController;
++
++for (const mode of ['correspondence', 'unlimited'] as const)
++  for (const gameType of ['hook', 'friend'] as GameType[])
++    for (const force of [false, true])
++      test(`focused ${gameType} normalizes ${force ? 'forced' : 'stored'} ${mode}`, () => {
++        localStorage.clear();
++        const ctrl = new SetupController(makeRoot(true, gameType === 'friend'));
++        ctrl.store[gameType]({ ...ctrl.store[gameType](), timeMode: mode, time: 5, increment: 3 });
++        ctrl.openModal(
++          gameType,
++          force ? { timeMode: mode } : undefined,
++          gameType === 'friend' ? 'Friend' : undefined,
++        );
++        assert.equal(ctrl.timeControl.mode(), 'realTime');
++        assert.deepEqual(ctrl.timeControl.modes, ['realTime']);
++        assert.equal(ctrl.timeControl.canSelectMode(), false);
++        assert.equal(ctrl.timeControl.time(), 5);
++        assert.equal(ctrl.timeControl.increment(), 3);
++        assert.equal(ctrl.store[gameType]().timeMode, 'realTime');
++      });
++
++test('upstream setup retains its native time-control choices', () => {
++  localStorage.clear();
++  const ctrl = new SetupController(makeRoot(false, true));
++  ctrl.openModal('friend');
++  assert.equal(ctrl.timeControl.mode(), 'unlimited');
++  assert.deepEqual(ctrl.timeControl.modes, ['unlimited', 'realTime', 'correspondence']);
++  assert.equal(ctrl.timeControl.canSelectMode(), true);
++});
 diff --git a/ui/puzzle/src/noSweatMaia.ts b/ui/puzzle/src/noSweatMaia.ts
 new file mode 100644
 index 0000000..141c08f
