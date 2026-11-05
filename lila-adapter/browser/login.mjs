@@ -7,7 +7,22 @@ import './patron.mjs';
 import './keys.mjs';
 
 const element = id => document.getElementById('nostr-' + id);
-let generated, pending;
+let generated, pending, copyFeedback, copyTimer;
+function clearCopyFeedback() {
+  clearTimeout(copyTimer);
+  if (!copyFeedback) return;
+  const { button, label, minWidth } = copyFeedback;
+  button.textContent = label;
+  button.style.minInlineSize = minWidth;
+  copyFeedback = undefined;
+}
+function showCopyFeedback(button) {
+  clearCopyFeedback();
+  copyFeedback = { button, label: button.textContent, minWidth: button.style.minInlineSize };
+  button.style.minInlineSize = button.getBoundingClientRect().width + 'px';
+  button.textContent = button.dataset.copied;
+  copyTimer = setTimeout(clearCopyFeedback, 900);
+}
 let pageEpoch = 0;
 const status = (message, error = false) => {
   element('status').textContent = message;
@@ -23,6 +38,7 @@ function resetFactor() {
   element('methods').hidden = false;
 }
 async function complete(result, key, save, epoch) {
+  clearCopyFeedback();
   if (epoch !== pageEpoch) return;
   if (key && save) await saveKey(key);
   if (epoch !== pageEpoch) return;
@@ -52,7 +68,8 @@ async function signIn(signer, key, save = true) {
     element('token').focus();
   }
 }
-async function exportKey(key, download = false) {
+async function exportKey(key, download = false, button) {
+  const epoch = pageEpoch;
   const nsec = nsecEncode(key);
   if (download) {
     const link = document.createElement('a');
@@ -69,14 +86,14 @@ async function exportKey(key, download = false) {
     status('Backup download requested. Keep the file somewhere private.');
   } else {
     try { await navigator.clipboard.writeText(nsec); }
-    catch { throw Error('Copy is unavailable here. Use Download .txt instead.'); }
-    status('Key copied. Paste it into your password manager.');
+    catch { throw Error(button.dataset.copyFailed); }
+    if (epoch === pageEpoch) showCopyFeedback(button);
   }
 }
-async function exportSavedKey(download) {
+async function exportSavedKey(download, button) {
   const key = await loadKey();
   if (!key) throw Error('No key is saved in this browser');
-  try { await exportKey(key, download); } finally { key.fill(0); }
+  try { await exportKey(key, download, button); } finally { key.fill(0); }
 }
 let busy = false;
 function action(name, callback) {
@@ -96,7 +113,7 @@ if (element('extension')) {
     await signIn(window.nostr);
   });
   action('generate', () => {
-    resetFactor(); generated?.fill(0); generated = generateSecretKey();
+    clearCopyFeedback(); resetFactor(); generated?.fill(0); generated = generateSecretKey();
     element('backup').value = nsecEncode(generated);
     element('backup').type = 'password';
     element('reveal').textContent = element('reveal').dataset.showKey || 'Show key';
@@ -111,13 +128,13 @@ if (element('extension')) {
   });
   action('copy', async () => {
     if (!generated) throw Error('Create a key first');
-    await exportKey(generated);
+    await exportKey(generated, false, element('copy'));
   });
   action('download', async () => {
     if (!generated) throw Error('Create a key first');
     await exportKey(generated, true);
   });
-  action('copy-saved', () => exportSavedKey(false));
+  action('copy-saved', () => exportSavedKey(false, element('copy-saved')));
   action('download-saved', () => exportSavedKey(true));
   let persistencePending = false;
   element('persist').addEventListener('click', async () => {
@@ -168,6 +185,7 @@ if (element('extension')) {
   element('nsec').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); element('import').click(); } });
   window.addEventListener('pagehide', () => {
     pageEpoch++;
+    clearCopyFeedback();
     resetFactor();
     generated?.fill(0); generated = undefined;
     element('backup').value = '';

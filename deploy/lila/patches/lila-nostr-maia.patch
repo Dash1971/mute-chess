@@ -4630,10 +4630,10 @@ index 74906f1..99e482b 100644
  travel-places.map-of-japan
  travel-places.metro
 diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
-index 88adade..350f7f4 100644
+index 88adade..8999e16 100644
 --- a/translation/dest/site/de-DE.xml
 +++ b/translation/dest/site/de-DE.xml
-@@ -1064,4 +1064,104 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
+@@ -1064,4 +1064,105 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
    <string name="write">Schreiben</string>
    <string name="preview">Vorschau</string>
    <string name="done">Erledigt</string>
@@ -4737,12 +4737,13 @@ index 88adade..350f7f4 100644
 +  <string name="muteDonationDismissFailed">Diese Rechnung konnte nicht ausgeblendet werden. Prüfe die Zahlung und versuche es erneut.</string>
 +  <string name="muteRealTimeOnly">Es werden nur Echtzeitpartien unterstützt.</string>
 +  <string name="muteImportedGame">Importierte Partie</string>
++  <string name="muteCopyKeyFailed">Der Schlüssel konnte nicht kopiert werden. Verwende stattdessen „Herunterladen“.</string>
  </resources>
 diff --git a/translation/dest/site/es-ES.xml b/translation/dest/site/es-ES.xml
-index 76004f5..fd534e6 100644
+index 76004f5..ac140ad 100644
 --- a/translation/dest/site/es-ES.xml
 +++ b/translation/dest/site/es-ES.xml
-@@ -1064,4 +1064,104 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
+@@ -1064,4 +1064,105 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
    <string name="write">Escribir</string>
    <string name="preview">Vista previa</string>
    <string name="done">Listo</string>
@@ -4846,12 +4847,13 @@ index 76004f5..fd534e6 100644
 +  <string name="muteDonationDismissFailed">No se pudo ocultar esta factura. Comprueba el pago y vuelve a intentarlo.</string>
 +  <string name="muteRealTimeOnly">Solo se admiten partidas en tiempo real.</string>
 +  <string name="muteImportedGame">Partida importada</string>
++  <string name="muteCopyKeyFailed">No se pudo copiar la clave. Usa Descargar.</string>
  </resources>
 diff --git a/translation/dest/site/fr-FR.xml b/translation/dest/site/fr-FR.xml
-index 7dfd5f7..a121fd6 100644
+index 7dfd5f7..3968628 100644
 --- a/translation/dest/site/fr-FR.xml
 +++ b/translation/dest/site/fr-FR.xml
-@@ -1063,4 +1063,104 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
+@@ -1063,4 +1063,105 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
    <string name="write">Écrire</string>
    <string name="preview">Aperçu</string>
    <string name="done">Terminé</string>
@@ -4955,12 +4957,13 @@ index 7dfd5f7..a121fd6 100644
 +  <string name="muteDonationDismissFailed">Impossible de masquer cette facture. Vérifiez le paiement, puis réessayez.</string>
 +  <string name="muteRealTimeOnly">Seules les parties en temps réel sont prises en charge.</string>
 +  <string name="muteImportedGame">Partie importée</string>
++  <string name="muteCopyKeyFailed">Impossible de copier la clé. Utilisez Télécharger.</string>
  </resources>
 diff --git a/translation/dest/site/hi-IN.xml b/translation/dest/site/hi-IN.xml
-index bbf1703..ac14313 100644
+index bbf1703..555c82d 100644
 --- a/translation/dest/site/hi-IN.xml
 +++ b/translation/dest/site/hi-IN.xml
-@@ -893,4 +893,104 @@
+@@ -893,4 +893,105 @@
    <string name="closingAccountWithdrawAppeal">आपका खाता बंद करने से आपकी अपील वापस ले ली जाएगी</string>
    <string name="ourEventTips">कार्यक्रम आयोजित करने कि सलाह</string>
    <string name="nothingToSeeHere">इस समय यहां देखने को कुछ भी नहीं है।</string>
@@ -5064,12 +5067,13 @@ index bbf1703..ac14313 100644
 +  <string name="muteDonationDismissFailed">यह इनवॉइस छिपाया नहीं जा सका। भुगतान जाँचें, फिर दोबारा कोशिश करें।</string>
 +  <string name="muteRealTimeOnly">केवल रियल-टाइम खेल समर्थित हैं।</string>
 +  <string name="muteImportedGame">आयात किया गया खेल</string>
++  <string name="muteCopyKeyFailed">कुंजी कॉपी नहीं हो सकी। इसके बजाय डाउनलोड करें।</string>
  </resources>
 diff --git a/translation/dest/site/ja-JP.xml b/translation/dest/site/ja-JP.xml
-index e628bdb..f5e6171 100644
+index e628bdb..27b7d57 100644
 --- a/translation/dest/site/ja-JP.xml
 +++ b/translation/dest/site/ja-JP.xml
-@@ -1023,4 +1023,104 @@
+@@ -1023,4 +1023,105 @@
    <string name="write">書く</string>
    <string name="preview">プレビュー</string>
    <string name="done">完了</string>
@@ -5173,12 +5177,13 @@ index e628bdb..f5e6171 100644
 +  <string name="muteDonationDismissFailed">この請求書を非表示にできませんでした。支払いを確認してから、もう一度お試しください。</string>
 +  <string name="muteRealTimeOnly">リアルタイム対局のみ対応しています。</string>
 +  <string name="muteImportedGame">インポートした棋譜</string>
++  <string name="muteCopyKeyFailed">鍵をコピーできませんでした。代わりにダウンロードしてください。</string>
  </resources>
 diff --git a/translation/dest/site/ko-KR.xml b/translation/dest/site/ko-KR.xml
-index 9341bf0..05302a6 100644
+index 9341bf0..63d6a1b 100644
 --- a/translation/dest/site/ko-KR.xml
 +++ b/translation/dest/site/ko-KR.xml
-@@ -1022,4 +1022,104 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
+@@ -1022,4 +1022,105 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
    <string name="write">작성</string>
    <string name="preview">미리보기</string>
    <string name="done">완료</string>
@@ -5282,12 +5287,13 @@ index 9341bf0..05302a6 100644
 +  <string name="muteDonationDismissFailed">이 청구서를 숨길 수 없습니다. 결제를 확인한 후 다시 시도하세요.</string>
 +  <string name="muteRealTimeOnly">실시간 대국만 지원합니다.</string>
 +  <string name="muteImportedGame">가져온 기보</string>
++  <string name="muteCopyKeyFailed">키를 복사하지 못했습니다. 대신 다운로드하세요.</string>
  </resources>
 diff --git a/translation/dest/site/pt-BR.xml b/translation/dest/site/pt-BR.xml
-index 569e752..38e92b0 100644
+index 569e752..be61ecc 100644
 --- a/translation/dest/site/pt-BR.xml
 +++ b/translation/dest/site/pt-BR.xml
-@@ -1063,4 +1063,104 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
+@@ -1063,4 +1063,105 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
    <string name="write">Escrever</string>
    <string name="preview">Pré-visualizar</string>
    <string name="done">Feito</string>
@@ -5391,12 +5397,13 @@ index 569e752..38e92b0 100644
 +  <string name="muteDonationDismissFailed">Não foi possível ocultar esta fatura. Verifique o pagamento e tente novamente.</string>
 +  <string name="muteRealTimeOnly">Apenas partidas em tempo real são compatíveis.</string>
 +  <string name="muteImportedGame">Partida importada</string>
++  <string name="muteCopyKeyFailed">Não foi possível copiar a chave. Use Baixar.</string>
  </resources>
 diff --git a/translation/dest/site/ru-RU.xml b/translation/dest/site/ru-RU.xml
-index 6384657..d636dbc 100644
+index 6384657..1a94ea7 100644
 --- a/translation/dest/site/ru-RU.xml
 +++ b/translation/dest/site/ru-RU.xml
-@@ -1146,4 +1146,104 @@
+@@ -1146,4 +1146,105 @@
    <string name="write">Написать</string>
    <string name="preview">Предпросмотр</string>
    <string name="done">Готово</string>
@@ -5500,12 +5507,13 @@ index 6384657..d636dbc 100644
 +  <string name="muteDonationDismissFailed">Не удалось скрыть этот счёт. Проверьте платёж и повторите попытку.</string>
 +  <string name="muteRealTimeOnly">Поддерживаются только партии в реальном времени.</string>
 +  <string name="muteImportedGame">Импортированная партия</string>
++  <string name="muteCopyKeyFailed">Не удалось скопировать ключ. Используйте «Скачать».</string>
  </resources>
 diff --git a/translation/dest/site/zh-CN.xml b/translation/dest/site/zh-CN.xml
-index 176f4d1..d61b5d1 100644
+index 176f4d1..a95d5ed 100644
 --- a/translation/dest/site/zh-CN.xml
 +++ b/translation/dest/site/zh-CN.xml
-@@ -1022,4 +1022,104 @@
+@@ -1022,4 +1022,105 @@
    <string name="write">撰写</string>
    <string name="preview">预览</string>
    <string name="done">完成</string>
@@ -5609,12 +5617,13 @@ index 176f4d1..d61b5d1 100644
 +  <string name="muteDonationDismissFailed">无法隐藏此账单。请检查付款状态，然后重试。</string>
 +  <string name="muteRealTimeOnly">仅支持实时对局。</string>
 +  <string name="muteImportedGame">已导入的棋局</string>
++  <string name="muteCopyKeyFailed">无法复制密钥。请改用下载。</string>
  </resources>
 diff --git a/translation/source/site.xml b/translation/source/site.xml
-index 8b5a6a1..e821a76 100644
+index 8b5a6a1..184b9b9 100644
 --- a/translation/source/site.xml
 +++ b/translation/source/site.xml
-@@ -1066,4 +1066,104 @@ Leave empty to start games from the normal initial position.</string>
+@@ -1066,4 +1066,105 @@ Leave empty to start games from the normal initial position.</string>
    <string name="write">Write</string>
    <string name="preview">Preview</string>
    <string name="done">Done</string>
@@ -5718,6 +5727,7 @@ index 8b5a6a1..e821a76 100644
 +  <string name="muteDonationDismissFailed">Could not dismiss this invoice. Check payment, then try again.</string>
 +  <string name="muteRealTimeOnly">Only real-time games are supported.</string>
 +  <string name="muteImportedGame">Imported game</string>
++  <string name="muteCopyKeyFailed">Could not copy the key. Use Download instead.</string>
  </resources>
 diff --git a/ui/.build/src/build.ts b/ui/.build/src/build.ts
 index 7d6adeb..b433f0c 100644
@@ -12028,10 +12038,10 @@ index 0000000..9d16b16
 +    case _ => emptyFrag
 diff --git a/app/views/noSweatLogin.scala b/app/views/noSweatLogin.scala
 new file mode 100644
-index 0000000..6064b5c
+index 0000000..668b360
 --- /dev/null
 +++ b/app/views/noSweatLogin.scala
-@@ -0,0 +1,154 @@
+@@ -0,0 +1,166 @@
 +package views
 +
 +import lila.core.i18n.I18nKey
@@ -12043,7 +12053,7 @@ index 0000000..6064b5c
 +    Page(I18nKey("muteSignIn").txt())
 +      .css("bits.auth")
 +      .headAppend(link(rel := "stylesheet", href := s"${assetPath("nosweat/nostr.css")}?v=key-backup2"))
-+      .headAppend(script(src := s"${assetPath("nosweat/nostr.js")}?v=key-backup2", defer)):
++      .headAppend(script(src := s"${assetPath("nosweat/nostr.js")}?v=key-copy3", defer)):
 +        main(cls := "auth auth-login box box-pad")(
 +          div(cls := "auth__brand")(
 +            img(
@@ -12088,7 +12098,13 @@ index 0000000..6064b5c
 +                aria.label := "Your new Nostr secret key"
 +              ),
 +              div(cls := "nostr-key-actions")(
-+                button(id := "nostr-copy", cls := "button button-metal")(I18nKey("muteCopyKey").txt()),
++                button(
++                  id := "nostr-copy",
++                  cls := "button button-metal",
++                  aria.live := "polite",
++                  attr("data-copied") := I18nKey("muteCopied").txt(),
++                  attr("data-copy-failed") := I18nKey("muteCopyKeyFailed").txt()
++                )(I18nKey("muteCopyKey").txt()),
 +                button(id := "nostr-download", cls := "button button-metal")(
 +                  I18nKey("muteDownloadKey").txt()
 +                ),
@@ -12119,7 +12135,13 @@ index 0000000..6064b5c
 +                summary("Back up your saved key"),
 +                p("Copy it to your password manager or download a private .txt copy."),
 +                div(cls := "nostr-key-actions")(
-+                  button(id := "nostr-copy-saved", cls := "button button-metal")(
++                  button(
++                    id := "nostr-copy-saved",
++                    cls := "button button-metal",
++                    aria.live := "polite",
++                    attr("data-copied") := I18nKey("muteCopied").txt(),
++                    attr("data-copy-failed") := I18nKey("muteCopyKeyFailed").txt()
++                  )(
 +                    I18nKey("muteCopyKey").txt()
 +                  ),
 +                  button(id := "nostr-download-saved", cls := "button button-metal")(
