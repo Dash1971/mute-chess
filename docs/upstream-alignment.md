@@ -8,7 +8,7 @@ Owner decision, October 30, 2026: Mute Chess is a maintained adaptation of Liche
   with the owner-approved [Mute-only brilliant experiment](brilliant-moves.md) (#221).
 - Multiple stacked premoves around native move handling.
 - Managed Maia opponents in quick pairing; native direct friend invitations remain supported.
-- A focused feature surface: no Watch/Learn navigation or opening explorer, standard chess only, and the previously approved Puzzles, Community, Tools and profile functions. Hidden upstream implementation can remain; do not delete large native subsystems merely to hide a feature.
+- A focused feature surface: no Watch navigation or opening explorer; Learn contains only Chess basics and Practice, standard chess only, and the previously approved Puzzles, Community, Tools and profile functions. Hidden upstream implementation can remain; do not delete large native subsystems merely to hide a feature.
 - Mute Chess branding, with clear upstream credits and licenses.
 - Nostr login, public names and the approved account/security integration.
 
