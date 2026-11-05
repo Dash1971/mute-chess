@@ -4,3 +4,7 @@ db.security.createIndex({ date: 1 }, { expireAfterSeconds: 604800, name: 'noswea
 db.nosweat_game.createIndex({ state: 1, human: 1 });
 
 db.nosweat_donation.createIndex({ userId: 1, paid: 1, expiresAt: 1 });
+
+// Native on-demand human Chess Insights; same isolated database, no bot backfill.
+db.insight.createIndex({ u: 1, d: -1 });
+db.insight.createIndex({ mr: 1, p: 1, a: 1, c: 1 }, { partialFilterExpression: { mr: { $exists: true } } });

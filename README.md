@@ -378,3 +378,7 @@ All new or changed user-facing text must use the native translation catalogs
 and ship in all ten supported languages, including help, accessibility labels,
 errors and copy feedback. English fallback alone is insufficient. Check key and
 placeholder parity and localized rendering before release; see [AGENTS.md](AGENTS.md).
+
+### Basic Chess Insights and unsupported features
+
+The proposed basic Insights view reuses native Lichess results and rating analytics, including opening, colour, time-control and date breakdowns. Engine-analysis statistics remain unavailable; browser reviews are not uploaded for Insights. Unsupported inherited feature links show a translated not-yet-supported notice rather than a dead end. See [scope and limitations](docs/basic-insights-and-unsupported-links.md) (#281/#282).

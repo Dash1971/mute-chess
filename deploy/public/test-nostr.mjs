@@ -79,9 +79,9 @@ try {
     ['/run/captcha/00000000?solution=e2e4','GET'], ['/notify','GET'], ['/notify/clear','POST'],
   ]) assert.equal((await request(path, method)).status, 209, `${method} ${path}`);
   for (const [path, method] of [
-    ['/paste','GET'], ['/paste?pgn=test','POST'], ['/import','POST'], ['/import','GET'], ['/racer','GET'],
-    ['/player/top/correspondence','HEAD'], ['/stat/rating/distribution/correspondence','HEAD'],
-    ['/ja','POST'], ['/ar','GET'], ['/it','GET'], ['/translation/select','GET'], ['/translation/other','POST'], ['/player','POST'], ['/player/bots','GET'], ['/player/top/network','GET'], ['/player/top/blitz','POST'],
+    ['/paste?pgn=test','POST'], ['/import','POST'], 
+
+    ['/ja','POST'], ['/ar','GET'], ['/it','GET'], ['/translation/select','GET'], ['/translation/other','POST'], ['/player','POST'],  ['/player/top/network','GET'], ['/player/top/blitz','POST'],
     ['/stat/rating/distribution/network','GET'], ['/stat/rating/distribution/blitz','POST'],
     ['/export/fen.gif','POST'], ['/export/other','GET'], ['/embed/analysis','POST'], ['/embed/other','GET'],
     ['/player/search/QuietProxy','POST'], ['/player/search/a/b','GET'],
@@ -90,9 +90,27 @@ try {
     ['/challenge','POST'], ['/rel/follow/friend','GET'], ['/rel/delete/friend','POST'],
     ['/about','POST'], ['/privacy','POST'], ['/account/preferences/engine-analysis','POST'], ['/account/preferences/network','GET'], ['/account/preferences/network','POST'], ['/account/passwd','POST'],
     ['/account/oauth/token','GET'], ['/api/account/preferences','GET'], ['/api/study','POST'],
-    ['/api/streak/27','POST'], ['/storm','DELETE'], ['/learn','DELETE'], ['/games/atomic','GET'], ['/forum/search','GET'],
-    ['/study/search','GET'], ['/blog','GET'], ['/coach','GET'], ['/club/internal/games','GET'],
+    ['/api/streak/27','POST'], ['/storm','DELETE'], ['/learn','DELETE'], ['/games/atomic','GET'], 
+     ['/club/internal/games','GET'],
   ]) assert.equal((await request(path, method)).status, 404, `${method} ${path}`);
+  // Known unsupported view links proxy only the fixed notice, not their original controller.
+  for (const path of ['/ublog', '/ublog/community', '/ublog/month/2026/11', '/ublog/topic/chess', '/blog',
+    '/ublog/liked', '/ublog/friends', '/ublog/User/new', '/@/User/blog', '/@/User/blog/drafts',
+    '/racer', '/coach', '/tutor', '/tournament', '/simul', '/team/all', '/broadcast', '/tv',
+    '/forum/search', '/study/search', '/games/search', '/paste', '/import', '/player/bots',
+    '/player/top/correspondence', '/stat/rating/distribution/correspondence']) {
+    const res = await request(path);
+    assert.equal(res.status, 209, path);
+    assert.equal(Buffer.from(await res.arrayBuffer()).toString(), '/club/unsupported', path);
+    assert.equal((await request(path, 'HEAD')).status, 209, 'HEAD ' + path);
+  }
+  for (const [path, method] of [['/insights/User', 'GET'], ['/insights/User/result/color', 'GET'],
+    ['/insights/User/result/openingFamily/color:white', 'GET'], ['/insights/data/User', 'POST'],
+    ['/insights/refresh/User', 'POST']]) assert.equal((await request(path, method)).status, 209, path);
+  for (const [path, method] of [['/ublog/User/new', 'POST'], ['/@/User/blog', 'POST'], ['/tournament', 'POST'],
+    ['/insights/data/User', 'GET'], ['/insights/refresh/User', 'GET'], ['/insights/User', 'DELETE'],
+    ['/some-missing-page', 'GET'], ['/club/internal/activity', 'GET']])
+    assert.equal((await request(path, method)).status, 404, path);
   for (const name of ['app-icon-512.png', 'social.png', 'favicon-32.png']) {
     const image = await request('/assets/nosweat/' + name);
     assert.equal(image.status, 200);

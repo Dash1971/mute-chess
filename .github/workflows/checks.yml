@@ -100,7 +100,7 @@ jobs:
           (cd ui/.build && pnpm install --frozen-lockfile)
           node "$GITHUB_WORKSPACE/puzzles/validate.mjs" /tmp/lila/node_modules/.pnpm/chessops@0.15.1/node_modules/chessops
           node ui/test
-          ./ui/build --no-install site lobby analyse round editor dasher puzzle bits learn coordinateTrainer storm user
+          ./ui/build --no-install site lobby analyse round editor dasher puzzle bits learn coordinateTrainer storm user insight
 
   native-forum:
     runs-on: ubuntu-24.04
@@ -124,7 +124,7 @@ jobs:
       - uses: sbt/setup-sbt@f9efdb0d6d5959d3e1510935d4ff64a65821a256 # v1
       - name: Check native Scala formatting, GIF parsing, study plan, forum permissions and user search
         working-directory: /tmp/lila
-        run: sbt -J-Xms128m -J-Xmx3g -J-Xss2m -J-XX:ActiveProcessorCount=2 -Dsbt.task.cpus=2 -Dsbt.supershell=false 'scalafmtCheckAll;core/testOnly lila.core.NostrNameTest;game/testOnly lila.game.NoSweatAnalysisGifTest;game/testOnly lila.game.NoSweatGameAdmissionTest;chat/testOnly lila.chat.ChatPublicNameTest;round/testOnly lila.round.NoSweatPresetChatTest;i18n/testOnly lila.i18n.NoSweatLanguagesTest;web/testOnly lila.web.NoSweatBrandingTest;bot/testOnly lila.bot.PublicBotActivityTest;compile;forum/testOnly lila.forum.ForumAccessTest;user/testOnly lila.user.NoSweatUserSearchTest;user/testOnly lila.user.NoSweatPlayerRatingsTest;testOnly lila.app.NoSweatStudyPlanTest;testOnly lila.app.NoSweatBotCatalogTest;testOnly lila.app.NoSweatDonationTest;user/testOnly lila.user.NoSweatBotIdentityTest;user/testOnly lila.user.NoSweatNostrIdentityTest;user/testOnly lila.user.PublicNameKeysTest;user/testOnly lila.user.PublicNameTest'
+        run: sbt -J-Xms128m -J-Xmx3g -J-Xss2m -J-XX:ActiveProcessorCount=2 -Dsbt.task.cpus=2 -Dsbt.supershell=false 'scalafmtCheckAll;core/testOnly lila.core.NostrNameTest;game/testOnly lila.game.NoSweatAnalysisGifTest;game/testOnly lila.game.NoSweatGameAdmissionTest;chat/testOnly lila.chat.ChatPublicNameTest;round/testOnly lila.round.NoSweatPresetChatTest;i18n/testOnly lila.i18n.NoSweatLanguagesTest;web/testOnly lila.web.NoSweatBrandingTest;bot/testOnly lila.bot.PublicBotActivityTest;compile;forum/testOnly lila.forum.ForumAccessTest;user/testOnly lila.user.NoSweatUserSearchTest;user/testOnly lila.user.NoSweatPlayerRatingsTest;testOnly lila.app.NoSweatInsightsTest;testOnly lila.app.NoSweatStudyPlanTest;testOnly lila.app.NoSweatBotCatalogTest;testOnly lila.app.NoSweatDonationTest;user/testOnly lila.user.NoSweatBotIdentityTest;user/testOnly lila.user.NoSweatNostrIdentityTest;user/testOnly lila.user.PublicNameKeysTest;user/testOnly lila.user.PublicNameTest'
 
 
   native-gif:

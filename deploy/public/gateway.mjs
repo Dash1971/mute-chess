@@ -134,10 +134,22 @@ const server = http.createServer((req, res) => {
   const languageHome = read && /^\/(?:en|de|fr|ru|pt|hi|ja|zh|ko|es)$/.test(path);
   const infoRoute = read && /^\/(?:about|faq|contact|terms-of-service|privacy)$/.test(path);
   const analysisExportRoute = read && (/^\/export\/fen\.gif$/.test(path) || /^\/embed\/(?:analysis|game\/[A-Za-z0-9]{8}(?:\/(?:white|black))?)$/.test(path));
-  const supported = languageHome || analysisExportRoute || friendRoute || infoRoute || featureRoute || patronRoute || puzzleRoute || profileRoute || path === '/' || /^\/(?:club(?:\/|$)|analysis(?:\/|$)|editor(?:\/|$)|game(?:\/|$)|@\/|login$|signup$|logout$|player-count$|account\/now-playing$|lobby\/seeks$|timeline$|pref(?:\/|$)|whats-next\/|opening(?:\/|$)|api\/cloud-eval$)/.test(path) || /^\/[A-Za-z0-9]{8}(?:[A-Za-z0-9]{4})?(?:\/(?:white|black))?$/.test(path);
+  const insightsRoute = (read && /^\/insights\/[A-Za-z0-9_-]{1,30}(?:\/[^/?#]+){0,12}$/.test(path) && !/^\/insights\/(?:data|refresh)\//.test(path)) ||
+    (post && /^\/insights\/(?:data|refresh)\/[A-Za-z0-9_-]{1,30}$/.test(path));
+  // Known inherited feature links get a translated native notice, never their blocked controller.
+  const unsupportedFeature = (
+    /^\/(?:blog|ublog|coach|tournament|simul|team|teams|broadcast|tv|racer|tutor|video|streamer|mobile|paste|import)(?:\.atom|\/|$)/.test(path) ||
+    /^\/@\/[A-Za-z0-9_-]{1,30}\/blog(?:\.atom|\/|$)/.test(path) ||
+    /^\/(?:forum|study|games)\/search(?:\/|$)/.test(path) ||
+    /^\/player\/(?:bots|top\/correspondence)$/.test(path) ||
+    /^\/stat\/rating\/distribution\/correspondence$/.test(path)
+  );
+  const unsupportedRead = read && unsupportedFeature;
+  if (unsupportedFeature && !read) return reject(res, 404, "This page is unavailable. Return to the homepage.");
+  const supported = insightsRoute || unsupportedRead || languageHome || analysisExportRoute || friendRoute || infoRoute || featureRoute || patronRoute || puzzleRoute || profileRoute || path === '/' || /^\/(?:club(?:\/|$)|analysis(?:\/|$)|editor(?:\/|$)|game(?:\/|$)|@\/|login$|signup$|logout$|player-count$|account\/now-playing$|lobby\/seeks$|timeline$|pref(?:\/|$)|whats-next\/|opening(?:\/|$)|api\/cloud-eval$)/.test(path) || /^\/[A-Za-z0-9]{8}(?:[A-Za-z0-9]{4})?(?:\/(?:white|black))?$/.test(path);
   if (!supported) return reject(res, 404, 'This page is unavailable. Return to the homepage.');
   if (Number(req.headers['content-length'] ?? 0) > 16 * 1024 * 1024) return reject(res, 413, 'Request too large');
-  const upstream = http.request({ hostname: '127.0.0.1', port: 29663, path: req.url,
+  const upstream = http.request({ hostname: '127.0.0.1', port: 29663, path: unsupportedRead ? "/club/unsupported" : req.url,
     method: req.method, headers: headers(req), timeout: 30000 }, response => {
     const output = { ...response.headers, 'x-content-type-options': 'nosniff', 'referrer-policy': 'same-origin',
       'strict-transport-security': 'max-age=31536000' };
