@@ -24,7 +24,7 @@ SECURITY_VERIFICATION.json; publish the same current verification at the existin
 SECURITY279_BUILD.json reader path as documented in docs/security-maintenance.md.
 Never claim a rebuild or check that did not run. Confirm inventory_verified=true
 with a fresh collection using the existing classifier before declaring success;
-keep unresolved/new advisories visible. No report-rule weakening, monitor-baseline
+keep unresolved/new advisories visible. No report-rule weakening, unrelated monitor-baseline
 reset, scheduler change or new general tooling is authorized by this policy.
 
 ## Required translations for user-facing text (November 4, 2026, #242)

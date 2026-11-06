@@ -12,7 +12,7 @@ Every deployment must refresh the current-release security verification, includi
 
 Use the existing host-monitor planned-maintenance wrapper for the cutover and declare `/opt/nosweatchess/current/RELEASE.json` as the expected change. Confirm its release fingerprint is accepted and no other control-file or isolation drift is present before completion. A missed earlier release must be verified against approved source/build/runtime evidence before a scoped release-only baseline approval; never reset unrelated intrusion baselines.
 
-Run the existing OpenClaw collector/classifier against the active release and confirm `inventory_verified` is true before declaring deployment complete. A changed application revision requires fresh verification even when all security versions are unchanged; changed security inputs require an inventory/applicability update too. Do not alter report predicates, schedules or intrusion-monitor baselines to make this check pass. Keep original build provenance and unresolved advisories truthful.
+Run the existing OpenClaw collector/classifier against the active release and confirm `inventory_verified` is true before declaring deployment complete. A changed application revision requires fresh verification even when all security versions are unchanged; changed security inputs require an inventory/applicability update too. Do not alter report predicates, schedules or unrelated intrusion-monitor baselines to make this check pass. Keep original build provenance and unresolved advisories truthful.
 
 # Public native alpha
 
