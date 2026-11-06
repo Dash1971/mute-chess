@@ -9,5 +9,6 @@
   "license": "CC0-1.0",
   "retrievedAtUtc": "2026-10-29",
   "sourceLastModified": "Fri, 02 Oct 2026 08:51:45 GMT",
-  "selection": "First 50000 CSV rows with Popularity >= 80, NbPlays >= 100, RatingDeviation <= 100"
+  "selection": "First 50000 CSV rows with Popularity >= 80, NbPlays >= 100, RatingDeviation <= 100",
+  "idOrder": "ascii-ascending"
 }

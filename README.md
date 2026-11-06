@@ -388,3 +388,13 @@ placeholder parity and localized rendering before release; see [AGENTS.md](AGENT
 ### Basic Chess Insights and unsupported features
 
 The proposed basic Insights view reuses native Lichess results and rating analytics, including opening, colour, time-control and date breakdowns. Engine-analysis statistics remain unavailable; browser reviews are not uploaded for Insights. Unsupported inherited feature links show a translated not-yet-supported notice rather than a dead end. See [scope and limitations](docs/basic-insights-and-unsupported-links.md) (#281/#282).
+
+
+### Full Lichess puzzle catalog
+
+The puzzle importer supports the pinned full official CC0 export: 6,193,530
+puzzles, with Lichess's native randomized path generation, quality tiers and
+unchanged solver, ratings and replay behavior. Existing installations need an
+explicit full data import; the bundled 50,000 puzzles are the small CI/development
+fixture. Existing puzzle history, votes and earned ratings are preserved. See
+[puzzle provenance, import and native path refresh](puzzles/README.md) (#289).
