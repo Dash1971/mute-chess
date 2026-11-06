@@ -11,6 +11,13 @@ libraries, browser sanitizer and running private runtime/backport fingerprints.
 Update docs/security-inventory.json when versions, pins, backports or advisory
 applicability change. An unchanged inventory alone does not verify a new release.
 
+Coordinate every planned RELEASE.json change with the existing host-monitor
+maintenance wrapper, declaring that exact path. After deployment, confirm the
+monitor's expected release fingerprint matches the verified active release and
+all other control hashes/isolation remain unchanged. A pre-existing mismatch
+requires explicit release/provenance verification and a scoped recorded approval
+of that release fingerprint; never reset unrelated baselines or suppress alerts.
+
 Preserve original build receipts and their commit IDs. Use the matching current
 release's real build evidence and observed runtime checks to produce a fresh
 SECURITY_VERIFICATION.json; publish the same current verification at the existing
