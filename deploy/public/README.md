@@ -6,6 +6,14 @@ Use one permanent branch: `main`. Open a short-lived PR, review it, pass GitHub 
 
 A release must carry RELEASE.json with `gitCommit`, `branch: "main"`, and `sourceVerified: true`. The installer verifies the native working source patch against the main payload before activation. Preserve the merged commit and verification metadata in the public corresponding-source archive. Confirm the live X-NoSweat-Revision header after deployment. Delete merged feature branches. Never activate a feature branch and merge it later.
 
+## Security verification is a release completion requirement
+
+Every deployment must refresh the current-release security verification, including UI/style-only changes with unchanged dependencies. After activation, verify the actual libraries, compiled sanitizer and private runtime/backport fingerprints against the maintained inventory and the matching real build receipt. Preserve historical receipts. Record the active commit, native patch hash, inventory hash, verification time and source evidence in `corresponding-source/SECURITY_VERIFICATION.json`, with the same current record at the existing `corresponding-source/SECURITY279_BUILD.json` report-reader path. Follow [the record format and completion check](../../docs/security-maintenance.md#every-deployment-completion-check).
+
+Use the existing host-monitor planned-maintenance wrapper for the cutover and declare `/opt/nosweatchess/current/RELEASE.json` as the expected change. Confirm its release fingerprint is accepted and no other control-file or isolation drift is present before completion. A missed earlier release must be verified against approved source/build/runtime evidence before a scoped release-only baseline approval; never reset unrelated intrusion baselines.
+
+Run the existing OpenClaw collector/classifier against the active release and confirm `inventory_verified` is true before declaring deployment complete. A changed application revision requires fresh verification even when all security versions are unchanged; changed security inputs require an inventory/applicability update too. Do not alter report predicates, schedules or unrelated intrusion-monitor baselines to make this check pass. Keep original build provenance and unresolved advisories truthful.
+
 # Public native alpha
 
 The native Maia/Nostr alpha has an existing public deployment. This checkout
