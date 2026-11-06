@@ -1,5 +1,25 @@
 # Mute Chess implementation direction
 
+## Required security verification after every deployment (owner policy, November 7, 2026)
+
+A deployment is not complete until the active release's security verification
+record has been refreshed and OpenClaw's existing daily-report classifier accepts
+it. This applies to every application deployment, including changes confined to
+UI/styles and releases that retain dependency versions. Match the actual active
+RELEASE.json commit, native patch hash and inventory hash; verify the deployed
+libraries, browser sanitizer and running private runtime/backport fingerprints.
+Update docs/security-inventory.json when versions, pins, backports or advisory
+applicability change. An unchanged inventory alone does not verify a new release.
+
+Preserve original build receipts and their commit IDs. Use the matching current
+release's real build evidence and observed runtime checks to produce a fresh
+SECURITY_VERIFICATION.json; publish the same current verification at the existing
+SECURITY279_BUILD.json reader path as documented in docs/security-maintenance.md.
+Never claim a rebuild or check that did not run. Confirm inventory_verified=true
+with a fresh collection using the existing classifier before declaring success;
+keep unresolved/new advisories visible. No report-rule weakening, monitor-baseline
+reset, scheduler change or new general tooling is authorized by this policy.
+
 ## Required translations for user-facing text (November 4, 2026, #242)
 
 Every added or changed user-facing string must use the existing native i18n
