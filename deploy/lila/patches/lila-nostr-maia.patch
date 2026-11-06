@@ -381,6 +381,90 @@ index ede74af..d872a6d 100644
  
    def masterGame(id: GameId, orientation: Color) = Open:
      Found(env.explorer.importer(id)): game =>
+diff --git a/app/controllers/Insight.scala b/app/controllers/Insight.scala
+index d8ed524..8634122 100644
+--- a/app/controllers/Insight.scala
++++ b/app/controllers/Insight.scala
+@@ -4,19 +4,22 @@ import play.api.mvc.*
+ 
+ import lila.app.{ *, given }
+ import lila.core.i18n.Translate
+-import lila.insight.{ InsightDimension, InsightMetric }
++import lila.insight.{ InsightDimension, InsightMetric, NoSweatInsights }
+ 
+ final class Insight(env: Env) extends LilaController(env):
+ 
+   def refresh(username: UserStr) = Open: ctx ?=>
+     AccessibleApi(username): user =>
+       val byMod = isGrantedOpt(_.MarkBooster) || isGrantedOpt(_.MarkEngine)
+-      env.insight.api.indexAll(user, force = byMod).inject(Ok)
++      if env.noSweat.enabled && (!ctx.is(user) || user.isBot) then fuccess(Forbidden)
++      else env.insight.api.indexAll(user, force = byMod).inject(Ok)
+ 
+   def index(username: UserStr) = Open: ctx ?=>
+     Accessible(username): user =>
+       val defaultMetric: InsightMetric =
+-        if isGrantedOpt(_.SeeInsight) then InsightMetric.MeanCpl else InsightMetric.MeanAccuracy
++        if env.noSweat.enabled then InsightMetric.Result
++        else if isGrantedOpt(_.SeeInsight) then InsightMetric.MeanCpl
++        else InsightMetric.MeanAccuracy
+       negotiate(
+         html = doPath(user, defaultMetric.key, InsightDimension.Perf.key, ""),
+         json = env.insight.api.userStatus(user).map { status =>
+@@ -25,7 +28,12 @@ final class Insight(env: Env) extends LilaController(env):
+       )
+ 
+   def path(username: UserStr, metric: String, dimension: String, filters: String) = Open:
+-    Accessible(username) { doPath(_, metric, dimension, ~lila.common.String.decodeUriPath(filters)) }
++    Accessible(username): user =>
++      val decoded = ~lila.common.String.decodeUriPath(filters)
++      val question = env.insight.jsonView.question(metric, dimension, decoded).as[lila.insight.JsonQuestion]
++      if env.noSweat.enabled && !NoSweatInsights.accepts(question) then
++        NotImplemented.page(views.noSweatUnsupported())
++      else doPath(user, metric, dimension, decoded)
+ 
+   private def doPath(user: lila.user.User, metric: String, dimension: String, filters: String)(using
+       Context
+@@ -45,8 +53,11 @@ final class Insight(env: Env) extends LilaController(env):
+                 u = user,
+                 insightUser = insightUser,
+                 prefId = prefId,
+-                ui = env.insight.jsonView
+-                  .ui(insightUser.families, insightUser.openings, asMod = isGrantedOpt(_.ViewBlurs)),
++                ui =
++                  val raw = env.insight.jsonView
++                    .ui(insightUser.families, insightUser.openings, asMod = isGrantedOpt(_.ViewBlurs))
++                  if env.noSweat.enabled then NoSweatInsights.ui(raw) else raw
++                ,
+                 question = env.insight.jsonView.question(metric, dimension, filters),
+                 stale = s == Stale
+               )
+@@ -64,12 +75,19 @@ final class Insight(env: Env) extends LilaController(env):
+         .validate[lila.insight.JsonQuestion]
+         .fold(
+           err => BadRequest(jsonError(err.toString)).toFuccess,
+-          _.question.fold(BadRequest.toFuccess): q =>
+-            env.insight.api
+-              .ask(q, user)
+-              .flatMap(lila.insight.InsightChart.fromAnswer(env.user.lightUser))
+-              .map(env.insight.jsonView.chartWrites.writes)
+-              .map { Ok(_) }
++          raw =>
++            if env.noSweat.enabled && !NoSweatInsights.accepts(raw) then
++              fuccess(JsonBadRequest(lila.core.i18n.I18nKey("muteNotYetSupported").txt()))
++            else
++              raw.question.fold(BadRequest.toFuccess): q =>
++                env.insight.api
++                  .ask(q, user)
++                  .flatMap(
++                    lila.insight.InsightChart.fromAnswer(env.user.lightUser, focused = env.noSweat.enabled)
++                  )
++                  .map(chart => if env.noSweat.enabled then NoSweatInsights.chart(chart) else chart)
++                  .map(env.insight.jsonView.chartWrites.writes)
++                  .map { Ok(_) }
+         )
+ 
+   private def Accessible(username: UserStr)(f: lila.user.User => Fu[Result])(using Context) =
 diff --git a/app/controllers/Main.scala b/app/controllers/Main.scala
 index 7c65f4c..a473d7a 100644
 --- a/app/controllers/Main.scala
@@ -1016,6 +1100,79 @@ index be5368e..655df91 100644
                    separator,
                    variantLink(game.variant, game.perfType, initialFen = initialFen, shortName = true)
                  )
+diff --git a/app/views/insight.scala b/app/views/insight.scala
+index 625c944..0890d6f 100644
+--- a/app/views/insight.scala
++++ b/app/views/insight.scala
+@@ -3,6 +3,7 @@ import play.api.libs.json.Json
+ 
+ import lila.app.UiEnv.{ *, given }
+ import lila.common.Json.given
++import lila.insight.NoSweatInsights
+ 
+ def index(
+     u: User,
+@@ -12,16 +13,25 @@ def index(
+     question: play.api.libs.json.JsObject,
+     stale: Boolean
+ )(using ctx: Context) =
+-  Page(trans.insight.xChessInsights.txt(u.username))
++  Page(trans.insight.xChessInsights.txt(if env.noSweat.enabled then u.publicName else u.username.value))
+     .js(Esm("insight.refresh"))
+     .js(
+       PageModule(
+         "insight",
+         Json.obj(
+           "ui" -> ui,
++          "i18n" -> (if env.noSweat.enabled then
++                       NoSweatInsights.clientText ++ Json.obj(
++                         "Summary" -> lila.core.i18n
++                           .I18nKey("muteInsightSummary")
++                           .txt(insightUser.count.localize),
++                         "Crunching" -> trans.insight.crunchingData.txt()
++                       )
++                     else Json.obj()),
+           "initialQuestion" -> question,
+           "myUserId" -> ctx.userId,
+           "user" -> (lila.common.Json.lightUser.write(u.light) ++ Json.obj(
++            "displayName" -> (if env.noSweat.enabled then u.publicName else u.username.value),
+             "nbGames" -> insightUser.count,
+             "stale" -> stale,
+             "shareId" -> prefId
+@@ -33,19 +43,28 @@ def index(
+     )
+     .css("insight")(main(id := "insight"))
+ 
+-def empty(u: User)(using Context) =
+-  Page(trans.insight.xChessInsights.txt(u.username))
++def empty(u: User)(using ctx: Context) =
++  Page(trans.insight.xChessInsights.txt(if env.noSweat.enabled then u.publicName else u.username.value))
+     .js(Esm("insight.refresh"))
+     .css("insight"):
+       main(cls := "box box-pad page-small")(
+-        boxTop(h1(cls := "text", dataIcon := Icon.Target)(trans.insight.xChessInsights(u.username))),
++        boxTop(
++          h1(cls := "text", dataIcon := Icon.Target)(trans.insight.xChessInsights(if env.noSweat.enabled then
++            u.publicName
++          else u.username.value))
++        ),
+         p(trans.insight.xHasNoChessInsights(userLink(u))),
+-        refreshForm(u, trans.insight.generateInsights.txt(u.username))
++        Option.when(!env.noSweat.enabled || ctx.is(u)):
++          refreshForm(
++            u,
++            trans.insight.generateInsights.txt(if env.noSweat.enabled then u.publicName else u.username.value)
++          )
+       )
+ 
+ def forbidden(u: User)(using Context) =
+   views.site.message(
+-    title = trans.insight.insightsAreProtected.txt(u.username),
++    title =
++      trans.insight.insightsAreProtected.txt(if env.noSweat.enabled then u.publicName else u.username.value),
+     back = routes.User.show(u.id).url.some
+   ):
+     frag(
 diff --git a/app/views/lobby/home.scala b/app/views/lobby/home.scala
 index 2db52a9..6f794d9 100644
 --- a/app/views/lobby/home.scala
@@ -1389,7 +1546,7 @@ index 5222d2d..2edd45b 100644
    def apply(
        tourneyWinners: List[lila.tournament.Winner],
 diff --git a/app/views/user/show/header.scala b/app/views/user/show/header.scala
-index 26a6045..a69f1a2 100644
+index 26a6045..2fa29ba 100644
 --- a/app/views/user/show/header.scala
 +++ b/app/views/user/show/header.scala
 @@ -3,6 +3,7 @@ package show
@@ -1529,6 +1686,19 @@ index 26a6045..a69f1a2 100644
                  div(cls := "stats")(
                    profile.officialRating.map: r =>
                      div(r.name.toUpperCase, " rating: ", strong(r.rating)),
+@@ -227,8 +304,10 @@ object header:
+               info.insightVisible.option(
+                 a(cls := "insight", href := routes.Insight.index(u.username), dataIcon := Icon.Target):
+                   span(
+-                    strong("Chess Insights"),
+-                    em("Analytics from ", if ctx.is(u) then "your" else s"${u.username}'s", " games")
++                    strong(if env.noSweat.enabled then lila.insight.NoSweatInsights.text("Title")
++                    else "Chess Insights"),
++                    if env.noSweat.enabled then em(lila.insight.NoSweatInsights.text("ProfileAnalytics"))
++                    else em("Analytics from ", if ctx.is(u) then "your" else s"${u.username}'s", " games")
+                   )
+               )
+             )
 diff --git a/app/views/user/show/page.scala b/app/views/user/show/page.scala
 index 9688ca7..ea45358 100644
 --- a/app/views/user/show/page.scala
@@ -1606,10 +1776,10 @@ index 885adb4..06960ae 100644
  
  lazy val forumSearch = module("forumSearch",
 diff --git a/conf/routes b/conf/routes
-index f2a7ab2..fc01add 100644
+index f2a7ab2..31ab149 100644
 --- a/conf/routes
 +++ b/conf/routes
-@@ -1,6 +1,29 @@
+@@ -1,6 +1,30 @@
  # Run `./lila.sh playRoutes` after modifying this file
  
 +# Mute Chess information
@@ -1617,6 +1787,7 @@ index f2a7ab2..fc01add 100644
 +
  # Lobby
 +GET   /club                            controllers.NoSweat.home
++GET   /club/unsupported                 controllers.NoSweat.unsupported
 +GET   /club/me                         controllers.NoSweat.me
 +GET   /club/roster                     controllers.NoSweat.roster
 +POST  /club/challenge                  controllers.NoSweat.challenge
@@ -1639,7 +1810,7 @@ index f2a7ab2..fc01add 100644
  GET   /                                controllers.Lobby.home
  GET   /lobby/seeks                     controllers.Lobby.seeks
  
-@@ -82,6 +105,7 @@ GET   /@/:username/download            controllers.User.download(username: UserS
+@@ -82,6 +106,7 @@ GET   /@/:username/download            controllers.User.download(username: UserS
  GET   /@/:username/blog                controllers.Ublog.index(username: UserStr, page: Int ?= 1)
  GET   /@/:username/blog.atom           controllers.Ublog.userAtom(username: UserStr)
  GET   /@/:username/:filterName         controllers.User.games(username: UserStr, filterName, page: Int ?= 1)
@@ -1647,7 +1818,7 @@ index f2a7ab2..fc01add 100644
  GET   /@/:username                     controllers.User.show(username: UserStr)
  GET   /player/opponents                controllers.User.opponents
  GET   /player/search/:term             controllers.User.search(term: String)
-@@ -220,6 +244,7 @@ GET   /$lang<\w\w\w?>/racer             controllers.Racer.homeLang(lang: Languag
+@@ -220,6 +245,7 @@ GET   /$lang<\w\w\w?>/racer             controllers.Racer.homeLang(lang: Languag
  
  # User Analysis
  GET   /analysis/help                   controllers.UserAnalysis.help
@@ -1655,7 +1826,7 @@ index f2a7ab2..fc01add 100644
  GET   /analysis/pgn/*pgn               controllers.UserAnalysis.pgn(pgn)
  GET   /analysis/*something             controllers.UserAnalysis.parseArg(something)
  GET   /analysis                        controllers.UserAnalysis.index
-@@ -333,6 +358,11 @@ GET   /$lang<\w\w\w?>/learn            controllers.Learn.indexLang(lang: Languag
+@@ -333,6 +359,11 @@ GET   /$lang<\w\w\w?>/learn            controllers.Learn.indexLang(lang: Languag
  
  # Patron
  GET   /patron                          controllers.Plan.index(page: Int ?= 1)
@@ -2305,6 +2476,29 @@ index 45a3103..a927c10 100644
  
    def removeRecentChallengesOf(userId: UserId) =
      coll.delete.one:
+diff --git a/modules/insight/src/main/InsightChart.scala b/modules/insight/src/main/InsightChart.scala
+index b57428b..ea96202 100644
+--- a/modules/insight/src/main/InsightChart.scala
++++ b/modules/insight/src/main/InsightChart.scala
+@@ -37,7 +37,8 @@ object InsightChart:
+   )
+ 
+   def fromAnswer[X](
+-      getLightUser: LightUser.Getter
++      getLightUser: LightUser.Getter,
++      focused: Boolean = false
+   )(answer: Answer[X])(using Translate, Executor): Fu[InsightChart] =
+ 
+     import answer.*, question.*
+@@ -107,7 +108,7 @@ object InsightChart:
+       player.userId.so(getLightUser).map { lu =>
+         Json
+           .obj("rating" -> player.rating)
+-          .add("name", lu.map(_.name))
++          .add("name", lu.map(u => if focused then u.publicName else u.name.value))
+           .add("title", lu.map(_.title))
+       }
+ 
 diff --git a/modules/lobby/src/main/Env.scala b/modules/lobby/src/main/Env.scala
 index fbb9f54..3e904ef 100644
 --- a/modules/lobby/src/main/Env.scala
@@ -4966,10 +5160,10 @@ index 74906f1..99e482b 100644
  travel-places.map-of-japan
  travel-places.metro
 diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
-index 88adade..8999e16 100644
+index 88adade..0b3bfb6 100644
 --- a/translation/dest/site/de-DE.xml
 +++ b/translation/dest/site/de-DE.xml
-@@ -1064,4 +1064,105 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
+@@ -1064,4 +1064,157 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
    <string name="write">Schreiben</string>
    <string name="preview">Vorschau</string>
    <string name="done">Erledigt</string>
@@ -5074,12 +5268,64 @@ index 88adade..8999e16 100644
 +  <string name="muteRealTimeOnly">Es werden nur Echtzeitpartien unterstützt.</string>
 +  <string name="muteImportedGame">Importierte Partie</string>
 +  <string name="muteCopyKeyFailed">Der Schlüssel konnte nicht kopiert werden. Verwende stattdessen „Herunterladen“.</string>
++  <string name="muteNotYetSupported">Diese Funktion wird noch nicht unterstützt.</string>
++  <string name="muteInsightTitle">Schachstatistiken</string>
++  <string name="muteInsightShort">Statistiken</string>
++  <string name="muteInsightProfileAnalytics">Statistiken aus gespielten Partien</string>
++  <string name="muteInsightPresets">Vorlagen</string>
++  <string name="muteInsightFilters">Filter</string>
++  <string name="muteInsightClear">Filter zurücksetzen</string>
++  <string name="muteInsightDefinitions">Definitionen</string>
++  <string name="muteInsightBy">nach</string>
++  <string name="muteInsightUnavailable">Die Statistiken sind nicht verfügbar. Bitte versuche es später erneut.</string>
++  <string name="muteInsightNoData">Keine Daten. Erweitere die Filter oder setze sie zurück.</string>
++  <string name="muteInsightInvalid">Diese Kombination wird nicht unterstützt.</string>
++  <string name="muteInsightSampleGames">Einige der für diese Statistiken verwendeten Partien</string>
++  <string name="muteInsightNewGames">Neue Partien sind verfügbar.</string>
++  <string name="muteInsightUpdate">Statistiken aktualisieren</string>
++  <string name="muteInsightSharedNobody">Mit niemandem geteilt.</string>
++  <string name="muteInsightSharedFriends">Nur mit Freunden geteilt.</string>
++  <string name="muteInsightSharedEverybody">Mit allen geteilt.</string>
++  <string name="muteInsightBasicNotice">Partieergebnisse und Wertungszahlen. Statistiken zur Engine-Analyse werden noch nicht unterstützt.</string>
++  <string name="muteInsightSelectAll">Alle auswählen</string>
++  <string name="muteInsightAllSelected">Alle ausgewählt</string>
++  <string name="muteInsightCountSelected"># von % ausgewählt</string>
++  <string name="muteInsightNoMatches">Keine Treffer gefunden</string>
++  <string name="muteInsightOpeningPreset">Ergebnisse nach Eröffnung</string>
++  <string name="muteInsightColorPreset">Ergebnisse nach Farbe</string>
++  <string name="muteInsightRatingPreset">Wertungsänderung nach Bedenkzeit</string>
++  <string name="muteInsightResult">Partieergebnis</string>
++  <string name="muteInsightRatingGain">Wertungsänderung</string>
++  <string name="muteInsightOpponentRating">Wertung des Gegners</string>
++  <string name="muteInsightDate">Datum</string>
++  <string name="muteInsightTimeControl">Bedenkzeit</string>
++  <string name="muteInsightColor">Farbe</string>
++  <string name="muteInsightOpeningFamily">Eröffnungsfamilie</string>
++  <string name="muteInsightOpening">Eröffnungsvariante</string>
++  <string name="muteInsightGames">Partien</string>
++  <string name="muteInsightVictory">Sieg</string>
++  <string name="muteInsightDraw">Remis</string>
++  <string name="muteInsightDefeat">Niederlage</string>
++  <string name="muteInsightWhite">Weiß</string>
++  <string name="muteInsightBlack">Schwarz</string>
++  <string name="muteInsightNumberGames">Anzahl der Partien</string>
++  <string name="muteInsightSummary">Gewertete Partien: %s</string>
++  <string name="muteInsightLastDays">Letzte %s Tage</string>
++  <string name="muteInsightResultHelp">Ob du die Partie gewonnen, remis gespielt oder verloren hast.</string>
++  <string name="muteInsightRatingGainHelp">Bei Partieende gewonnene oder verlorene Wertungspunkte.</string>
++  <string name="muteInsightOpponentRatingHelp">Die durchschnittliche Wertung deiner Gegner.</string>
++  <string name="muteInsightDateHelp">Wann die Partie gespielt wurde.</string>
++  <string name="muteInsightTimeControlHelp">Die Wertungskategorie, etwa Blitz oder Schnellschach.</string>
++  <string name="muteInsightColorHelp">Die Farbe, mit der du gespielt hast: Weiß oder Schwarz.</string>
++  <string name="muteInsightOpeningFamilyHelp">Die grundlegende Eröffnung der Partie.</string>
++  <string name="muteInsightOpeningHelp">Die in der Partie gespielte Eröffnungsvariante.</string>
++  <string name="muteInsightLastDay">Letzte 24 Stunden</string>
  </resources>
 diff --git a/translation/dest/site/es-ES.xml b/translation/dest/site/es-ES.xml
-index 76004f5..ac140ad 100644
+index 76004f5..6801819 100644
 --- a/translation/dest/site/es-ES.xml
 +++ b/translation/dest/site/es-ES.xml
-@@ -1064,4 +1064,105 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
+@@ -1064,4 +1064,157 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
    <string name="write">Escribir</string>
    <string name="preview">Vista previa</string>
    <string name="done">Listo</string>
@@ -5184,12 +5430,64 @@ index 76004f5..ac140ad 100644
 +  <string name="muteRealTimeOnly">Solo se admiten partidas en tiempo real.</string>
 +  <string name="muteImportedGame">Partida importada</string>
 +  <string name="muteCopyKeyFailed">No se pudo copiar la clave. Usa Descargar.</string>
++  <string name="muteNotYetSupported">Esta función aún no está disponible.</string>
++  <string name="muteInsightTitle">Estadísticas de ajedrez</string>
++  <string name="muteInsightShort">Estadísticas</string>
++  <string name="muteInsightProfileAnalytics">Estadísticas de las partidas jugadas</string>
++  <string name="muteInsightPresets">Preajustes</string>
++  <string name="muteInsightFilters">Filtros</string>
++  <string name="muteInsightClear">Borrar filtros</string>
++  <string name="muteInsightDefinitions">Definiciones</string>
++  <string name="muteInsightBy">por</string>
++  <string name="muteInsightUnavailable">Las estadísticas no están disponibles. Inténtalo más tarde.</string>
++  <string name="muteInsightNoData">No hay datos. Amplía o borra los filtros.</string>
++  <string name="muteInsightInvalid">Esta combinación no está disponible.</string>
++  <string name="muteInsightSampleGames">Algunas partidas utilizadas para estas estadísticas</string>
++  <string name="muteInsightNewGames">Hay partidas nuevas disponibles.</string>
++  <string name="muteInsightUpdate">Actualizar estadísticas</string>
++  <string name="muteInsightSharedNobody">No se comparte con nadie.</string>
++  <string name="muteInsightSharedFriends">Se comparte solo con amigos.</string>
++  <string name="muteInsightSharedEverybody">Se comparte con todos.</string>
++  <string name="muteInsightBasicNotice">Resultados y puntuaciones. Las estadísticas del análisis con motor aún no están disponibles.</string>
++  <string name="muteInsightSelectAll">Seleccionar todo</string>
++  <string name="muteInsightAllSelected">Todo seleccionado</string>
++  <string name="muteInsightCountSelected"># de % seleccionados</string>
++  <string name="muteInsightNoMatches">No se encontraron coincidencias</string>
++  <string name="muteInsightOpeningPreset">Resultados por apertura</string>
++  <string name="muteInsightColorPreset">Resultados por color</string>
++  <string name="muteInsightRatingPreset">Cambio de puntuación por ritmo de juego</string>
++  <string name="muteInsightResult">Resultado de la partida</string>
++  <string name="muteInsightRatingGain">Cambio de puntuación</string>
++  <string name="muteInsightOpponentRating">Puntuación del rival</string>
++  <string name="muteInsightDate">Fecha</string>
++  <string name="muteInsightTimeControl">Ritmo de juego</string>
++  <string name="muteInsightColor">Color</string>
++  <string name="muteInsightOpeningFamily">Familia de aperturas</string>
++  <string name="muteInsightOpening">Variante de apertura</string>
++  <string name="muteInsightGames">Partidas</string>
++  <string name="muteInsightVictory">Victoria</string>
++  <string name="muteInsightDraw">Tablas</string>
++  <string name="muteInsightDefeat">Derrota</string>
++  <string name="muteInsightWhite">Blancas</string>
++  <string name="muteInsightBlack">Negras</string>
++  <string name="muteInsightNumberGames">Número de partidas</string>
++  <string name="muteInsightSummary">Partidas puntuadas: %s</string>
++  <string name="muteInsightLastDays">Últimos %s días</string>
++  <string name="muteInsightResultHelp">Si ganaste, empataste o perdiste la partida.</string>
++  <string name="muteInsightRatingGainHelp">Puntos de valoración ganados o perdidos al terminar la partida.</string>
++  <string name="muteInsightOpponentRatingHelp">La puntuación media de tus rivales.</string>
++  <string name="muteInsightDateHelp">Cuándo se jugó la partida.</string>
++  <string name="muteInsightTimeControlHelp">La categoría de puntuación, como Blitz o Rápidas.</string>
++  <string name="muteInsightColorHelp">El bando con el que jugaste: blancas o negras.</string>
++  <string name="muteInsightOpeningFamilyHelp">La apertura general de la partida.</string>
++  <string name="muteInsightOpeningHelp">La variante de apertura jugada en la partida.</string>
++  <string name="muteInsightLastDay">Últimas 24 horas</string>
  </resources>
 diff --git a/translation/dest/site/fr-FR.xml b/translation/dest/site/fr-FR.xml
-index 7dfd5f7..3968628 100644
+index 7dfd5f7..52bde90 100644
 --- a/translation/dest/site/fr-FR.xml
 +++ b/translation/dest/site/fr-FR.xml
-@@ -1063,4 +1063,105 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
+@@ -1063,4 +1063,157 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
    <string name="write">Écrire</string>
    <string name="preview">Aperçu</string>
    <string name="done">Terminé</string>
@@ -5294,12 +5592,64 @@ index 7dfd5f7..3968628 100644
 +  <string name="muteRealTimeOnly">Seules les parties en temps réel sont prises en charge.</string>
 +  <string name="muteImportedGame">Partie importée</string>
 +  <string name="muteCopyKeyFailed">Impossible de copier la clé. Utilisez Télécharger.</string>
++  <string name="muteNotYetSupported">Cette fonctionnalité n’est pas encore disponible.</string>
++  <string name="muteInsightTitle">Statistiques d’échecs</string>
++  <string name="muteInsightShort">Statistiques</string>
++  <string name="muteInsightProfileAnalytics">Statistiques des parties jouées</string>
++  <string name="muteInsightPresets">Préréglages</string>
++  <string name="muteInsightFilters">Filtres</string>
++  <string name="muteInsightClear">Effacer les filtres</string>
++  <string name="muteInsightDefinitions">Définitions</string>
++  <string name="muteInsightBy">par</string>
++  <string name="muteInsightUnavailable">Les statistiques sont indisponibles. Veuillez réessayer plus tard.</string>
++  <string name="muteInsightNoData">Aucune donnée. Élargissez ou effacez les filtres.</string>
++  <string name="muteInsightInvalid">Cette combinaison n’est pas disponible.</string>
++  <string name="muteInsightSampleGames">Quelques parties utilisées pour ces statistiques</string>
++  <string name="muteInsightNewGames">De nouvelles parties sont disponibles.</string>
++  <string name="muteInsightUpdate">Actualiser les statistiques</string>
++  <string name="muteInsightSharedNobody">Partagé avec personne.</string>
++  <string name="muteInsightSharedFriends">Partagé uniquement avec les amis.</string>
++  <string name="muteInsightSharedEverybody">Partagé avec tout le monde.</string>
++  <string name="muteInsightBasicNotice">Résultats et classements. Les statistiques d’analyse par moteur ne sont pas encore disponibles.</string>
++  <string name="muteInsightSelectAll">Tout sélectionner</string>
++  <string name="muteInsightAllSelected">Tout est sélectionné</string>
++  <string name="muteInsightCountSelected"># sur % sélectionnés</string>
++  <string name="muteInsightNoMatches">Aucun résultat</string>
++  <string name="muteInsightOpeningPreset">Résultats par ouverture</string>
++  <string name="muteInsightColorPreset">Résultats par couleur</string>
++  <string name="muteInsightRatingPreset">Gain de classement par cadence</string>
++  <string name="muteInsightResult">Résultat de la partie</string>
++  <string name="muteInsightRatingGain">Gain de classement</string>
++  <string name="muteInsightOpponentRating">Classement de l’adversaire</string>
++  <string name="muteInsightDate">Date</string>
++  <string name="muteInsightTimeControl">Cadence</string>
++  <string name="muteInsightColor">Couleur</string>
++  <string name="muteInsightOpeningFamily">Famille d’ouvertures</string>
++  <string name="muteInsightOpening">Variante d’ouverture</string>
++  <string name="muteInsightGames">Parties</string>
++  <string name="muteInsightVictory">Victoire</string>
++  <string name="muteInsightDraw">Nulle</string>
++  <string name="muteInsightDefeat">Défaite</string>
++  <string name="muteInsightWhite">Blancs</string>
++  <string name="muteInsightBlack">Noirs</string>
++  <string name="muteInsightNumberGames">Nombre de parties</string>
++  <string name="muteInsightSummary">Parties classées : %s</string>
++  <string name="muteInsightLastDays">Les %s derniers jours</string>
++  <string name="muteInsightResultHelp">Si vous avez gagné, fait nulle ou perdu la partie.</string>
++  <string name="muteInsightRatingGainHelp">Les points de classement gagnés ou perdus à la fin de la partie.</string>
++  <string name="muteInsightOpponentRatingHelp">Le classement moyen de vos adversaires.</string>
++  <string name="muteInsightDateHelp">La date à laquelle la partie a été jouée.</string>
++  <string name="muteInsightTimeControlHelp">La catégorie de classement, comme le blitz ou le rapide.</string>
++  <string name="muteInsightColorHelp">Le camp avec lequel vous avez joué : blancs ou noirs.</string>
++  <string name="muteInsightOpeningFamilyHelp">L’ouverture générale jouée dans la partie.</string>
++  <string name="muteInsightOpeningHelp">La variante d’ouverture jouée dans la partie.</string>
++  <string name="muteInsightLastDay">Les dernières 24 heures</string>
  </resources>
 diff --git a/translation/dest/site/hi-IN.xml b/translation/dest/site/hi-IN.xml
-index bbf1703..555c82d 100644
+index bbf1703..726028d 100644
 --- a/translation/dest/site/hi-IN.xml
 +++ b/translation/dest/site/hi-IN.xml
-@@ -893,4 +893,105 @@
+@@ -893,4 +893,157 @@
    <string name="closingAccountWithdrawAppeal">आपका खाता बंद करने से आपकी अपील वापस ले ली जाएगी</string>
    <string name="ourEventTips">कार्यक्रम आयोजित करने कि सलाह</string>
    <string name="nothingToSeeHere">इस समय यहां देखने को कुछ भी नहीं है।</string>
@@ -5404,12 +5754,64 @@ index bbf1703..555c82d 100644
 +  <string name="muteRealTimeOnly">केवल रियल-टाइम खेल समर्थित हैं।</string>
 +  <string name="muteImportedGame">आयात किया गया खेल</string>
 +  <string name="muteCopyKeyFailed">कुंजी कॉपी नहीं हो सकी। इसके बजाय डाउनलोड करें।</string>
++  <string name="muteNotYetSupported">यह सुविधा अभी समर्थित नहीं है।</string>
++  <string name="muteInsightTitle">शतरंज के आँकड़े</string>
++  <string name="muteInsightShort">आँकड़े</string>
++  <string name="muteInsightProfileAnalytics">खेली गई बाज़ियों के आँकड़े</string>
++  <string name="muteInsightPresets">पूर्वनिर्धारित विकल्प</string>
++  <string name="muteInsightFilters">फ़िल्टर</string>
++  <string name="muteInsightClear">फ़िल्टर हटाएँ</string>
++  <string name="muteInsightDefinitions">परिभाषाएँ</string>
++  <string name="muteInsightBy">के अनुसार</string>
++  <string name="muteInsightUnavailable">आँकड़े उपलब्ध नहीं हैं। कृपया बाद में फिर कोशिश करें।</string>
++  <string name="muteInsightNoData">कोई डेटा नहीं है। फ़िल्टर का दायरा बढ़ाएँ या उन्हें हटाएँ।</string>
++  <string name="muteInsightInvalid">यह संयोजन समर्थित नहीं है।</string>
++  <string name="muteInsightSampleGames">इन आँकड़ों के लिए इस्तेमाल की गई कुछ बाज़ियाँ</string>
++  <string name="muteInsightNewGames">नई बाज़ियाँ उपलब्ध हैं।</string>
++  <string name="muteInsightUpdate">आँकड़े अपडेट करें</string>
++  <string name="muteInsightSharedNobody">किसी के साथ साझा नहीं।</string>
++  <string name="muteInsightSharedFriends">केवल मित्रों के साथ साझा।</string>
++  <string name="muteInsightSharedEverybody">सभी के साथ साझा।</string>
++  <string name="muteInsightBasicNotice">बाज़ियों के नतीजे और रेटिंग। इंजन विश्लेषण के आँकड़े अभी समर्थित नहीं हैं।</string>
++  <string name="muteInsightSelectAll">सभी चुनें</string>
++  <string name="muteInsightAllSelected">सभी चुने गए</string>
++  <string name="muteInsightCountSelected">% में से # चुने गए</string>
++  <string name="muteInsightNoMatches">कोई मिलान नहीं मिला</string>
++  <string name="muteInsightOpeningPreset">ओपनिंग के अनुसार नतीजे</string>
++  <string name="muteInsightColorPreset">रंग के अनुसार नतीजे</string>
++  <string name="muteInsightRatingPreset">समय नियंत्रण के अनुसार रेटिंग में बदलाव</string>
++  <string name="muteInsightResult">बाज़ी का नतीजा</string>
++  <string name="muteInsightRatingGain">रेटिंग में बदलाव</string>
++  <string name="muteInsightOpponentRating">प्रतिद्वंद्वी की रेटिंग</string>
++  <string name="muteInsightDate">तारीख</string>
++  <string name="muteInsightTimeControl">समय नियंत्रण</string>
++  <string name="muteInsightColor">रंग</string>
++  <string name="muteInsightOpeningFamily">ओपनिंग समूह</string>
++  <string name="muteInsightOpening">ओपनिंग की शाखा</string>
++  <string name="muteInsightGames">बाज़ियाँ</string>
++  <string name="muteInsightVictory">जीत</string>
++  <string name="muteInsightDraw">ड्रॉ</string>
++  <string name="muteInsightDefeat">हार</string>
++  <string name="muteInsightWhite">सफ़ेद</string>
++  <string name="muteInsightBlack">काला</string>
++  <string name="muteInsightNumberGames">बाज़ियों की संख्या</string>
++  <string name="muteInsightSummary">रेटेड बाज़ियाँ: %s</string>
++  <string name="muteInsightLastDays">पिछले %s दिन</string>
++  <string name="muteInsightResultHelp">आप बाज़ी जीते, ड्रॉ किया या हारे।</string>
++  <string name="muteInsightRatingGainHelp">बाज़ी के अंत में बढ़े या घटे रेटिंग अंक।</string>
++  <string name="muteInsightOpponentRatingHelp">आपके प्रतिद्वंद्वियों की औसत रेटिंग।</string>
++  <string name="muteInsightDateHelp">बाज़ी कब खेली गई थी।</string>
++  <string name="muteInsightTimeControlHelp">रेटिंग की श्रेणी, जैसे ब्लिट्ज़ या रैपिड।</string>
++  <string name="muteInsightColorHelp">आपने किस रंग से खेला: सफ़ेद या काला।</string>
++  <string name="muteInsightOpeningFamilyHelp">बाज़ी में खेली गई मुख्य ओपनिंग।</string>
++  <string name="muteInsightOpeningHelp">बाज़ी में खेली गई ओपनिंग की शाखा।</string>
++  <string name="muteInsightLastDay">पिछले 24 घंटे</string>
  </resources>
 diff --git a/translation/dest/site/ja-JP.xml b/translation/dest/site/ja-JP.xml
-index e628bdb..27b7d57 100644
+index e628bdb..75ea80d 100644
 --- a/translation/dest/site/ja-JP.xml
 +++ b/translation/dest/site/ja-JP.xml
-@@ -1023,4 +1023,105 @@
+@@ -1023,4 +1023,157 @@
    <string name="write">書く</string>
    <string name="preview">プレビュー</string>
    <string name="done">完了</string>
@@ -5514,12 +5916,64 @@ index e628bdb..27b7d57 100644
 +  <string name="muteRealTimeOnly">リアルタイム対局のみ対応しています。</string>
 +  <string name="muteImportedGame">インポートした棋譜</string>
 +  <string name="muteCopyKeyFailed">鍵をコピーできませんでした。代わりにダウンロードしてください。</string>
++  <string name="muteNotYetSupported">この機能にはまだ対応していません。</string>
++  <string name="muteInsightTitle">チェス統計</string>
++  <string name="muteInsightShort">統計</string>
++  <string name="muteInsightProfileAnalytics">対局の統計</string>
++  <string name="muteInsightPresets">プリセット</string>
++  <string name="muteInsightFilters">フィルター</string>
++  <string name="muteInsightClear">フィルターを解除</string>
++  <string name="muteInsightDefinitions">用語の説明</string>
++  <string name="muteInsightBy">別</string>
++  <string name="muteInsightUnavailable">統計を利用できません。しばらくしてからもう一度お試しください。</string>
++  <string name="muteInsightNoData">データがありません。フィルターの条件を広げるか解除してください。</string>
++  <string name="muteInsightInvalid">この組み合わせには対応していません。</string>
++  <string name="muteInsightSampleGames">この統計に使用した対局の一部</string>
++  <string name="muteInsightNewGames">新しい対局があります。</string>
++  <string name="muteInsightUpdate">統計を更新</string>
++  <string name="muteInsightSharedNobody">誰にも公開しない。</string>
++  <string name="muteInsightSharedFriends">友達にのみ公開。</string>
++  <string name="muteInsightSharedEverybody">全員に公開。</string>
++  <string name="muteInsightBasicNotice">対局結果とレーティング。エンジン解析に基づく統計にはまだ対応していません。</string>
++  <string name="muteInsightSelectAll">すべて選択</string>
++  <string name="muteInsightAllSelected">すべて選択済み</string>
++  <string name="muteInsightCountSelected">% 件中 # 件を選択</string>
++  <string name="muteInsightNoMatches">一致する項目がありません</string>
++  <string name="muteInsightOpeningPreset">オープニング別の結果</string>
++  <string name="muteInsightColorPreset">色別の結果</string>
++  <string name="muteInsightRatingPreset">持ち時間別のレーティング変動</string>
++  <string name="muteInsightResult">対局結果</string>
++  <string name="muteInsightRatingGain">レーティング変動</string>
++  <string name="muteInsightOpponentRating">相手のレーティング</string>
++  <string name="muteInsightDate">日付</string>
++  <string name="muteInsightTimeControl">持ち時間</string>
++  <string name="muteInsightColor">色</string>
++  <string name="muteInsightOpeningFamily">オープニングの系統</string>
++  <string name="muteInsightOpening">オープニングの変化</string>
++  <string name="muteInsightGames">対局</string>
++  <string name="muteInsightVictory">勝ち</string>
++  <string name="muteInsightDraw">引き分け</string>
++  <string name="muteInsightDefeat">負け</string>
++  <string name="muteInsightWhite">白</string>
++  <string name="muteInsightBlack">黒</string>
++  <string name="muteInsightNumberGames">対局数</string>
++  <string name="muteInsightSummary">レーティング対局：%s</string>
++  <string name="muteInsightLastDays">過去 %s 日間</string>
++  <string name="muteInsightResultHelp">対局で勝ったか、引き分けたか、負けたか。</string>
++  <string name="muteInsightRatingGainHelp">対局終了時に増減したレーティング。</string>
++  <string name="muteInsightOpponentRatingHelp">対戦相手の平均レーティング。</string>
++  <string name="muteInsightDateHelp">対局が行われた日付。</string>
++  <string name="muteInsightTimeControlHelp">ブリッツやラピッドなどのレーティング区分。</string>
++  <string name="muteInsightColorHelp">対局した側：白または黒。</string>
++  <string name="muteInsightOpeningFamilyHelp">対局で指されたオープニングの系統。</string>
++  <string name="muteInsightOpeningHelp">対局で指されたオープニングの変化。</string>
++  <string name="muteInsightLastDay">過去24時間</string>
  </resources>
 diff --git a/translation/dest/site/ko-KR.xml b/translation/dest/site/ko-KR.xml
-index 9341bf0..63d6a1b 100644
+index 9341bf0..17843aa 100644
 --- a/translation/dest/site/ko-KR.xml
 +++ b/translation/dest/site/ko-KR.xml
-@@ -1022,4 +1022,105 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
+@@ -1022,4 +1022,157 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
    <string name="write">작성</string>
    <string name="preview">미리보기</string>
    <string name="done">완료</string>
@@ -5624,12 +6078,64 @@ index 9341bf0..63d6a1b 100644
 +  <string name="muteRealTimeOnly">실시간 대국만 지원합니다.</string>
 +  <string name="muteImportedGame">가져온 기보</string>
 +  <string name="muteCopyKeyFailed">키를 복사하지 못했습니다. 대신 다운로드하세요.</string>
++  <string name="muteNotYetSupported">이 기능은 아직 지원되지 않습니다.</string>
++  <string name="muteInsightTitle">체스 통계</string>
++  <string name="muteInsightShort">통계</string>
++  <string name="muteInsightProfileAnalytics">플레이한 경기의 통계</string>
++  <string name="muteInsightPresets">사전 설정</string>
++  <string name="muteInsightFilters">필터</string>
++  <string name="muteInsightClear">필터 초기화</string>
++  <string name="muteInsightDefinitions">용어 설명</string>
++  <string name="muteInsightBy">기준</string>
++  <string name="muteInsightUnavailable">통계를 사용할 수 없습니다. 나중에 다시 시도해 주세요.</string>
++  <string name="muteInsightNoData">데이터가 없습니다. 필터 범위를 넓히거나 초기화하세요.</string>
++  <string name="muteInsightInvalid">이 조합은 지원되지 않습니다.</string>
++  <string name="muteInsightSampleGames">이 통계에 사용된 경기 일부</string>
++  <string name="muteInsightNewGames">새로운 경기가 있습니다.</string>
++  <string name="muteInsightUpdate">통계 업데이트</string>
++  <string name="muteInsightSharedNobody">아무에게도 공유하지 않음.</string>
++  <string name="muteInsightSharedFriends">친구에게만 공유.</string>
++  <string name="muteInsightSharedEverybody">모두에게 공유.</string>
++  <string name="muteInsightBasicNotice">경기 결과와 레이팅입니다. 엔진 분석 통계는 아직 지원되지 않습니다.</string>
++  <string name="muteInsightSelectAll">모두 선택</string>
++  <string name="muteInsightAllSelected">모두 선택됨</string>
++  <string name="muteInsightCountSelected">%개 중 #개 선택</string>
++  <string name="muteInsightNoMatches">일치하는 항목이 없습니다</string>
++  <string name="muteInsightOpeningPreset">오프닝별 결과</string>
++  <string name="muteInsightColorPreset">색상별 결과</string>
++  <string name="muteInsightRatingPreset">시간제한별 레이팅 변동</string>
++  <string name="muteInsightResult">경기 결과</string>
++  <string name="muteInsightRatingGain">레이팅 변동</string>
++  <string name="muteInsightOpponentRating">상대 레이팅</string>
++  <string name="muteInsightDate">날짜</string>
++  <string name="muteInsightTimeControl">시간제한</string>
++  <string name="muteInsightColor">색상</string>
++  <string name="muteInsightOpeningFamily">오프닝 계열</string>
++  <string name="muteInsightOpening">오프닝 변형</string>
++  <string name="muteInsightGames">경기</string>
++  <string name="muteInsightVictory">승리</string>
++  <string name="muteInsightDraw">무승부</string>
++  <string name="muteInsightDefeat">패배</string>
++  <string name="muteInsightWhite">백</string>
++  <string name="muteInsightBlack">흑</string>
++  <string name="muteInsightNumberGames">경기 수</string>
++  <string name="muteInsightSummary">레이팅 경기: %s</string>
++  <string name="muteInsightLastDays">최근 %s일</string>
++  <string name="muteInsightResultHelp">경기에서 이겼는지, 비겼는지, 졌는지입니다.</string>
++  <string name="muteInsightRatingGainHelp">경기 종료 시 얻거나 잃은 레이팅 점수입니다.</string>
++  <string name="muteInsightOpponentRatingHelp">상대의 평균 레이팅입니다.</string>
++  <string name="muteInsightDateHelp">경기가 진행된 날짜입니다.</string>
++  <string name="muteInsightTimeControlHelp">블리츠나 래피드 등의 레이팅 분류입니다.</string>
++  <string name="muteInsightColorHelp">플레이한 진영: 백 또는 흑입니다.</string>
++  <string name="muteInsightOpeningFamilyHelp">경기에서 사용한 기본 오프닝입니다.</string>
++  <string name="muteInsightOpeningHelp">경기에서 사용한 오프닝 변형입니다.</string>
++  <string name="muteInsightLastDay">최근 24시간</string>
  </resources>
 diff --git a/translation/dest/site/pt-BR.xml b/translation/dest/site/pt-BR.xml
-index 569e752..be61ecc 100644
+index 569e752..3192cb8 100644
 --- a/translation/dest/site/pt-BR.xml
 +++ b/translation/dest/site/pt-BR.xml
-@@ -1063,4 +1063,105 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
+@@ -1063,4 +1063,157 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
    <string name="write">Escrever</string>
    <string name="preview">Pré-visualizar</string>
    <string name="done">Feito</string>
@@ -5734,12 +6240,64 @@ index 569e752..be61ecc 100644
 +  <string name="muteRealTimeOnly">Apenas partidas em tempo real são compatíveis.</string>
 +  <string name="muteImportedGame">Partida importada</string>
 +  <string name="muteCopyKeyFailed">Não foi possível copiar a chave. Use Baixar.</string>
++  <string name="muteNotYetSupported">Esta funcionalidade ainda não é suportada.</string>
++  <string name="muteInsightTitle">Estatísticas de xadrez</string>
++  <string name="muteInsightShort">Estatísticas</string>
++  <string name="muteInsightProfileAnalytics">Estatísticas das partidas jogadas</string>
++  <string name="muteInsightPresets">Predefinições</string>
++  <string name="muteInsightFilters">Filtros</string>
++  <string name="muteInsightClear">Limpar filtros</string>
++  <string name="muteInsightDefinitions">Definições</string>
++  <string name="muteInsightBy">por</string>
++  <string name="muteInsightUnavailable">As estatísticas estão indisponíveis. Tente novamente mais tarde.</string>
++  <string name="muteInsightNoData">Sem dados. Amplie ou limpe os filtros.</string>
++  <string name="muteInsightInvalid">Esta combinação não é suportada.</string>
++  <string name="muteInsightSampleGames">Algumas partidas usadas nestas estatísticas</string>
++  <string name="muteInsightNewGames">Há novas partidas disponíveis.</string>
++  <string name="muteInsightUpdate">Atualizar estatísticas</string>
++  <string name="muteInsightSharedNobody">Não compartilhado com ninguém.</string>
++  <string name="muteInsightSharedFriends">Compartilhado apenas com amigos.</string>
++  <string name="muteInsightSharedEverybody">Compartilhado com todos.</string>
++  <string name="muteInsightBasicNotice">Resultados e ratings. As estatísticas de análise por motor ainda não são suportadas.</string>
++  <string name="muteInsightSelectAll">Selecionar tudo</string>
++  <string name="muteInsightAllSelected">Tudo selecionado</string>
++  <string name="muteInsightCountSelected"># de % selecionados</string>
++  <string name="muteInsightNoMatches">Nenhum resultado encontrado</string>
++  <string name="muteInsightOpeningPreset">Resultados por abertura</string>
++  <string name="muteInsightColorPreset">Resultados por cor</string>
++  <string name="muteInsightRatingPreset">Variação de rating por controle de tempo</string>
++  <string name="muteInsightResult">Resultado da partida</string>
++  <string name="muteInsightRatingGain">Variação de rating</string>
++  <string name="muteInsightOpponentRating">Rating do adversário</string>
++  <string name="muteInsightDate">Data</string>
++  <string name="muteInsightTimeControl">Controle de tempo</string>
++  <string name="muteInsightColor">Cor</string>
++  <string name="muteInsightOpeningFamily">Família de aberturas</string>
++  <string name="muteInsightOpening">Variante de abertura</string>
++  <string name="muteInsightGames">Partidas</string>
++  <string name="muteInsightVictory">Vitória</string>
++  <string name="muteInsightDraw">Empate</string>
++  <string name="muteInsightDefeat">Derrota</string>
++  <string name="muteInsightWhite">Brancas</string>
++  <string name="muteInsightBlack">Pretas</string>
++  <string name="muteInsightNumberGames">Número de partidas</string>
++  <string name="muteInsightSummary">Partidas valendo rating: %s</string>
++  <string name="muteInsightLastDays">Últimos %s dias</string>
++  <string name="muteInsightResultHelp">Se você venceu, empatou ou perdeu a partida.</string>
++  <string name="muteInsightRatingGainHelp">Pontos de rating ganhos ou perdidos ao fim da partida.</string>
++  <string name="muteInsightOpponentRatingHelp">O rating médio dos seus adversários.</string>
++  <string name="muteInsightDateHelp">Quando a partida foi jogada.</string>
++  <string name="muteInsightTimeControlHelp">A categoria de rating, como Blitz ou Rápido.</string>
++  <string name="muteInsightColorHelp">O lado com que você jogou: brancas ou pretas.</string>
++  <string name="muteInsightOpeningFamilyHelp">A abertura geral jogada na partida.</string>
++  <string name="muteInsightOpeningHelp">A variante de abertura jogada na partida.</string>
++  <string name="muteInsightLastDay">Últimas 24 horas</string>
  </resources>
 diff --git a/translation/dest/site/ru-RU.xml b/translation/dest/site/ru-RU.xml
-index 6384657..1a94ea7 100644
+index 6384657..f9112bf 100644
 --- a/translation/dest/site/ru-RU.xml
 +++ b/translation/dest/site/ru-RU.xml
-@@ -1146,4 +1146,105 @@
+@@ -1146,4 +1146,157 @@
    <string name="write">Написать</string>
    <string name="preview">Предпросмотр</string>
    <string name="done">Готово</string>
@@ -5844,12 +6402,64 @@ index 6384657..1a94ea7 100644
 +  <string name="muteRealTimeOnly">Поддерживаются только партии в реальном времени.</string>
 +  <string name="muteImportedGame">Импортированная партия</string>
 +  <string name="muteCopyKeyFailed">Не удалось скопировать ключ. Используйте «Скачать».</string>
++  <string name="muteNotYetSupported">Эта функция пока не поддерживается.</string>
++  <string name="muteInsightTitle">Шахматная статистика</string>
++  <string name="muteInsightShort">Статистика</string>
++  <string name="muteInsightProfileAnalytics">Статистика сыгранных партий</string>
++  <string name="muteInsightPresets">Наборы настроек</string>
++  <string name="muteInsightFilters">Фильтры</string>
++  <string name="muteInsightClear">Сбросить фильтры</string>
++  <string name="muteInsightDefinitions">Определения</string>
++  <string name="muteInsightBy">по</string>
++  <string name="muteInsightUnavailable">Статистика недоступна. Попробуйте позже.</string>
++  <string name="muteInsightNoData">Нет данных. Расширьте или сбросьте фильтры.</string>
++  <string name="muteInsightInvalid">Эта комбинация не поддерживается.</string>
++  <string name="muteInsightSampleGames">Некоторые партии, использованные для этой статистики</string>
++  <string name="muteInsightNewGames">Доступны новые партии.</string>
++  <string name="muteInsightUpdate">Обновить статистику</string>
++  <string name="muteInsightSharedNobody">Никому не доступно.</string>
++  <string name="muteInsightSharedFriends">Доступно только друзьям.</string>
++  <string name="muteInsightSharedEverybody">Доступно всем.</string>
++  <string name="muteInsightBasicNotice">Результаты партий и рейтинги. Статистика компьютерного анализа пока не поддерживается.</string>
++  <string name="muteInsightSelectAll">Выбрать всё</string>
++  <string name="muteInsightAllSelected">Выбрано всё</string>
++  <string name="muteInsightCountSelected">Выбрано # из %</string>
++  <string name="muteInsightNoMatches">Совпадений не найдено</string>
++  <string name="muteInsightOpeningPreset">Результаты по дебютам</string>
++  <string name="muteInsightColorPreset">Результаты по цвету</string>
++  <string name="muteInsightRatingPreset">Изменение рейтинга по контролю времени</string>
++  <string name="muteInsightResult">Результат партии</string>
++  <string name="muteInsightRatingGain">Изменение рейтинга</string>
++  <string name="muteInsightOpponentRating">Рейтинг соперника</string>
++  <string name="muteInsightDate">Дата</string>
++  <string name="muteInsightTimeControl">Контроль времени</string>
++  <string name="muteInsightColor">Цвет</string>
++  <string name="muteInsightOpeningFamily">Семейство дебютов</string>
++  <string name="muteInsightOpening">Вариант дебюта</string>
++  <string name="muteInsightGames">Партии</string>
++  <string name="muteInsightVictory">Победа</string>
++  <string name="muteInsightDraw">Ничья</string>
++  <string name="muteInsightDefeat">Поражение</string>
++  <string name="muteInsightWhite">Белые</string>
++  <string name="muteInsightBlack">Чёрные</string>
++  <string name="muteInsightNumberGames">Количество партий</string>
++  <string name="muteInsightSummary">Рейтинговые партии: %s</string>
++  <string name="muteInsightLastDays">За последние %s дн.</string>
++  <string name="muteInsightResultHelp">Победа, ничья или поражение в партии.</string>
++  <string name="muteInsightRatingGainHelp">Рейтинговые очки, полученные или потерянные по окончании партии.</string>
++  <string name="muteInsightOpponentRatingHelp">Средний рейтинг ваших соперников.</string>
++  <string name="muteInsightDateHelp">Когда была сыграна партия.</string>
++  <string name="muteInsightTimeControlHelp">Рейтинговая категория, например блиц или рапид.</string>
++  <string name="muteInsightColorHelp">Сторона, за которую вы играли: белые или чёрные.</string>
++  <string name="muteInsightOpeningFamilyHelp">Основной дебют, разыгранный в партии.</string>
++  <string name="muteInsightOpeningHelp">Вариант дебюта, разыгранный в партии.</string>
++  <string name="muteInsightLastDay">Последние 24 часа</string>
  </resources>
 diff --git a/translation/dest/site/zh-CN.xml b/translation/dest/site/zh-CN.xml
-index 176f4d1..a95d5ed 100644
+index 176f4d1..184fcb7 100644
 --- a/translation/dest/site/zh-CN.xml
 +++ b/translation/dest/site/zh-CN.xml
-@@ -1022,4 +1022,105 @@
+@@ -1022,4 +1022,157 @@
    <string name="write">撰写</string>
    <string name="preview">预览</string>
    <string name="done">完成</string>
@@ -5954,12 +6564,64 @@ index 176f4d1..a95d5ed 100644
 +  <string name="muteRealTimeOnly">仅支持实时对局。</string>
 +  <string name="muteImportedGame">已导入的棋局</string>
 +  <string name="muteCopyKeyFailed">无法复制密钥。请改用下载。</string>
++  <string name="muteNotYetSupported">暂不支持此功能。</string>
++  <string name="muteInsightTitle">国际象棋统计</string>
++  <string name="muteInsightShort">统计</string>
++  <string name="muteInsightProfileAnalytics">已下对局的统计</string>
++  <string name="muteInsightPresets">预设</string>
++  <string name="muteInsightFilters">筛选</string>
++  <string name="muteInsightClear">清除筛选</string>
++  <string name="muteInsightDefinitions">术语说明</string>
++  <string name="muteInsightBy">按</string>
++  <string name="muteInsightUnavailable">统计暂时不可用，请稍后重试。</string>
++  <string name="muteInsightNoData">没有数据，请扩大或清除筛选条件。</string>
++  <string name="muteInsightInvalid">不支持此组合。</string>
++  <string name="muteInsightSampleGames">用于生成此统计的部分对局</string>
++  <string name="muteInsightNewGames">有新的对局可用。</string>
++  <string name="muteInsightUpdate">更新统计</string>
++  <string name="muteInsightSharedNobody">不向任何人分享。</string>
++  <string name="muteInsightSharedFriends">仅向好友分享。</string>
++  <string name="muteInsightSharedEverybody">向所有人分享。</string>
++  <string name="muteInsightBasicNotice">对局结果和等级分。暂不支持引擎分析统计。</string>
++  <string name="muteInsightSelectAll">全选</string>
++  <string name="muteInsightAllSelected">已全选</string>
++  <string name="muteInsightCountSelected">已选择 # 项，共 % 项</string>
++  <string name="muteInsightNoMatches">未找到匹配项</string>
++  <string name="muteInsightOpeningPreset">按开局统计结果</string>
++  <string name="muteInsightColorPreset">按执棋颜色统计结果</string>
++  <string name="muteInsightRatingPreset">按用时规则统计等级分变化</string>
++  <string name="muteInsightResult">对局结果</string>
++  <string name="muteInsightRatingGain">等级分变化</string>
++  <string name="muteInsightOpponentRating">对手等级分</string>
++  <string name="muteInsightDate">日期</string>
++  <string name="muteInsightTimeControl">用时规则</string>
++  <string name="muteInsightColor">执棋颜色</string>
++  <string name="muteInsightOpeningFamily">开局类别</string>
++  <string name="muteInsightOpening">开局变例</string>
++  <string name="muteInsightGames">对局</string>
++  <string name="muteInsightVictory">胜</string>
++  <string name="muteInsightDraw">和</string>
++  <string name="muteInsightDefeat">负</string>
++  <string name="muteInsightWhite">白方</string>
++  <string name="muteInsightBlack">黑方</string>
++  <string name="muteInsightNumberGames">对局数量</string>
++  <string name="muteInsightSummary">计分对局：%s</string>
++  <string name="muteInsightLastDays">最近 %s 天</string>
++  <string name="muteInsightResultHelp">对局是获胜、和棋还是落败。</string>
++  <string name="muteInsightRatingGainHelp">对局结束时获得或失去的等级分。</string>
++  <string name="muteInsightOpponentRatingHelp">对手的平均等级分。</string>
++  <string name="muteInsightDateHelp">对局进行的日期。</string>
++  <string name="muteInsightTimeControlHelp">等级分类别，例如超快棋或快棋。</string>
++  <string name="muteInsightColorHelp">您执棋的一方：白方或黑方。</string>
++  <string name="muteInsightOpeningFamilyHelp">对局中采用的基本开局。</string>
++  <string name="muteInsightOpeningHelp">对局中采用的开局变例。</string>
++  <string name="muteInsightLastDay">最近24小时</string>
  </resources>
 diff --git a/translation/source/site.xml b/translation/source/site.xml
-index 8b5a6a1..184b9b9 100644
+index 8b5a6a1..ee6a0dd 100644
 --- a/translation/source/site.xml
 +++ b/translation/source/site.xml
-@@ -1066,4 +1066,105 @@ Leave empty to start games from the normal initial position.</string>
+@@ -1066,4 +1066,157 @@ Leave empty to start games from the normal initial position.</string>
    <string name="write">Write</string>
    <string name="preview">Preview</string>
    <string name="done">Done</string>
@@ -6064,6 +6726,58 @@ index 8b5a6a1..184b9b9 100644
 +  <string name="muteRealTimeOnly">Only real-time games are supported.</string>
 +  <string name="muteImportedGame">Imported game</string>
 +  <string name="muteCopyKeyFailed">Could not copy the key. Use Download instead.</string>
++  <string name="muteNotYetSupported">This functionality is not yet supported.</string>
++  <string name="muteInsightTitle">Chess Insights</string>
++  <string name="muteInsightShort">Insights</string>
++  <string name="muteInsightProfileAnalytics">Analytics from played games</string>
++  <string name="muteInsightPresets">Presets</string>
++  <string name="muteInsightFilters">Filters</string>
++  <string name="muteInsightClear">Clear filters</string>
++  <string name="muteInsightDefinitions">Definitions</string>
++  <string name="muteInsightBy">by</string>
++  <string name="muteInsightUnavailable">Insights are unavailable. Please try again later.</string>
++  <string name="muteInsightNoData">No data. Try widening or clearing the filters.</string>
++  <string name="muteInsightInvalid">This combination is not supported.</string>
++  <string name="muteInsightSampleGames">Some of the games used for these insights</string>
++  <string name="muteInsightNewGames">New games are available.</string>
++  <string name="muteInsightUpdate">Update insights</string>
++  <string name="muteInsightSharedNobody">Shared with nobody.</string>
++  <string name="muteInsightSharedFriends">Shared with friends only.</string>
++  <string name="muteInsightSharedEverybody">Shared with everybody.</string>
++  <string name="muteInsightBasicNotice">Game results and ratings. Engine-analysis statistics are not yet supported.</string>
++  <string name="muteInsightSelectAll">Select all</string>
++  <string name="muteInsightAllSelected">All selected</string>
++  <string name="muteInsightCountSelected"># of % selected</string>
++  <string name="muteInsightNoMatches">No matches found</string>
++  <string name="muteInsightOpeningPreset">Results by opening</string>
++  <string name="muteInsightColorPreset">Results by colour</string>
++  <string name="muteInsightRatingPreset">Rating gain by time control</string>
++  <string name="muteInsightResult">Game result</string>
++  <string name="muteInsightRatingGain">Rating gain</string>
++  <string name="muteInsightOpponentRating">Opponent rating</string>
++  <string name="muteInsightDate">Date</string>
++  <string name="muteInsightTimeControl">Time control</string>
++  <string name="muteInsightColor">Colour</string>
++  <string name="muteInsightOpeningFamily">Opening family</string>
++  <string name="muteInsightOpening">Opening variation</string>
++  <string name="muteInsightGames">Games</string>
++  <string name="muteInsightVictory">Victory</string>
++  <string name="muteInsightDraw">Draw</string>
++  <string name="muteInsightDefeat">Defeat</string>
++  <string name="muteInsightWhite">White</string>
++  <string name="muteInsightBlack">Black</string>
++  <string name="muteInsightNumberGames">Number of games</string>
++  <string name="muteInsightSummary">Rated games: %s</string>
++  <string name="muteInsightLastDays">Last %s days</string>
++  <string name="muteInsightResultHelp">Whether you won, drew or lost the game.</string>
++  <string name="muteInsightRatingGainHelp">Rating points gained or lost when the game ended.</string>
++  <string name="muteInsightOpponentRatingHelp">The average rating of your opponents.</string>
++  <string name="muteInsightDateHelp">When the game was played.</string>
++  <string name="muteInsightTimeControlHelp">The rating category, such as Blitz or Rapid.</string>
++  <string name="muteInsightColorHelp">The side you played: White or Black.</string>
++  <string name="muteInsightOpeningFamilyHelp">The general opening played in the game.</string>
++  <string name="muteInsightOpeningHelp">The opening variation played in the game.</string>
++  <string name="muteInsightLastDay">Last 24 hours</string>
  </resources>
 diff --git a/ui/.build/src/build.ts b/ui/.build/src/build.ts
 index 7d6adeb..b433f0c 100644
@@ -8243,6 +8957,1254 @@ index 5b17c23..c672423 100644
            chess960PositionIdSelector,
            div('.actions', [
              fromImageButton(ctrl, licon.Eye),
+diff --git a/ui/insight/src/axis.ts b/ui/insight/src/axis.ts
+index 916a1f2..b83fd4d 100644
+--- a/ui/insight/src/axis.ts
++++ b/ui/insight/src/axis.ts
+@@ -1,23 +1,36 @@
+-import { h, type VNodeData } from 'snabbdom';
++import { text } from "./text";
++import { h, type VNodeData } from "snabbdom";
+ 
+-import { optgroup } from 'lib/view';
++import { optgroup } from "lib/view";
+ 
+-import type Ctrl from './ctrl';
+-import type { Dimension, Metric } from './interfaces';
++import type Ctrl from "./ctrl";
++import type { Dimension, Metric } from "./interfaces";
+ 
+-const selectData = (onClick: (v: { value: string }) => void, getValue: () => string): VNodeData => ({
++const selectData = (
++  onClick: (v: { value: string }) => void,
++  getValue: () => string,
++): VNodeData => ({
+   hook: {
+-    insert: vnode => $(vnode.elm).multipleSelect({ width: 'var(---drop-menu-width)', single: true, onClick }),
+-    update: vnode => $(vnode.elm).multipleSelect('setSelects', [getValue()]),
++    insert: (vnode) =>
++      $(vnode.elm).multipleSelect({
++        width: "var(---drop-menu-width)",
++        single: true,
++        onClick,
++      }),
++    update: (vnode) => $(vnode.elm).multipleSelect("setSelects", [getValue()]),
+   },
+ });
+ 
+-const option = (ctrl: Ctrl, item: Metric | Dimension, axis: 'metric' | 'dimension') =>
++const option = (
++  ctrl: Ctrl,
++  item: Metric | Dimension,
++  axis: "metric" | "dimension",
++) =>
+   h(
+-    'option',
++    "option",
+     {
+       attrs: {
+-        title: item.description.replace(/<a[^>]*>[^>]+<\/a[^>]*>/, ''),
++        title: item.description.replace(/<a[^>]*>[^>]+<\/a[^>]*>/, ""),
+         value: item.key,
+         selected: ctrl.vm[axis].key === item.key,
+         // was commented out:
+@@ -31,27 +44,31 @@ const option = (ctrl: Ctrl, item: Metric | Dimension, axis: 'metric' | 'dimensio
+   );
+ 
+ export default function (ctrl: Ctrl, attrs: VNodeData | null = null) {
+-  return h('div.axis-form', attrs, [
++  return h("div.axis-form", attrs, [
+     h(
+-      'select.ms.metric',
++      "select.ms.metric",
+       selectData(
+-        v => ctrl.setMetric(v.value),
++        (v) => ctrl.setMetric(v.value),
+         () => ctrl.vm.metric.key,
+       ),
+-      ctrl.ui.metricCategs.map(categ =>
+-        optgroup(categ.name)(categ.items.map(item => option(ctrl, item, 'metric'))),
++      ctrl.ui.metricCategs.map((categ) =>
++        optgroup(categ.name)(
++          categ.items.map((item) => option(ctrl, item, "metric")),
++        ),
+       ),
+     ),
+-    h('span.by', 'by'),
++    h("span.by", text(ctrl, "By", "by")),
+     h(
+-      'select.ms.dimension',
++      "select.ms.dimension",
+       selectData(
+-        v => ctrl.setDimension(v.value),
++        (v) => ctrl.setDimension(v.value),
+         () => ctrl.vm.dimension.key,
+       ),
+-      ctrl.ui.dimensionCategs.map(categ =>
++      ctrl.ui.dimensionCategs.map((categ) =>
+         optgroup(categ.name)(
+-          categ.items.map(item => (item.key !== 'period' ? option(ctrl, item, 'dimension') : undefined)),
++          categ.items.map((item) =>
++            item.key !== "period" ? option(ctrl, item, "dimension") : undefined,
++          ),
+         ),
+       ),
+     ),
+diff --git a/ui/insight/src/boards.ts b/ui/insight/src/boards.ts
+index 0703838..d0538cb 100644
+--- a/ui/insight/src/boards.ts
++++ b/ui/insight/src/boards.ts
+@@ -1,31 +1,32 @@
+-import { h, type VNodeData } from 'snabbdom';
++import { text } from "./text";
++import { h, type VNodeData } from "snabbdom";
+ 
+-import { initMiniBoard, onInsert } from 'lib/view';
++import { initMiniBoard, onInsert } from "lib/view";
+ 
+-import type Ctrl from './ctrl';
+-import type { Game } from './interfaces';
++import type Ctrl from "./ctrl";
++import type { Game } from "./interfaces";
+ 
+ const miniGame = (game: Game) =>
+-  h('a', { attrs: { key: game.id, href: `/game/${game.id}/${game.color}` } }, [
+-    h('span.mini-board.is2d', {
+-      attrs: { 'data-state': `${game.fen},${game.color},${game.lastMove}` },
++  h("a", { attrs: { key: game.id, href: `/game/${game.id}/${game.color}` } }, [
++    h("span.mini-board.is2d", {
++      attrs: { "data-state": `${game.fen},${game.color},${game.lastMove}` },
+       hook: {
+         ...onInsert(initMiniBoard),
+-        update: vnode => initMiniBoard(vnode.elm as HTMLElement),
++        update: (vnode) => initMiniBoard(vnode.elm as HTMLElement),
+       },
+     }),
+-    h('span.vstext', [
+-      h('span.vstext__pl', [
+-        h('strong', game.user1.name),
+-        h('br'),
+-        game.user1.title ? game.user1.title + ' ' : '',
+-        h('rating', game.user1.rating),
++    h("span.vstext", [
++      h("span.vstext__pl", [
++        h("strong", game.user1.name),
++        h("br"),
++        game.user1.title ? game.user1.title + " " : "",
++        h("rating", game.user1.rating),
+       ]),
+-      h('span.vstext__op', [
+-        h('strong', game.user2.name),
+-        h('br'),
+-        h('rating', game.user2.rating),
+-        game.user2.title ? ' ' + game.user2.title : '',
++      h("span.vstext__op", [
++        h("strong", game.user2.name),
++        h("br"),
++        h("rating", game.user2.rating),
++        game.user2.title ? " " + game.user2.title : "",
+       ]),
+     ]),
+   ]);
+@@ -33,8 +34,15 @@ const miniGame = (game: Game) =>
+ export default function (ctrl: Ctrl, attrs: VNodeData | null = null) {
+   if (!ctrl.vm.answer || ctrl.vm.answer.games.length === 0) return undefined;
+ 
+-  return h('div.game-sample.box.hscroll', attrs, [
+-    h('div.top', 'Some of the games used to generate this insight'),
+-    h('div.boards', ctrl.vm.answer.games.map(miniGame)),
++  return h("div.game-sample.box.hscroll", attrs, [
++    h(
++      "div.top",
++      text(
++        ctrl,
++        "SampleGames",
++        "Some of the games used to generate this insight",
++      ),
++    ),
++    h("div.boards", ctrl.vm.answer.games.map(miniGame)),
+   ]);
+ }
+diff --git a/ui/insight/src/chart.ts b/ui/insight/src/chart.ts
+index d2c868a..a560587 100644
+--- a/ui/insight/src/chart.ts
++++ b/ui/insight/src/chart.ts
+@@ -1,4 +1,11 @@
+-import { gridColor, tooltipBgColor, fontFamily, maybeChart, colorSeries } from 'chart';
++import { text } from "./text";
++import {
++  gridColor,
++  tooltipBgColor,
++  fontFamily,
++  maybeChart,
++  colorSeries,
++} from "chart";
+ import {
+   Chart,
+   type ChartDataset,
+@@ -10,35 +17,37 @@ import {
+   LinearScale,
+   Tooltip,
+   type ChartOptions,
+-} from 'chart.js';
+-import ChartDataLabels from 'chartjs-plugin-datalabels';
+-import { h, type VNode } from 'snabbdom';
++} from "chart.js";
++import ChartDataLabels from "chartjs-plugin-datalabels";
++import { h, type VNode } from "snabbdom";
+ 
+-import { currentTheme } from 'lib/device';
+-import { licon } from 'lib/licon';
+-import { icon, spinnerHtml } from 'lib/view';
++import { currentTheme } from "lib/device";
++import { licon } from "lib/licon";
++import { icon, spinnerHtml } from "lib/view";
+ 
+-import type Ctrl from './ctrl';
+-import type { InsightChart, InsightData } from './interfaces';
+-import { formatNumber } from './table';
++import type Ctrl from "./ctrl";
++import type { InsightChart, InsightData } from "./interfaces";
++import { formatNumber } from "./table";
+ 
+-Chart.register(BarController, CategoryScale, LinearScale, BarElement, Tooltip, Legend, ChartDataLabels);
++Chart.register(
++  BarController,
++  CategoryScale,
++  LinearScale,
++  BarElement,
++  Tooltip,
++  Legend,
++  ChartDataLabels,
++);
+ Chart.defaults.font = fontFamily();
+ 
+-const light = currentTheme() === 'light';
+-
+-const resultColors = {
+-  Victory: '#759900',
+-  Draw: '#007599',
+-  Defeat: '#dc322f',
+-};
++const light = currentTheme() === "light";
+ 
+-const sizeColor = 'rgb(120 120 120 / 0.2)';
+-const tooltipFontColor = light ? '#4d4d4d' : '#cccccc';
++const sizeColor = "rgb(120 120 120 / 0.2)";
++const tooltipFontColor = light ? "#4d4d4d" : "#cccccc";
+ 
+ function insightChart(el: HTMLCanvasElement, data: InsightData) {
+-  const config: ChartConfiguration<'bar'> = {
+-    type: 'bar',
++  const config: ChartConfiguration<"bar"> = {
++    type: "bar",
+     data: {
+       labels: labelBuilder(data),
+       datasets: datasetBuilder(data),
+@@ -48,25 +57,25 @@ function insightChart(el: HTMLCanvasElement, data: InsightData) {
+       maintainAspectRatio: false,
+       animation: false,
+       interaction: {
+-        mode: 'index',
++        mode: "index",
+         intersect: false,
+       },
+       plugins: {
+         legend: {
+           labels: { color: tooltipFontColor },
+           display: true,
+-          position: 'bottom',
++          position: "bottom",
+         },
+         tooltip: {
+-          filter: tooltipItem => (tooltipItem.raw as number) !== 0,
++          filter: (tooltipItem) => (tooltipItem.raw as number) !== 0,
+           itemSort: (a, b) => b.datasetIndex - a.datasetIndex,
+           backgroundColor: tooltipBgColor,
+           borderColor: gridColor,
+           borderWidth: 1,
+-          position: 'average',
+-          xAlign: 'center',
+-          yAlign: 'bottom',
+-          titleFont: fontFamily(14, 'bold'),
++          position: "average",
++          xAlign: "center",
++          yAlign: "bottom",
++          titleFont: fontFamily(14, "bold"),
+           titleColor: tooltipFontColor,
+           bodyFont: fontFamily(13),
+           bodyColor: tooltipFontColor,
+@@ -86,38 +95,39 @@ function insightChart(el: HTMLCanvasElement, data: InsightData) {
+ }
+ 
+ function datasetBuilder(d: InsightData) {
+-  const color = (i: number, name: string, stack: boolean) => {
+-    if (d.valueYaxis.name === 'Game result') return resultColors[name as 'Victory' | 'Draw' | 'Defeat'];
+-    else if (!stack && light) return '#7cb5ec';
++  const color = (i: number, stack: boolean) => {
++    if (d.question.metric === "result")
++      return ["#759900", "#007599", "#dc322f"][i];
++    else if (!stack && light) return "#7cb5ec";
+     return colorSeries[i % colorSeries.length];
+   };
+   return [
+     ...d.series.map((serie, i) =>
+-      barBuilder(serie, 'y1', color(i, serie.name, !!serie.stack), { stack: serie.stack }),
++      barBuilder(serie, "y1", color(i, !!serie.stack), { stack: serie.stack }),
+     ),
+-    barBuilder(d.sizeSerie, 'y2', sizeColor),
++    barBuilder(d.sizeSerie, "y2", sizeColor),
+   ];
+ }
+ 
+ function barBuilder(
+-  serie: InsightData['sizeSerie'],
++  serie: InsightData["sizeSerie"],
+   id: string,
+   color: string,
+   opts?: { stack?: string },
+-): ChartDataset<'bar'> {
+-  const percent = serie.dataType === 'percent';
++): ChartDataset<"bar"> {
++  const percent = serie.dataType === "percent";
+   return {
+     label: serie.name,
+-    data: serie.data.map(nb => nb / (serie.dataType === 'percent' ? 100 : 1)),
++    data: serie.data.map((nb) => nb / (serie.dataType === "percent" ? 100 : 1)),
+     borderWidth: 1.5,
+     yAxisID: id,
+     backgroundColor: color,
+-    borderColor: light ? '#9a9a9a' : '#4a4a4a',
++    borderColor: light ? "#9a9a9a" : "#4a4a4a",
+     borderRadius: 4,
+     stack: opts?.stack,
+     minBarLength: !percent ? 5 : undefined,
+     datalabels:
+-      id === 'y2'
++      id === "y2"
+         ? { display: false }
+         : {
+             color: tooltipFontColor,
+@@ -125,25 +135,27 @@ function barBuilder(
+             textShadowBlur: 10,
+             textShadowColor: tooltipBgColor,
+             textStrokeWidth: 1.2,
+-            font: fontFamily(12, 'bold'),
+-            formatter: val =>
+-              val === 0 && percent ? '' : formatNumber(serie.dataType, val * (percent ? 100 : 1)),
++            font: fontFamily(12, "bold"),
++            formatter: (val) =>
++              val === 0 && percent
++                ? ""
++                : formatNumber(serie.dataType, val * (percent ? 100 : 1)),
+           },
+   };
+ }
+ 
+ function labelBuilder(d: InsightData) {
+-  return d.xAxis.categories.map(ts =>
+-    d.xAxis.dataType === 'date' ? new Date(ts * 1000).toLocaleDateString() : ts,
++  return d.xAxis.categories.map((ts) =>
++    d.xAxis.dataType === "date" ? new Date(ts * 1000).toLocaleDateString() : ts,
+   );
+ }
+ 
+-function scaleBuilder(d: InsightData): ChartOptions<'bar'>['scales'] {
++function scaleBuilder(d: InsightData): ChartOptions<"bar">["scales"] {
+   const stacked = !!d.series[0].stack;
+-  const percent = stacked || d.valueYaxis.dataType === 'percent';
++  const percent = stacked || d.valueYaxis.dataType === "percent";
+   return {
+     x: {
+-      type: 'category',
++      type: "category",
+       ticks: { color: tooltipFontColor },
+       grid: {
+         color: gridColor,
+@@ -157,7 +169,7 @@ function scaleBuilder(d: InsightData): ChartOptions<'bar'>['scales'] {
+       ticks: {
+         color: tooltipFontColor,
+         format: {
+-          style: percent ? 'percent' : undefined,
++          style: percent ? "percent" : undefined,
+           maximumFractionDigits: percent ? 1 : 2,
+         },
+       },
+@@ -169,7 +181,7 @@ function scaleBuilder(d: InsightData): ChartOptions<'bar'>['scales'] {
+       stacked,
+     },
+     y2: {
+-      position: 'right',
++      position: "right",
+       ticks: { color: tooltipFontColor },
+       grid: { display: false },
+       title: {
+@@ -182,7 +194,7 @@ function scaleBuilder(d: InsightData): ChartOptions<'bar'>['scales'] {
+   };
+ }
+ function empty(txt: string) {
+-  return h('div.chart.empty', [icon(licon.Target)(), txt]);
++  return h("div.chart.empty", [icon(licon.Target)(), txt]);
+ }
+ 
+ let chart: InsightChart;
+@@ -197,13 +209,17 @@ function chartHook(vnode: VNode, ctrl: Ctrl) {
+ }
+ 
+ export default function (ctrl: Ctrl) {
+-  if (!ctrl.validCombinationCurrent()) return empty('Invalid dimension/metric combination');
+-  if (!ctrl.vm.answer?.series.length) return empty('No data. Try widening or clearing the filters.');
++  if (!ctrl.validCombinationCurrent())
++    return empty(text(ctrl, "Invalid", "Invalid dimension/metric combination"));
++  if (!ctrl.vm.answer?.series.length)
++    return empty(
++      text(ctrl, "NoData", "No data. Try widening or clearing the filters."),
++    );
+   return h(
+-    'div.chart',
+-    h('canvas.chart', {
++    "div.chart",
++    h("canvas.chart", {
+       hook: {
+-        insert: vnode => chartHook(vnode, ctrl),
++        insert: (vnode) => chartHook(vnode, ctrl),
+         update: (_oldVnode, newVnode) => chartHook(newVnode, ctrl),
+       },
+     }),
+diff --git a/ui/insight/src/help.ts b/ui/insight/src/help.ts
+index 429e573..52fd676 100644
+--- a/ui/insight/src/help.ts
++++ b/ui/insight/src/help.ts
+@@ -1,15 +1,19 @@
+-import { h } from 'snabbdom';
++import { text } from "./text";
++import { h } from "snabbdom";
+ 
+-import type Ctrl from './ctrl';
++import type Ctrl from "./ctrl";
+ 
+ export default function (ctrl: Ctrl) {
+-  return h('div.help.box', [
+-    h('div.top', 'Definitions'),
++  return h("div.help.box", [
++    h("div.top", text(ctrl, "Definitions", "Definitions")),
+     h(
+-      'div.content',
+-      (['metric', 'dimension'] as const).map(type => {
++      "div.content",
++      (["metric", "dimension"] as const).map((type) => {
+         const data = ctrl.vm[type];
+-        return h('section.' + type, [h('h3', data.name), h('p', data.description)]);
++        return h("section." + type, [
++          h("h3", data.name),
++          h("p", data.description),
++        ]);
+       }),
+     ),
+   ]);
+diff --git a/ui/insight/src/info.ts b/ui/insight/src/info.ts
+index 3b4dd81..557117c 100644
+--- a/ui/insight/src/info.ts
++++ b/ui/insight/src/info.ts
+@@ -1,44 +1,62 @@
+-import { h } from 'snabbdom';
++import { text } from "./text";
++import { h } from "snabbdom";
+ 
+-import { numberFormat } from 'lib/i18n';
+-import { onInsert, spinnerHtml } from 'lib/view';
+-import { userLink } from 'lib/view/userLink';
++import { numberFormat } from "lib/i18n";
++import { onInsert, spinnerHtml } from "lib/view";
++import { userLink } from "lib/view/userLink";
+ 
+-import type Ctrl from './ctrl';
+-import { registerFormHandler } from './insight.refresh';
++import type Ctrl from "./ctrl";
++import { registerFormHandler } from "./insight.refresh";
+ 
+-const shareStates = ['nobody', 'friends only', 'everybody'];
++const shareStates = ["nobody", "friends only", "everybody"];
+ 
+ export function tutor() {
+   return h(
+-    'a.tutor-link',
++    "a.tutor-link",
+     {
+-      attrs: { href: '/tutor' },
++      attrs: { href: "/tutor" },
+     },
+     [
+-      h('img', {
+-        attrs: { src: site.asset.flairSrc('nature.octopus-howard') },
++      h("img", {
++        attrs: { src: site.asset.flairSrc("nature.octopus-howard") },
+       }),
+-      h('span', [h('strong', 'Try out Tutor'), h('em', 'Compare to your peers!')]),
++      h("span", [
++        h("strong", "Try out Tutor"),
++        h("em", "Compare to your peers!"),
++      ]),
+     ],
+   );
+ }
+ 
+ export function info(ctrl: Ctrl) {
+-  const shareText = 'Shared with ' + shareStates[ctrl.user.shareId] + '.';
+-  return h('div.info.box', [
+-    h('div.top', userLink(ctrl.user)),
+-    h('div.content', [
+-      h('p', ['Insights over ', h('strong', numberFormat(ctrl.user.nbGames)), ' rated games.']),
++  const shareText = text(
++    ctrl,
++    ["SharedNobody", "SharedFriends", "SharedEverybody"][ctrl.user.shareId],
++    "Shared with " + shareStates[ctrl.user.shareId] + ".",
++  );
++  return h("div.info.box", [
++    h("div.top", userLink(ctrl.user)),
++    h("div.content", [
++      h(
++        "p",
++        ctrl.ui.focused
++          ? text(ctrl, "Summary", "")
++          : [
++              "Insights over ",
++              h("strong", numberFormat(ctrl.user.nbGames)),
++              " rated games.",
++            ],
++      ),
++      ctrl.ui.focused && h("p", text(ctrl, "BasicNotice", "")),
+       h(
+-        'p.share',
++        "p.share",
+         ctrl.own
+           ? h(
+-              'a',
++              "a",
+               {
+                 attrs: {
+-                  href: '/account/preferences/privacy#shareYourInsightsData',
+-                  target: '_blank',
++                  href: "/account/preferences/privacy#shareYourInsightsData",
++                  target: "_blank",
+                 },
+               },
+               shareText,
+@@ -47,27 +65,48 @@ export function info(ctrl: Ctrl) {
+       ),
+     ]),
+     h(
+-      'div.refresh',
+-      ctrl.env.user.stale
+-        ? h('div.insight-stale', [
+-            h('p', 'There are new games to learn from!'),
++      "div.refresh",
++      ctrl.env.user.stale && (!ctrl.ui.focused || ctrl.own)
++        ? h("div.insight-stale", [
+             h(
+-              'form.insight-refresh',
++              "p",
++              text(ctrl, "NewGames", "There are new games to learn from!"),
++            ),
++            h(
++              "form.insight-refresh",
+               {
+                 attrs: {
+                   action: `/insights/refresh/${ctrl.env.user.id}`,
+-                  method: 'post',
++                  method: "post",
+                 },
+                 hook: onInsert(registerFormHandler),
+               },
+               [
+-                h('button.button.button-thin', 'Update insights'),
+                 h(
+-                  'div.crunching.none',
++                  "button.button.button-thin",
++                  text(ctrl, "Update", "Update insights"),
++                ),
++                h(
++                  "div.crunching.none",
+                   {
+-                    hook: onInsert(el => el.insertAdjacentHTML('afterbegin', spinnerHtml)),
++                    hook: onInsert((el) =>
++                      el.insertAdjacentHTML("afterbegin", spinnerHtml),
++                    ),
+                   },
+-                  [h('br'), h('p', h('strong', 'Now crunching data just for you!'))],
++                  [
++                    h("br"),
++                    h(
++                      "p",
++                      h(
++                        "strong",
++                        text(
++                          ctrl,
++                          "Crunching",
++                          "Now crunching data just for you!",
++                        ),
++                      ),
++                    ),
++                  ],
+                 ),
+               ],
+             ),
+diff --git a/ui/insight/src/insight.ts b/ui/insight/src/insight.ts
+index 7e8e421..c4ff379 100644
+--- a/ui/insight/src/insight.ts
++++ b/ui/insight/src/insight.ts
+@@ -1,17 +1,24 @@
+-import { attributesModule, classModule, init } from 'snabbdom';
++import { attributesModule, classModule, init } from "snabbdom";
+ 
+-import Ctrl from './ctrl';
+-import type { Env } from './interfaces';
+-import { registerMultipleSelect } from './multipleSelect';
+-import { view } from './view';
++import Ctrl from "./ctrl";
++import type { Env } from "./interfaces";
++import { registerMultipleSelect } from "./multipleSelect";
++import { view } from "./view";
+ 
+ const patch = init([classModule, attributesModule]);
+ 
+ registerMultipleSelect();
+ 
+ export function initModule(opts: Env) {
+-  const element = document.getElementById('insight')!;
++  const element = document.getElementById("insight")!;
+   const ctrl = new Ctrl(opts, element, redraw);
++  if (opts.ui.focused)
++    Object.assign($.fn.multipleSelectDefaults, {
++      selectAllText: opts.i18n.SelectAll,
++      allSelected: opts.i18n.AllSelected,
++      countSelected: opts.i18n.CountSelected,
++      noMatchesFound: opts.i18n.NoMatches,
++    });
+ 
+   const blueprint = view(ctrl);
+   let vnode = patch(element, blueprint);
+diff --git a/ui/insight/src/interfaces.ts b/ui/insight/src/interfaces.ts
+index d8404eb..408db3d 100644
+--- a/ui/insight/src/interfaces.ts
++++ b/ui/insight/src/interfaces.ts
+@@ -1,4 +1,4 @@
+-import type { Chart } from 'chart.js';
++import type { Chart } from "chart.js";
+ 
+ export interface Vm {
+   metric: Metric;
+@@ -7,7 +7,7 @@ export interface Vm {
+   loading: boolean;
+   broken: boolean;
+   answer: InsightData | null;
+-  panel: 'filter' | 'preset';
++  panel: "filter" | "preset";
+   view: ViewTab;
+ }
+ 
+@@ -26,6 +26,7 @@ export interface EnvUser {
+   name: string;
+   title?: string;
+   patron?: boolean;
++  displayName?: string;
+   nbGames: number;
+   shareId: number;
+   stale: boolean;
+@@ -43,6 +44,7 @@ export interface UI {
+   dimensionCategs: Categ<Dimension>[];
+   metricCategs: Categ<Metric>[];
+   asMod?: boolean;
++  focused?: boolean;
+ }
+ 
+ export interface Categ<T> {
+@@ -71,9 +73,9 @@ export interface Dimension extends Metric {
+   }[];
+ }
+ 
+-export type ViewTab = 'combined' | 'presets' | 'filters' | 'insights';
++export type ViewTab = "combined" | "presets" | "filters" | "insights";
+ 
+-export interface InsightChart extends Chart<'bar'> {
++export interface InsightChart extends Chart<"bar"> {
+   updateData(d: InsightData): void;
+ }
+ 
+diff --git a/ui/insight/src/presets.ts b/ui/insight/src/presets.ts
+index d49a2c7..166a88b 100644
+--- a/ui/insight/src/presets.ts
++++ b/ui/insight/src/presets.ts
+@@ -1,21 +1,31 @@
+-import { h } from 'snabbdom';
++import { text } from "./text";
++import { h } from "snabbdom";
+ 
+-import { licon } from 'lib/licon';
+-import { bind, dataIcon } from 'lib/view';
++import { licon } from "lib/licon";
++import { bind, dataIcon } from "lib/view";
+ 
+-import type Ctrl from './ctrl';
+-import type { Preset } from './interfaces';
++import type Ctrl from "./ctrl";
++import type { Preset } from "./interfaces";
+ 
+ export default function (ctrl: Ctrl) {
+   return h(
+-    'div.box.presets',
+-    (ctrl.ui.asMod ? modPresets : basePresets).map(p =>
++    "div.box.presets",
++    (ctrl.ui.focused
++      ? basicPresets(ctrl)
++      : ctrl.ui.asMod
++        ? modPresets
++        : basePresets
++    ).map((p) =>
+       h(
+-        'a.preset.text',
++        "a.preset.text",
+         {
+-          class: { active: ctrl.makeUrl(p.dimension, p.metric, p.filters) === ctrl.makeCurrentUrl() },
++          class: {
++            active:
++              ctrl.makeUrl(p.dimension, p.metric, p.filters) ===
++              ctrl.makeCurrentUrl(),
++          },
+           attrs: dataIcon(licon.Target),
+-          hook: bind('click', () => ctrl.setQuestion(p)),
++          hook: bind("click", () => ctrl.setQuestion(p)),
+         },
+         p.name,
+       ),
+@@ -25,107 +35,128 @@ export default function (ctrl: Ctrl) {
+ 
+ const basePresets: Preset[] = [
+   {
+-    name: 'Do I gain more rating points against weaker or stronger opponents?',
+-    dimension: 'opponentStrength',
+-    metric: 'ratingDiff',
++    name: "Do I gain more rating points against weaker or stronger opponents?",
++    dimension: "opponentStrength",
++    metric: "ratingDiff",
+     filters: {},
+   },
+   {
+-    name: 'How quickly do I move each piece in bullet and blitz games?',
+-    dimension: 'piece',
+-    metric: 'movetime',
++    name: "How quickly do I move each piece in bullet and blitz games?",
++    dimension: "piece",
++    metric: "movetime",
+     filters: {
+-      variant: ['bullet', 'blitz'],
++      variant: ["bullet", "blitz"],
+     },
+   },
+   {
+-    name: 'What is the Win-Rate of my favourite openings as white?',
+-    dimension: 'openingVariation',
+-    metric: 'result',
++    name: "What is the Win-Rate of my favourite openings as white?",
++    dimension: "openingVariation",
++    metric: "result",
+     filters: {
+-      variant: ['bullet', 'blitz', 'rapid', 'classical', 'correspondence'],
+-      color: ['white'],
++      variant: ["bullet", "blitz", "rapid", "classical", "correspondence"],
++      color: ["white"],
+     },
+   },
+   {
+-    name: 'How often do I punish blunders made by my opponent during each game phase?',
+-    dimension: 'phase',
+-    metric: 'awareness',
++    name: "How often do I punish blunders made by my opponent during each game phase?",
++    dimension: "phase",
++    metric: "awareness",
+     filters: {},
+   },
+   {
+     name: "Do I gain rating when I don't castle kingside?",
+-    dimension: 'myCastling',
+-    metric: 'ratingDiff',
++    dimension: "myCastling",
++    metric: "ratingDiff",
+     filters: {
+-      myCastling: ['2', '3'],
++      myCastling: ["2", "3"],
+     },
+   },
+   {
+-    name: 'When I trade queens, how do games end?',
+-    dimension: 'queenTrade',
+-    metric: 'result',
++    name: "When I trade queens, how do games end?",
++    dimension: "queenTrade",
++    metric: "result",
+     filters: {
+-      queenTrade: ['true'],
++      queenTrade: ["true"],
+     },
+   },
+   {
+-    name: 'What is the average rating of my opponents across each variant?',
+-    dimension: 'variant',
+-    metric: 'opponentRating',
++    name: "What is the average rating of my opponents across each variant?",
++    dimension: "variant",
++    metric: "opponentRating",
+     filters: {},
+   },
+   {
+-    name: 'How well do I move each piece in the opening?',
+-    dimension: 'piece',
+-    metric: 'accuracy',
++    name: "How well do I move each piece in the opening?",
++    dimension: "piece",
++    metric: "accuracy",
+     filters: {
+-      phase: ['1'],
++      phase: ["1"],
+     },
+   },
+ ];
+ 
+ const modPresets: Preset[] = [
+   {
+-    name: 'ACPL by date',
+-    dimension: 'date',
+-    metric: 'acpl',
++    name: "ACPL by date",
++    dimension: "date",
++    metric: "acpl",
+     filters: {},
+   },
+   {
+-    name: 'Blurs by date',
+-    dimension: 'date',
+-    metric: 'blurs',
++    name: "Blurs by date",
++    dimension: "date",
++    metric: "blurs",
+     filters: {},
+   },
+   {
+-    name: 'ACPL by blur',
+-    dimension: 'blur',
+-    metric: 'acpl',
++    name: "ACPL by blur",
++    dimension: "blur",
++    metric: "acpl",
+     filters: {},
+   },
+   {
+-    name: 'Blurs by result',
+-    dimension: 'result',
+-    metric: 'blurs',
++    name: "Blurs by result",
++    dimension: "result",
++    metric: "blurs",
+     filters: {},
+   },
+   {
+-    name: 'ACPL by time variance',
+-    dimension: 'timeVariance',
+-    metric: 'acpl',
++    name: "ACPL by time variance",
++    dimension: "timeVariance",
++    metric: "acpl",
+     filters: {},
+   },
+   {
+-    name: 'Blur by time variance',
+-    dimension: 'timeVariance',
+-    metric: 'blurs',
++    name: "Blur by time variance",
++    dimension: "timeVariance",
++    metric: "blurs",
+     filters: {},
+   },
+   {
+-    name: 'Time variance by date',
+-    dimension: 'date',
+-    metric: 'timeVariance',
++    name: "Time variance by date",
++    dimension: "date",
++    metric: "timeVariance",
++    filters: {},
++  },
++];
++
++const basicPresets = (ctrl: Ctrl): Preset[] => [
++  {
++    name: text(ctrl, "OpeningPreset", ""),
++    dimension: "openingFamily",
++    metric: "result",
++    filters: {},
++  },
++  {
++    name: text(ctrl, "ColorPreset", ""),
++    dimension: "color",
++    metric: "result",
++    filters: {},
++  },
++  {
++    name: text(ctrl, "RatingPreset", ""),
++    dimension: "variant",
++    metric: "ratingDiff",
+     filters: {},
+   },
+ ];
+diff --git a/ui/insight/src/table.ts b/ui/insight/src/table.ts
+index d058b0a..dfc1434 100644
+--- a/ui/insight/src/table.ts
++++ b/ui/insight/src/table.ts
+@@ -1,37 +1,49 @@
+-import { type VNodeData } from 'snabbdom';
++import { type VNodeData } from "snabbdom";
+ 
+-import { div, table, tbody, td, th, thead, tr } from 'lib/view';
++import { div, table, tbody, td, th, thead, tr } from "lib/view";
+ 
+-import type Ctrl from './ctrl';
++import type Ctrl from "./ctrl";
+ 
+ export function formatNumber(dt: string, n: number) {
+-  const percent = dt === 'percent';
++  const percent = dt === "percent";
+   const opts: Intl.NumberFormatOptions = {
+-    style: percent ? 'percent' : 'decimal',
++    style: percent ? "percent" : "decimal",
+     maximumFractionDigits: percent ? 1 : 2,
+   };
+-  return new Intl.NumberFormat('en-US', opts).format(n / (percent ? 100 : 1));
++  return new Intl.NumberFormat(
++    document.documentElement.lang || "en-US",
++    opts,
++  ).format(n / (percent ? 100 : 1));
+ }
+ 
+ const formatSerieName = (dt: string, n: number) =>
+-  dt === 'date' ? new Date(n * 1000).toLocaleDateString() : n;
++  dt === "date" ? new Date(n * 1000).toLocaleDateString() : n;
+ 
+ export function vert(ctrl: Ctrl, attrs: VNodeData | null = null) {
+   const answer = ctrl.vm.answer;
+   if (!answer || answer.series.length === 0) return null;
+   return div(
+-    '.hscroll',
++    ".hscroll",
+     attrs,
+-    table('.slist', [
++    table(".slist", [
+       thead(
+-        tr([th(answer.xAxis.name), answer.series.map(serie => th(serie.name)), th(answer.sizeYaxis.name)]),
++        tr([
++          th(answer.xAxis.name),
++          answer.series.map((serie) => th(serie.name)),
++          th(answer.sizeYaxis.name),
++        ]),
+       ),
+       tbody(
+         answer.xAxis.categories.map((c, i) =>
+           tr([
+             th(formatSerieName(answer.xAxis.dataType, c)),
+-            answer.series.map(serie => td('.data', formatNumber(serie.dataType, serie.data[i]))),
+-            td('.size', formatNumber(answer.sizeSerie.dataType, answer.sizeSerie.data[i])),
++            answer.series.map((serie) =>
++              td(".data", formatNumber(serie.dataType, serie.data[i])),
++            ),
++            td(
++              ".size",
++              formatNumber(answer.sizeSerie.dataType, answer.sizeSerie.data[i]),
++            ),
+           ]),
+         ),
+       ),
+diff --git a/ui/insight/src/view.ts b/ui/insight/src/view.ts
+index 9957e48..2ca7bbd 100644
+--- a/ui/insight/src/view.ts
++++ b/ui/insight/src/view.ts
+@@ -1,20 +1,26 @@
+-import { thunk } from 'snabbdom';
+-
+-import { debounce } from 'lib/async';
+-import { licon } from 'lib/licon';
+-import { bind, dataIcon, hl, icon } from 'lib/view';
+-
+-import axis from './axis';
+-import boards from './boards';
+-import chart from './chart';
+-import type Ctrl from './ctrl';
+-import filters from './filters';
+-import help from './help';
+-import { info, tutor } from './info';
+-import type { ViewTab } from './interfaces';
+-import presets from './presets';
+-import { vert } from './table';
+-import { isAtLeastSmall, isAtLeastXSmall, isAtLeastXXSmall, isLandscapeLayout } from './util';
++import { text } from "./text";
++import { thunk } from "snabbdom";
++
++import { debounce } from "lib/async";
++import { licon } from "lib/licon";
++import { bind, dataIcon, hl, icon } from "lib/view";
++
++import axis from "./axis";
++import boards from "./boards";
++import chart from "./chart";
++import type Ctrl from "./ctrl";
++import filters from "./filters";
++import help from "./help";
++import { info, tutor } from "./info";
++import type { ViewTab } from "./interfaces";
++import presets from "./presets";
++import { vert } from "./table";
++import {
++  isAtLeastSmall,
++  isAtLeastXSmall,
++  isAtLeastXXSmall,
++  isLandscapeLayout,
++} from "./util";
+ 
+ let forceRender = false;
+ 
+@@ -25,10 +31,10 @@ export function view(ctrl: Ctrl) {
+     ctrl.redraw();
+   }, 33);
+   if (isLandscapeLayout()) {
+-    ctrl.vm.view = 'combined';
++    ctrl.vm.view = "combined";
+     return landscapeView(ctrl);
+-  } else if (ctrl.vm.view === 'combined') {
+-    ctrl.vm.view = 'insights';
++  } else if (ctrl.vm.view === "combined") {
++    ctrl.vm.view = "insights";
+   }
+   return portraitView(ctrl);
+ }
+@@ -44,82 +50,129 @@ const cacheKey = (ctrl: Ctrl) => {
+ };
+ 
+ const renderMain = (ctrl: Ctrl, _cacheKey: string | boolean) => {
+-  if (!ctrl.vm.answer) {
+-    return hl('div'); // returning undefined breaks snabbdom's thunks
++  if (!ctrl.vm.answer && !ctrl.vm.broken) {
++    return hl("div"); // returning undefined breaks snabbdom's thunks
+   } else if (ctrl.vm.broken) {
+-    return hl('div.broken', [
++    return hl("div.broken", [
+       icon(licon.DiscBig)(),
+-      'Insights are unavailable.',
+-      hl('br'),
+-      'Please try again later.',
++      text(
++        ctrl,
++        "Unavailable",
++        "Insights are unavailable. Please try again later.",
++      ),
+     ]);
+   }
+   const sizer = widthStyle(mainW());
+-  return hl('div', sizer, [chart(ctrl), vert(ctrl, sizer), boards(ctrl, sizer)]);
++  return hl("div", sizer, [
++    chart(ctrl),
++    vert(ctrl, sizer),
++    boards(ctrl, sizer),
++  ]);
+ };
+ 
+-const panelTabData = (ctrl: Ctrl, panel: 'filter' | 'preset') => ({
++const panelTabData = (ctrl: Ctrl, panel: "filter" | "preset") => ({
+   class: { active: ctrl.vm.panel === panel },
+-  attrs: { 'data-panel': panel },
+-  hook: bind('click', () => ctrl.setPanel(panel)),
++  attrs: { "data-panel": panel },
++  hook: bind("click", () => ctrl.setPanel(panel)),
+ });
+ 
+ const viewTabData = (ctrl: Ctrl, view: ViewTab) => ({
+   class: { active: ctrl.vm.view === view },
+-  hook: bind('click', () => ctrl.setView(view)),
++  hook: bind("click", () => ctrl.setView(view)),
+ });
+ 
+ function header(ctrl: Ctrl) {
+-  return hl('header', widthStyle(mainW()), [
++  return hl("header", widthStyle(mainW()), [
+     isAtLeastXSmall(mainW())
+-      ? hl('h2.text', { attrs: dataIcon(licon.Target) }, 'Chess Insights')
++      ? hl(
++          "h2.text",
++          { attrs: dataIcon(licon.Target) },
++          text(ctrl, "Title", "Chess Insights"),
++        )
+       : isAtLeastXXSmall(mainW())
+-        ? hl('h2.text', { attrs: dataIcon(licon.Target) }, 'Insights')
+-        : mainW() >= 460 && hl('h2.text', 'Insights'),
+-    axis(ctrl, mainW() < 460 ? { attrs: { style: 'justify-content: space-evenly;' } } : null),
++        ? hl(
++            "h2.text",
++            { attrs: dataIcon(licon.Target) },
++            text(ctrl, "Short", "Insights"),
++          )
++        : mainW() >= 460 && hl("h2.text", text(ctrl, "Short", "Insights")),
++    axis(
++      ctrl,
++      mainW() < 460
++        ? { attrs: { style: "justify-content: space-evenly;" } }
++        : null,
++    ),
+   ]);
+ }
+ 
+ function landscapeView(ctrl: Ctrl) {
+-  return hl('main#insight', containerStyle(), [
+-    hl('div', { attrs: { class: ctrl.vm.loading ? 'loading' : 'ready' } }, [
+-      hl('div', widthStyle(sideW()), [
++  return hl("main#insight", containerStyle(), [
++    hl("div", { attrs: { class: ctrl.vm.loading ? "loading" : "ready" } }, [
++      hl("div", widthStyle(sideW()), [
+         info(ctrl),
+-        tutor(),
+-        hl('div.panel-tabs', [
+-          hl('a.tab.preset', panelTabData(ctrl, 'preset'), 'Presets'),
+-          hl('a.tab.filter', panelTabData(ctrl, 'filter'), 'Filters'),
++        !ctrl.ui.focused && tutor(),
++        hl("div.panel-tabs", [
++          hl(
++            "a.tab.preset",
++            panelTabData(ctrl, "preset"),
++            text(ctrl, "Presets", "Presets"),
++          ),
++          hl(
++            "a.tab.filter",
++            panelTabData(ctrl, "filter"),
++            text(ctrl, "Filters", "Filters"),
++          ),
+           !!Object.keys(ctrl.vm.filters).length && clearBtn(ctrl),
+         ]),
+-        ctrl.vm.panel === 'filter' && filters(ctrl),
+-        ctrl.vm.panel === 'preset' && presets(ctrl),
++        ctrl.vm.panel === "filter" && filters(ctrl),
++        ctrl.vm.panel === "preset" && presets(ctrl),
+         help(ctrl),
+       ]),
+       spacer(),
+-      hl('div', widthStyle(mainW()), [
++      hl("div", widthStyle(mainW()), [
+         header(ctrl),
+-        thunk('div.insight__main.box', renderMain, [ctrl, cacheKey(ctrl)]),
++        thunk("div.insight__main.box", renderMain, [ctrl, cacheKey(ctrl)]),
+       ]),
+     ]),
+   ]);
+ }
+ 
+ function portraitView(ctrl: Ctrl) {
+-  return hl('main#insight', containerStyle(), [
+-    hl('div.view-tabs', [
+-      hl('div.tab', viewTabData(ctrl, 'presets'), 'Presets'),
+-      hl('div.tab', viewTabData(ctrl, 'filters'), 'Filters'),
+-      hl('div.tab', viewTabData(ctrl, 'insights'), 'Insights'),
++  return hl("main#insight", containerStyle(), [
++    hl("div.view-tabs", [
++      hl(
++        "div.tab",
++        viewTabData(ctrl, "presets"),
++        text(ctrl, "Presets", "Presets"),
++      ),
++      hl(
++        "div.tab",
++        viewTabData(ctrl, "filters"),
++        text(ctrl, "Filters", "Filters"),
++      ),
++      hl(
++        "div.tab",
++        viewTabData(ctrl, "insights"),
++        text(ctrl, "Short", "Insights"),
++      ),
+     ]),
+     hl(
+-      'div',
+-      { attrs: { class: ctrl.vm.loading ? 'loading' : 'ready', style: 'display: block' } },
+-      ctrl.vm.view === 'insights'
+-        ? [header(ctrl), thunk('div.insight__main.box', renderMain, [ctrl, cacheKey(ctrl)])]
+-        : hl('div.left-side', [
++      "div",
++      {
++        attrs: {
++          class: ctrl.vm.loading ? "loading" : "ready",
++          style: "display: block",
++        },
++      },
++      ctrl.vm.view === "insights"
++        ? [
++            header(ctrl),
++            thunk("div.insight__main.box", renderMain, [ctrl, cacheKey(ctrl)]),
++          ]
++        : hl("div.left-side", [
+             info(ctrl),
+-            ctrl.vm.view === 'filters' && clearBtn(ctrl),
+-            ctrl.vm.view === 'presets' ? presets(ctrl) : filters(ctrl),
++            ctrl.vm.view === "filters" && clearBtn(ctrl),
++            ctrl.vm.view === "presets" ? presets(ctrl) : filters(ctrl),
+           ]),
+     ),
+   ]);
+@@ -128,14 +181,17 @@ function portraitView(ctrl: Ctrl) {
+ function clearBtn(ctrl: Ctrl) {
+   const btn = () =>
+     hl(
+-      'a.clear',
++      "a.clear",
+       {
+-        attrs: { title: 'Clear all filters', 'data-icon': licon.X },
+-        hook: bind('click', ctrl.clearFilters.bind(ctrl)),
++        attrs: {
++          title: text(ctrl, "Clear", "Clear all filters"),
++          "data-icon": licon.X,
++        },
++        hook: bind("click", ctrl.clearFilters.bind(ctrl)),
+       },
+-      isLandscapeLayout() ? 'CLEAR' : 'CLEAR FILTERS',
++      text(ctrl, "Clear", isLandscapeLayout() ? "CLEAR" : "CLEAR FILTERS"),
+     );
+-  return isLandscapeLayout() ? btn() : hl('div.center-clear', btn());
++  return isLandscapeLayout() ? btn() : hl("div.center-clear", btn());
+ }
+ 
+ type Point = { x: number; y: number }; // y = f(x), not necessarily a point onscreen
+@@ -152,17 +208,24 @@ const availW = () => totalW() - (isAtLeastSmall() ? 2 * vw() : 0); // edge gaps
+ 
+ const sideW = () =>
+   // width of the side in landscape layout, no side in portrait
+-  isLandscapeLayout() ? interpolateBetween(totalW(), { x: 400, y: 160 }, { x: 800, y: 280 }) : 0;
++  isLandscapeLayout()
++    ? interpolateBetween(totalW(), { x: 400, y: 160 }, { x: 800, y: 280 })
++    : 0;
+ 
+ const gapW = () =>
+   // width of the spacer between side & main in landscape, no gap in portrait
+-  isLandscapeLayout() ? interpolateBetween(totalW(), { x: 480, y: vw() }, { x: 800, y: 2 * vw() }) : 0;
++  isLandscapeLayout()
++    ? interpolateBetween(totalW(), { x: 480, y: vw() }, { x: 800, y: 2 * vw() })
++    : 0;
+ 
+ const mainW = () => availW() - (!isLandscapeLayout() ? 0 : sideW() + gapW());
+ 
+-const spacer = () => (isLandscapeLayout() ? hl('span', widthStyle(gapW())) : null); // between side & main
++const spacer = () =>
++  isLandscapeLayout() ? hl("span", widthStyle(gapW())) : null; // between side & main
+ 
+-const widthStyle = (width: number) => ({ attrs: { style: `width: ${width}px;` } });
++const widthStyle = (width: number) => ({
++  attrs: { style: `width: ${width}px;` },
++});
+ 
+ const containerStyle = () => ({
+   attrs: {
 diff --git a/ui/learn/src/view.ts b/ui/learn/src/view.ts
 index 3d9580e..9edd93e 100644
 --- a/ui/learn/src/view.ts
@@ -11934,10 +13896,10 @@ index 0000000..703a031
 +  def find(key: String): Option[NoSweatStudyPlan] = plans.find(_.key == key)
 diff --git a/app/controllers/NoSweat.scala b/app/controllers/NoSweat.scala
 new file mode 100644
-index 0000000..31963af
+index 0000000..a54b1de
 --- /dev/null
 +++ b/app/controllers/NoSweat.scala
-@@ -0,0 +1,285 @@
+@@ -0,0 +1,288 @@
 +package controllers
 +
 +import play.api.libs.json.*
@@ -11974,6 +13936,9 @@ index 0000000..31963af
 +
 +  def info(key: String) = Open:
 +    if club.enabled then Ok.page(views.noSweatInfo(key)) else fuccess(NotFound)
++
++  def unsupported = Open:
++    if club.enabled then NotImplemented.page(views.noSweatUnsupported()) else fuccess(NotFound)
 +
 +  def home = Open:
 +    fuccess(Redirect("/"))
@@ -12989,6 +14954,21 @@ index 0000000..14659d9
 +          ),
 +          a(id := "nostr-security-done", href := "/club/security", cls := "button", hidden)("Done")
 +        )
+diff --git a/app/views/noSweatUnsupported.scala b/app/views/noSweatUnsupported.scala
+new file mode 100644
+index 0000000..b8f9724
+--- /dev/null
++++ b/app/views/noSweatUnsupported.scala
+@@ -0,0 +1,9 @@
++package views
++
++import lila.app.UiEnv.{ *, given }
++import lila.core.i18n.I18nKey
++
++def noSweatUnsupported()(using Context) =
++  val message = I18nKey("muteNotYetSupported").txt()
++  Page(message).css("bits.page"):
++    main(cls := "box box-pad page-small")(h1(message))
 diff --git a/modules/bot/src/main/ManagedPresence.scala b/modules/bot/src/main/ManagedPresence.scala
 new file mode 100644
 index 0000000..45ec2e2
@@ -13818,6 +15798,141 @@ index 0000000..329255d
 +    for code <- List("zh-TW", "zh-HK", "zh-MO") do
 +      assertEquals(NoSweatLanguages.normalize(Lang.get(code).get), None)
 +    assertEquals(NoSweatLanguages.normalize(Lang.get("zh-CN").get).map(_.code), Some("zh-CN"))
+diff --git a/modules/insight/src/main/NoSweatInsights.scala b/modules/insight/src/main/NoSweatInsights.scala
+new file mode 100644
+index 0000000..4ed5110
+--- /dev/null
++++ b/modules/insight/src/main/NoSweatInsights.scala
+@@ -0,0 +1,129 @@
++package lila.insight
++
++import play.api.libs.json.*
++
++import lila.core.i18n.{ I18nKey, Translate }
++
++/** The focused site exposes native game/result analytics, without requiring engine analysis. */
++object NoSweatInsights:
++  val metrics = Set("result", "ratingDiff", "opponentRating")
++  val dimensions = Set("date", "variant", "color", "openingFamily", "openingVariation", "result")
++  val filterDimensions = dimensions - "date" + "period"
++  val speeds = Set("ultraBullet", "bullet", "blitz", "rapid", "classical", "correspondence")
++
++  def accepts(q: JsonQuestion): Boolean =
++    metrics(q.metric) && dimensions(q.dimension) && q.filters.keySet.subsetOf(filterDimensions) &&
++      q.filters.get("variant").forall(_.forall(speeds))
++
++  def text(key: String)(using Translate): String = I18nKey(s"muteInsight$key").txt()
++
++  private val names = Map(
++    "Game result" -> "Result",
++    "Rating gain" -> "RatingGain",
++    "Opponent rating" -> "OpponentRating",
++    "Date" -> "Date",
++    "Variant" -> "TimeControl",
++    "Color" -> "Color",
++    "Opening Family" -> "OpeningFamily",
++    "Opening family" -> "OpeningFamily",
++    "Opening" -> "Opening",
++    "Opening Variation" -> "Opening",
++    "Opening variation" -> "Opening",
++    "Victory" -> "Victory",
++    "Draw" -> "Draw",
++    "Defeat" -> "Defeat",
++    "White" -> "White",
++    "Black" -> "Black",
++    "white" -> "White",
++    "black" -> "Black",
++    "Number of games" -> "NumberGames"
++  )
++  def label(value: String)(using Translate): String = names.get(value).fold(value)(text)
++
++  def ui(raw: JsObject)(using Translate): JsObject =
++    def categories(field: String, allowed: Set[String]): JsArray =
++      val items = (raw \ field)
++        .as[JsArray]
++        .value
++        .toList
++        .flatMap(c => (c \ "items").as[List[JsObject]])
++        .filter(i => allowed((i \ "key").as[String]))
++        .map: item =>
++          val key = (item \ "key").as[String]
++          val descriptionKey = key match
++            case "variant" => "TimeControl"
++            case "openingFamily" => "OpeningFamily"
++            case "openingVariation" => "Opening"
++            case "opponentRating" => "OpponentRating"
++            case "ratingDiff" => "RatingGain"
++            case "period" | "date" => "Date"
++            case "color" => "Color"
++            case _ => "Result"
++          val translated = item ++ Json.obj(
++            "name" -> label((item \ "name").as[String]),
++            "description" -> text(s"${descriptionKey}Help")
++          )
++          (item \ "values")
++            .asOpt[List[JsObject]]
++            .fold(translated): values =>
++              translated ++ Json.obj(
++                "values" -> values
++                  .filter(v => key != "variant" || speeds((v \ "key").as[String]))
++                  .map: v =>
++                    val name = if key == "period" then
++                      if (v \ "key").as[String] == "1" then text("LastDay")
++                      else I18nKey("muteInsightLastDays").txt((v \ "key").as[String])
++                    else label((v \ "name").as[String])
++                    v ++ Json.obj("name" -> name)
++              )
++      Json.arr(Json.obj("name" -> text("Games"), "items" -> items))
++    Json.obj(
++      "dimensionCategs" -> categories("dimensionCategs", dimensions + "period"),
++      "metricCategs" -> categories("metricCategs", metrics),
++      "focused" -> true
++    )
++
++  val clientKeys = List(
++    "Title",
++    "Short",
++    "Presets",
++    "Filters",
++    "Clear",
++    "Definitions",
++    "By",
++    "Unavailable",
++    "NoData",
++    "Invalid",
++    "SampleGames",
++    "NewGames",
++    "Update",
++    "SharedNobody",
++    "SharedFriends",
++    "SharedEverybody",
++    "BasicNotice",
++    "SelectAll",
++    "AllSelected",
++    "CountSelected",
++    "NoMatches",
++    "OpeningPreset",
++    "ColorPreset",
++    "RatingPreset",
++    "Victory",
++    "Draw",
++    "Defeat"
++  )
++  def clientText(using Translate): JsObject =
++    JsObject(clientKeys.map(k => k -> JsString(text(k))))
++
++  def chart(value: InsightChart)(using Translate): InsightChart = value.copy(
++    xAxis = value.xAxis.copy(
++      name = label(value.xAxis.name),
++      categories = value.xAxis.categories.map:
++        case JsString(s) => JsString(label(s))
++        case v => v
++    ),
++    valueYaxis = value.valueYaxis.copy(name = label(value.valueYaxis.name)),
++    sizeYaxis = value.sizeYaxis.copy(name = label(value.sizeYaxis.name)),
++    series = value.series.map(s => s.copy(name = label(s.name))),
++    sizeSerie = value.sizeSerie.copy(name = label(value.sizeSerie.name))
++  )
 diff --git a/modules/round/src/main/NoSweatPresetChat.scala b/modules/round/src/main/NoSweatPresetChat.scala
 new file mode 100644
 index 0000000..5d3de8f
@@ -26629,6 +28744,58 @@ index 0000000..c47a25d
 +    assertEquals(selector.elements.map(_.name).toSet, Set("_id", "userId", "paid"))
 +    assertNotEquals(selector, NoSweatDonation.dismissSelector(UserId("another"), payment))
 +    assertNotEquals(selector, NoSweatDonation.dismissSelector(UserId("donor"), "b" * 64))
+diff --git a/src/test/scala/NoSweatInsightsLocaleTest.scala b/src/test/scala/NoSweatInsightsLocaleTest.scala
+new file mode 100644
+index 0000000..23b8cf7
+--- /dev/null
++++ b/src/test/scala/NoSweatInsightsLocaleTest.scala
+@@ -0,0 +1,28 @@
++package lila.i18n
++
++import play.api.i18n.Lang
++import play.api.libs.json.*
++
++import lila.core.i18n.{ I18nKey, Translate }
++import lila.insight.NoSweatInsights
++
++class NoSweatInsightsLocaleTest extends munit.FunSuite:
++  test("focused Insights and the unsupported notice render through all ten native catalogs"):
++    Registry.syncLoadLanguages()
++    for code <- List("en-GB", "de-DE", "es-ES", "fr-FR", "hi-IN", "ja-JP", "ko-KR", "pt-BR", "ru-RU", "zh-CN")
++    do
++      val lang = Lang.get(code).get
++      given Translate = Translator.to(lang)
++      val catalog = Registry.getAll(lang).get
++      for key <- NoSweatInsights.clientKeys do assert(catalog.containsKey(s"muteInsight$key"), s"$code/$key")
++      assert(catalog.containsKey("muteNotYetSupported"), code)
++      val notice = I18nKey("muteNotYetSupported")().render
++      assert(notice.nonEmpty && !notice.contains("muteNotYetSupported"), code)
++      if code != "en-GB" then assert(!notice.contains("This functionality"), code)
++      val ui = NoSweatInsights.ui(new lila.insight.JsonView().ui(Nil, Nil, asMod = false))
++      val metrics = (ui \ "metricCategs").as[List[JsObject]].flatMap(c => (c \ "items").as[List[JsObject]])
++      assertEquals(metrics.map(m => (m \ "key").as[String]).toSet, NoSweatInsights.metrics)
++      val result = metrics.find(m => (m \ "key").as[String] == "result").get
++      assertEquals((result \ "name").as[String], NoSweatInsights.text("Result"))
++      assert(!NoSweatInsights.clientText.toString.contains("muteInsight"), code)
++      assert(I18nKey("muteInsightSummary").txt("42").contains("42"), code)
+diff --git a/src/test/scala/NoSweatInsightsTest.scala b/src/test/scala/NoSweatInsightsTest.scala
+new file mode 100644
+index 0000000..2a8acbd
+--- /dev/null
++++ b/src/test/scala/NoSweatInsightsTest.scala
+@@ -0,0 +1,12 @@
++package lila.app
++
++import lila.insight.{ JsonQuestion, NoSweatInsights }
++
++class NoSweatInsightsTest extends munit.FunSuite:
++  test("native results and rating questions work without exposing engine-dependent queries"):
++    assert(NoSweatInsights.accepts(JsonQuestion("openingFamily", "result", Map("color" -> List("white")))))
++    assert(NoSweatInsights.accepts(JsonQuestion("date", "opponentRating", Map("period" -> List("30")))))
++    assert(!NoSweatInsights.accepts(JsonQuestion("phase", "accuracy", Map.empty)))
++    assert(!NoSweatInsights.accepts(JsonQuestion("color", "result", Map("accuracy" -> List("90")))))
++    assert(!NoSweatInsights.accepts(JsonQuestion("variant", "result", Map("variant" -> List("atomic")))))
++    assert(NoSweatInsights.accepts(JsonQuestion("variant", "ratingDiff", Map("variant" -> List("blitz")))))
 diff --git a/src/test/scala/NoSweatStudyPlanTest.scala b/src/test/scala/NoSweatStudyPlanTest.scala
 new file mode 100644
 index 0000000..806bb5f
@@ -131604,6 +133771,17 @@ index 0000000..e82e519
 +    ],
 +  );
 +});
+diff --git a/ui/insight/src/text.ts b/ui/insight/src/text.ts
+new file mode 100644
+index 0000000..7d0cb9b
+--- /dev/null
++++ b/ui/insight/src/text.ts
+@@ -0,0 +1,5 @@
++import type Ctrl from "./ctrl";
++
++// Text is supplied by the native translation catalog on the focused site.
++export const text = (ctrl: Ctrl, key: string, upstream: string): string =>
++  ctrl.env.i18n?.[key] ?? upstream;
 diff --git a/ui/lib/css/ceval/_engine-settings.scss b/ui/lib/css/ceval/_engine-settings.scss
 new file mode 100644
 index 0000000..d607d68
