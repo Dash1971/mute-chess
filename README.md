@@ -99,35 +99,41 @@ different things; a popular human move is not automatically the best move.
 
 ### More chances to find a brilliant move
 
-Brillies are part of the fun. For **Mute Selective**, we trained a small model
-on chess moves labeled by Chess.com: both Brilliant moves and moves it did not
-call Brilliant. We combine that model with basic checks for a sound move and a
-real piece offer.
+Brillies are part of the fun. **New Selective** combines a trained decision-tree
+forest with basic checks for a sound move and a real piece offer. The draft
+update uses **128 trees, a 0.83 cutoff and complete-window confirmation (PR285)**.
+It has not been deployed.
 
-Your browser downloads the model with the analysis code and runs it locally,
-using Stockfish evaluations and facts about the position. It does not call
-ChatGPT or a remote classification service, and it does not learn during play.
-The model and training code are openly published. En Croissant decides its
-Brilliant badge using developer-written rules; our model learns patterns from
-Chess.com’s labeled examples.
+Your browser runs the model locally alongside Stockfish. It uses position facts
+and engine evaluations, without a neural network, ONNX, ChatGPT or a remote
+classification service. Training happens ahead of time; it does not learn during
+play. The model and training code are public.
 
-On **400 test moves from 215 games** not used to train the model:
+With the site's **Stockfish 19 1MB engine and Fast full-game review**, the frozen
+model was tested on **1,000 fresh-account games** from Witty_Alien:
 
-| | Mute Selective | En Croissant |
+| Version | Brilliants recognized | Wrong Brilliant awards |
 | --- | ---: | ---: |
-| Chess.com Brilliants recognized | **112 / 200** | 53 / 200 |
-| Undeserved Brilliant badges | **3 / 200** | 3 / 200 |
+| Existing production | 721 / 1,234 | 57 / 30,423 |
+| Older model + PR285 | 725 / 1,234 | 58 / 30,423 |
+| **New Selective + PR285** | **774 / 1,234 (62.7%)** | **38 / 30,423 (0.125%)** |
 
-That is about **twice as many Brilliants with the same number of wrong badges**
-in our tests. Other methods recognized more Brilliants, but gave too many wrong
-awards to justify choosing them. Our plan is to train improved versions on more
-labeled examples while keeping wrong awards low. We can reuse the current test examples for training, then check
-the new model on different games it has never seen.
-Mobile Maia keeps its existing En Croissant rules.
+Compared with the older model using the same confirmation fix, that is **49 more
+genuine Brilliants and 20 fewer wrong awards**, about **34% fewer wrong badges**.
+No Witty_Alien examples were used to train or tune the model. This is one
+account's gallery-represented games, not an accuracy promise for every player.
+Timed searches can also vary across devices and browsers. Mobile Maia keeps its
+existing En Croissant rules.
 
-See the [illustrated research report](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md)
-for the examples and results, or the [exact algorithm](docs/brilliant-moves.md)
-for every threshold and exception.
+The earlier 64-tree model's 400-move tests and SF18 En Croissant comparison remain
+historical evidence; they are not independent tests of the new model. En Croissant
+was not tested on this fresh-account sample. Our next priority is broader
+Brilliant recognition while keeping wrong awards low.
+
+See the [fresh native results](docs/brilliant-native-review-validation.md),
+[exact algorithm](docs/brilliant-moves.md),
+[illustrated report addendum](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md#november-6-2026-addendum-more-brilliants-fewer-wrong-badges)
+and [published experiment](https://github.com/Dash1971/open-brilly-finder/blob/main/studies/brilliant-selective-2026-11-06/REPORT.md).
 
 ### Opponents with an identity
 

@@ -1,0 +1,76 @@
+{
+  "account": "Witty_Alien",
+  "games": 1000,
+  "window": "2025-11-06T11:02:23.012Z exclusive through 2026-11-06T11:02:23.012Z inclusive",
+  "gallery_reference_labels": 1235,
+  "primary_positive_labels": 1234,
+  "primary_negative_moves": 30423,
+  "primary_own_moves": 31657,
+  "excluded_prior_position_labels": 1,
+  "metrics": {
+    "production": {
+      "TP": 721,
+      "FN": 513,
+      "FP": 57,
+      "TN": 30366,
+      "positives": 1234,
+      "negatives": 30423,
+      "recognition_percent": 58.427876823338735,
+      "false_positive_rate_percent": 0.18735824869342274
+    },
+    "pr285": {
+      "TP": 725,
+      "FN": 509,
+      "FP": 58,
+      "TN": 30365,
+      "positives": 1234,
+      "negatives": 30423,
+      "recognition_percent": 58.752025931928685,
+      "false_positive_rate_percent": 0.1906452355126056
+    },
+    "selective": {
+      "TP": 774,
+      "FN": 460,
+      "FP": 38,
+      "TN": 30385,
+      "positives": 1234,
+      "negatives": 30423,
+      "recognition_percent": 62.72285251215559,
+      "false_positive_rate_percent": 0.1249054991289485
+    }
+  },
+  "paired_changes": {
+    "production": {
+      "genuine_gained": 98,
+      "genuine_lost": 45,
+      "false_awards_added": 8,
+      "false_awards_removed": 27,
+      "net_TP": 53,
+      "net_FP": -19
+    },
+    "pr285": {
+      "genuine_gained": 95,
+      "genuine_lost": 46,
+      "false_awards_added": 7,
+      "false_awards_removed": 27,
+      "net_TP": 49,
+      "net_FP": -20
+    }
+  },
+  "model": {
+    "sha256": "1a7150fbe52f440922d94d3ae2af337383d63f370b52d0379aeee22d581d056c",
+    "cutoff": 0.83,
+    "no_training_or_retuning": true,
+    "includes_PR285_confirmation_fix": true
+  },
+  "site_profile": "Pinned SF19 smallnet 1MB WASM, Fast depth 12 / 500 ms, Threads 1, Hash 16 MB; confirmation depth 14 / 500 ms with native six-position budget per variant per game.",
+  "evidence_grades": {
+    "gallery_link_uuid_ply_mover_legal_pgn": 739,
+    "rendered_board_and_arrow_exact": 496
+  },
+  "test_design_disclosure": "Cohort expanded at owner request after partial 200 results, with the same fixed hash ordering and unchanged models/cutoff. Original200 inputs/results retained exactly; only 800 additional games run.",
+  "source_report_sha256": "13eb162e56ba4b524005a390601ae0e75cd843b8ed27747730d29422e8c28878",
+  "independent_audit_sha256": "6c8476d1d42c859adb9deb90b7072f9777295c6fe7238fb308a7d09b856d0dc3",
+  "public_study": "https://github.com/Dash1971/open-brilly-finder/blob/main/studies/brilliant-selective-2026-11-06/REPORT.md",
+  "deployment_status": "Draft update; no merge or deployment claimed by this validation."
+}
