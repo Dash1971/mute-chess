@@ -2,8 +2,9 @@
 
 For **Mute Selective**, we trained a small model on chess moves labeled by
 Chess.com and combined it with basic soundness and legal-piece-offer checks.
-It recognizes more Chess.com Brilliants than
-En Croissant while keeping undeserved badges low in our tests.
+The updated forest recognizes more reference Brilliants and gives fewer wrong
+awards than the older forest on the fresh-account test below. It is a draft
+update, not a deployed change.
 **Mobile Maia keeps its existing En Croissant classifier.**
 
 The browser downloads the model with the analysis JavaScript and runs it locally
@@ -22,84 +23,78 @@ No human manual testing is claimed.
 
 ## What the tests show
 
-With the site's **Stockfish 19 1MB engine and default Fast full-game review**,
-automated replays recognized **108 / 200 Chess.com Brilliants (54%)**, with
-**3 / 200 wrong awards** among explicitly non-Brilliant moves. Both the existing
-confirmation path and the complete-window correction produce those totals and
-the same 400 target decisions. The model and cutoff were unchanged.
+The frozen **128-tree model at 0.83 with PR285 complete-window confirmation**
+was tested on 1,000 games from Witty_Alien using the site's **Stockfish 19 1MB
+engine and Fast full-game review**. No moves from that account were used to train
+the model or tune its cutoff.
 
-The test uses 215 complete games, including earlier moves and the six-search
-confirmation allowance. All games are separate from the original model's
-training games. It runs the native engine assets, snapshot parser and classifier
-locally, rather than clicking through 400 browser reviews. Of the negative
-examples, 139 have Best, Excellent, Good or `!` labels (two wrong awards); the
-remaining 61 have error labels (one wrong award). See the
-[native review validation](brilliant-native-review-validation.md) and
-[all 400 outcomes](../analysis/data/brilliants-native-fast-2026-11-06.json).
-
-### Fixed research-engine comparison
-
-The [illustrated study](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md)
-compares unchanged classifiers on **400 labeled moves from 215 games** that were
-not used to train the model. There are 200 confirmed Chess.com Brilliants and
-200 moves explicitly classified non-Brilliant. The same model, threshold and
-feature calculations were fixed before these labels; no retraining or tuning
-was used to produce the results.
-
-| Classifier | Brilliants recognized | Undeserved Brilliant badges |
+| Version | Brilliants recognized | Wrong Brilliant awards |
 | --- | ---: | ---: |
-| Mute Selective | **112 / 200** | **3 / 200** |
-| En Croissant | 53 / 200 | 3 / 200 |
+| Existing production | 721 / 1,234 | 57 / 30,423 |
+| Older model + PR285 | 725 / 1,234 | 58 / 30,423 |
+| **New Selective + PR285** | **774 / 1,234** | **38 / 30,423** |
 
-The selective classifier finds about **2.1 times as many Brilliants**, with the
-same number of wrong badges in these tests. It recognizes 56% of the studied
-Brilliants; 112 of its 115 awards match Chess.com. Overall agreement is 77.3%,
-versus En Croissant's 62.5%. These are different measurements, not interchangeable
-claims of accuracy.
+Recognition is **62.7%**; false-positive rate is **0.125%**, using all 30,423
+primary account-own gallery-negative moves as its denominator. Compared with the
+older model on the same confirmation path, the update gains 95 genuine awards
+and loses 46, while removing 27 wrong awards and adding 7: **net +49 genuine and
+20 fewer wrong awards**. It still misses 460 reference Brilliants.
 
-On the newest 200 moves, Mute Selective recognizes 57/100 Brilliants with 2/100
-wrong awards, versus En Croissant's 27 and one. History Rule with recovery
-recognizes 78 but gives 13 wrong awards. We examined methods that found more
-Brilliants, but their wrong awards were too frequent to justify choosing them.
-History and its recovery guard are comparisons, not additional runtime filters.
-The selective model independently rejects both illustrated hxg6/hxg5 tactics;
-it misses some genuine ideas, including the illustrated quiet Bg2.
+The test keeps complete games for scheduling and scores only the studied
+account's moves. One positive before-position overlapping earlier research was
+excluded from all three primary totals. Labels come from the complete captured
+gallery and official PGNs: 496 have independent rendered-board/arrow checks;
+739 have gallery-link, UUID/ply, mover and legal-PGN identity checks. The latter
+are not independently board-verified. Gallery absence is the agreed negative
+reference within these represented games. The fixed ranking was expanded from
+200 to 1,000 games after partial results, without changing models or cutoffs.
 
-## How we plan to improve
+See [native review validation](brilliant-native-review-validation.md),
+[compact result counts](../analysis/data/brilliants-selective-fast-2026-11-06.json)
+and the [published experiment](https://github.com/Dash1971/open-brilly-finder/blob/main/studies/brilliant-selective-2026-11-06/REPORT.md).
+These are automated native replays, not a browser interaction test across every
+device. The sample does not establish beginner behavior, population precision,
+ordinary-game badge frequency or results for Balanced, Thorough or other engines.
 
-Keep the model fixed for this release. More labeled examples can help a future
-version, particularly missed genuine Brilliants and difficult ordinary tactics.
-The 400 current test moves can become training examples, but they then cease to
-be an independent test of the new model. Reserve different complete games,
-exclude duplicate positions across the training/test boundary, and finish
-training before testing the new version on those games. Favor
-changes that recognize more genuine Brilliants while keeping wrong awards low;
-do not improve recognition simply by lowering the threshold. Publish both counts
-for each candidate and compare it with this fixed baseline.
+### Historical 64-tree model and En Croissant comparison
 
-The samples emphasize nearby tactical comparisons from five established
-accounts. They do not establish ordinary-game badge frequency, beginner behavior,
-population precision or measured fun. The SF19 Fast replay measures this native
-full-game path on one Mac; it does not establish the same results for Balanced,
-Thorough, other engine choices, the legacy additive path, every browser or every
-device. Changing review modes can change badges. The SF18 comparison and saved
-source-parity checks are separate evidence. Browser interaction across the full
-corpus and human testing remain outside the completed evidence.
+The earlier 64-tree model recognized 108/200 Brilliants with 3/200 wrong awards
+on a 400-move native SF19 Fast test. On the separate saved SF18 / 300,000-node
+research inputs, it recognized 112/200 with 3/200 wrong awards, versus En
+Croissant's 53/200 with 3/200. These are historical results for that earlier
+model, not independent validation of the new forest. En Croissant was not
+measured on the Witty_Alien sample. The [historical report](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md)
+preserves the comparison and illustrated examples.
+
+The older model missed the illustrated Bg2; the new forest recovers it on its
+archived SF18 fixture. Both still withhold Brilliant on the personal Legal's
+Mate and Greek Gift examples in the Fast diagnostic: Ne5 remains `!` and Bxh2+
+remains `!?`. Those two examples are separate from the statistical test. The
+Greek Gift has no confirmed Chess.com label in this study.
+
+## Further improvement
+
+The updated forest was trained on 6,293 labeled development moves with improved
+tree settings and the same position features and hard chess checks. More
+generous alternatives found more Brilliants but gave too many wrong awards for
+the preferred tradeoff. Prioritize broader coverage while keeping wrong awards
+low. Keep this fresh test separate from training, and test future changes on new
+games rather than tuning against these labels.
 
 ## Exact frozen classifier
 
-The [versioned research reference](https://github.com/Dash1971/mute-chess-research/tree/main/studies/brilliant-moves/reference/v5)
-provides the frozen extractor, model and protocol. The native adapter is
+The [published selective study](https://github.com/Dash1971/open-brilly-finder/tree/main/studies/brilliant-selective-2026-11-06/)
+provides the frozen model, training procedure and validation evidence. The native adapter is
 `ui/analyse/src/noSweatBrilliantForest.ts`, with static weights in
 `noSweatBrilliantForestModel.json`, carried by the
 [Lila patch](../deploy/lila/patches/lila-nostr-maia.patch). The worker selects v5.
 The internal v4 reference branch is not exposed as a review-mode choice.
 
-The forest has **64 trees and 75 semantic features**, plus a missingness indicator
+The forest has **128 trees and 75 semantic features**, plus a missingness indicator
 for each feature. Each tree returns its unweighted positive fraction at the
 selected leaf; the classifier averages those fractions. The result is a model
 score, not a calibrated probability. Both the current and corroborating engine
-windows must each score **at least 5/6** and satisfy these hard gates:
+windows must each score **at least 0.83** and satisfy these hard gates:
 
 1. At least two complete, distinct candidate roots before the move.
 2. A raw legal piece offer after the played move.
@@ -107,6 +102,12 @@ windows must each score **at least 5/6** and satisfy these hard gates:
    `W(cp) = 100 / (1 + exp(-0.00368208 * cp))`.
 4. The after-score is at least **−100 cp**, from the mover's perspective.
 5. Complete-window confidence, including nonempty matching quality metadata.
+
+The model SHA-256 is
+`1a7150fbe52f440922d94d3ae2af337383d63f370b52d0379aeee22d581d056c`.
+Its trees have maximum depth 12, minimum two distinct cases per leaf and 24
+candidate features per split. Missing numeric values route left. The cutoff is
+a fixed decision threshold, not an 83% probability of a correct badge.
 
 Mate scores use the reference's signed normalization. The played move need not
 be the first or uniquely best root. The raw offer test considers mover-owned
@@ -175,25 +176,24 @@ recognized by conflict protection. Native evaluations, analysis-tree ownership,
 clocks and outcomes are unchanged. Explicit fresh review may replace computed
 judgments; there is no historical batch or silent rewrite of saved badges.
 
-## Verification and limits
+## Historical implementation parity and current limits
 
 The [versioned validation record](../analysis/data/brilliants-v5-validation.json)
-pins the model, native source and maintained patch, with the actual check results.
+pins the original 64-tree model, native source and maintained patch, with its historical check results. The new model and fresh-account counts are pinned separately in the [selective Fast record](../analysis/data/brilliants-selective-fast-2026-11-06.json).
 
-The TypeScript feature adapter and integrated classifier were replayed against
+For the original model, the TypeScript feature adapter and integrated classifier were replayed against
 all **848 development + 200 fresh cases** using their exact saved engine inputs:
 no categorical/missingness, model-decision or integrated Brilliant differences
 were found; floating differences were limited to machine rounding. EC result
 objects also matched the independent reference replay. Focused tests cover input
 validation, confirmation, actual worker dispatch, cancellation and glyph/import
 protection. These checks validate implementation parity, not a second independent
-accuracy test. The fresh set must not be used to retune this model or threshold.
+accuracy test. These historical sets do not supply independent accuracy evidence for the updated forest.
 
 The fixed research comparison used Stockfish 18, one thread, 64 MB hash and 300,000 requested nodes
 per position with full PGN history. Native Stockfish 19 and timed modes produce
 different inputs. Even changing only the research node budget changed predictions,
-so source parity alone cannot establish native accuracy. The separate 400-move
-SF19 Fast replay above addresses that profile. Saved-input parity does not establish behavior on every browser or device;
+so source parity alone cannot establish native accuracy. The original 400-move replay and new 1,000-game test address SF19 Fast separately for their respective models. Saved-input parity does not establish behavior on every browser or device;
 human review remains an important validation step.
 
 The independent EC score/material sources are pinned to v0.15.0 commit
