@@ -8035,7 +8035,7 @@ index fe114f6..134a4be 100644
  export const glyphs = () =>
    xhrJson(`/study/glyphs/${document.documentElement.lang}.json`, { cache: 'default' });
 diff --git a/ui/analyse/src/treeView/columnView.ts b/ui/analyse/src/treeView/columnView.ts
-index d4719c8..28b97a0 100644
+index d4719c8..136cac0 100644
 --- a/ui/analyse/src/treeView/columnView.ts
 +++ b/ui/analyse/src/treeView/columnView.ts
 @@ -1,3 +1,4 @@
@@ -8061,7 +8061,7 @@ index d4719c8..28b97a0 100644
 +    'div.tview2.tview2-column',
 +    {
 +      class: { hidden: ctrl.treeView.hidden },
-+      attrs: { style: ctrl.noSweat ? moveClassTheme : false },
++      attrs: { style: moveClassTheme() },
 +    },
 +    [
 +      commentTags.length > 0 && hl('interrupt', commentTags),
@@ -8078,7 +8078,7 @@ index d4719c8..28b97a0 100644
  
  class ColumnView extends InlineView {
 diff --git a/ui/analyse/src/treeView/inlineView.ts b/ui/analyse/src/treeView/inlineView.ts
-index 7616e25..4a65e4c 100644
+index 7616e25..9b62427 100644
 --- a/ui/analyse/src/treeView/inlineView.ts
 +++ b/ui/analyse/src/treeView/inlineView.ts
 @@ -2,6 +2,7 @@ import type { Classes } from 'snabbdom';
@@ -8096,7 +8096,7 @@ index 7616e25..4a65e4c 100644
 -    { class: { hidden: ctrl.treeView.hidden, anchor: !!parentDisclose } },
 +    {
 +      class: { hidden: ctrl.treeView.hidden, anchor: !!parentDisclose },
-+      attrs: { style: ctrl.noSweat ? moveClassTheme : false },
++      attrs: { style: moveClassTheme() },
 +    },
      [
        renderer.commentNodes(parentNode),
@@ -97951,10 +97951,10 @@ index 0000000..900a6ad
 +}
 diff --git a/ui/lib/src/nosweat/moveClasses.ts b/ui/lib/src/nosweat/moveClasses.ts
 new file mode 100644
-index 0000000..4f89b4c
+index 0000000..bc21ea9
 --- /dev/null
 +++ b/ui/lib/src/nosweat/moveClasses.ts
-@@ -0,0 +1,13 @@
+@@ -0,0 +1,17 @@
 +export const moveClasses = [
 +  { symbol: '!!', id: 3, name: 'Brilliant', treeClass: 'brilliant', color: '#15aabf' },
 +  { symbol: '!', id: 1, name: 'Good', treeClass: 'good', color: '#12b886' },
@@ -97965,9 +97965,13 @@ index 0000000..4f89b4c
 +] as const;
 +
 +// Native tree text, selection and hover shading all derive from these variables.
-+export const moveClassTheme: string = moveClasses
-+  .map(({ treeClass, color }) => `--c-${treeClass}:${color}`)
-+  .join(';');
++const treeColors: string = moveClasses.map(({ treeClass, color }) => `--c-${treeClass}:${color}`).join(';');
++
++export function moveClassTheme(): string | false {
++  return (
++    typeof document !== 'undefined' && document.documentElement.dataset.brand === 'mutechess' && treeColors
++  );
++}
 diff --git a/ui/lib/src/nosweat/phases.ts b/ui/lib/src/nosweat/phases.ts
 new file mode 100644
 index 0000000..44504e3
@@ -98599,16 +98603,16 @@ index 0000000..7d0511b
 +});
 diff --git a/ui/lib/tests/noSweatGlyphs.test.ts b/ui/lib/tests/noSweatGlyphs.test.ts
 new file mode 100644
-index 0000000..c375e39
+index 0000000..1d98105
 --- /dev/null
 +++ b/ui/lib/tests/noSweatGlyphs.test.ts
-@@ -0,0 +1,89 @@
+@@ -0,0 +1,111 @@
 +import * as cgGlyphs from '@lichess-org/chessground/glyph';
 +import assert from 'node:assert/strict';
 +import { test } from 'node:test';
 +
 +import { annotationShapes } from '../src/game/glyphs';
-+import { moveClasses } from '../src/nosweat/moveClasses';
++import { moveClasses, moveClassTheme } from '../src/nosweat/moveClasses';
 +import type { TreeNode } from '../src/tree/types';
 +
 +const nativeGlyphs = cgGlyphs.glyphToSvg(4);
@@ -98640,6 +98644,26 @@ index 0000000..c375e39
 +  return element;
 +}
 +
++test('Mute tree annotation colors use the badge palette independently of engine availability', () => {
++  withBrand('mutechess', () => {
++    const tree = document.createElement('div');
++    const theme = moveClassTheme();
++    assert.notEqual(theme, false);
++    tree.setAttribute('style', theme as string);
++    const nativeClasses = ['good', 'mistake', 'brilliant', 'blunder', 'interesting', 'inaccuracy'];
++    for (const category of moveClasses) {
++      assert.equal(category.treeClass, nativeClasses[category.id - 1]);
++      assert.equal(tree.style.getPropertyValue(`--c-${category.treeClass}`), category.color);
++      assert.equal(
++        svg(badge(category.symbol, 0)).querySelector('circle')!.getAttribute('fill'),
++        category.color,
++      );
++    }
++    assert.equal(tree.style.getPropertyValue('--c-primary'), '');
++    assert.equal(tree.style.getPropertyValue('--c-font'), '');
++  });
++});
++
 +test('Mute Chess board badges match every summary color at each native stack position', () => {
 +  withBrand('mutechess', () => {
 +    for (const category of moveClasses) {
@@ -98661,6 +98685,7 @@ index 0000000..c375e39
 +test('unbranded and non-Mute boards retain the exact upstream classification SVGs', () => {
 +  for (const brand of [undefined, '', 'lichess']) {
 +    withBrand(brand, () => {
++      assert.equal(moveClassTheme(), false);
 +      for (const category of moveClasses)
 +        for (let stack = 0; stack < 4; stack++)
 +          assert.equal(badge(category.symbol, stack), nativeGlyphs[category.symbol](stack));
@@ -98686,6 +98711,7 @@ index 0000000..c375e39
 +  const original = Object.getOwnPropertyDescriptor(globalThis, 'document')!;
 +  try {
 +    Reflect.deleteProperty(globalThis, 'document');
++    assert.equal(moveClassTheme(), false);
 +    for (const category of moveClasses)
 +      assert.equal(badge(category.symbol, 0), nativeGlyphs[category.symbol](0));
 +  } finally {

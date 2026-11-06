@@ -357,3 +357,5 @@ backgrounds and hover shading consume those scoped variables, keeping native
 opacity, selection text and navigation behavior. The tree theme adds no new
 wording or classifications. Unannotated moves, upstream/unbranded trees, other
 page controls and Maia probability/quality palettes retain their existing styles.
+The same document-brand guard as the board badges applies this independently of
+engine availability, including practice views.
