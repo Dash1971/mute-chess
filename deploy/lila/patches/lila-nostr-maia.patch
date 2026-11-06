@@ -8034,6 +8034,73 @@ index fe114f6..134a4be 100644
  
  export const glyphs = () =>
    xhrJson(`/study/glyphs/${document.documentElement.lang}.json`, { cache: 'default' });
+diff --git a/ui/analyse/src/treeView/columnView.ts b/ui/analyse/src/treeView/columnView.ts
+index d4719c8..28b97a0 100644
+--- a/ui/analyse/src/treeView/columnView.ts
++++ b/ui/analyse/src/treeView/columnView.ts
+@@ -1,3 +1,4 @@
++import { moveClassTheme } from 'lib/nosweat/moveClasses';
+ import type { TreeNode } from 'lib/tree/types';
+ import { type LooseVNodes, hl, type VNode } from 'lib/view';
+ 
+@@ -12,16 +13,23 @@ export function renderColumnView(ctrl: AnalyseCtrl, concealOf: ConcealOf = () =>
+   const node = ctrl.tree.root;
+   const commentTags = renderer.commentNodes(node);
+   const blackStarts = (node.ply & 1) === 1;
+-  return hl('div.tview2.tview2-column', { class: { hidden: ctrl.treeView.hidden } }, [
+-    commentTags.length > 0 && hl('interrupt', commentTags),
+-    blackStarts && [renderIndex(node.ply, false), hl('move.empty', '...')],
+-    renderer.renderNodes(ctrl.visibleChildren(node), {
+-      parentPath: '',
+-      parentDisclose: ctrl.idbTree.discloseOf(node, true),
+-      parentNode: node,
+-      isMainline: true,
+-    }),
+-  ]);
++  return hl(
++    'div.tview2.tview2-column',
++    {
++      class: { hidden: ctrl.treeView.hidden },
++      attrs: { style: ctrl.noSweat ? moveClassTheme : false },
++    },
++    [
++      commentTags.length > 0 && hl('interrupt', commentTags),
++      blackStarts && [renderIndex(node.ply, false), hl('move.empty', '...')],
++      renderer.renderNodes(ctrl.visibleChildren(node), {
++        parentPath: '',
++        parentDisclose: ctrl.idbTree.discloseOf(node, true),
++        parentNode: node,
++        isMainline: true,
++      }),
++    ],
++  );
+ }
+ 
+ class ColumnView extends InlineView {
+diff --git a/ui/analyse/src/treeView/inlineView.ts b/ui/analyse/src/treeView/inlineView.ts
+index 7616e25..4a65e4c 100644
+--- a/ui/analyse/src/treeView/inlineView.ts
++++ b/ui/analyse/src/treeView/inlineView.ts
+@@ -2,6 +2,7 @@ import type { Classes } from 'snabbdom';
+ 
+ import { isSafari } from 'lib/device';
+ import { playable } from 'lib/game';
++import { moveClassTheme } from 'lib/nosweat/moveClasses';
+ import { enrichText, innerHTML } from 'lib/richText';
+ import { ops as treeOps, path as treePath } from 'lib/tree/tree';
+ import type { TreeNode, TreePath } from 'lib/tree/types';
+@@ -19,7 +20,10 @@ export function renderInlineView(ctrl: AnalyseCtrl): VNode {
+   const parentDisclose = ctrl.idbTree.discloseOf(parentNode, true);
+   return hl(
+     'div.tview2.tview2-inline',
+-    { class: { hidden: ctrl.treeView.hidden, anchor: !!parentDisclose } },
++    {
++      class: { hidden: ctrl.treeView.hidden, anchor: !!parentDisclose },
++      attrs: { style: ctrl.noSweat ? moveClassTheme : false },
++    },
+     [
+       renderer.commentNodes(parentNode),
+       renderer.renderNodes(ctrl.visibleChildren(parentNode), {
 diff --git a/ui/analyse/src/util.ts b/ui/analyse/src/util.ts
 index f3984e8..c070167 100644
 --- a/ui/analyse/src/util.ts
@@ -97884,18 +97951,23 @@ index 0000000..900a6ad
 +}
 diff --git a/ui/lib/src/nosweat/moveClasses.ts b/ui/lib/src/nosweat/moveClasses.ts
 new file mode 100644
-index 0000000..230f30f
+index 0000000..4f89b4c
 --- /dev/null
 +++ b/ui/lib/src/nosweat/moveClasses.ts
-@@ -0,0 +1,8 @@
+@@ -0,0 +1,13 @@
 +export const moveClasses = [
-+  { symbol: '!!', id: 3, name: 'Brilliant', color: '#15aabf' },
-+  { symbol: '!', id: 1, name: 'Good', color: '#12b886' },
-+  { symbol: '!?', id: 5, name: 'Interesting', color: '#82c91e' },
-+  { symbol: '?!', id: 6, name: 'Dubious', color: '#fab005' },
-+  { symbol: '?', id: 2, name: 'Mistake', color: '#fd7e14' },
-+  { symbol: '??', id: 4, name: 'Blunder', color: '#fa5252' },
++  { symbol: '!!', id: 3, name: 'Brilliant', treeClass: 'brilliant', color: '#15aabf' },
++  { symbol: '!', id: 1, name: 'Good', treeClass: 'good', color: '#12b886' },
++  { symbol: '!?', id: 5, name: 'Interesting', treeClass: 'interesting', color: '#82c91e' },
++  { symbol: '?!', id: 6, name: 'Dubious', treeClass: 'inaccuracy', color: '#fab005' },
++  { symbol: '?', id: 2, name: 'Mistake', treeClass: 'mistake', color: '#fd7e14' },
++  { symbol: '??', id: 4, name: 'Blunder', treeClass: 'blunder', color: '#fa5252' },
 +] as const;
++
++// Native tree text, selection and hover shading all derive from these variables.
++export const moveClassTheme: string = moveClasses
++  .map(({ treeClass, color }) => `--c-${treeClass}:${color}`)
++  .join(';');
 diff --git a/ui/lib/src/nosweat/phases.ts b/ui/lib/src/nosweat/phases.ts
 new file mode 100644
 index 0000000..44504e3

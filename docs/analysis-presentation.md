@@ -345,3 +345,15 @@ Native lower brush/variation shapes remain in their separate layer. On upstream
 updates, check for any new custom SVG producers using the lower custom plane:
 they would share layer 3 while our engine arrows are present. Arrow geometry,
 split heads, colors, visibility settings and classification rules are unchanged.
+
+
+## Move-tree classification palette (#287)
+
+Column and inline Mute analysis trees set native annotation color variables from
+`ui/lib/src/nosweat/moveClasses.ts`, the same six-class palette used by board
+badges and the review summary. This includes variations and maps the native
+`inaccuracy` class to our Dubious (`?!`) amber. Native move text, selected
+backgrounds and hover shading consume those scoped variables, keeping native
+opacity, selection text and navigation behavior. The tree theme adds no new
+wording or classifications. Unannotated moves, upstream/unbranded trees, other
+page controls and Maia probability/quality palettes retain their existing styles.
