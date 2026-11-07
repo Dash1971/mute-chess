@@ -30,8 +30,27 @@ fixed mixed path per rating bucket/tier (84 mixed paths in the live starter
 catalog). The generated paths are the upstream algorithm's quality-ranked,
 shuffled, partitioned lists rather than identical static copies.
 
-Full-size Mongo import, earned-data preservation and generation results are
-pending at this draft stage. No live corpus import, merge, deployment, service
+The full-size trial then completed successfully with **6,193,530 catalog/total
+puzzles** and **307,320 native paths**, including **2,159 mixed-training paths**
+across **72 rating/tier groups**. In the top-tier group covering rating 1500,
+there were **30 paths with 30 distinct first puzzles**. All three seeded legacy
+fixed-tier paths were removed by native generation replacement.
+
+A seeded existing puzzle retained its earned Glicko rating/deviation/volatility,
+vote totals, play count, local issue flag, FEN, solution and themes exactly.
+Its failed-puzzle round was unchanged. Missing opening metadata on a second
+existing puzzle was backfilled. The locally flagged puzzle was excluded from
+all generated paths. No real user account or game was created for these checks.
+
+The test instance initially used a 256 MB WiredTiger cache; it was increased to
+2 GB during full path generation, with available host memory checked first.
+This was a test-only runtime setting, not a live database or service change.
+The temporary instance was shut down after validation. This is correctness
+qualification, not a controlled throughput benchmark.
+
+All four existing source CI jobs passed for implementation commit
+`c4af779336be5c3d364c21a1b45aa3f5742a80f6` (`adapter`, `upstream-patches`,
+`native-forum`, `native-gif`). No live corpus import, merge, deployment, service
 pause or scheduled live job has been performed.
 
 The imported export cannot reproduce unpublished Lichess moderation metadata.
