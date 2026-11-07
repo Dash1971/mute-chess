@@ -3424,6 +3424,19 @@ index b4c4ae7..b153a0b 100644
    import helpers.{ *, given }
  
    def page(
+diff --git a/modules/ui/src/main/helper/Form3.scala b/modules/ui/src/main/helper/Form3.scala
+index 1de9b31..56edb7b 100644
+--- a/modules/ui/src/main/helper/Form3.scala
++++ b/modules/ui/src/main/helper/Form3.scala
+@@ -311,7 +311,7 @@ final class Form3(formHelper: FormHelper & I18nHelper & AssetHelper, flairApi: F
+           cls := "flair-picker none",
+           (!Granter.opt(_.LichessTeam) && !anyFlair).option(exceptEmojis)
+         )(
+-          button(cls := "button button-metal emoji-remove")("clear")
++          button(cls := "button button-metal emoji-remove", tpe := "button")("clear")
+         )
+       )
+     )
 diff --git a/modules/ui/src/main/helper/GameHelper.scala b/modules/ui/src/main/helper/GameHelper.scala
 index 49b468f..02c0da6 100644
 --- a/modules/ui/src/main/helper/GameHelper.scala

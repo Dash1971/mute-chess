@@ -37,6 +37,8 @@ Managed bots with no flair receive one randomly during existing provisioning. Th
 
 The broken-image investigation found the gateway counted static image requests against the same 600/minute bucket as page actions. The picker contains thousands of icons. Static GET/HEAD requests now have their own bounded 6000/minute bucket, retaining the 600/minute action limit, file containment, method restrictions and connection limits. The real-handler test verifies that 650 image requests succeed without exhausting a page action, and that the action limit still rejects request 601.
 
+Profile flair persistence (#296): the shared native Clear control explicitly uses `type="button"`, matching the study form. Previously its implicit submit behavior let Enter in a profile text field activate Clear and save an empty flair. Normal Submit and deliberate clearing retain native behavior; no flair IDs or stored selections change.
+
 ## Bot locations (#201)
 
 The native free-text profile Location field receives a stable assignment during existing bot provisioning, only when empty. Character locations match their worlds: Wintermute in Villa Straylight, Freeside; Judge Dredd/Anderson in Mega-City One; Blade Runner characters in Los Angeles; Cyberpunk characters in Night City; HAL9000 aboard Discovery One; GLaDOS at Aperture Science. General names receive locations from small themed groups where possible. Public display aliases are resolved without renaming accounts. Human locations and country flags remain untouched. Per the owner’s direction, no explanatory fictional-location note is added to the UI.
