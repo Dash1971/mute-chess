@@ -71,10 +71,12 @@ user ratings, replay progress and historical puzzle records are never reset or
 deleted. Source ratings/popularity and the documented 200-vote prior initialize
 new records only. Generation runs only after the complete import count matches.
 
-Native paths are refreshed after each import. Lichess runs its generation script
-hourly; use the existing database maintenance scheduler for the same command
-once the full import is deployed, and never run it concurrently with an import or
-another generation:
+Native paths are refreshed after each import. The owner-approved release installs `refresh.cron` in the existing system cron
+at minute 17 of each hour. It invokes only the native generator, skips while the
+existing maintenance lock is held by an import/deployment, and logs through the
+system journal (`mutechess-puzzle-paths`). No new scheduler or service is added.
+Mongo's existing unit uses a 2 GB cache within a 3 GB memory limit for this catalog.
+Do not run a manual generation concurrently with an import or another generation:
 
 ```bash
 "$MUTE_MONGOSH" "$MUTE_DATABASE" --quiet --file "$MUTE_REPO/puzzles/native-paths.js"

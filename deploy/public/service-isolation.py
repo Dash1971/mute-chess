@@ -112,7 +112,7 @@ def unit(role, payment_ips=()):
     data = '/srv/nosweatchess'
     java = '/usr/lib/jvm/java-21-openjdk-amd64/bin/java'
     commands = {
-        'mongo': (f'{base}/tools/mongodb/bin/mongod --bind_ip 127.0.0.1 --port 27019 --dbpath {data}/mongo --wiredTigerCacheSizeGB 0.25', data + '/mongo', '1G', ''),
+        'mongo': (f'{base}/tools/mongodb/bin/mongod --bind_ip 127.0.0.1 --port 27019 --dbpath {data}/mongo --wiredTigerCacheSizeGB 2', data + '/mongo', '3G', ''),
         'redis': (f'{base}/tools/redis/usr/bin/redis-server {etc}/redis.conf', data + '/redis', '256M', f'Environment=LD_LIBRARY_PATH={base}/tools/redis/usr/lib/x86_64-linux-gnu\n'),
         'app': (f'{java} -Xms256m -Xmx2g -XX:ActiveProcessorCount=3 -Dlogger.file={etc}/logback.xml -Dconfig.file={etc}/application.conf -Dplay.server.dir={current}/lila -Dplay.mode=prod -cp {current}/lila/lib/* lila.app.Lila {current}/lila', current + '/lila', '3G', ''),
         'ws': (f'{java} -Xms64m -Xmx384m -XX:ActiveProcessorCount=2 -Dlogback.configurationFile={etc}/logback.xml -Dconfig.file={etc}/ws.conf -cp {current}/ws/lib/* lila.ws.LilaWs', current + '/ws', '768M', ''),

@@ -278,4 +278,8 @@ subprocess.run(['python3', str(source_dir / 'puzzles/import.py'), 'mongodb://127
     '--chessops', str(dev / 'sources/lila/node_modules/.pnpm/chessops@0.15.1/node_modules/chessops'),
     '--mongosh', str(dev / 'tools/mongosh/node_modules/mongosh/bin/mongosh.js')], env=env, check=True)
 subprocess.run(['python3', str(source_dir / 'learning/import.py'), 'mongodb://127.0.0.1:27019/nosweat', '--mongosh', str(dev / 'tools/mongosh/node_modules/mongosh/bin/mongosh.js')], env=env, check=True)
+puzzle_cron = Path('/etc/cron.d/mutechess-puzzle-paths')
+shutil.copyfile(source_dir / 'puzzles/refresh.cron', puzzle_cron)
+os.chown(puzzle_cron, 0, 0)
+puzzle_cron.chmod(0o644)
 print(json.dumps({'release': str(release), 'source_sha256': hashlib.sha256((release / 'source.tar.gz').read_bytes()).hexdigest(), 'application_exposed': False}))
