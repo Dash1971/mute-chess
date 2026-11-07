@@ -157,7 +157,7 @@ imports it with the installed native Chessops validator and Lichess path generat
 See [the catalog import procedure](../../puzzles/README.md) for the snapshot,
 streaming validation and preservation rules. The installer installs the native
 hourly refresh in system cron, sharing the existing maintenance lock; Mongo uses
-a 2 GB cache within the owner-approved 3 GB memory limit.
+a 2 GB cache within the owner-approved 5 GB memory limit.
 Existing earned puzzle ratings, votes, rounds and user progress are retained.
 The native web training, theme, history and difficulty routes are exposed;
 unrelated mobile-batch, coordinate and embedded-frame surfaces remain outside
