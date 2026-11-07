@@ -50,7 +50,8 @@ export MUTE_CHESSOPS="$MUTE_DEV/sources/lila/node_modules/.pnpm/chessops@0.15.1/
 curl -fL --retry 2 -o "$MUTE_PUZZLE_ARCHIVE" \
   https://database.lichess.org/lichess_db_puzzle.csv.zst
 
-python3 "$MUTE_REPO/puzzles/import.py" "$MUTE_DATABASE" \
+/usr/bin/flock -n /run/lock/nosweatchess-maintenance.lock \
+  python3 "$MUTE_REPO/puzzles/import.py" "$MUTE_DATABASE" \
   --archive "$MUTE_PUZZLE_ARCHIVE" --mongosh "$MUTE_MONGOSH" \
   --chessops "$MUTE_CHESSOPS" --work-dir "$MUTE_DEV/puzzle-catalog"
 ```
@@ -79,8 +80,13 @@ Mongo's existing unit uses a 2 GB cache within a 3 GB memory limit for this cata
 Do not run a manual generation concurrently with an import or another generation:
 
 ```bash
-"$MUTE_MONGOSH" "$MUTE_DATABASE" --quiet --file "$MUTE_REPO/puzzles/native-paths.js"
+/usr/bin/flock -n /run/lock/nosweatchess-maintenance.lock \
+  "$MUTE_MONGOSH" "$MUTE_DATABASE" --quiet --file "$MUTE_REPO/puzzles/native-paths.js"
 ```
+
+The public installer already holds that maintenance lock. Direct live imports and
+manual refreshes must use the same lock as shown above. The commands require
+the existing operator permissions on the public database and lock file.
 
 Path generation is an operator-run native data job. Archive updates require a
 new reviewed snapshot pin.
