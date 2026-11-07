@@ -103,7 +103,7 @@ The owner explicitly excluded all chess variants. Analysis, editing, imports and
 
 ## Puzzles (owner clarification, 29 October 2026)
 
-Use native Lichess puzzle solving, ratings, solution validation, post-completion review and next-puzzle behavior. No En Croissant puzzle port is required. Extend review with the same two Stockfish / two independently rated Maia channels and shared arrow geometry. Engine assistance is prohibited during solving, including pending work carried over from the previous puzzle. Preserve ordinary Lichess hints and reveal behavior. The starter catalog is a pinned, legally validated subset of the official CC0 Lichess database; its positions and original game links are real, while unavailable game metadata is omitted.
+Use native Lichess puzzle solving, ratings, solution validation, post-completion review and next-puzzle behavior. No En Croissant puzzle port is required. Extend review with the same two Stockfish / two independently rated Maia channels and shared arrow geometry. Engine assistance is prohibited during solving, including pending work carried over from the previous puzzle. Preserve ordinary Lichess hints and reveal behavior. The full-catalog importer uses the pinned official CC0 Lichess export and native randomized selection paths; the bundled subset is only a development/CI fixture. Existing installations require an explicit full import. Its positions and original game links are real, while unavailable game metadata is omitted.
 
 
 ## Native computer analysis restoration (owner decision, 29 October 2026)

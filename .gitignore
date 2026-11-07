@@ -20,3 +20,7 @@ public/alpha.js
 .private-secrets/
 .private-backups/
 *.enc
+
+# Full official puzzle exports and normalized scratch data stay outside Git.
+/puzzles/*.csv.zst
+/puzzles/*records*.jsonl

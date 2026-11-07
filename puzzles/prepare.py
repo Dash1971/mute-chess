@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Select a bounded, reproducible starter catalog from the official CC0 CSV stream.
+"""Prepare only the bounded development/CI starter fixture from the official CC0 CSV stream.
 Usage: curl -fsSL https://database.lichess.org/lichess_db_puzzle.csv.zst | zstd -dc | python3 prepare.py OUTPUT.csv.gz
 A closed input pipe after reaching the limit is expected. Compare the output hash
 with catalog.json before importing. The live app never downloads puzzle data.
@@ -12,7 +12,7 @@ rows = []
 for row in csv.DictReader(sys.stdin):
     if int(row['Popularity']) < 80 or int(row['NbPlays']) < 100 or int(row['RatingDeviation']) > 100:
         continue
-    if not re.fullmatch(r'[A-Za-z0-9]{5}', row['PuzzleId']) or not re.match(r'https://lichess.org/[A-Za-z0-9]{8}(?:/|#|$)', row['GameUrl']):
+    if not re.fullmatch(r'[A-Za-z0-9]{5}', row['PuzzleId']) or not re.match(r'https://lichess.org/(?:game/)?[A-Za-z0-9]{8}(?:/|#|$)', row['GameUrl']):
         raise ValueError('Invalid source identifiers')
     rows.append(row)
     if len(rows) == count:

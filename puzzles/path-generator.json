@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/lichess-org/lila",
+  "revision": "b551752d2a0e7a63459d9812825d95a633a98737",
+  "path": "cron/mongodb-puzzle-regen-paths.js",
+  "license": "AGPL-3.0",
+  "upstreamSha256": "82ce18958c6dcf873f5fad2ee29c22517ed0219b2ed4307795fe11c6dd75df1e",
+  "sha256": "94c4f0bb0e2b9edf3f762ebe479ae60b6e50353b5779e1e256e4e0e0429bd195",
+  "adaptation": "Treat an empty opening aggregation as [] rather than dereferencing null. All path selection, shuffling, tiers, limits and generation replacement logic is unchanged."
+}

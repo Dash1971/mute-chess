@@ -58,6 +58,14 @@ lesson_spec = importlib.util.spec_from_file_location('learning_import', payload 
 lesson_checker = importlib.util.module_from_spec(lesson_spec)
 lesson_spec.loader.exec_module(lesson_checker)
 lesson_checker.verify()
+# Full catalog data remains external to the release payload.
+puzzle_spec = importlib.util.spec_from_file_location('puzzle_import', payload / 'puzzles/import.py')
+puzzle_checker = importlib.util.module_from_spec(puzzle_spec)
+puzzle_spec.loader.exec_module(puzzle_checker)
+puzzle_archive = Path(os.environ.get('MUTE_PUZZLE_ARCHIVE', '')).resolve()
+if not puzzle_archive.is_file():
+    raise SystemExit('Set MUTE_PUZZLE_ARCHIVE to the pinned full puzzle archive')
+puzzle_checker.verify_archive(puzzle_archive, json.loads((payload / 'puzzles/full-catalog.json').read_text()))
 gif_spec = importlib.util.spec_from_file_location('gif_renderer', payload / 'deployment/public/gif-renderer.py')
 gif_renderer = importlib.util.module_from_spec(gif_spec)
 gif_spec.loader.exec_module(gif_renderer)
@@ -265,6 +273,13 @@ for attempt in range(30):
     time.sleep(1)
 else: raise RuntimeError('Puzzle database did not become ready')
 env = {**os.environ, 'PATH': str(base / 'tools') + os.pathsep + os.environ.get('PATH', '')}
-subprocess.run(['python3', str(source_dir / 'puzzles/import.py'), 'mongodb://127.0.0.1:27019/nosweat', '--mongosh', str(dev / 'tools/mongosh/node_modules/mongosh/bin/mongosh.js')], env=env, check=True)
+subprocess.run(['python3', str(source_dir / 'puzzles/import.py'), 'mongodb://127.0.0.1:27019/nosweat',
+    '--archive', str(puzzle_archive), '--work-dir', str(puzzle_archive.parent),
+    '--chessops', str(dev / 'sources/lila/node_modules/.pnpm/chessops@0.15.1/node_modules/chessops'),
+    '--mongosh', str(dev / 'tools/mongosh/node_modules/mongosh/bin/mongosh.js')], env=env, check=True)
 subprocess.run(['python3', str(source_dir / 'learning/import.py'), 'mongodb://127.0.0.1:27019/nosweat', '--mongosh', str(dev / 'tools/mongosh/node_modules/mongosh/bin/mongosh.js')], env=env, check=True)
+puzzle_cron = Path('/etc/cron.d/mutechess-puzzle-paths')
+shutil.copyfile(source_dir / 'puzzles/refresh.cron', puzzle_cron)
+os.chown(puzzle_cron, 0, 0)
+puzzle_cron.chmod(0o644)
 print(json.dumps({'release': str(release), 'source_sha256': hashlib.sha256((release / 'source.tar.gz').read_bytes()).hexdigest(), 'application_exposed': False}))

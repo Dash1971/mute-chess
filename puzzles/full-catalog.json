@@ -1,0 +1,30 @@
+{
+  "id": "lichess-full-2026-11-01",
+  "format": "csv.zst",
+  "count": 6193530,
+  "archiveSha256": "7b0d235fa40cfd7fdb7df1fec56a96b3b6ee1496b32ed2eb05be90d0ebf94253",
+  "archiveBytes": 309751173,
+  "minimumRating": 399,
+  "maximumRating": 3330,
+  "idOrder": "ascii-ascending",
+  "sourceUrl": "https://database.lichess.org/lichess_db_puzzle.csv.zst",
+  "sourcePage": "https://database.lichess.org/#puzzles",
+  "license": "CC0-1.0",
+  "retrievedAtUtc": "2026-11-06",
+  "sourceLastModified": "Sun, 01 Nov 2026 07:57:40 GMT",
+  "selection": "All 6,193,530 source rows; no rating, popularity, play-count or rating-deviation cutoff.",
+  "fields": [
+    "PuzzleId",
+    "FEN",
+    "Moves",
+    "Rating",
+    "RatingDeviation",
+    "Popularity",
+    "NbPlays",
+    "Themes",
+    "GameUrl",
+    "OpeningTags",
+    "DailyDate"
+  ],
+  "retrievedAtJst": "2026-11-07"
+}

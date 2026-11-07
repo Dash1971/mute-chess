@@ -1,0 +1,4 @@
+# Native Lichess path refresh for the full catalog; skip during import/deployment.
+# Output and failures go to the existing system journal.
+MAILTO=""
+17 * * * * root /usr/bin/systemd-cat -t mutechess-puzzle-paths /usr/bin/flock -n /run/lock/nosweatchess-maintenance.lock /usr/bin/nice -n 15 /opt/nosweatchess/tools/node /home/dash/no-sweat-lila/tools/mongosh/node_modules/mongosh/bin/mongosh.js mongodb://127.0.0.1:27019/nosweat --quiet --file /opt/nosweatchess/current/corresponding-source/puzzles/native-paths.js

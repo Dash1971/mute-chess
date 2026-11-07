@@ -155,15 +155,24 @@ export MUTE_DATABASE=mongodb://127.0.0.1:27018/nosweat_lila_dev
 "$MUTE_MONGOSH" "$MUTE_DATABASE" --quiet \
   --file "$MUTE_DEV/lila-adapter/indexes.js"
 
-python3 "$MUTE_REPO/puzzles/import.py" "$MUTE_DATABASE" --mongosh "$MUTE_MONGOSH"
+mkdir -p "$MUTE_DEV/puzzle-catalog"
+export MUTE_PUZZLE_ARCHIVE="$MUTE_DEV/puzzle-catalog/lichess_db_puzzle.csv.zst"
+curl -fL --retry 2 -o "$MUTE_PUZZLE_ARCHIVE" \
+  https://database.lichess.org/lichess_db_puzzle.csv.zst
+python3 "$MUTE_REPO/puzzles/import.py" "$MUTE_DATABASE" --mongosh "$MUTE_MONGOSH" \
+  --archive "$MUTE_PUZZLE_ARCHIVE" --work-dir "$MUTE_DEV/puzzle-catalog" \
+  --chessops "$MUTE_DEV/sources/lila/node_modules/.pnpm/chessops@0.15.1/node_modules/chessops"
 python3 "$MUTE_REPO/learning/import.py" "$MUTE_DATABASE" --mongosh "$MUTE_MONGOSH"
 ```
 
 If the initial ping fails while MongoDB is starting, wait for it to become
 ready and rerun the ping before continuing. The repository already contains the
-pinned 50,000-puzzle catalog and the licensed practice subset. These importers
-verify their content and insert missing records; do not run upstream's
-destructive development database seeder.
+small pinned puzzle fixture and the licensed practice subset. Normal puzzle
+installation downloads the pinned full official export; the importer verifies
+its checksum and legal solutions before inserting missing records and generating
+native randomized selection paths. See [puzzle data and hourly native path
+refresh](../puzzles/README.md). Importers preserve existing progress and earned
+ratings; do not run upstream's destructive development database seeder.
 
 Your instance has its own database and bot accounts. The live site's earned
 bot ratings, games and human accounts are not part of a source installation.

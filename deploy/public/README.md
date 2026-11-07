@@ -150,7 +150,18 @@ The native evaluation graph adds small persistent circles for its existing quali
 
 ## Native puzzles
 
-The release includes the pinned CC0 starter catalog and import tooling in corresponding-source/puzzles. The installer verifies and inserts only absent puzzles into the isolated native puzzle database, and refreshes only this catalog's namespaced native selection paths. Existing puzzle ratings, votes, rounds and user progress are retained. The native web training, theme, history and difficulty routes are exposed; unrelated puzzle mobile-batch, coordinate and embedded-frame surfaces remain outside the public boundary. Catalog paths are static and do not require Lichess's production path-regeneration cron. Review assistance is gated until solving has ended, using the native completion/reveal state and engine preference.
+The full official CC0 catalog is external to the release payload. Set
+`MUTE_PUZZLE_ARCHIVE` to the downloaded, pinned `.csv.zst` when invoking the
+standard installer. It verifies that archive before preparing the release, then
+imports it with the installed native Chessops validator and Lichess path generator.
+See [the catalog import procedure](../../puzzles/README.md) for the snapshot,
+streaming validation and preservation rules. The installer installs the native
+hourly refresh in system cron, sharing the existing maintenance lock; Mongo uses
+a 2 GB cache within the owner-approved 3 GB memory limit.
+Existing earned puzzle ratings, votes, rounds and user progress are retained.
+The native web training, theme, history and difficulty routes are exposed;
+unrelated mobile-batch, coordinate and embedded-frame surfaces remain outside
+the public boundary. Review assistance remains gated until solving has ended.
 
 ## Nostr account settings
 
