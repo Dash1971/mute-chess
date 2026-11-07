@@ -76,7 +76,7 @@ Native paths are refreshed after each import. The owner-approved release install
 at minute 17 of each hour. It invokes only the native generator, skips while the
 existing maintenance lock is held by an import/deployment, and logs through the
 system journal (`mutechess-puzzle-paths`). No new scheduler or service is added.
-Mongo's existing unit uses a 2 GB cache within a 3 GB memory limit for this catalog.
+Mongo's existing unit uses a 2 GB cache within a 5 GB memory limit for this catalog.
 Do not run a manual generation concurrently with an import or another generation:
 
 ```bash
