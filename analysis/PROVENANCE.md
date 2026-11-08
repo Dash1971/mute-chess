@@ -50,7 +50,7 @@ Maia current-position expected score reuses the inference value head: stable sof
 Mobile Maia PR [#111](https://github.com/Dash1971/maia-chess-android-preview/pull/111),
 commit `4fb5d3cf04b9eac862940fb870eacd7e2dd541f5`, provides the projection-continuity
 behavior: consume a validated queued move before publishing the board, retain
-queued destinations through acknowledgements, and reveal the authoritative board
+queued destinations through acknowledgments, and reveal the authoritative board
 on invalid queues/endings. The native controller adaptation preserves legal
 server destinations, transport cancellation, clocks, promotion and move sounds.
 White/Black regressions inspect every Chessground update, not just settled state.

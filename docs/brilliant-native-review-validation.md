@@ -4,8 +4,9 @@
 
 **New Selective recognized 774 of 1,234 reference Brilliants (62.7%), with 38
 wrong awards among 30,423 non-Brilliant moves (0.125%).** The frozen 128-tree
-forest uses a 0.83 cutoff with PR285's complete-window confirmation. This is a
-draft update; no merge or deployment is claimed by this validation.
+forest uses a 0.83 cutoff with PR285's complete-window confirmation. This section
+records pre-release validation; the update was subsequently merged in
+[PR #285](https://github.com/Dash1971/mute-chess/pull/285).
 
 We analyzed 1,000 complete games from Witty_Alien, an account outside the
 model's development set. The model was trained on 6,293 earlier labeled moves;
