@@ -40,10 +40,10 @@ feedback use native translations in all ten supported locales (#242), including
 titles and accessible labels. Linked sentences retain translated placeholders.
 
 Keep Create a key and play, Continue with saved key, and Log in with signer as
-direct actions. No required tutorial or backup acknowledgement. A closed “New to
+direct actions. No required tutorial or backup acknowledgment. A closed “New to
 Nostr?” disclosure explains the public npub, private nsec, signer and using the
 same identity elsewhere. The nos2x installation link is beside signer sign-in;
-other NIP-07 signers keep working. nos2x is labelled Chrome / Chromium, without
+other NIP-07 signers keep working. nos2x is labeled Chrome / Chromium, without
 suggesting Safari or Firefox compatibility for that extension.
 
 Creating a key opens the existing backup card once, at the point it is useful.

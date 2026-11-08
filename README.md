@@ -117,8 +117,7 @@ were not used to train or tune it, using Stockfish 19 and Fast analysis:
   The other 38 were extra awards.
 
 Those results describe this player's games in Chess.com's Brilliant gallery;
-results for other players and analysis settings can differ. The tested update
-has not yet been deployed.
+results for other players and analysis settings can differ.
 
 **[Read the illustrated research report](https://github.com/Dash1971/open-brilly-finder/blob/main/studies/brilliant-selective-2026-11-06/REPORT.md)**
 for examples, results and what we want to improve next.
@@ -145,7 +144,7 @@ the bot's earned playing rating are kept distinct.
 ### A little flair of your own
 
 Our six original cyberpunk flairs are available to human profiles as well as bots.
-Open **Edit profile**, choose a flair and look in **Bot flairs**. Keep a favourite
+Open **Edit profile**, choose a flair and look in **Bot flairs**. Keep a favorite
 beside your name, whether you prefer circuitry, a neon fox or a mischievous ghost.
 
 | Circuit Knight | Synthetic Eye | Neural Chip |
@@ -378,7 +377,7 @@ placeholder parity and localized rendering before release; see [AGENTS.md](AGENT
 
 ### Basic Chess Insights and unsupported features
 
-The proposed basic Insights view reuses native Lichess results and rating analytics, including opening, colour, time-control and date breakdowns. Engine-analysis statistics remain unavailable; browser reviews are not uploaded for Insights. Unsupported inherited feature links show a translated not-yet-supported notice rather than a dead end. See [scope and limitations](docs/basic-insights-and-unsupported-links.md) (#281/#282).
+The proposed basic Insights view reuses native Lichess results and rating analytics, including opening, color, time-control and date breakdowns. Engine-analysis statistics remain unavailable; browser reviews are not uploaded for Insights. Unsupported inherited feature links show a translated not-yet-supported notice rather than a dead end. See [scope and limitations](docs/basic-insights-and-unsupported-links.md) (#281/#282).
 
 
 ### Full Lichess puzzle catalog
