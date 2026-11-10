@@ -12660,10 +12660,10 @@ index 0000000..e1cb129
 +    bdoc("_id" -> payment, "userId" -> user, "paid" -> false)
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..3afde2c
+index 0000000..8d674d9
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,938 @@
+@@ -0,0 +1,942 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -13208,7 +13208,7 @@ index 0000000..3afde2c
 +        )
 +      ).map(ok => requireThat(ok, 409, "Security settings changed. Reload this page."))
 +
-+  def currentGames: Fu[List[GameModel]] = current().map(_.map(_._2).take(15))
++  def currentGames: Fu[List[GameModel]] = current().map(_.map(_._2).take(normalCapacity))
 +
 +  private[app] def current(): Fu[List[(Bdoc, GameModel)]] =
 +    records
@@ -13347,14 +13347,17 @@ index 0000000..3afde2c
 +  private def activityPaused: Fu[Boolean] =
 +    env.game.noSweatAdmission.paused
 +
++  private def activeGameCount: Fu[Int] =
++    env.game.gameRepo.count(q =>
++      q.notFinished ++ bdoc(lila.game.Game.BSONFields.source -> bdoc("$ne" -> Source.Import.id))
++    )
++
 +  def activityStatus: Fu[JsObject] =
 +    for
 +      _ <- ready
 +      paused <- activityPaused
 +      games <- current()
-+      nativeActive <- env.game.gameRepo.count(q =>
-+        q.notFinished ++ bdoc(lila.game.Game.BSONFields.source -> bdoc("$ne" -> Source.Import.id))
-+      )
++      nativeActive <- activeGameCount
 +      poolPending <- records.countSel(bdoc("state" -> bdoc("$in" -> List("reserved", "active"))))
 +      studyPending <- env.mongo
 +        .mainDb(CollName("nosweat_study_game"))
@@ -13389,8 +13392,9 @@ index 0000000..3afde2c
 +        for
 +          paused <- activityPaused
 +          games <- current()
++          totalGames <- activeGameCount
 +          _ <-
-+            if !lila.bot.PublicBotActivity.canAdmit(paused, games.count(g => automatic(g._1)), games.size)
++            if !lila.bot.PublicBotActivity.canAdmit(paused, games.count(g => automatic(g._1)), totalGames)
 +            then funit
 +            else
 +              val busy = games.flatMap(g => occupied(g._1)).toSet
@@ -15136,7 +15140,7 @@ index 0000000..902252a
 +          .toVector
 diff --git a/modules/bot/src/main/PublicBotActivity.scala b/modules/bot/src/main/PublicBotActivity.scala
 new file mode 100644
-index 0000000..e211b19
+index 0000000..b3aff23
 --- /dev/null
 +++ b/modules/bot/src/main/PublicBotActivity.scala
 @@ -0,0 +1,11 @@
@@ -15146,10 +15150,10 @@ index 0000000..e211b19
 +
 +/** Product limits for public spectator activity; ordinary admission shares this ceiling. */
 +object PublicBotActivity:
-+  val capacity = 10
++  val capacity = 20
 +  val target = 5
 +  def canAdmit(paused: Boolean, automaticGames: Int, totalGames: Int): Boolean =
-+    !paused && automaticGames < target && totalGames < capacity
++    !paused && automaticGames < target && totalGames < target
 +  def speed(admitted: Long): PerfKey = if admitted % 2 == 0 then PerfKey.blitz else PerfKey.rapid
 diff --git a/modules/bot/src/test/ManagedPresenceTest.scala b/modules/bot/src/test/ManagedPresenceTest.scala
 new file mode 100644
@@ -15226,22 +15230,29 @@ index 0000000..8ffa31b
 +    assertEquals(catalog.within(PerfKey.blitz, 1500, Set.empty), Vector.empty)
 diff --git a/modules/bot/src/test/PublicBotActivityTest.scala b/modules/bot/src/test/PublicBotActivityTest.scala
 new file mode 100644
-index 0000000..bf47918
+index 0000000..1572f6b
 --- /dev/null
 +++ b/modules/bot/src/test/PublicBotActivityTest.scala
-@@ -0,0 +1,19 @@
+@@ -0,0 +1,26 @@
 +package lila.bot
 +
 +import lila.core.perf.PerfKey
 +
 +class PublicBotActivityTest extends munit.FunSuite:
-+  test("five background games share ten total slots, preserving room for human admissions"):
-+    assert(PublicBotActivity.canAdmit(false, 4, 9))
-+    assert(!PublicBotActivity.canAdmit(false, 5, 5))
-+    assert(!PublicBotActivity.canAdmit(false, 4, 10))
-+    assert(!PublicBotActivity.canAdmit(false, 0, 10))
++  test("ordinary Maia games share twenty slots"):
++    assertEquals(PublicBotActivity.capacity, 20)
++  test("background games top up to five total games, including every human game"):
++    for human <- 0 to 20; automatic <- 0 to 5 do
++      val total = human + automatic
++      assertEquals(PublicBotActivity.canAdmit(false, automatic, total), total < 5)
++  test("human arrivals let background games drain, and quiet periods replenish them"):
++    assert(!PublicBotActivity.canAdmit(false, 5, 8))
++    assert(!PublicBotActivity.canAdmit(false, 2, 5))
++    assert(PublicBotActivity.canAdmit(false, 1, 4))
++    assert(PublicBotActivity.canAdmit(false, 0, 3))
++    assert(!PublicBotActivity.canAdmit(false, 0, 5))
 +  test("manual pause prevents replenishment at every occupancy without touching existing games"):
-+    for automatic <- 0 to 5; total <- automatic to 10 do
++    for automatic <- 0 to 5; total <- automatic to 25 do
 +      assert(!PublicBotActivity.canAdmit(true, automatic, total))
 +    assert(PublicBotActivity.canAdmit(false, 0, 0))
 +  test("successful admissions alternate native Blitz and Rapid independent of completion order"):

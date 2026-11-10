@@ -4,11 +4,17 @@ Automatic public play is a product mode in the existing native admission service
 and Maia adapter. It is disabled by default; this change does not start games.
 It adds no service, study runner or deployment/maintenance framework.
 
-When `nosweat.activity.enabled = true`, ordinary pool play has a ten-game global
-ceiling. Up to five of those games are automatic, rated BOT-versus-BOT games.
-Human games may use every remaining slot; automatic games never displace an
-active human game and cannot consume the five slots reserved by their target.
-Friend games retain their existing separate native admission path.
+When `nosweat.activity.enabled = true`, ordinary Maia pool play has a twenty-game
+shared ceiling for human-versus-Maia and rated BOT-versus-BOT games (#300).
+Background play only fills up to five total unfinished native games, including
+human-versus-human friend games and excluding imported replays. With three human
+games, it maintains at most two background games; with five or more human games,
+it starts none. The count comes from native game state, not connected game rooms.
+Existing games finish naturally when human activity rises; new background games
+resume as the total drops below five. Humans can ultimately use all twenty Maia
+slots. Friend games retain their separate native admission path and do not consume
+the Maia cap, but do suppress background top-ups. The current Maia games page can
+display all twenty pool games.
 
 Successful automatic admissions alternate 5+3 Blitz and 10+5 Rapid. The first
 seat is uniformly random among available managed accounts. Its opponent is
@@ -26,7 +32,7 @@ queue time and retains the existing low-clock protection. Studies retain their
 separate no-added-wait contract.
 
 The existing adapter uses one shared worker with no more than two outstanding
-inference requests. Its bounded queue gives human turns two of every three
+inference requests and at most twenty waiting requests. Its bounded queue gives human turns two of every three
 contested dispatch slots, serves FIFO within each class, and keeps artificial
 clock waits outside inference slots. Each successful native poll invalidates
 waiting work whose game disappeared, whose ply changed, or whose bot turn ended.
@@ -96,7 +102,7 @@ persists `{ "_id": "public", "paused": true }` in `nosweat_activity`; no direct
 database command is needed. Verify `paused: true`, `active: 0`, and `drained: true`.
 Then enable the existing application setting and restart through the existing
 release procedure. Confirm `enabled: true`, `paused: true`, `active: 0`, and
-`capacity: 10`, plus service health and preserved ratings/history, before the
+`capacity: 20`, plus service health and preserved ratings/history, before the
 explicit resume POST with `{"paused":false}`. An enabled start without a saved
 pause document defaults to unpaused and can create games on the first adapter
 poll, so do not enable the setting before initializing that control.

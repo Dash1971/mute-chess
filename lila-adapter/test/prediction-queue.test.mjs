@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { PredictionDeferred, PredictionQueue } from '../prediction-queue.mjs';
 
 const tick = () => new Promise(resolve => setImmediate(resolve));
-function fixture(maximumWaiting = 10) {
+function fixture(maximumWaiting) {
   const started = [], pending = [];
   const worker = { healthy: true, predict: (moves, policy) => new Promise((resolve, reject) => {
     started.push({ moves, policy }); pending.push({ resolve, reject });
@@ -12,12 +12,12 @@ function fixture(maximumWaiting = 10) {
   return { queue: new PredictionQueue(worker, maximumWaiting), worker, started, pending,
     finish() { pending.shift().resolve({ move: 'e2e4' }); } };
 }
-test('ten simultaneous game turns fit, use at most two inference slots, and complete fairly', async () => {
+test('twenty simultaneous game turns fit, use at most two inference slots, and complete fairly', async () => {
   const f = fixture();
-  const jobs = Array.from({ length: 10 }, (_, i) => f.queue.predict([String(i)], { seed: i }, true));
-  for (let i = 0; i < 10; i++) { await tick(); f.finish(); }
+  const jobs = Array.from({ length: 20 }, (_, i) => f.queue.predict([String(i)], { seed: i }, true));
+  for (let i = 0; i < 20; i++) { await tick(); f.finish(); }
   await Promise.all(jobs);
-  assert.deepEqual(f.started.map(s => s.policy.seed), Array.from({ length: 10 }, (_, i) => i));
+  assert.deepEqual(f.started.map(s => s.policy.seed), Array.from({ length: 20 }, (_, i) => i));
 });
 test('human turns take the next available slot ahead of background work without interrupting it', async () => {
   const f = fixture();
