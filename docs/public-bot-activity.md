@@ -60,9 +60,19 @@ Background bot games and studies retain their no-claim rules. Human friend games
 retain native manual claims. Missing/restarted adapter polls do not request an
 automatic claim, and existing server/worker-failure handling remains separate.
 There is no new timer, inactivity cutoff, direct result write or record deletion.
-No-start games and already persisted games with `noClaimWin` retain their existing
-clock/no-start behavior; this change does not migrate their stored rules. All
+No-start games and already persisted games with `noClaimWin` do not gain an early
+disconnect claim; this change does not migrate their stored rules. All
 visible claim/result messages use the existing native translated UI.
+
+Clock expiry (#304) is checked separately in the same healthy poll, for both
+human and automatic Maia games, including games with persisted no-claim rules.
+When the native clock reports `outoftime(withGrace = true)`, the poll sends the
+native `QuietFlagCheck`. The round actor rechecks the clock and applies its normal
+timeout/material/result handling. This restores the check sent by Lichess's
+normal bot stream, which the managed polling adapter does not open. An expired
+game no longer needs to wait for the slower background game sweep to free its
+slot. This adds no timer and does not interpret an unhealthy worker as a player
+disconnect.
 
 ## Manual pause and drain
 

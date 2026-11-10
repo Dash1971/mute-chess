@@ -3132,10 +3132,10 @@ index 07b5211..4e34c7e 100644
                MenuItem(
                  trans.patron.giftPatronWingsShort.txt(),
 diff --git a/modules/round/src/main/Env.scala b/modules/round/src/main/Env.scala
-index eb05514..6caf9a8 100644
+index eb05514..f886a33 100644
 --- a/modules/round/src/main/Env.scala
 +++ b/modules/round/src/main/Env.scala
-@@ -146,11 +146,25 @@ final class Env(
+@@ -146,11 +146,27 @@ final class Env(
  
    private lazy val drawer = wire[Drawer]
  
@@ -3150,12 +3150,14 @@ index eb05514..6caf9a8 100644
    val getSocketStatus: Game => Future[SocketStatus] = (game: Game) =>
      roundSocket.rounds.ask[SocketStatus](game.id)(GetSocketStatus.apply)
  
-+  def noSweatClaimAbandoned(game: Game, managedBot: Option[UserId]): Funit =
++  def noSweatCheckGame(game: Game, managedBot: Option[UserId], healthyPoll: Boolean): Funit =
 +    NoSweatAbandon(
 +      game,
 +      managedBot,
++      healthyPoll,
 +      getSocketStatus,
-+      pov => lila.common.Bus.pub(lila.core.round.Tell(pov.gameId, RoundBus.ResignForce(pov.playerId)))
++      pov => lila.common.Bus.pub(lila.core.round.Tell(pov.gameId, RoundBus.ResignForce(pov.playerId))),
++      game => lila.common.Bus.pub(lila.core.round.Tell(game.id, RoundBus.QuietFlagCheck))
 +    )
 +
    private def isUserPresent(game: Game, userId: UserId): Fu[Boolean] =
@@ -12658,10 +12660,10 @@ index 0000000..e1cb129
 +    bdoc("_id" -> payment, "userId" -> user, "paid" -> false)
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..47953d4
+index 0000000..3afde2c
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,936 @@
+@@ -0,0 +1,938 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -13519,24 +13521,26 @@ index 0000000..47953d4
 +                    )
 +                val snapshot = Json.parse(doc.getAsOpt[String]("snapshot").get)
 +                val policy = if isAutomatic then (snapshot \ game.turnColor.name).as[JsObject] else snapshot
-+                val claimBot = Option.when(pollingInstance.isDefined && !restarted && !isAutomatic)(bot)
-+                  .filter(botIds)
-+                env.round.noSweatClaimAbandoned(game, claimBot).map: _ =>
-+                  Json.obj(
-+                    "id" -> game.id.value,
-+                    "ply" -> game.ply.value,
-+                    "botToMove" -> (isAutomatic || game.player.userId.contains(bot)),
-+                    "automatic" -> isAutomatic,
-+                    "botColor" -> game.player(bot).get.color.name,
-+                    "policy" -> policy,
-+                    "clock" -> game.clock.map(c =>
-+                      Json.obj(
-+                        "initial" -> c.config.limitSeconds.value,
-+                        "increment" -> c.config.incrementSeconds.value
-+                      )
-+                    ),
-+                    "state" -> state
-+                  )
++                val healthyPoll = pollingInstance.isDefined && !restarted && botIds(bot)
++                val claimBot = Option.when(healthyPoll && !isAutomatic)(bot)
++                env.round
++                  .noSweatCheckGame(game, claimBot, healthyPoll)
++                  .map: _ =>
++                    Json.obj(
++                      "id" -> game.id.value,
++                      "ply" -> game.ply.value,
++                      "botToMove" -> (isAutomatic || game.player.userId.contains(bot)),
++                      "automatic" -> isAutomatic,
++                      "botColor" -> game.player(bot).get.color.name,
++                      "policy" -> policy,
++                      "clock" -> game.clock.map(c =>
++                        Json.obj(
++                          "initial" -> c.config.limitSeconds.value,
++                          "increment" -> c.config.incrementSeconds.value
++                        )
++                      ),
++                      "state" -> state
++                    )
 +          .map(Json.toJson(_))
 +
 +  def move(id: GameId, ply: Int, uci: String, timing: JsObject): Funit =
@@ -16018,10 +16022,10 @@ index 0000000..4ed5110
 +  )
 diff --git a/modules/round/src/main/NoSweatAbandon.scala b/modules/round/src/main/NoSweatAbandon.scala
 new file mode 100644
-index 0000000..eb41dc2
+index 0000000..71a7451
 --- /dev/null
 +++ b/modules/round/src/main/NoSweatAbandon.scala
-@@ -0,0 +1,19 @@
+@@ -0,0 +1,24 @@
 +package lila.round
 +
 +import lila.core.game.{ Game, Pov }
@@ -16032,15 +16036,20 @@ index 0000000..eb41dc2
 +  def apply(
 +      game: Game,
 +      managedBot: Option[UserId],
++      healthyPoll: Boolean,
 +      socketStatus: Game => Fu[SocketStatus],
-+      claim: Pov => Unit
++      claim: Pov => Unit,
++      flag: Game => Unit
 +  )(using Executor): Funit =
-+    managedBot
-+      .flatMap(id => Pov(game, id))
-+      .filter(pov => game.forceResignableNow && pov.mightClaimWin)
-+      .so: pov =>
-+        socketStatus(game).map: socket =>
-+          if socket.onGame(pov.color) && socket.isGone(!pov.color) then claim(pov)
++    if !healthyPoll then funit
++    else if game.outoftime(withGrace = true) then fuccess(flag(game))
++    else
++      managedBot
++        .flatMap(id => Pov(game, id))
++        .filter(pov => game.forceResignableNow && pov.mightClaimWin)
++        .so: pov =>
++          socketStatus(game).map: socket =>
++            if socket.onGame(pov.color) && socket.isGone(!pov.color) then claim(pov)
 diff --git a/modules/round/src/main/NoSweatPresetChat.scala b/modules/round/src/main/NoSweatPresetChat.scala
 new file mode 100644
 index 0000000..5d3de8f
@@ -16142,13 +16151,13 @@ index 0000000..5d3de8f
 +    write().flatMap(accepted => accepted.so(claim().flatMap(fresh => fresh.so(reply()))))
 diff --git a/modules/round/src/test/NoSweatAbandonTest.scala b/modules/round/src/test/NoSweatAbandonTest.scala
 new file mode 100644
-index 0000000..fdc9ba3
+index 0000000..5d75d35
 --- /dev/null
 +++ b/modules/round/src/test/NoSweatAbandonTest.scala
-@@ -0,0 +1,119 @@
+@@ -0,0 +1,158 @@
 +package lila.round
 +
-+import chess.{ ByColor, Clock, Color, Rated, Status }
++import chess.{ ByColor, Centis, Clock, Color, Rated, Status }
 +import chess.format.pgn.PgnStr
 +import scala.concurrent.{ Future, Promise }
 +
@@ -16166,7 +16175,11 @@ index 0000000..fdc9ba3
 +      moves: String = "1. e4 e5 *",
 +      botColor: Color = Color.Black
 +  ): Game =
-+    val chessGame = ParseImport.full(PgnStr(moves)).toOption.get.game
++    val chessGame = ParseImport
++      .full(PgnStr(moves))
++      .toOption
++      .get
++      .game
 +      .copy(clock = Some(Clock.Config(Clock.LimitSeconds(300), Clock.IncrementSeconds(3)).toClock.start))
 +    lila.core.game
 +      .newGame(
@@ -16201,8 +16214,12 @@ index 0000000..fdc9ba3
 +    NoSweatAbandon(
 +      g,
 +      managed,
-+      _ => { reads += 1; Future.successful(socket) },
-+      pov => claims = pov :: claims
++      true,
++      _ =>
++        reads += 1; Future.successful(socket)
++      ,
++      pov => claims = pov :: claims,
++      _ => fail("unexpected clock flag")
 +    ).map(_ => (claims, reads))
 +
 +  test("anonymous and registered humans are claimed only after native long-gone eligibility"):
@@ -16250,7 +16267,8 @@ index 0000000..fdc9ba3
 +  test("a reconnect observed while reading native status prevents the claim"):
 +    val snapshot = Promise[SocketStatus]()
 +    var claims = 0
-+    val pending = NoSweatAbandon(game(), Some(bot), _ => snapshot.future, _ => claims += 1)
++    val pending =
++      NoSweatAbandon(game(), Some(bot), true, _ => snapshot.future, _ => claims += 1, _ => fail("flag"))
 +    snapshot.success(status(false))
 +    pending.map(_ => assertEquals(claims, 0))
 +
@@ -16259,12 +16277,42 @@ index 0000000..fdc9ba3
 +    val pending = NoSweatAbandon(
 +      game(),
 +      Some(bot),
++      true,
 +      _ => Future.failed(new RuntimeException("socket unavailable")),
-+      _ => claims += 1
++      _ => claims += 1,
++      _ => fail("flag")
 +    )
 +    pending.failed.map: error =>
 +      assertEquals(error.getMessage, "socket unavailable")
 +      assertEquals(claims, 0)
++
++  test("expired human and background games request native flag checks without a disconnect claim"):
++    val g = game()
++    val expired = g.copy(chess = g.chess.copy(clock = g.clock.map(_.giveTime(Color.White, Centis(-360000)))))
++    assert(expired.outoftime(withGrace = true))
++    Future.traverse(List(Some(bot), None)): claimant =>
++      var flags = List.empty[GameId]
++      NoSweatAbandon(
++        expired,
++        claimant,
++        true,
++        _ => fail("expired clocks do not need socket status"),
++        _ => fail("native flag takes precedence over disconnect claims"),
++        game => flags = game.id :: flags
++      ).map(_ => assertEquals(flags, List(expired.id)))
++
++  test("an unhealthy poll neither flags expired clocks nor claims disconnected humans"):
++    val g = game()
++    val expired = g.copy(chess = g.chess.copy(clock = g.clock.map(_.giveTime(Color.White, Centis(-360000)))))
++    Future.traverse(List(g, expired)): candidate =>
++      NoSweatAbandon(
++        candidate,
++        Some(bot),
++        false,
++        _ => fail("unhealthy poll must not read status"),
++        _ => fail("unhealthy poll must not claim"),
++        _ => fail("unhealthy poll must not flag")
++      )
 diff --git a/modules/round/src/test/NoSweatPresetChatTest.scala b/modules/round/src/test/NoSweatPresetChatTest.scala
 new file mode 100644
 index 0000000..f738ddd
