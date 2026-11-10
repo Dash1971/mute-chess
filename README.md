@@ -185,8 +185,10 @@ We want quick pairing to feel like joining a pool: a varied cast of familiar
 opponents, with different playing styles and more accounts around the ratings
 where most players are. A large roster makes repeat opponents less common
 without changing Lichess's matchmaking rules. These are persistent identities,
-not 10,000 engines running at once; automatic play uses at most five games
-at a time and leaves capacity for people.
+not 10,000 engines running at once. Human-versus-Maia and automatic games share
+a 20-game cap. Background bots only top up to five total active games, counting
+human-versus-human games too. Existing background games finish naturally as
+human activity increases. See [public bot activity](docs/public-bot-activity.md).
 
 The bots also play one another, building public game histories and updating
 their ratings through native Glicko-2. A November 2026 activity check found
