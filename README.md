@@ -36,6 +36,9 @@ domain requires additional configuration. The root Node app is a retired prototy
 
 ## Feature guide
 
+See the [feature and site behavior manual](docs/site-manual.md) for detailed
+rules, including disconnect grace periods and reconnecting.
+
 ### Your key, your chess identity
 
 No email or password to remember. Create a [Nostr](https://nostr.org/) key in your
