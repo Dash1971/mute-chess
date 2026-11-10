@@ -212,4 +212,4 @@ behavior; native Glicko continues to update earned ratings from actual results.
 This feature does not recalibrate, reseed or launch another study. Bot profiles
 disclose the new rule. Analysis and puzzle-review channels continue to use their
 selected rating for both inputs, as documented in
-[README](../README.md#engine-settings).
+[site manual](site-manual.md#engine-settings).
