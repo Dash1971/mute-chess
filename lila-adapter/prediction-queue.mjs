@@ -10,7 +10,7 @@ export class PredictionDeferred extends Error {
   }
 }
 export class PredictionQueue {
-  constructor(worker, maximumWaiting = 10) {
+  constructor(worker, maximumWaiting = 20) {
     this.worker = worker;
     this.maximumWaiting = maximumWaiting;
     this.waiting = [];

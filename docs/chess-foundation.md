@@ -92,7 +92,7 @@ Add Mobile Maia-style multiple queued premoves as an explicit gameplay enhanceme
 
 ## 29 October implementation
 
-The native extension implements projected multiple premoves with Mobile Maia's last-use square tints and native promotion picker. The owner explicitly requires no extra enabled label, queue count, move strip or Clear button. Preserve desktop Escape/right-click cancellation and the single/multiple preference in the native board menu. Authoritative server destinations validate execution, including the acknowledgement gap after a human move. No unsent queue is replayed after socket closure/resync.
+The native extension implements projected multiple premoves with Mobile Maia's last-use square tints and native promotion picker. The owner explicitly requires no extra enabled label, queue count, move strip or Clear button. Preserve desktop Escape/right-click cancellation and the single/multiple preference in the native board menu. Authoritative server destinations validate execution, including the acknowledgment gap after a human move. No unsent queue is replayed after socket closure/resync.
 
 The selected-move analysis increment includes local Maia3 5M/79M, raw legal policy, same-move SF candidate comparison, preview/return in the native tree, conditioning/history controls and on-demand rating samples. The independent EC/Mobile Maia scoring/material references and whole-window corroboration are retained for additive brilliant detection. The owner subsequently removed the custom full-game review and selected-move reclassification UI: whole-game accuracy, judgments and charting use native Lichess, as recorded below. Engine preferences live in native Analysis Menu → Settings. Board arrows now follow Mobile Maia’s two SF choices and top move from two independently rated Maia channels, including split agreement colors and fixed Maia widths. Issue #200’s candidate comparison and optional rating chart/table occupy the native left-side panel. Confirmed additive brilliant annotations now use native browser-review persistence.
 
@@ -149,8 +149,8 @@ Settings, rather than a mandatory setup dialog. Play links directly to quick
 pairing without a menu. Opening explorer remains deferred.
 
 For stacked premove continuity (#61), use Mobile Maia PR #111. Opponent moves and
-acknowledgements update the committed native state while the board publishes only
-the final projected plan. Invalid/cancelled queues and endings reveal the actual
+acknowledgments update the committed native state while the board publishes only
+the final projected plan. Invalid/canceled queues and endings reveal the actual
 position. Clock updates precede premove execution; native move transport,
 promotion, sounds, legality and single premoves remain authoritative.
 

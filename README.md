@@ -99,41 +99,31 @@ different things; a popular human move is not automatically the best move.
 
 ### More chances to find a brilliant move
 
-Brillies are part of the fun. **New Selective** combines a trained decision-tree
-forest with basic checks for a sound move and a real piece offer. The draft
-update uses **128 trees, a 0.83 cutoff and complete-window confirmation (PR285)**.
-It has not been deployed.
+Brillies are part of the fun. Mute Chess uses
+[Open Brilly Finder](https://github.com/Dash1971/open-brilly-finder), our open-source
+project for spotting sound sacrifices and marking them **Brilliant (!!)** during
+game review.
 
-Your browser runs the model locally alongside Stockfish. It uses position facts
-and engine evaluations, without a neural network, ONNX, ChatGPT or a remote
-classification service. Training happens ahead of time; it does not learn during
-play. The model and training code are public.
+Its classifier, **Mute Selective**, learns patterns from moves labeled by
+Chess.com. Stockfish checks whether a move is sound, and chess rules check that
+a piece really is being offered. The classifier runs locally in your browser.
+Chess.com's full formula is private; this is our own open implementation.
 
-With the site's **Stockfish 19 1MB engine and Fast full-game review**, the frozen
-model was tested on **1,000 fresh-account games** from Witty_Alien:
+The latest research tested an updated model on **1,000 Witty_Alien games** that
+were not used to train or tune it, using Stockfish 19 and Fast analysis:
 
-| Version | Brilliants recognized | Wrong Brilliant awards |
-| --- | ---: | ---: |
-| Existing production | 721 / 1,234 | 57 / 30,423 |
-| Older model + PR285 | 725 / 1,234 | 58 / 30,423 |
-| **New Selective + PR285** | **774 / 1,234 (62.7%)** | **38 / 30,423 (0.125%)** |
+- It recognized **774 of 1,234 Chess.com Brilliants (62.7%)**.
+- Of the **812 Brilliant badges it awarded, 774 matched Chess.com (95.3%)**.
+  The other 38 were extra awards.
 
-Compared with the older model using the same confirmation fix, that is **49 more
-genuine Brilliants and 20 fewer wrong awards**, about **34% fewer wrong badges**.
-No Witty_Alien examples were used to train or tune the model. This is one
-account's gallery-represented games, not an accuracy promise for every player.
-Timed searches can also vary across devices and browsers. Mobile Maia keeps its
-existing En Croissant rules.
+Those results describe this player's games in Chess.com's Brilliant gallery;
+results for other players and analysis settings can differ.
 
-The earlier 64-tree model's 400-move tests and SF18 En Croissant comparison remain
-historical evidence; they are not independent tests of the new model. En Croissant
-was not tested on this fresh-account sample. Our next priority is broader
-Brilliant recognition while keeping wrong awards low.
-
-See the [fresh native results](docs/brilliant-native-review-validation.md),
-[exact algorithm](docs/brilliant-moves.md),
-[illustrated report addendum](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md#november-6-2026-addendum-more-brilliants-fewer-wrong-badges)
-and [published experiment](https://github.com/Dash1971/open-brilly-finder/blob/main/studies/brilliant-selective-2026-11-06/REPORT.md).
+**[Read the illustrated research report](https://github.com/Dash1971/open-brilly-finder/blob/main/studies/brilliant-selective-2026-11-06/REPORT.md)**
+for examples, results and what we want to improve next.
+**[Explore Open Brilly Finder](https://github.com/Dash1971/open-brilly-finder)**
+for the code, trained model, labeled games and instructions to reproduce the work.
+For Mute Chess integration details, see the [implementation notes](docs/brilliant-moves.md).
 
 ### Opponents with an identity
 
@@ -154,7 +144,7 @@ the bot's earned playing rating are kept distinct.
 ### A little flair of your own
 
 Our six original cyberpunk flairs are available to human profiles as well as bots.
-Open **Edit profile**, choose a flair and look in **Bot flairs**. Keep a favourite
+Open **Edit profile**, choose a flair and look in **Bot flairs**. Keep a favorite
 beside your name, whether you prefer circuitry, a neon fox or a mischievous ghost.
 
 | Circuit Knight | Synthetic Eye | Neural Chip |
@@ -195,8 +185,10 @@ We want quick pairing to feel like joining a pool: a varied cast of familiar
 opponents, with different playing styles and more accounts around the ratings
 where most players are. A large roster makes repeat opponents less common
 without changing Lichess's matchmaking rules. These are persistent identities,
-not 10,000 engines running at once; automatic play uses at most five games
-at a time and leaves capacity for people.
+not 10,000 engines running at once. Human-versus-Maia and automatic games share
+a 20-game cap. Background bots only top up to five total active games, counting
+human-versus-human games too. Existing background games finish naturally as
+human activity increases. See [public bot activity](docs/public-bot-activity.md).
 
 The bots also play one another, building public game histories and updating
 their ratings through native Glicko-2. A November 2026 activity check found
@@ -387,7 +379,7 @@ placeholder parity and localized rendering before release; see [AGENTS.md](AGENT
 
 ### Basic Chess Insights and unsupported features
 
-The proposed basic Insights view reuses native Lichess results and rating analytics, including opening, colour, time-control and date breakdowns. Engine-analysis statistics remain unavailable; browser reviews are not uploaded for Insights. Unsupported inherited feature links show a translated not-yet-supported notice rather than a dead end. See [scope and limitations](docs/basic-insights-and-unsupported-links.md) (#281/#282).
+The proposed basic Insights view reuses native Lichess results and rating analytics, including opening, color, time-control and date breakdowns. Engine-analysis statistics remain unavailable; browser reviews are not uploaded for Insights. Unsupported inherited feature links show a translated not-yet-supported notice rather than a dead end. See [scope and limitations](docs/basic-insights-and-unsupported-links.md) (#281/#282).
 
 
 ### Full Lichess puzzle catalog

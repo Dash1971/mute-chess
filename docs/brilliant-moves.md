@@ -3,8 +3,7 @@
 For **Mute Selective**, we trained a small model on chess moves labeled by
 Chess.com and combined it with basic soundness and legal-piece-offer checks.
 The updated forest recognizes more reference Brilliants and gives fewer wrong
-awards than the older forest on the fresh-account test below. It is a draft
-update, not a deployed change.
+awards than the older forest on the fresh-account test below.
 **Mobile Maia keeps its existing En Croissant classifier.**
 
 The browser downloads the model with the analysis JavaScript and runs it locally

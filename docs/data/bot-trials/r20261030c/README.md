@@ -57,8 +57,8 @@ Two identical pinned workers ran under a combined 400% logical-CPU quota and 2,0
 | Timing across logged submissions | Mean | p95 |
 | --- | ---: | ---: |
 | Maia encode/inference/sample | 194.2 ms | 259.3 ms |
-| Submitted request through native move acknowledgement | 322.9 ms | 438.5 ms |
-| Native turn timestamp through acknowledgement, including waiting | 2.04 s | 2.39 s |
+| Submitted request through native move acknowledgment | 322.9 ms | 438.5 ms |
+| Native turn timestamp through acknowledgment, including waiting | 2.04 s | 2.39 s |
 
 Throughput was **10.18 unique final native plies/second**, or 10.25 inference/submission events per second including repeated work described below. Mean sampled combined worker/native CPU was 4.13 logical-core equivalents, p95 4.41. Peak sampled combined memory was 2.83 GiB. Local public health-check p95 was 6.1 ms, with zero failures. These totals exclude the OS/supervisor. The release build and qualification services were stopped before the run.
 
