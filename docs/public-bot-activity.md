@@ -39,6 +39,31 @@ Glicko updates. No ratings are reseeded or recalculated outside native results.
 Random activity across 10,000 accounts gives uneven, gradual rating refresh; it
 is not a new calibration or establishment experiment.
 
+## Abandoned human games (#302)
+
+New human-versus-Maia pool games allow the native disconnect claim. During the
+existing authenticated, healthy adapter poll, only a managed bot in an admitted
+human game is considered for an automatic claim. The native round provides the
+opponent's long-gone status, including its existing speed-dependent grace,
+anonymous-player adjustment, intentional-leave notification and reconnect logic.
+The bot must be connected, both players must have moved, and it must be the
+human's turn. A connected player merely thinking for a long time is not claimed.
+
+The adapter requests the normal native `ResignForce` action rather than writing
+a result. The round actor rechecks current turn, eligibility and disconnect
+state, then uses its normal finisher, including a draw for insufficient mating
+material, rating/history updates and pool-slot cleanup. A reconnect or move before
+the action is processed can prevent the claim. The maintenance admission pause
+does not stop existing games from finishing this way.
+
+Background bot games and studies retain their no-claim rules. Human friend games
+retain native manual claims. Missing/restarted adapter polls do not request an
+automatic claim, and existing server/worker-failure handling remains separate.
+There is no new timer, inactivity cutoff, direct result write or record deletion.
+No-start games and already persisted games with `noClaimWin` retain their existing
+clock/no-start behavior; this change does not migrate their stored rules. All
+visible claim/result messages use the existing native translated UI.
+
 ## Manual pause and drain
 
 The controls are authenticated internal routes, blocked by the existing public
