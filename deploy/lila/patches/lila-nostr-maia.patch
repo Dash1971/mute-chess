@@ -2540,6 +2540,19 @@ index b916ee3..3775c75 100644
      case ("join", o) if !member.bot =>
        HookPoolLimit(
          member,
+diff --git a/modules/markdown/src/main/MarkdownRender.scala b/modules/markdown/src/main/MarkdownRender.scala
+index d9d8540..2dfdbdb 100644
+--- a/modules/markdown/src/main/MarkdownRender.scala
++++ b/modules/markdown/src/main/MarkdownRender.scala
+@@ -126,7 +126,7 @@ final class MarkdownRender(
+     catch
+       case _: StackOverflowError =>
+         println(s"markdown StackOverflowError $key")
+-        text.value
++        scalalib.StringUtils.escapeHtmlRaw(text.value)
+ 
+ object MarkdownRender:
+ 
 diff --git a/modules/perfStat/src/main/PerfStatUi.scala b/modules/perfStat/src/main/PerfStatUi.scala
 index fbe7c01..5a3bcde 100644
 --- a/modules/perfStat/src/main/PerfStatUi.scala
@@ -4727,6 +4740,22 @@ index cc4a793..6c6e871 100644
 +      else preview
 +    )
 +  )
+diff --git a/modules/web/src/test/common/MarkdownTest.scala b/modules/web/src/test/common/MarkdownTest.scala
+index bbafd04..6e524a3 100644
+--- a/modules/web/src/test/common/MarkdownTest.scala
++++ b/modules/web/src/test/common/MarkdownTest.scala
+@@ -292,3 +292,11 @@ Line 2""")
+     val render: Markdown => Html =
+       new MarkdownRender(removeHtmlEntities = false)("test")
+     assertEquals(render(Markdown("&#128512;")), Html("<p>&#128512;</p>\n"))
++
++  test("parser stack overflow fallback escapes untrusted HTML"):
++    val raw =
++      """<meta http-equiv="refresh" content="0;url=https://example.com"><div>unsafe & text</div>
++[a][b]
++
++[b]: <https://example.com/""" + ("A" * 19000) + ">\n"
++    assertEquals(render(Markdown(raw)), Html(scalalib.StringUtils.escapeHtmlRaw(raw)))
 diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
 index 6dcc74e..c748c95 100644
 --- a/pnpm-lock.yaml

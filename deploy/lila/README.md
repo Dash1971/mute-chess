@@ -22,8 +22,8 @@ public deployment is described in [../public](../public/README.md).
   equivalent patched versions. Ubuntu package updates do not replace bundled JARs.
 - Java 21 JDK, Node 24.22.1, pnpm 12.9.0 and sbt 2.0.11. Use the checked-in
   dependency lockfiles and the versions selected by each pinned Scala build.
-- MongoDB Community 8.0.34 and the host distribution's Redis 8.0.5 packages are
-  extracted under the development directory; no shared MongoDB/Redis service is
+- MongoDB Community 8.0.38 and Redis 8.2.11 with the recorded Lua metadata backport are
+  installed under the development directory; no shared MongoDB/Redis service is
   reconfigured. MongoDB's archive is SHA-256 checked; sbt's launcher uses Maven's
   published SHA-1 checksum over HTTPS. Record the downloaded tools and lockfiles
   when reproducing this snapshot.

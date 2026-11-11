@@ -1,13 +1,21 @@
 {
   "schemaVersion": 1,
   "kind": "release-targets",
-  "reviewedAt": "2026-11-05",
+  "reviewedAt": "2026-11-11",
   "deploymentIdentity": "Read RELEASE.json from the SAME current release. These targets are not proof of installation; compare with SECURITY279_BUILD.json and actual running versions. Recheck after every release or host/tool update.",
   "upstreamPins": {
     "lila": {
       "repository": "https://github.com/lichess-org/lila",
       "commit": "b551752d2a0e7a63459d9812825d95a633a98737",
-      "localPatch": "deploy/lila/patches/lila-nostr-maia.patch"
+      "localPatch": "deploy/lila/patches/lila-nostr-maia.patch",
+      "securityBackports": [
+        {
+          "commit": "34830b8316fea29a93c6b797236f79203ad021e8",
+          "advisory": "GHSA-2cpx-9573-5pwp",
+          "file": "modules/markdown/src/main/MarkdownRender.scala",
+          "fix": "Escape original Markdown on StackOverflowError with scalalib.StringUtils.escapeHtmlRaw."
+        }
+      ]
     },
     "lila-ws": {
       "repository": "https://github.com/lichess-org/lila-ws",
@@ -28,9 +36,12 @@
       "location": "/opt/nosweatchess/tools/node"
     },
     "mongodb": {
-      "version": "8.0.34",
+      "version": "8.0.38",
       "location": "/opt/nosweatchess/tools/mongodb/bin/mongod",
-      "exposure": "loopback27019; app/ws/root identities only"
+      "exposure": "loopback27019; app/ws/root identities only",
+      "maintenance": "Private binary; not updated by host APT. Security fixes through 8.0.37; 8.0.38 packaging follow-up.",
+      "source": "https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2404-8.0.38.tgz",
+      "sourceSha256": "2885d4382bd47b96bfaf3edc7dec0ef44463e3e2a79479f584d20deb6182cda9"
     },
     "redis": {
       "version": "8.2.11",
@@ -91,7 +102,12 @@
     "pip": "26.2.0",
     "pnpm": "12.9.0",
     "lock": "native pnpm-lock.yaml and pnpm-workspace.yaml",
-    "note": "cheerio/jsdom fetch and CSS/YAML/glob processing are build/test paths. pip is installation tooling. Node embedded Undici is a separate component."
+    "note": "cheerio/jsdom fetch and CSS/YAML/glob processing are build/test paths. pip is installation tooling. Node embedded Undici is a separate component.",
+    "fast-xml-parser": {
+      "version": "5.11.1",
+      "advisory": "GHSA-474x-hrwr-fgx4",
+      "context": "Inspected bin/i18n-file-gen.ts parses repository translation XML without stopNodes; advisory requires non-default stopNodes. Affected version retained and visible; fixed version5.12.0 available."
+    }
   },
   "knownAdvisoryDecisions": [
     {
@@ -114,8 +130,8 @@
         "CVE-2026-104004",
         "CVE-2026-103965"
       ],
-      "status": "not-affected-at8.0.34",
-      "evidence": "MongoDB CNA8.0 affected range is <8.0.34."
+      "status": "not-affected-at-reviewed-version",
+      "evidence": "MongoDB CNA8.0 affected range is <8.0.34; reviewed target8.0.38 is newer."
     },
     {
       "ids": [
@@ -146,6 +162,38 @@
       ],
       "status": "fixed-version-targeted",
       "context": "SMTP usage/reachability must be assessed separately."
+    },
+    {
+      "ids": [
+        "GHSA-2cpx-9573-5pwp"
+      ],
+      "status": "fixed-in-pinned-source",
+      "evidence": "Upstream34830b8316fea29a93c6b797236f79203ad021e8 backported in the recorded local native patch; actual parser-overflow test must pass before release."
+    },
+    {
+      "ids": [
+        "CVE-2026-120810",
+        "CVE-2026-120811",
+        "CVE-2026-120815",
+        "CVE-2026-120817",
+        "CVE-2026-120818",
+        "CVE-2026-120820",
+        "CVE-2026-120822",
+        "CVE-2026-120824",
+        "CVE-2026-118383"
+      ],
+      "status": "not-affected-at-reviewed-version",
+      "evidence": "MongoDB CNA8.0 affected ranges end before8.0.37; target8.0.38 includes these fixes. CVE-2026-118383 additionally concerns replica-set members; our service is standalone."
+    },
+    {
+      "ids": [
+        "CVE-2026-120821",
+        "CVE-2026-120823",
+        "CVE-2026-120825",
+        "CVE-2026-120826"
+      ],
+      "status": "not-affected-branch",
+      "evidence": "MongoDB CNA affected versions are9.0 before9.0.7, not8.0."
     }
   ],
   "dailyReportRules": [

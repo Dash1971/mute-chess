@@ -35,3 +35,12 @@ The controller paths are private operational details documented in its existing 
 The daily report also reads the separate host monitor's expected RELEASE.json fingerprint. Every deployment must use the existing planned-maintenance wrapper with only the intended changed paths declared, including `/opt/nosweatchess/current/RELEASE.json`. Verify that the new release fingerprint is accepted, isolation is unchanged and no other control hashes drift before declaring completion. Updating advisory verification alone does not resolve a stale host-monitor release record.
 
 If an earlier deployment missed this step, first verify the active commit against approved main/build evidence and actual runtime artifacts, prove that the only configuration-hash difference is RELEASE.json, and check isolation/containment and incident state. Only then record the narrowly scoped release-fingerprint approval with previous/new hashes and evidence, retaining the prior state for audit. Do not reset unrelated hashes, incident records, SSH observations or journal-coverage warnings. This is coordination of an approved application release, not permission to accept unexplained security-control drift.
+
+
+## November 11 maintenance (#307)
+
+MongoDB's private runtime moves from8.0.34 to8.0.38 on the same release branch. Vendor8.0.37 fixes the newly reviewed8.0 advisories;8.0.38 is its packaging follow-up. Preserve the existing standalone data directory and loopback/UID isolation. The MongoDB9.0-only notices remain not applicable to8.0.
+
+The Lila pin remains unchanged. Its local patch backports upstream34830b8316fea29a93c6b797236f79203ad021e8 for GHSA-2cpx-9573-5pwp: HTML-escape the original Markdown when parsing raises StackOverflowError. The native Markdown suite includes a long reference-link regression that exercises this fallback. No new user-facing strings.
+
+Keep deepmerge unresolved. fast-xml-parser5.11.1 remains an affected version in translation-generation tooling, but the inspected invocation does not enable the required stopNodes option. Do not silently classify these as patched. Refresh actual runtime checks/current-release evidence and the reviewed reference inventory after deployment. Classifier changes require the owner's separately scoped approval; preserve fail-closed identity checks and schedules.

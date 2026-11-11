@@ -674,6 +674,17 @@
             "ui/insight/src/view.ts",
             "src/test/scala/NoSweatInsightsLocaleTest.scala"
           ]
+        },
+        {
+          "id": "markdown-parser-error-escaping",
+          "rationale": "Backport upstream 34830b8316fea29a93c6b797236f79203ad021e8 (GHSA-2cpx-9573-5pwp, #307) without rebasing the pinned Lila source. Escape the original text when the Markdown parser overflows, preserving ordinary native rendering and preventing fallback HTML injection. Remove the backport after an upstream pin includes the fix.",
+          "files": [
+            "modules/markdown/src/main/MarkdownRender.scala",
+            "modules/web/src/test/common/MarkdownTest.scala"
+          ],
+          "verification": [
+            "Run web/testOnly lila.markdown.MarkdownTest, including the actual long-reference parser-overflow regression and ordinary native Markdown cases; compile and stage the exact merged source."
+          ]
         }
       ]
     },
