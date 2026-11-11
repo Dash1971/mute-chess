@@ -24,10 +24,10 @@ fetch_verified() {
 }
 
 fetch_verified https://repo.maven.apache.org/maven2/org/scala-sbt/sbt-launch/2.0.11/sbt-launch-2.0.11.jar "$task_root/tools/sbt-launch-2.0.11.jar" sha1
-if [[ ! -x "$task_root/tools/mongodb/bin/mongod" ]]; then
-  fetch_verified https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2404-8.0.34.tgz "$task_root/tools/mongodb-8.0.34.tgz"
+if [[ ! -x "$task_root/tools/mongodb/bin/mongod" ]] || [[ $("$task_root/tools/mongodb/bin/mongod" --version) != *"db version v8.0.38"* ]]; then
+  fetch_verified https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2404-8.0.38.tgz "$task_root/tools/mongodb-8.0.38.tgz"
   mkdir -p "$task_root/tools/mongodb"
-  tar -xzf "$task_root/tools/mongodb-8.0.34.tgz" --strip-components=1 -C "$task_root/tools/mongodb"
+  tar -xzf "$task_root/tools/mongodb-8.0.38.tgz" --strip-components=1 -C "$task_root/tools/mongodb"
 fi
 if [[ ! -x "$task_root/tools/pnpm/node_modules/.bin/pnpm" ]]; then
   npm install --prefix "$task_root/tools/pnpm" --no-audit --no-fund pnpm@12.9.0
