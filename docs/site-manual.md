@@ -223,6 +223,13 @@ friend games retain Lichess's manual claims. Older games created with the
 no-claim rule do not gain automatic disconnect claims. See
 [abandoned-game handling](public-bot-activity.md#abandoned-human-games-302).
 
+## Planned features
+
+[Weekly community Arenas](arena-plan.md) is a draft implementation for owner-hosted
+two-hour events, initially at 15+10, with 1200–1700-rated bots filling a target
+of ten active participants as humans join and leave. It is not available on the
+live site yet.
+
 ## Related feature guides
 
 - [Maia opponents, game capacity and background activity](public-bot-activity.md).

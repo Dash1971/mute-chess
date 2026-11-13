@@ -220,7 +220,7 @@
         "GHSA-hr3c-7vww-ffrj"
       ],
       "status": "public-path-blocked-not-patched",
-      "evidence": "Tournament APIs are not exposed by the gateway. Underlying source is not claimed patched; retain visibility and revisit if routes change."
+      "evidence": "Reviewed again for #313: GHSA-hr3c-7vww-ffrj affects anonymous /api/tournament/{id}/games, /results and /teams exports. All /api/tournament routes remain denied by the gateway, with explicit negative route tests. Newly exposed native web Arena routes retain WithVisibleTournament and owner-event checks; team battles/class-team creation remain excluded. This is route containment, not a source-level patch; keep the advisory visible."
     },
     {
       "ids": [

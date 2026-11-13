@@ -9,7 +9,7 @@ import { Maia } from './maia.mjs';
 import { PredictionQueue } from './prediction-queue.mjs';
 import { createZapInvoice, validateZapReceipt, InvoiceError } from './lightning.mjs';
 import { freeze, freezeForHuman, freezeAutomatic, automaticProduction, automaticTargetTime,
-  effectivePolicy, targetTimeForPolicy, addedWait } from './policy.mjs';
+  freezeArena, arenaProduction, arenaTargetTime, effectivePolicy, targetTimeForPolicy, addedWait } from './policy.mjs';
 import { validatePersonality } from './personality.mjs';
 
 const token = process.env.ADAPTER_TOKEN;
@@ -60,10 +60,10 @@ async function play(game) {
   try {
     const started = performance.now();
     const moves = game.state.moves ? game.state.moves.split(' ') : [];
-    const production = game.automatic ? automaticProduction(game.policy) : game.policy;
+    const production = game.arena ? arenaProduction(game.policy) : game.automatic ? automaticProduction(game.policy) : game.policy;
     const policy = effectivePolicy(production, game.ply, botsById);
     const clock = { baseSeconds: game.clock?.initial ?? null, incrementSeconds: game.clock?.increment ?? 0 };
-    const targetMs = game.automatic ? automaticTargetTime(game.policy, clock) : targetTimeForPolicy(production, clock);
+    const targetMs = game.arena ? arenaTargetTime(game.policy, clock) : game.automatic ? automaticTargetTime(game.policy, clock) : targetTimeForPolicy(production, clock);
     const turn = { id: game.id, ply: game.ply };
     const result = await predictions.predict(moves, policy, game.automatic === true, turn);
     const elapsed = performance.now() - started;
@@ -136,6 +136,12 @@ const server = http.createServer(async (request, response) => {
       const bot = botsById.get(body.bot);
       if (!bot) throw new AdapterError(400, 'Unknown opponent');
       return send(200, Object.hasOwn(body, 'opponentRating') ? freezeForHuman(bot, body.opponentRating) : freeze(bot));
+    }
+    if (request.url === '/freeze-arena') {
+      if (!maia.healthy) throw new AdapterError(503, 'Maia unavailable');
+      const bot = botsById.get(body.bot);
+      if (!bot) throw new AdapterError(400, 'Unknown Arena bot');
+      return send(200, freezeArena(bot, body.rated, body.opponentRating));
     }
     if (request.url === '/freeze-automatic') {
       if (!maia.healthy) throw new AdapterError(503, 'Maia unavailable');

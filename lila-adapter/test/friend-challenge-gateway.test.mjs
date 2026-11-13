@@ -82,3 +82,37 @@ test('foreign origins and malformed challenge socket paths remain denied',()=>{
     assert.equal(app.upgrade(path).destroyed,true,path);
   assert.equal(app.calls.length,0);
 });
+
+test('Arena exposes only native event actions and its socket, retaining private and management boundaries', () => {
+  const app=gateway();
+  for (const [path,method] of [
+    ['/tournament','GET'],['/tournament/new','GET'],['/tournament/new','POST'],
+    ['/tournament/AbCd1234','GET'],['/tournament/AbCd1234/standing/1','GET'],
+    ['/tournament/AbCd1234/player/Dash','GET'],['/tournament/AbCd1234/page-of/Dash','GET'],
+    ['/tournament/AbCd1234/join','POST'],['/tournament/AbCd1234/withdraw','POST'],
+    ['/tournament/AbCd1234/prepare','POST'],['/tournament/AbCd1234/edit','POST'],
+    ['/tournament/AbCd1234/terminate','POST'],
+  ]) {
+    const result=app.request(path,method);
+    assert.equal(result.req.upstream?.options.path,path,`${method} ${path}`);
+  }
+  for (const path of ['/tournament/manager','/tournament/team-battle/new/AbCd1234',
+    '/api/tournament','/tournament/AbCd1234/admin','/club/internal/arena']) {
+    const count=app.calls.length;
+    app.request(path,'POST');assert.equal(app.calls.length,count,path);
+  }
+  const count=app.calls.length;
+  assert.equal(app.upgrade('/tournament/AbCd1234/socket/v5').destroyed,false);
+  assert.equal(app.calls.length,count+1);
+  assert.equal(app.upgrade('/tournament/AbCd1234/socket/v5','https://other.example').destroyed,true);
+});
+
+
+test('Arena API exports implicated in GHSA-hr3c-7vww-ffrj stay denied', () => {
+  const app=gateway();
+  for (const path of ['/api/tournament/AbCd1234/games','/api/tournament/AbCd1234/results','/api/tournament/AbCd1234/teams']) {
+    const count=app.calls.length;
+    const result=app.request(path,'GET');
+    assert.equal(result.res.status,404); assert.equal(app.calls.length,count);
+  }
+});
