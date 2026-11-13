@@ -253,3 +253,8 @@ patched paths.
 
 Validation results and remaining browser acceptance checks are recorded in the
 draft PR. No merge, deployment or live event is authorized by this implementation.
+
+
+### Security follow-up stacked on this draft (#314)
+
+The follow-up backports the upstream tournament visibility fix for games/results/teams exports and the broadcast source-address validation fix. It retains this draft's owner-event gate, gateway API denial and hidden export controls; no API route is opened. The source inventory's tournament advisory decision becomes a backported source target when the follow-up is included. The earlier draft-only unpatched status above remains historical validation context. Merge #313 before the follow-up and verify/deploy the combined final main once. The moderator-token advisory is outside this follow-up.

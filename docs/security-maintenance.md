@@ -58,3 +58,12 @@ The moderator-token, tournament and broadcast advisories remain visible. The cur
 ## Draft Arena exposure review (#313)
 
 GHSA-hr3c-7vww-ffrj concerns the anonymous tournament API games/results/teams exports, which bypass class-team visibility. The draft exposes only owner-hosted native web Arenas, keeps `WithVisibleTournament` on event reads/actions, and retains gateway denial of all `/api/tournament` paths and team-battle management. Executable gateway regressions cover those three read endpoints. The advisory remains `public-path-blocked-not-patched`; this is not a backport or a claim that the underlying API is fixed. Moderator-token and broadcast exposure is unchanged. No release or monitor baseline is changed by this draft.
+
+
+## Stacked tournament/broadcast backports (#314, depends on Arena #313)
+
+Source targets only; this PR is not deployed. Backport upstream8f583aaf9db9fe32aebdbe460a789dd5630f17f6 for GHSA-hr3c-7vww-ffrj and3cf8d5c524ebac6eb71d392bf45f4113128b8bdb for GHSA-582f-w2m6-pr6m on the same Lila pin. All tournament export routes now enter the existing Tournament visibility guard, including the Arena owner-event restriction. Because this pin predates upstream's game-export relocation, Api retains only a package-private renderer called after that guard, preserving native PGN flags, content type and throttling. Gateway exposure and the hidden bulk-export UI remain exactly as in #313.
+
+Broadcast validation resolves the destination before applying upstream's production address exclusions. Reuse the existing generic Invalid source URL message and omit the upstream debug URL print; no new user-facing strings. This is the reviewed upstream advisory backport, not an assertion of comprehensive DNS-rebinding or redirect protection. Existing network containment remains required.
+
+Merge Arena #313 first, then this follow-up, and deploy the final verified main once using the existing release procedure. Refresh the actual active release/build/native-patch/inventory evidence for OpenClaw, preserve historical receipts and confirm inventory_verified=true. Do not copy this source-target inventory into the live reviewed reference or claim deployment before that verification. The moderator-token advisory GHSA-5gjj-x225-jrr3 and the two existing low-severity dependency findings remain visible. No report predicates, schedules, deployment frameworks or live configuration change in this PR.
