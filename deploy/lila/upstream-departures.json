@@ -699,7 +699,7 @@
         },
         {
           "id": "owner-hosted-arena",
-          "rationale": "#311/#313 restores native owner-hosted standard Arenas. A namespaced managed-seat controller selects ten saved-rating 1200\u20131700 bots, reserves the event roster, reconciles human waiting/playing presence with a 60-second idle reconnect allowance and native standings, and withdraws/returns fillers without touching ongoing results. The existing admission sequencer freezes bot policies before native pairing insertion; human/human games retain native Arena pairing. Background-only suppression persists until event games drain, independently of the maintenance pause. Native clocks, scoring, ratings, deadlines, per-player identity and owner/CSRF checks remain authoritative. New host status/help/error text uses all ten native locales. Defaults are 15+10 and 120 minutes; no new service, scheduler or infrastructure is introduced. Focused Arena views hide native bulk-download controls while the affected tournament export APIs remain blocked; the optional view flag defaults to native enabled behavior outside Mute. Issue #314 also routes all tournament games/results/teams exports through this controller's existing WithVisibleTournament guard, preserving the Arena owner-event and native class-team membership checks. The older pinned game-export renderer remains a package-private Api helper after the visibility gate.",
+          "rationale": "#311/#313 restores native owner-hosted standard Arenas. A namespaced managed-seat controller selects ten saved-rating 1200\u20131700 bots, reserves the event roster, reconciles human waiting/playing presence with a 60-second idle reconnect allowance and native standings, and withdraws/returns fillers without touching ongoing results. The existing admission sequencer freezes bot policies before native pairing insertion; human/human games retain native Arena pairing. Background-only suppression persists until event games drain, independently of the maintenance pause. Native clocks, scoring, ratings, deadlines, per-player identity and owner/CSRF checks remain authoritative. New host status/help/error text uses all ten native locales. Defaults are 15+10 and 120 minutes; no new service, scheduler or infrastructure is introduced. Focused Arena views hide native bulk-download controls while the affected tournament export APIs remain blocked; the optional view flag defaults to native enabled behavior outside Mute. Issue #314 also routes all tournament games/results/teams exports through this controller's existing WithVisibleTournament guard, preserving the Arena owner-event and native class-team membership checks. The older pinned game-export renderer remains a package-private Api helper after the visibility gate. Owner-approved follow-up #319 makes the native bot condition authoritative for human-only events and persists each event\u2019s saved-rating band and 1\u201320 filler target (defaults 1400\u20131700, ten). Prepared events lock roster-related configuration; native owner/CSRF checks, game cap and human entry remain unchanged. The participant notice uses the saved target and explains graceful bot withdrawal. All new controls, validation and notices use ten native locales. #321 also carries public display names separately from canonical IDs in the native Arena pairing banner and top-game packets. The shared spectator list uses the existing read-only native status API in bounded batches, renders labels as text, and retains canonical profile URLs; late responses cannot overwrite a newer crowd. Native chat behavior stays unchanged. The redundant host help paragraph below chat is removed. Visual verification also found the reused upstream Allow bot accounts label missing from all nine non-English catalogs; its existing arena translation key is now translated and checked in all ten locales.",
           "verification": [
             "Native NoSweatArenaTest, NoSweatArenaAdmissionTest, NoSweatArenaRosterTest and NoSweatArenaLocaleTest; native compile and formatting; existing admission and full adapter policy/gateway regressions.",
             "Before merge: isolated native browser verification of owner-only create/prepare/edit/cancel, human and bot pairings, waiting/reconnect transitions, deadline/drain restoration and all ten locale renders.",
@@ -724,7 +724,26 @@
             "src/test/scala/NoSweatArenaRosterTest.scala",
             "ui/tournament/src/interfaces.ts",
             "ui/tournament/src/view/finished.ts",
-            "ui/tournament/src/view/util.ts"
+            "ui/tournament/src/view/util.ts",
+            "modules/tournament/src/main/NoSweatArenaSettings.scala",
+            "modules/tournament/src/main/Tournament.scala",
+            "modules/tournament/src/main/BSONHandlers.scala",
+            "modules/tournament/src/main/TournamentRepo.scala",
+            "ui/bits/src/bits.tourForm.ts",
+            "modules/tournament/src/main/JsonView.scala",
+            "ui/lib/src/view/watchers.ts",
+            "ui/lib/tests/watchersPublicNames.test.ts",
+            "ui/tournament/src/view/started.ts",
+            "ui/tournament/src/view/table.ts",
+            "translation/dest/arena/de-DE.xml",
+            "translation/dest/arena/es-ES.xml",
+            "translation/dest/arena/fr-FR.xml",
+            "translation/dest/arena/hi-IN.xml",
+            "translation/dest/arena/ja-JP.xml",
+            "translation/dest/arena/ko-KR.xml",
+            "translation/dest/arena/pt-BR.xml",
+            "translation/dest/arena/ru-RU.xml",
+            "translation/dest/arena/zh-CN.xml"
           ]
         },
         {
