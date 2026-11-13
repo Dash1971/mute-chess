@@ -739,6 +739,18 @@
             "Run relay/testOnly lila.relay.RelaySourceAddressTest lila.relay.RelayFetchTest for production/private/public address classification, upstream nonproduction behavior, blocklist and normal URL handling. Tests use IP literals and make no HTTP requests.",
             "Compile the exact controller/routes and run existing Arena admission/participation and gateway regressions. Preserve the parent Arena gateway allowlist and hidden export UI byte-for-byte."
           ]
+        },
+        {
+          "id": "moderator-oauth-totp",
+          "rationale": "Issue #316 backports upstream e6f4cf2f451e8c83dfeba207173b64dfd34c469b for GHSA-5gjj-x225-jrr3, retaining the pinned Lila revision. Use the exact upstream production TOTP condition at request-time so already-issued web:mod tokens cannot restore moderator roles without enrollment. Preserve ordinary role filtering, enrolled moderators, nonproduction behavior, gateway exposure and account/token data. Remove after the upstream pin includes this fix.",
+          "files": [
+            "modules/security/src/main/SecurityApi.scala",
+            "modules/security/src/test/ModeratorOAuthTest.scala"
+          ],
+          "verification": [
+            "Run security/testOnly lila.security.ModeratorOAuthTest lila.security.PermissionTest against the actual private role filter without expanding production visibility; cover production no-TOTP refusal, enrollment changes for existing tokens, enrolled moderator retention, missing scope, nonproduction and no privilege creation.",
+            "Compile and stage exact merged main; match the deployed SecurityApi.class to its real build receipt and verify the source condition. Keep public OAuth/moderator routes blocked. Refresh current release verification and confirm the unchanged OpenClaw classifier accepts the reviewed backport."
+          ]
         }
       ]
     },

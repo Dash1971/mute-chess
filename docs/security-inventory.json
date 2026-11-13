@@ -32,6 +32,12 @@
           "advisory": "GHSA-582f-w2m6-pr6m",
           "file": "modules/relay/src/main/RelayRoundForm.scala",
           "fix": "Resolve and validate source IPs using upstream production loopback/wildcard/link-local/site-local rejection, additional lichess.ovh blocklist; reuse Invalid source URL and omit debug URL logging."
+        },
+        {
+          "commit": "e6f4cf2f451e8c83dfeba207173b64dfd34c469b",
+          "advisory": "GHSA-5gjj-x225-jrr3",
+          "file": "modules/security/src/main/SecurityApi.scala",
+          "fix": "In production retain web:mod OAuth moderator roles only while the account has enrolled TOTP. Request-time filtering covers existing tokens; preserve upstream nonproduction behavior."
         }
       ]
     },
@@ -224,8 +230,8 @@
       "ids": [
         "GHSA-5gjj-x225-jrr3"
       ],
-      "status": "public-path-blocked-not-patched",
-      "evidence": "Deployed gateway does not expose OAuth token creation or moderator endpoints. Advisory requires an existing moderator session without enrolled TOTP. Underlying source is not claimed patched; retain visibility and revisit if routes change."
+      "status": "fixed-in-pinned-source",
+      "evidence": "Backport upstream e6f4cf2f451e8c83dfeba207173b64dfd34c469b (#316). The request-time OAuth role filter now requires enrolled TOTP in production, including existing tokens. Actual private-filter regression covers production refusal, enrollment changes, enrolled moderators, non-web:mod tokens, nonproduction and ordinary accounts. Gateway token/moderator restrictions remain closed. The advisory metadata still lists no patched version; the upstream source commit is the fix evidence."
     },
     {
       "ids": [
