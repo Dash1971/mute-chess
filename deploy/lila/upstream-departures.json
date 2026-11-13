@@ -685,6 +685,16 @@
           "verification": [
             "Run web/testOnly lila.markdown.MarkdownTest, including the actual long-reference parser-overflow regression and ordinary native Markdown cases; compile and stage the exact merged source."
           ]
+        },
+        {
+          "id": "study-private-chapter-config",
+          "rationale": "Issue #309 backports upstream e71a2964ec3b3c6da7fa7c4ec6b53de53bba4326 (GHSA-2236-pwjw-m8m4). Load the study with its chapter and reuse native CanView, including both config/division responses. Adapt only the existing pinned controller error-continuation arguments; preserve public/member visibility and native unauthorized/forbidden handling. Remove after the upstream pin includes this fix.",
+          "files": [
+            "app/controllers/Study.scala"
+          ],
+          "verification": [
+            "Compile the exact native controller and run existing native source/format checks. After deployment, use an isolated temporary study/chapter fixture to verify public config succeeds and private anonymous config and divisionOnly are refused, then remove only that fixture."
+          ]
         }
       ]
     },
