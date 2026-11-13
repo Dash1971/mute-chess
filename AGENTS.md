@@ -537,3 +537,12 @@ other fitting games, early computing history, Wipeout and electronic music. Reta
 all canonical IDs, policies, ratings, games and history. Assign Elon Musk to an
 existing lower-rated identity, without changing its rating. Proper names remain
 untranslated. Keep this as a separate draft; no live writes, merge or deployment.
+
+## Configurable Arena fillers (November 13, #319)
+
+The owner approved a draft follow-up to merged #313: make Allow bot accounts
+authoritative for human-only events and expose each event’s bot rating range
+(default 1400–1700) and active participant target (default ten). Use the actual
+target in the Maia participation notice, preserve ongoing games and unlimited
+human entry, and translate all UI text into ten locales. Keep this follow-up
+draft; do not merge or deploy without further instruction.

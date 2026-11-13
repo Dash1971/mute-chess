@@ -116,3 +116,17 @@ test('Arena API exports implicated in GHSA-hr3c-7vww-ffrj stay denied', () => {
     assert.equal(result.res.status,404); assert.equal(app.calls.length,count);
   }
 });
+
+
+test('spectator public-name lookups expose only the native read-only status endpoint',()=>{
+  const app=gateway();
+  const path='/api/users/status?ids=n066f8597b3952d996bc';
+  for(const method of ['GET','HEAD']){
+    const {req,res}=app.request(path,method);
+    assert.equal(res.status,undefined);assert.ok(req.upstream);
+    assert.equal(app.calls.at(-1).options.path,path);
+  }
+  for(const [path,method] of [['/api/users/status','POST'],['/api/users/status/extra','GET'],['/api/users','GET']]){
+    assert.equal(app.request(path,method).res.status,404);
+  }
+});

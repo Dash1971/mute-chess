@@ -110,6 +110,7 @@ const server = http.createServer((req, res) => {
   const read = ['GET', 'HEAD'].includes(req.method), post = req.method === 'POST';
   const featureRoute =
     (post && path === "/translation/select") ||
+    (read && path === "/api/users/status") ||
     (read && /^\/player(?:\/top\/(?:ultraBullet|bullet|blitz|rapid|classical))?$/.test(path)) ||
     (read && /^\/stat\/rating\/distribution\/(?:ultraBullet|bullet|blitz|rapid|classical)$/.test(path)) ||
     (read && /^\/account\/preferences\/(?:display|chess-clock|game-behavior|privacy|notification|engine-analysis)$/.test(path)) ||
