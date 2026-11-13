@@ -44,3 +44,12 @@ MongoDB's private runtime moves from8.0.34 to8.0.38 on the same release branch. 
 The Lila pin remains unchanged. Its local patch backports upstream34830b8316fea29a93c6b797236f79203ad021e8 for GHSA-2cpx-9573-5pwp: HTML-escape the original Markdown when parsing raises StackOverflowError. The native Markdown suite includes a long reference-link regression that exercises this fallback. No new user-facing strings.
 
 Keep deepmerge unresolved. fast-xml-parser5.11.1 remains an affected version in translation-generation tooling, but the inspected invocation does not enable the required stopNodes option. Do not silently classify these as patched. Refresh actual runtime checks/current-release evidence and the reviewed reference inventory after deployment. Classifier changes require the owner's separately scoped approval; preserve fail-closed identity checks and schedules.
+
+
+## November 13 maintenance (#309)
+
+Backport upstream e71a2964ec3b3c6da7fa7c4ec6b53de53bba4326 (GHSA-2236-pwjw-m8m4) on the unchanged Lila pin. Chapter configuration loads the study and chapter together, enforces native CanView for both config and divisionOnly, and retains the pinned controller's native unauthorized/forbidden continuations. Validate with a temporary isolated HTTP fixture: public config allowed; anonymous private config and division refused; missing fixture refused. Remove the test fixture afterward. No new user-facing strings.
+
+Cloudflared moves from2026.10.7 to2026.11.0 through the existing APT repository. Record the actual installed and running version/hash with the fresh current-release security verification. Keep tunnel credentials, units and isolation unchanged.
+
+The moderator-token, tournament and broadcast advisories remain visible. The current gateway blocks their public attack paths; that is not a source-level fix or permission to enable those routes without review. The two existing low-severity dependency findings also remain visible. No classifier predicate or schedule changes are part of this release.
