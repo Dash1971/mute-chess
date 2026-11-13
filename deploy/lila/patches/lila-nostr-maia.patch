@@ -6217,6 +6217,96 @@ index 74906f1..99e482b 100644
  travel-places.manual-wheelchair
  travel-places.map-of-japan
  travel-places.metro
+diff --git a/translation/dest/arena/de-DE.xml b/translation/dest/arena/de-DE.xml
+index d3d67dd..6f8e106 100644
+--- a/translation/dest/arena/de-DE.xml
++++ b/translation/dest/arena/de-DE.xml
+@@ -88,4 +88,5 @@ Zum Beispiel bedeutet ein Tabellenplatz-Durchschnitt von 3% typischerweise das E
+   <string name="tournamentPairingsAreNowClosed">Die Turnierpaarungen sind jetzt geschlossen.</string>
+   <string name="berserkRate">Berserker-Rate</string>
+   <string name="leaguesAndStreamerBattles">Ligen &amp; Streamer-Kämpfe</string>
++  <string name="allowBotAccounts">Bot-Konten erlauben</string>
+ </resources>
+diff --git a/translation/dest/arena/es-ES.xml b/translation/dest/arena/es-ES.xml
+index f326a19..6bda031 100644
+--- a/translation/dest/arena/es-ES.xml
++++ b/translation/dest/arena/es-ES.xml
+@@ -88,4 +88,5 @@ Por ejemplo, una valoración media del 3% significa que has finalizado en el 3%
+   <string name="tournamentPairingsAreNowClosed">Los emparejamientos del torneo están cerrados.</string>
+   <string name="berserkRate">Tasa de berserk</string>
+   <string name="leaguesAndStreamerBattles">Ligas y Batallas retransmitidas</string>
++  <string name="allowBotAccounts">Permitir cuentas bot</string>
+ </resources>
+diff --git a/translation/dest/arena/fr-FR.xml b/translation/dest/arena/fr-FR.xml
+index 2963100..222ef6a 100644
+--- a/translation/dest/arena/fr-FR.xml
++++ b/translation/dest/arena/fr-FR.xml
+@@ -85,4 +85,5 @@ Par exemple, un rang moyen de 3 % signifie que vous êtes habituellement parmi
+   <string name="tournamentPairingsAreNowClosed">Les appariements sont terminés.</string>
+   <string name="berserkRate">Taux de berserk</string>
+   <string name="leaguesAndStreamerBattles">Ligues et batailles de streamer</string>
++  <string name="allowBotAccounts">Autoriser les comptes bots</string>
+ </resources>
+diff --git a/translation/dest/arena/hi-IN.xml b/translation/dest/arena/hi-IN.xml
+index a4032e3..9b080c5 100644
+--- a/translation/dest/arena/hi-IN.xml
++++ b/translation/dest/arena/hi-IN.xml
+@@ -78,4 +78,5 @@
+   <string name="tournamentShields">टूर्नामेंट शील्ड्स</string>
+   <string name="onlyTitled">केवल शीर्षक वाले खिलाड़ी</string>
+   <string name="onlyTitledHelp">टूर्नामेंट में शामिल होने के लिए एक आधिकारिक शीर्षक की आवश्यकता है</string>
++  <string name="allowBotAccounts">बॉट खातों को अनुमति दें</string>
+ </resources>
+diff --git a/translation/dest/arena/ja-JP.xml b/translation/dest/arena/ja-JP.xml
+index d09c3cc..b6afbc1 100644
+--- a/translation/dest/arena/ja-JP.xml
++++ b/translation/dest/arena/ja-JP.xml
+@@ -79,4 +79,5 @@
+   <string name="tournamentPairingsAreNowClosed">トーナメントの対局の組み合わせは終了しました。</string>
+   <string name="berserkRate">バーサーク率</string>
+   <string name="leaguesAndStreamerBattles">リーグとストリーマーバトル</string>
++  <string name="allowBotAccounts">ボットアカウントの参加を許可</string>
+ </resources>
+diff --git a/translation/dest/arena/ko-KR.xml b/translation/dest/arena/ko-KR.xml
+index 81cb63c..417de84 100644
+--- a/translation/dest/arena/ko-KR.xml
++++ b/translation/dest/arena/ko-KR.xml
+@@ -87,4 +87,5 @@
+   <string name="tournamentPairingsAreNowClosed">토너먼트 매칭이 이제 종료되었습니다.</string>
+   <string name="berserkRate">버서크 비율</string>
+   <string name="leaguesAndStreamerBattles">리그 &amp; 스트리머 배틀</string>
++  <string name="allowBotAccounts">봇 계정 참가 허용</string>
+ </resources>
+diff --git a/translation/dest/arena/pt-BR.xml b/translation/dest/arena/pt-BR.xml
+index aa9efd5..5e182f6 100644
+--- a/translation/dest/arena/pt-BR.xml
++++ b/translation/dest/arena/pt-BR.xml
+@@ -85,4 +85,5 @@ Por exemplo, uma média de classificação de 3% significa que você normalmente
+   <string name="tournamentPairingsAreNowClosed">Os pareamentos do torneio fecharam.</string>
+   <string name="berserkRate">Taxa Berserk</string>
+   <string name="leaguesAndStreamerBattles">Ligas &amp; Batalhas de Streamers</string>
++  <string name="allowBotAccounts">Permitir contas de bots</string>
+ </resources>
+diff --git a/translation/dest/arena/ru-RU.xml b/translation/dest/arena/ru-RU.xml
+index 80e1145..14ca48a 100644
+--- a/translation/dest/arena/ru-RU.xml
++++ b/translation/dest/arena/ru-RU.xml
+@@ -84,4 +84,5 @@
+   <string name="tournamentPairingsAreNowClosed">Жеребьёвка турнира закончена</string>
+   <string name="berserkRate">Берсерк</string>
+   <string name="leaguesAndStreamerBattles">Лиги &amp; Битвы стримеров</string>
++  <string name="allowBotAccounts">Разрешить аккаунты ботов</string>
+ </resources>
+diff --git a/translation/dest/arena/zh-CN.xml b/translation/dest/arena/zh-CN.xml
+index 58403d3..bdb1c27 100644
+--- a/translation/dest/arena/zh-CN.xml
++++ b/translation/dest/arena/zh-CN.xml
+@@ -87,4 +87,5 @@
+   <string name="tournamentPairingsAreNowClosed">锦标赛配对现已关闭。</string>
+   <string name="berserkRate">狂暴率</string>
+   <string name="leaguesAndStreamerBattles">联赛和主播对战</string>
++  <string name="allowBotAccounts">允许机器人账号参赛</string>
+ </resources>
 diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
 index 88adade..5bf1580 100644
 --- a/translation/dest/site/de-DE.xml
@@ -31152,10 +31242,10 @@ index 0000000..87bf6b4
 +}
 diff --git a/src/test/scala/NoSweatArenaLocaleTest.scala b/src/test/scala/NoSweatArenaLocaleTest.scala
 new file mode 100644
-index 0000000..a5ebe9b
+index 0000000..3719591
 --- /dev/null
 +++ b/src/test/scala/NoSweatArenaLocaleTest.scala
-@@ -0,0 +1,44 @@
+@@ -0,0 +1,46 @@
 +package lila.i18n
 +
 +import play.api.i18n.Lang
@@ -31185,7 +31275,7 @@ index 0000000..a5ebe9b
 +      "BotNoticeTitle",
 +      "BotNoticeIntro",
 +      "BotNoticeFill"
-+    ).map("muteArena" + _)
++    ).map("muteArena" + _) :+ "arena:allowBotAccounts"
 +    for code <- List("en-GB", "de-DE", "es-ES", "fr-FR", "hi-IN", "ja-JP", "ko-KR", "pt-BR", "ru-RU", "zh-CN")
 +    do
 +      val lang = Lang.get(code).get
@@ -31199,7 +31289,9 @@ index 0000000..a5ebe9b
 +          case _ => I18nKey(key)()
 +        ).render
 +        assert(rendered.nonEmpty && !rendered.contains(key), s"$code/$key")
-+        if code != "en-GB" then assert(!rendered.startsWith("Arena bots are ready"), code)
++        if code != "en-GB" then
++          assert(!rendered.startsWith("Arena bots are ready"), code)
++          if key == "arena:allowBotAccounts" then assert(rendered != "Allow bot accounts", code)
 diff --git a/src/test/scala/NoSweatArenaRosterTest.scala b/src/test/scala/NoSweatArenaRosterTest.scala
 new file mode 100644
 index 0000000..50a3a37
