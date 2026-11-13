@@ -13246,10 +13246,10 @@ index 0000000..e1cb129
 +    bdoc("_id" -> payment, "userId" -> user, "paid" -> false)
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..684e415
+index 0000000..61824fa
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,1142 @@
+@@ -0,0 +1,1146 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -13859,7 +13859,9 @@ index 0000000..684e415
 +        )
 +      result <- existing match
 +        case Some((doc, game)) =>
-+          fuccess(playerLink(game, Color.fromWhite(doc.getAsOpt[String]("humanColor").contains("white"))))
++          val color = user.fold(Color.fromWhite(doc.getAsOpt[String]("humanColor").contains("white"))):
++            account => game.player(account.id).get.color
++          fuccess(playerLink(game, color))
 +        case None =>
 +          requireThat(
 +            games.size + studyBusy._1 < capacity,
@@ -14342,6 +14344,8 @@ index 0000000..684e415
 +                  "black" -> pair.black,
 +                  "bot" -> managed.head,
 +                  "human" -> pair.users.find(id => !botIds(id)),
++                  "humanColor" -> Option.when(managed.size == 1)(if botIds(pair.white) then "black"
++                  else "white"),
 +                  "automatic" -> (managed.size == 2),
 +                  "state" -> "reserved",
 +                  "rated" -> tour.rated.yes,
