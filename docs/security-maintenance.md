@@ -53,3 +53,8 @@ Backport upstream e71a2964ec3b3c6da7fa7c4ec6b53de53bba4326 (GHSA-2236-pwjw-m8m4)
 Cloudflared moves from2026.10.7 to2026.11.0 through the existing APT repository. Record the actual installed and running version/hash with the fresh current-release security verification. Keep tunnel credentials, units and isolation unchanged.
 
 The moderator-token, tournament and broadcast advisories remain visible. The current gateway blocks their public attack paths; that is not a source-level fix or permission to enable those routes without review. The two existing low-severity dependency findings also remain visible. No classifier predicate or schedule changes are part of this release.
+
+
+## Draft Arena exposure review (#313)
+
+GHSA-hr3c-7vww-ffrj concerns the anonymous tournament API games/results/teams exports, which bypass class-team visibility. The draft exposes only owner-hosted native web Arenas, keeps `WithVisibleTournament` on event reads/actions, and retains gateway denial of all `/api/tournament` paths and team-battle management. Executable gateway regressions cover those three read endpoints. The advisory remains `public-path-blocked-not-patched`; this is not a backport or a claim that the underlying API is fixed. Moderator-token and broadcast exposure is unchanged. No release or monitor baseline is changed by this draft.

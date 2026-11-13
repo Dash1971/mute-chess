@@ -698,6 +698,107 @@ index 638f3c9..f7351b6 100644
  
    private[controllers] def chatOf(study: lila.study.Study)(using ctx: Context) = {
      ctx.kid.no && ctx.noBot // no public chats for kids and bots
+diff --git a/app/controllers/Tournament.scala b/app/controllers/Tournament.scala
+index 383bbdb..00fd259 100644
+--- a/app/controllers/Tournament.scala
++++ b/app/controllers/Tournament.scala
+@@ -25,7 +25,18 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
+   def home = Open(serveHome)
+   def homeLang = LangPage(routes.Tournament.home)(serveHome)
+ 
+-  private def serveHome(using ctx: Context) = NoBot:
++  private def serveHome(using ctx: Context): Fu[Result] =
++    if env.noSweat.enabled then
++      env.tournament.noSweatArena.events.flatMap: events =>
++        Ok.page(
++          views.noSweatArenaHome(
++            events.filter(t => !t.isPrivate || ctx.is(t.createdBy)),
++            ctx.userId.exists(env.tournament.noSweatArena.hostAllowed)
++          )
++        )
++    else serveNativeHome
++
++  private def serveNativeHome(using ctx: Context) = NoBot:
+     for
+       teamIds <- ctx.userId.so(env.team.cached.teamIdsList)
+       (scheduled, visible) <- env.tournament.featuring.tourIndex.get(teamIds)
+@@ -98,7 +109,13 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
+                 env.team.cached.preloadSet(b.teams)
+               streamers <- streamerCache.get(tour.id)
+               shieldOwner <- env.tournament.shieldApi.currentOwner(tour)
+-              page <- renderPage(views.tournament.show(tour, verdicts, json, chat, streamers, shieldOwner))
++              arena <-
++                if env.noSweat.enabled && ctx.is(tour.createdBy) then
++                  env.noSweat.arenaStatus(tour).map(Some(_))
++                else fuccess(None)
++              page <- renderPage(
++                views.tournament.show(tour, verdicts, json, chat, streamers, shieldOwner, arena)
++              )
+             yield
+               env.tournament.lilaHttp.hit(tour)
+               Ok(page).noCache
+@@ -220,10 +237,23 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
+   }
+ 
+   def form = Auth { ctx ?=> me ?=>
+-    NoBot:
+-      env.team.api.lightsByTourLeader(me).flatMap { teams =>
+-        Ok.page(views.tournament.form.create(forms.create(teams, forClas = getBool("clas")), teams))
+-      }
++    if env.noSweat.enabled && !env.tournament.noSweatArena.hostAllowed(me.userId) then fuccess(Forbidden)
++    else
++      NoBot:
++        env.team.api.lightsByTourLeader(me).flatMap { teams =>
++          Ok.page(views.tournament.form.create(forms.create(teams, forClas = getBool("clas")), teams))
++        }
++  }
++
++  def prepare(id: TourId) = Auth { ctx ?=> me ?=>
++    WithEditableTournament(id): tour =>
++      if !env.noSweat.enabled then fuccess(NotFound)
++      else
++        env.noSweat
++          .prepareArena(tour)
++          .map(_ => Redirect(routes.Tournament.show(id)))
++          .recover:
++            case _: NoSweatError => BadRequest(lila.core.i18n.I18nKey("muteArenaUnavailable").txt())
+   }
+ 
+   def teamBattleForm(teamId: TeamId) = Auth { _ ?=> me ?=>
+@@ -246,7 +276,11 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
+   def webCreate = AuthBody(_ ?=> _ ?=> create)
+   def apiCreate = ScopedBody(_.Tournament.Write)(_ ?=> _ ?=> create)
+ 
+-  private def create(using BodyContext[?])(using me: Me) = NoBot:
++  private def create(using BodyContext[?])(using me: Me): Fu[Result] =
++    if env.noSweat.enabled && !env.tournament.noSweatArena.hostAllowed(me.userId) then fuccess(Forbidden)
++    else createNative
++
++  private def createNative(using BodyContext[?])(using me: Me) = NoBot:
+     env.team.api
+       .lightsByTourLeader(me)
+       .flatMap: teams =>
+@@ -453,8 +487,10 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
+       f: Tour => Fu[Result]
+   )(using ctx: Context, me: Me): Fu[Result] =
+     WithVisibleTournament(id): t =>
+-      if isGranted(_.ManageTournament) || (t.createdBy.is(me) && (!t.isFinished || ctx.req.method == "GET"))
+-      then f(t)
++      val canEdit =
++        if env.noSweat.enabled then env.tournament.noSweatArena.hostAllowed(me.userId) && t.createdBy.is(me)
++        else isGranted(_.ManageTournament) || t.createdBy.is(me)
++      if canEdit && (!t.isFinished || ctx.req.method == "GET") then f(t)
+       else Redirect(routes.Tournament.show(t.id))
+ 
+   private def WithVisibleTournament(id: TourId)(
+@@ -463,6 +499,7 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
+     def nope = negotiate(tournamentNotFound, notFoundJson("No such tournament"))
+     cachedTour(id).flatMap:
+       case None => nope
++      case Some(tour) if env.noSweat.enabled && !env.tournament.noSweatArena.ownerEvent(tour) => nope
+       case Some(tour) =>
+         tour.singleTeamId
+           .fold(fuTrue)(env.team.api.clasMemberCheck)
 diff --git a/app/controllers/Tv.scala b/app/controllers/Tv.scala
 index 49e260e..2872316 100644
 --- a/app/controllers/Tv.scala
@@ -1512,6 +1613,46 @@ index 692c27c..fa8ae33 100644
        )
      )
      .flag(_.noRobots, !s.isPublic)
+diff --git a/app/views/tournament.scala b/app/views/tournament.scala
+index b87db05..4ac2cb2 100644
+--- a/app/views/tournament.scala
++++ b/app/views/tournament.scala
+@@ -24,7 +24,8 @@ export showUi.faq.page as faq
+ 
+ lazy val form = TournamentForm(helpers, showUi)(
+   modMenu = views.mod.ui.menu("tour"),
+-  views.setup.translatedVariantChoicesWithVariantsById
++  views.setup.translatedVariantChoicesWithVariantsById,
++  focused = env.noSweat.enabled
+ )
+ 
+ def show(
+@@ -33,7 +34,8 @@ def show(
+     data: play.api.libs.json.JsObject,
+     chatOption: Option[lila.chat.UserChat.Mine],
+     streamers: List[UserId],
+-    shieldOwner: Option[UserId]
++    shieldOwner: Option[UserId],
++    arena: Option[play.api.libs.json.JsObject] = None
+ )(using ctx: Context) =
+   val chat = chatOption.map: c =>
+     views.chat.frag -> views.chat.json(
+@@ -46,6 +48,14 @@ def show(
+       localMod = ctx.userId.has(tour.createdBy),
+       writeable = !c.locked
+     )
+-  showUi(tour, verdicts, shieldOwner, data, chat, views.streamer.bits.contextual(streamers))
++  showUi(
++    tour,
++    verdicts,
++    shieldOwner,
++    data,
++    chat,
++    views.streamer.bits.contextual(streamers),
++    arena.map(views.noSweatArenaControls(tour, _))
++  )
+ 
+ export showUi.restricted
 diff --git a/app/views/ui.scala b/app/views/ui.scala
 index ab74f28..aeb8799 100644
 --- a/app/views/ui.scala
@@ -1795,7 +1936,7 @@ index 885adb4..06960ae 100644
  
  lazy val forumSearch = module("forumSearch",
 diff --git a/conf/routes b/conf/routes
-index f2a7ab2..31ab149 100644
+index f2a7ab2..2ae2705 100644
 --- a/conf/routes
 +++ b/conf/routes
 @@ -1,6 +1,30 @@
@@ -1857,6 +1998,14 @@ index f2a7ab2..31ab149 100644
  GET   /patron/thanks                   controllers.Plan.thanks
  GET   /patron/list                     controllers.Plan.list
  POST  /patron/style                    controllers.Plan.style
+@@ -430,6 +461,7 @@ GET   /tournament                             controllers.Tournament.home
+ GET   /tournament/featured                    controllers.Tournament.featured
+ GET   /tournament/new                         controllers.Tournament.form
+ POST  /tournament/new                         controllers.Tournament.webCreate
++POST  /tournament/$id<\w{8}>/prepare           controllers.Tournament.prepare(id: TourId)
+ GET   /tournament/team-battle/new/:teamId     controllers.Tournament.teamBattleForm(teamId: TeamId)
+ GET   /tournament/team-battle/edit/:id        controllers.Tournament.teamBattleEdit(id: TourId)
+ POST  /tournament/team-battle/edit/:id        controllers.Tournament.teamBattleUpdate(id: TourId)
 diff --git a/modules/activity/src/main/ActivityUi.scala b/modules/activity/src/main/ActivityUi.scala
 index 8bb30bf..ce761f5 100644
 --- a/modules/activity/src/main/ActivityUi.scala
@@ -2358,10 +2507,10 @@ index 6fa1cc3..bdf092f 100644
    def authorLink(post: ForumPost, cssClass: Option[String] = None, withOnline: Boolean = true)(using
        Context
 diff --git a/modules/game/src/main/Env.scala b/modules/game/src/main/Env.scala
-index 43d76ae..71d022d 100644
+index 43d76ae..f21ca0d 100644
 --- a/modules/game/src/main/Env.scala
 +++ b/modules/game/src/main/Env.scala
-@@ -34,7 +34,95 @@ final class Env(
+@@ -34,7 +34,120 @@ final class Env(
  )(using scheduler: Scheduler)(using Executor, Materializer):
    private val config = appConfig.get[GameConfig]("game")(using AutoConfig.loader)
  
@@ -2383,6 +2532,31 @@ index 43d76ae..71d022d 100644
 +    if !noSweatOnly || !game.playable then funit
 +    else if game.clock.isEmpty || game.daysPerTurn.isDefined then
 +      fufail(NoSweatGameAdmission.RealTimeRequired)
++    else if game.sourceIs(_.Arena) then
++      for
++        scope <- db(CollName("nosweat_arena")).byId[Bdoc]("current")
++        pairing <- db(CollName("tournament_pairing")).byId[Bdoc](game.id)
++        users <- userApi.byIds(game.userIds)
++        record <- noSweatGames.byId[Bdoc](game.id)
++        bots = users.filter(_.isBot).map(_.id).toSet
++        hosts = appConfig.getOptional[List[String]]("nosweat.arena.hosts").getOrElse(Nil).map(UserId(_)).toSet
++        allowed = game.variant.standard && game.userIds.distinct.size == 2 && users.size == 2 && users.forall(
++          _.enabled.yes
++        ) &&
++          game.tournamentId.exists(tour =>
++            NoSweatArenaAdmission.allows(
++              tour,
++              game.whitePlayer.userId.get,
++              game.blackPlayer.userId.get,
++              bots,
++              hosts,
++              scope,
++              pairing,
++              record
++            )
++          )
++        _ <- if allowed then funit else fufail("No authorized Arena pairing")
++      yield ()
 +    else if game.variant.standard && game.sourceIs(_.Friend) && game.userIds.distinct.size == 2 then
 +      // Native ChallengeJoiner and Rematcher enforce invitation ownership/consent.
 +      // Keep their Friend source path; human pool/lobby games still require Maia admission.
@@ -3425,6 +3599,255 @@ index cb642b2..f58cc81 100644
  
    private def formatToggle(using format: StudyFormat) =
      postForm(
+diff --git a/modules/tournament/src/main/Env.scala b/modules/tournament/src/main/Env.scala
+index 8dccb41..27691b2 100644
+--- a/modules/tournament/src/main/Env.scala
++++ b/modules/tournament/src/main/Env.scala
+@@ -84,6 +84,8 @@ final class Env(
+ 
+   private lazy val colorHistoryApi = wire[ColorHistoryApi]
+ 
++  lazy val noSweatArena = wire[NoSweatArena]
++
+   lazy val api: TournamentApi = wire[TournamentApi]
+ 
+   lazy val coreApi: lila.core.tournament.TournamentApi = new:
+diff --git a/modules/tournament/src/main/StartedOrganizer.scala b/modules/tournament/src/main/StartedOrganizer.scala
+index e19843a..6d4cbbc 100644
+--- a/modules/tournament/src/main/StartedOrganizer.scala
++++ b/modules/tournament/src/main/StartedOrganizer.scala
+@@ -9,7 +9,8 @@ final private class StartedOrganizer(
+     playerRepo: PlayerRepo,
+     pairingRepo: PairingRepo,
+     waitingUsersApi: WaitingUsersApi,
+-    socket: TournamentSocket
++    socket: TournamentSocket,
++    noSweatArena: NoSweatArena
+ )(using Executor, Scheduler, org.apache.pekko.stream.Materializer):
+ 
+   var runCounter = 0
+@@ -41,6 +42,7 @@ final private class StartedOrganizer(
+     else if api.killSchedule contains tour.id then
+       api.killSchedule.remove(tour.id)
+       api.finish(tour)
++    else if noSweatArena.ownerEvent(tour) then startPairing(tour)
+     else if tour.nbPlayers < 2 then funit
+     else if tour.nbPlayers < 30 then
+       playerRepo.nbActivePlayers(tour.id).flatMap { nb =>
+diff --git a/modules/tournament/src/main/TournamentApi.scala b/modules/tournament/src/main/TournamentApi.scala
+index 012d0f4..0d464e7 100644
+--- a/modules/tournament/src/main/TournamentApi.scala
++++ b/modules/tournament/src/main/TournamentApi.scala
+@@ -48,7 +48,8 @@ final class TournamentApi(
+     cacheApi: lila.memo.CacheApi,
+     lightUserApi: lila.core.user.LightUserApi,
+     ircApi: lila.core.irc.IrcApi,
+-    teamApi: lila.core.team.TeamApi
++    teamApi: lila.core.team.TeamApi,
++    noSweatArena: NoSweatArena
+ )(using scheduler: Scheduler)(using
+     Executor,
+     org.apache.pekko.actor.ActorSystem,
+@@ -148,18 +149,17 @@ final class TournamentApi(
+       users: WaitingUsers,
+       smallTourNbActivePlayers: Option[Int]
+   ): Funit =
+-    (users.size > 1 && (
+-      !hadPairings.get(forTour.id) ||
+-        users.haveWaitedEnough ||
+-        smallTourNbActivePlayers.exists(_ <= users.size * 1.5)
+-    )).so(Parallel(forTour.id, "makePairings")(cached.tourCache.started): tour =>
++    Parallel(forTour.id, "makePairings")(cached.tourCache.started): tour =>
+       for
++        eligible <- noSweatArena.waiting(tour, users)
+         ranking <- cached.ranking(tour).mon(lila.mon.tournament.pairing.createRanking)
+         playing <- pairingRepo.playingUserIds(tour.id)
+-        idle = users.removePairedUsers(playing)
+-        _ <- (idle.size > 1)
++        idle = eligible.removePairedUsers(playing)
++        _ <- (idle.size > 1 && (!hadPairings.get(
++          tour.id
++        ) || eligible.haveWaitedEnough || smallTourNbActivePlayers.exists(_ <= idle.size * 1.5)))
+           .so:
+-            if users != idle
++            if eligible != idle
+             then logger.warn(s"Almost paired a playing player in ${forTour.id}")
+             pairingSystem
+               .createPairings(tour, idle, ranking, smallTourNbActivePlayers)
+@@ -167,27 +167,31 @@ final class TournamentApi(
+               .flatMap:
+                 case Nil => funit
+                 case pairings =>
+-                  pairingRepo.insert(pairings.map(_.pairing)) >>
+-                    pairings
+-                      .parallelVoid: pairing =>
+-                        autoPairing(tour, pairing, ranking.ranking)
+-                          .mon(lila.mon.tournament.pairing.createAutoPairing)
+-                          .map { socket.startGame(tour.id, _) }
+-                      .mon(lila.mon.tournament.pairing.createInserts)
+-                      .andDo:
+-                        lila.mon.tournament.pairing.batchSize.record(pairings.size)
+-                        waitingUsers.registerPairedUsers(
+-                          tour.id,
+-                          pairings.view.flatMap(_.pairing.users).toSet
+-                        )
+-                        socket.reload(tour.id)
+-                        hadPairings.put(tour.id)
+-                        featureOneOf(tour, pairings, ranking.ranking) // do outside of queue
+-          .monSuccess(lila.mon.tournament.pairing.create)
+-          .chronometer
+-          .logIfSlow(100, logger)(_ => s"Pairings for https://lichess.org/tournament/${tour.id}")
+-          .result
+-      yield ())
++                  noSweatArena.commit(tour, pairings): accepted =>
++                    pairingRepo.insert(accepted.map(_.pairing)) >>
++                      {
++                        def start(p: Pairing.WithPlayers): Funit =
++                          autoPairing(tour, p, ranking.ranking)
++                            .mon(lila.mon.tournament.pairing.createAutoPairing)
++                            .map(socket.startGame(tour.id, _))
++                        if noSweatArena.focused then accepted.sequentiallyVoid(start)
++                        else accepted.parallelVoid(start)
++                      }
++                        .mon(lila.mon.tournament.pairing.createInserts)
++                        .andDo:
++                          lila.mon.tournament.pairing.batchSize.record(accepted.size)
++                          waitingUsers.registerPairedUsers(
++                            tour.id,
++                            accepted.view.flatMap(_.pairing.users).toSet
++                          )
++                          socket.reload(tour.id)
++                          hadPairings.put(tour.id)
++                          featureOneOf(tour, accepted, ranking.ranking) // do outside of queue
++              .monSuccess(lila.mon.tournament.pairing.create)
++              .chronometer
++              .logIfSlow(100, logger)(_ => s"Pairings for https://lichess.org/tournament/${tour.id}")
++              .result
++      yield ()
+ 
+   private def featureOneOf(tour: Tournament, pairings: List[Pairing.WithPlayers], ranking: Ranking): Funit =
+     tour.featured
+diff --git a/modules/tournament/src/main/TournamentForm.scala b/modules/tournament/src/main/TournamentForm.scala
+index 9161f5d..269c542 100644
+--- a/modules/tournament/src/main/TournamentForm.scala
++++ b/modules/tournament/src/main/TournamentForm.scala
+@@ -13,7 +13,9 @@ import lila.core.perm.Granter
+ import lila.core.team.LightTeam
+ import lila.gathering.GatheringClock
+ 
+-final class TournamentForm:
++final class TournamentForm(appConfig: play.api.Configuration):
++
++  private val focused = appConfig.getOptional[Boolean]("nosweat.enabled").getOrElse(false)
+ 
+   import TournamentForm.*
+   import GatheringClock.*
+@@ -26,16 +28,18 @@ final class TournamentForm:
+   private[tournament] def empty(teamBattleId: Option[TeamId] = None, forClas: Boolean)(using me: Me) =
+     TournamentSetup(
+       name = teamBattleId.isEmpty.option(me.titleUsername),
+-      clockTime = if forClas then 5d else timeDefault,
+-      clockIncrement = incrementDefault,
+-      minutes = minuteDefault,
++      clockTime = if focused then 15d else if forClas then 5d else timeDefault,
++      clockIncrement = if focused then IncrementSeconds(10) else incrementDefault,
++      minutes = if focused then 120 else minuteDefault,
+       waitMinutes = waitMinuteDefault.some,
+       startDate = none,
+       variant = chess.variant.Standard.id.toString.some,
+       position = None,
+       password = None,
+       rated = Rated.Yes.some,
+-      conditions = TournamentCondition.All.empty,
++      conditions =
++        if focused then TournamentCondition.All.empty.copy(bots = Some(lila.gathering.Condition.Bots(true)))
++        else TournamentCondition.All.empty,
+       teamBattleByTeam = teamBattleId,
+       berserkable = forClas.not.some,
+       streakable = forClas.not.some,
+@@ -120,6 +124,11 @@ final class TournamentForm:
+       "payouts" -> (if manager then optional(cleanNonEmptyText.into[Payouts]) else ignored(none)),
+       "hasChat" -> optional(boolean)
+     )(TournamentSetup.apply)(unapply)
++      .verifying(
++        "muteArenaSettings",
++        d =>
++          !focused || (d.realVariant.standard && d.position.isEmpty && d.teamBattleByTeam.isEmpty && d.conditions.allowsBots && d.payouts.isEmpty)
++      )
+       .verifying("Invalid clock", _.validClock(prev))
+       .verifying("Invalid clock for bot games", _.validClockForBots(prev))
+       .verifying("15s and 0+1 variant games cannot be rated", _.validRatedVariant(prev))
+diff --git a/modules/tournament/src/main/ui/TournamentForm.scala b/modules/tournament/src/main/ui/TournamentForm.scala
+index edd2d36..4ba4a2b 100644
+--- a/modules/tournament/src/main/ui/TournamentForm.scala
++++ b/modules/tournament/src/main/ui/TournamentForm.scala
+@@ -24,7 +24,8 @@ extension (f: Form[?])
+ 
+ final class TournamentForm(val helpers: Helpers, showUi: TournamentShow)(
+     modMenu: Context ?=> Frag,
+-    val translatedVariantChoicesWithVariants: Translate ?=> List[(String, String, Option[String])]
++    val translatedVariantChoicesWithVariants: Translate ?=> List[(String, String, Option[String])],
++    focused: Boolean = false
+ ):
+   import helpers.{ *, given }
+ 
+@@ -101,7 +102,8 @@ final class TournamentForm(val helpers: Helpers, showUi: TournamentShow)(
+       ),
+       form3.fieldset(trans.site.games(), toggle = true.some, disabled = fields.frozen)(
+         fields.clock,
+-        form3.split(fields.variant, fields.startPosition)
++        if focused then frag(form3.hidden(form.prefix("variant")), form3.hidden(form.prefix("position")))
++        else form3.split(fields.variant, fields.startPosition)
+       ),
+       fields.waitStart,
+       conditionFields(form, fields, teams = leaderTeams, tour = none),
+@@ -120,7 +122,8 @@ final class TournamentForm(val helpers: Helpers, showUi: TournamentShow)(
+       ),
+       form3.fieldset(trans.site.games(), toggle = false.some, disabled = fields.frozen)(
+         fields.clock,
+-        form3.split(fields.variant, fields.startPosition)
++        if focused then frag(form3.hidden(form.prefix("variant")), form3.hidden(form.prefix("position")))
++        else form3.split(fields.variant, fields.startPosition)
+       ),
+       fields.waitStart,
+       conditionFields(form, fields, teams = myTeams, tour = tour.some),
+@@ -401,11 +404,11 @@ final class TourFields(tourForm: TournamentForm)(form: Form[?], tour: Option[Tou
+   def minutes =
+     form3.group(form.prefix("minutes"), trans.site.duration(), half = true):
+       if tour.forall(t => lila.tournament.TournamentForm.minutes contains t.minutes)
+-      then form3.select(_, TournamentForm.minuteChoicesKeepingCustom(tour))
++      then form3.select(_, lila.tournament.TournamentForm.minuteChoicesKeepingCustom(tour))
+       else form3.input(_)(tpe := "number")
+   def waitMinutes =
+     form3.group(form.prefix("waitMinutes"), trans.site.timeBeforeTournamentStarts(), half = true):
+-      form3.select(_, TournamentForm.waitMinuteChoices)
++      form3.select(_, lila.tournament.TournamentForm.waitMinuteChoices)
+   def waitStart =
+     form3.fieldset(trans.arena.startDate(), toggle = tour.forall(_.isCreated).some, disabled = frozen)(
+       form3.split(waitMinutes, startDate)
+diff --git a/modules/tournament/src/main/ui/TournamentShow.scala b/modules/tournament/src/main/ui/TournamentShow.scala
+index 95262f7..ed194d6 100644
+--- a/modules/tournament/src/main/ui/TournamentShow.scala
++++ b/modules/tournament/src/main/ui/TournamentShow.scala
+@@ -24,7 +24,8 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(
+       shieldOwner: Option[UserId],
+       data: JsObject,
+       chat: Option[(Frag, JsObject)],
+-      streamers: Frag
++      streamers: Frag,
++      arenaControls: Option[Frag] = None
+   )(using ctx: Context) =
+     val extraCls = tour.scheduleData.so: (freq, speed) =>
+       s" tour-sched tour-sched-${freq.name} tour-speed-${speed.name} tour-variant-${tour.variant.key} tour-id-${tour.id}"
+@@ -42,7 +43,7 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(
+       .csp(_.withLilaHttp):
+         main(cls := s"tour variant-${tour.variant.key}$extraCls")(
+           st.aside(cls := "tour__side"):
+-            side(tour, verdicts, shieldOwner, chat._1F, streamers)
++            frag(side(tour, verdicts, shieldOwner, chat._1F, streamers), arenaControls)
+           ,
+           div(cls := "tour__main")(div(cls := "box")),
+           tour.isCreated.option(div(cls := "tour__faq"):
 diff --git a/modules/tv/src/main/TvUi.scala b/modules/tv/src/main/TvUi.scala
 index 2303c7d..302c7a4 100644
 --- a/modules/tv/src/main/TvUi.scala
@@ -4349,10 +4772,10 @@ index 28e5bc4..66c01ad 100644
        )
        .add("fen" -> fen)
 diff --git a/modules/web/src/main/ui/TopNav.scala b/modules/web/src/main/ui/TopNav.scala
-index 4d9306b..ef2e2f6 100644
+index 4d9306b..5fb911f 100644
 --- a/modules/web/src/main/ui/TopNav.scala
 +++ b/modules/web/src/main/ui/TopNav.scala
-@@ -12,92 +12,105 @@ final class TopNav(helpers: Helpers):
+@@ -12,92 +12,108 @@ final class TopNav(helpers: Helpers):
    private def linkTitle(url: String, name: Frag)(using ctx: Context) =
      if ctx.blind then h3(name) else a(href := url)(name)
  
@@ -4418,7 +4841,10 @@ index 4d9306b..ef2e2f6 100644
 +        ),
 +        st.section(
 +          linkTitle(routes.ForumCateg.index.url, trans.site.community()),
-+          div(role := "group")(a(href := routes.ForumCateg.index)(trans.site.forum()))
++          div(role := "group")(
++            a(href := routes.ForumCateg.index)(trans.site.forum()),
++            a(href := routes.Tournament.home)(trans.arena.arenaTournaments())
++          )
 +        ),
 +        toolsMenu(compact)
 +      )
@@ -5236,10 +5662,10 @@ index 74906f1..99e482b 100644
  travel-places.map-of-japan
  travel-places.metro
 diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
-index 88adade..0b3bfb6 100644
+index 88adade..8b676bc 100644
 --- a/translation/dest/site/de-DE.xml
 +++ b/translation/dest/site/de-DE.xml
-@@ -1064,4 +1064,157 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
+@@ -1064,4 +1064,163 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
    <string name="write">Schreiben</string>
    <string name="preview">Vorschau</string>
    <string name="done">Erledigt</string>
@@ -5396,12 +5822,18 @@ index 88adade..0b3bfb6 100644
 +  <string name="muteInsightOpeningFamilyHelp">Die grundlegende Eröffnung der Partie.</string>
 +  <string name="muteInsightOpeningHelp">Die in der Partie gespielte Eröffnungsvariante.</string>
 +  <string name="muteInsightLastDay">Letzte 24 Stunden</string>
++  <string name="muteArenaPrepare">Arena-Bots vorbereiten</string>
++  <string name="muteArenaReady">Die Arena-Bots sind bereit.</string>
++  <string name="muteArenaDraining">Die laufenden Bot-Spiele werden beendet. Aktualisiere die Seite, um die Bereitschaft zu prüfen.</string>
++  <string name="muteArenaUnavailable">Die Arena-Bots konnten nicht vorbereitet werden. Möglicherweise läuft ein anderes Ereignis oder es sind weniger als zehn geeignete Bots verfügbar.</string>
++  <string name="muteArenaHelp">Bots mit einer Wertung von 1200–1700 ergänzen das Feld auf bis zu zehn aktive Teilnehmer. Menschen können ohne Teilnehmerlimit beitreten; laufende Partien werden regulär beendet.</string>
++  <string name="muteArenaSettings">Verwende Standardschach mit der normalen Ausgangsstellung und erlaube Bots. Mannschaftskämpfe und Preise sind nicht verfügbar.</string>
  </resources>
 diff --git a/translation/dest/site/es-ES.xml b/translation/dest/site/es-ES.xml
-index 76004f5..6801819 100644
+index 76004f5..4940b52 100644
 --- a/translation/dest/site/es-ES.xml
 +++ b/translation/dest/site/es-ES.xml
-@@ -1064,4 +1064,157 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
+@@ -1064,4 +1064,163 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
    <string name="write">Escribir</string>
    <string name="preview">Vista previa</string>
    <string name="done">Listo</string>
@@ -5558,12 +5990,18 @@ index 76004f5..6801819 100644
 +  <string name="muteInsightOpeningFamilyHelp">La apertura general de la partida.</string>
 +  <string name="muteInsightOpeningHelp">La variante de apertura jugada en la partida.</string>
 +  <string name="muteInsightLastDay">Últimas 24 horas</string>
++  <string name="muteArenaPrepare">Preparar los bots de la arena</string>
++  <string name="muteArenaReady">Los bots de la arena están listos.</string>
++  <string name="muteArenaDraining">Esperando a que terminen las partidas de bots en segundo plano. Actualiza la página para comprobarlo.</string>
++  <string name="muteArenaUnavailable">No se pudieron preparar los bots. Puede haber otro evento activo o menos de diez bots disponibles que cumplan los requisitos.</string>
++  <string name="muteArenaHelp">Los bots de 1200–1700 completan el grupo hasta diez participantes activos. No hay límite de participantes humanos; las partidas en curso terminan con normalidad.</string>
++  <string name="muteArenaSettings">Usa ajedrez estándar, la posición inicial normal y permite bots. Las batallas por equipos y los premios no están disponibles.</string>
  </resources>
 diff --git a/translation/dest/site/fr-FR.xml b/translation/dest/site/fr-FR.xml
-index 7dfd5f7..52bde90 100644
+index 7dfd5f7..42c3246 100644
 --- a/translation/dest/site/fr-FR.xml
 +++ b/translation/dest/site/fr-FR.xml
-@@ -1063,4 +1063,157 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
+@@ -1063,4 +1063,163 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
    <string name="write">Écrire</string>
    <string name="preview">Aperçu</string>
    <string name="done">Terminé</string>
@@ -5720,12 +6158,18 @@ index 7dfd5f7..52bde90 100644
 +  <string name="muteInsightOpeningFamilyHelp">L’ouverture générale jouée dans la partie.</string>
 +  <string name="muteInsightOpeningHelp">La variante d’ouverture jouée dans la partie.</string>
 +  <string name="muteInsightLastDay">Les dernières 24 heures</string>
++  <string name="muteArenaPrepare">Préparer les bots de l’arène</string>
++  <string name="muteArenaReady">Les bots de l’arène sont prêts.</string>
++  <string name="muteArenaDraining">En attente de la fin des parties de bots en arrière-plan. Actualisez pour vérifier.</string>
++  <string name="muteArenaUnavailable">Impossible de préparer les bots. Un autre événement est peut-être actif ou moins de dix bots admissibles sont disponibles.</string>
++  <string name="muteArenaHelp">Des bots classés de 1200 à 1700 complètent le groupe jusqu’à dix participants actifs. Le nombre de participants humains est illimité ; les parties en cours se terminent normalement.</string>
++  <string name="muteArenaSettings">Utilisez les échecs standards, la position initiale normale et autorisez les bots. Les batailles par équipes et les prix ne sont pas disponibles.</string>
  </resources>
 diff --git a/translation/dest/site/hi-IN.xml b/translation/dest/site/hi-IN.xml
-index bbf1703..726028d 100644
+index bbf1703..34e21ae 100644
 --- a/translation/dest/site/hi-IN.xml
 +++ b/translation/dest/site/hi-IN.xml
-@@ -893,4 +893,157 @@
+@@ -893,4 +893,163 @@
    <string name="closingAccountWithdrawAppeal">आपका खाता बंद करने से आपकी अपील वापस ले ली जाएगी</string>
    <string name="ourEventTips">कार्यक्रम आयोजित करने कि सलाह</string>
    <string name="nothingToSeeHere">इस समय यहां देखने को कुछ भी नहीं है।</string>
@@ -5882,12 +6326,18 @@ index bbf1703..726028d 100644
 +  <string name="muteInsightOpeningFamilyHelp">बाज़ी में खेली गई मुख्य ओपनिंग।</string>
 +  <string name="muteInsightOpeningHelp">बाज़ी में खेली गई ओपनिंग की शाखा।</string>
 +  <string name="muteInsightLastDay">पिछले 24 घंटे</string>
++  <string name="muteArenaPrepare">एरीना बॉट तैयार करें</string>
++  <string name="muteArenaReady">एरीना बॉट तैयार हैं।</string>
++  <string name="muteArenaDraining">पृष्ठभूमि में चल रही बॉट बाज़ियों के समाप्त होने की प्रतीक्षा है। तैयारी जाँचने के लिए पेज ताज़ा करें।</string>
++  <string name="muteArenaUnavailable">एरीना बॉट तैयार नहीं हो सके। कोई दूसरा आयोजन सक्रिय हो सकता है या दस से कम उपयुक्त बॉट उपलब्ध हैं।</string>
++  <string name="muteArenaHelp">1200–1700 रेटिंग वाले बॉट सक्रिय प्रतिभागियों की संख्या दस तक पूरी करते हैं। मानव प्रतिभागियों की कोई सीमा नहीं है; चल रही बाज़ियाँ सामान्य रूप से समाप्त होंगी।</string>
++  <string name="muteArenaSettings">मानक शतरंज, सामान्य शुरुआती स्थिति का उपयोग करें और बॉट को अनुमति दें। टीम मुकाबले और पुरस्कार उपलब्ध नहीं हैं।</string>
  </resources>
 diff --git a/translation/dest/site/ja-JP.xml b/translation/dest/site/ja-JP.xml
-index e628bdb..75ea80d 100644
+index e628bdb..07e866d 100644
 --- a/translation/dest/site/ja-JP.xml
 +++ b/translation/dest/site/ja-JP.xml
-@@ -1023,4 +1023,157 @@
+@@ -1023,4 +1023,163 @@
    <string name="write">書く</string>
    <string name="preview">プレビュー</string>
    <string name="done">完了</string>
@@ -6044,12 +6494,18 @@ index e628bdb..75ea80d 100644
 +  <string name="muteInsightOpeningFamilyHelp">対局で指されたオープニングの系統。</string>
 +  <string name="muteInsightOpeningHelp">対局で指されたオープニングの変化。</string>
 +  <string name="muteInsightLastDay">過去24時間</string>
++  <string name="muteArenaPrepare">アリーナのボットを準備</string>
++  <string name="muteArenaReady">アリーナのボットの準備ができました。</string>
++  <string name="muteArenaDraining">バックグラウンドのボット対局の終了を待っています。ページを更新して準備状況を確認してください。</string>
++  <string name="muteArenaUnavailable">ボットを準備できませんでした。別のイベントが進行中か、条件に合うボットが10体未満の可能性があります。</string>
++  <string name="muteArenaHelp">レーティング1200〜1700のボットが、参加中のプレイヤーを最大10人まで補います。人間の参加人数に上限はなく、進行中の対局は通常どおり終了します。</string>
++  <string name="muteArenaSettings">通常の初期配置で標準チェスを選び、ボットを許可してください。チーム戦と賞品には対応していません。</string>
  </resources>
 diff --git a/translation/dest/site/ko-KR.xml b/translation/dest/site/ko-KR.xml
-index 9341bf0..17843aa 100644
+index 9341bf0..58d9a10 100644
 --- a/translation/dest/site/ko-KR.xml
 +++ b/translation/dest/site/ko-KR.xml
-@@ -1022,4 +1022,157 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
+@@ -1022,4 +1022,163 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
    <string name="write">작성</string>
    <string name="preview">미리보기</string>
    <string name="done">완료</string>
@@ -6206,12 +6662,18 @@ index 9341bf0..17843aa 100644
 +  <string name="muteInsightOpeningFamilyHelp">경기에서 사용한 기본 오프닝입니다.</string>
 +  <string name="muteInsightOpeningHelp">경기에서 사용한 오프닝 변형입니다.</string>
 +  <string name="muteInsightLastDay">최근 24시간</string>
++  <string name="muteArenaPrepare">아레나 봇 준비</string>
++  <string name="muteArenaReady">아레나 봇이 준비되었습니다.</string>
++  <string name="muteArenaDraining">백그라운드 봇 대국이 끝나기를 기다리는 중입니다. 새로고침하여 준비 상태를 확인하세요.</string>
++  <string name="muteArenaUnavailable">아레나 봇을 준비하지 못했습니다. 다른 이벤트가 진행 중이거나 조건에 맞는 봇이 열 개 미만일 수 있습니다.</string>
++  <string name="muteArenaHelp">레이팅 1200–1700의 봇이 활성 참가자 수를 최대 열 명까지 채웁니다. 사람 참가자 수에는 제한이 없으며 진행 중인 대국은 정상적으로 끝납니다.</string>
++  <string name="muteArenaSettings">표준 체스와 기본 시작 포지션을 사용하고 봇을 허용하세요. 팀 대항전과 상품은 지원하지 않습니다.</string>
  </resources>
 diff --git a/translation/dest/site/pt-BR.xml b/translation/dest/site/pt-BR.xml
-index 569e752..3192cb8 100644
+index 569e752..097640f 100644
 --- a/translation/dest/site/pt-BR.xml
 +++ b/translation/dest/site/pt-BR.xml
-@@ -1063,4 +1063,157 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
+@@ -1063,4 +1063,163 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
    <string name="write">Escrever</string>
    <string name="preview">Pré-visualizar</string>
    <string name="done">Feito</string>
@@ -6368,12 +6830,18 @@ index 569e752..3192cb8 100644
 +  <string name="muteInsightOpeningFamilyHelp">A abertura geral jogada na partida.</string>
 +  <string name="muteInsightOpeningHelp">A variante de abertura jogada na partida.</string>
 +  <string name="muteInsightLastDay">Últimas 24 horas</string>
++  <string name="muteArenaPrepare">Preparar bots da arena</string>
++  <string name="muteArenaReady">Os bots da arena estão prontos.</string>
++  <string name="muteArenaDraining">Aguardando o fim das partidas de bots em segundo plano. Atualize a página para verificar.</string>
++  <string name="muteArenaUnavailable">Não foi possível preparar os bots. Outro evento pode estar ativo ou há menos de dez bots elegíveis disponíveis.</string>
++  <string name="muteArenaHelp">Bots com rating de 1200–1700 completam o grupo até dez participantes ativos. Não há limite de participantes humanos; as partidas em andamento terminam normalmente.</string>
++  <string name="muteArenaSettings">Use xadrez padrão, a posição inicial normal e permita bots. Batalhas de equipes e prêmios não estão disponíveis.</string>
  </resources>
 diff --git a/translation/dest/site/ru-RU.xml b/translation/dest/site/ru-RU.xml
-index 6384657..f9112bf 100644
+index 6384657..3e519bc 100644
 --- a/translation/dest/site/ru-RU.xml
 +++ b/translation/dest/site/ru-RU.xml
-@@ -1146,4 +1146,157 @@
+@@ -1146,4 +1146,163 @@
    <string name="write">Написать</string>
    <string name="preview">Предпросмотр</string>
    <string name="done">Готово</string>
@@ -6530,12 +6998,18 @@ index 6384657..f9112bf 100644
 +  <string name="muteInsightOpeningFamilyHelp">Основной дебют, разыгранный в партии.</string>
 +  <string name="muteInsightOpeningHelp">Вариант дебюта, разыгранный в партии.</string>
 +  <string name="muteInsightLastDay">Последние 24 часа</string>
++  <string name="muteArenaPrepare">Подготовить ботов арены</string>
++  <string name="muteArenaReady">Боты арены готовы.</string>
++  <string name="muteArenaDraining">Ожидание завершения фоновых партий ботов. Обновите страницу для проверки готовности.</string>
++  <string name="muteArenaUnavailable">Не удалось подготовить ботов. Возможно, уже идёт другое событие или доступно менее десяти подходящих ботов.</string>
++  <string name="muteArenaHelp">Боты с рейтингом 1200–1700 дополняют состав до десяти активных участников. Число участников-людей не ограничено; текущие партии завершаются обычным образом.</string>
++  <string name="muteArenaSettings">Используйте стандартные шахматы, обычную начальную позицию и разрешите ботов. Командные битвы и призы недоступны.</string>
  </resources>
 diff --git a/translation/dest/site/zh-CN.xml b/translation/dest/site/zh-CN.xml
-index 176f4d1..184fcb7 100644
+index 176f4d1..47fd683 100644
 --- a/translation/dest/site/zh-CN.xml
 +++ b/translation/dest/site/zh-CN.xml
-@@ -1022,4 +1022,157 @@
+@@ -1022,4 +1022,163 @@
    <string name="write">撰写</string>
    <string name="preview">预览</string>
    <string name="done">完成</string>
@@ -6692,12 +7166,18 @@ index 176f4d1..184fcb7 100644
 +  <string name="muteInsightOpeningFamilyHelp">对局中采用的基本开局。</string>
 +  <string name="muteInsightOpeningHelp">对局中采用的开局变例。</string>
 +  <string name="muteInsightLastDay">最近24小时</string>
++  <string name="muteArenaPrepare">准备竞技场机器人</string>
++  <string name="muteArenaReady">竞技场机器人已就绪。</string>
++  <string name="muteArenaDraining">正在等待后台机器人对局结束。请刷新页面查看准备状态。</string>
++  <string name="muteArenaUnavailable">无法准备竞技场机器人。可能有其他赛事正在进行，或符合条件的机器人不足十个。</string>
++  <string name="muteArenaHelp">评分为1200–1700的机器人将活跃参赛人数补足至十人。人类参赛人数不设上限；正在进行的对局会正常结束。</string>
++  <string name="muteArenaSettings">请使用标准国际象棋和正常初始局面，并允许机器人参加。暂不支持团队赛和奖品。</string>
  </resources>
 diff --git a/translation/source/site.xml b/translation/source/site.xml
-index 8b5a6a1..ee6a0dd 100644
+index 8b5a6a1..5237168 100644
 --- a/translation/source/site.xml
 +++ b/translation/source/site.xml
-@@ -1066,4 +1066,157 @@ Leave empty to start games from the normal initial position.</string>
+@@ -1066,4 +1066,163 @@ Leave empty to start games from the normal initial position.</string>
    <string name="write">Write</string>
    <string name="preview">Preview</string>
    <string name="done">Done</string>
@@ -6854,6 +7334,12 @@ index 8b5a6a1..ee6a0dd 100644
 +  <string name="muteInsightOpeningFamilyHelp">The general opening played in the game.</string>
 +  <string name="muteInsightOpeningHelp">The opening variation played in the game.</string>
 +  <string name="muteInsightLastDay">Last 24 hours</string>
++  <string name="muteArenaPrepare">Prepare Arena bots</string>
++  <string name="muteArenaReady">Arena bots are ready.</string>
++  <string name="muteArenaDraining">Waiting for background bot games to finish. Refresh to check readiness.</string>
++  <string name="muteArenaUnavailable">Arena bots could not be prepared. Another event may be active, or fewer than ten eligible bots are available.</string>
++  <string name="muteArenaHelp">Bots rated 1200–1700 fill up to ten active participants. Humans can join without a participant limit; existing games finish normally.</string>
++  <string name="muteArenaSettings">Use standard chess, the normal starting position and allow bots. Team battles and prizes are unavailable.</string>
  </resources>
 diff --git a/ui/.build/src/build.ts b/ui/.build/src/build.ts
 index 7d6adeb..b433f0c 100644
@@ -12261,6 +12747,27 @@ index 18646b3..5eb1d07 100644
  
    {
      // stick top bar
+diff --git a/ui/tournament/src/view/util.ts b/ui/tournament/src/view/util.ts
+index e492c0b..7e28137 100644
+--- a/ui/tournament/src/view/util.ts
++++ b/ui/tournament/src/view/util.ts
+@@ -15,7 +15,7 @@ export const player = (
+ ) => {
+   const profileHref = profileUrl(p.name);
+   return h(
+-    'a.ulpt.user-link.online' + (((p.title || '') + p.name).length > 15 ? '.long' : ''),
++    'a.ulpt.user-link.online' + (((p.title || '') + (p.displayName || p.name)).length > 15 ? '.long' : ''),
+     {
+       attrs: asLink || 'ontouchstart' in window ? { href: profileHref } : { 'data-href': profileHref },
+       hook: { destroy: vnode => $.powerTip.destroy(vnode.elm) },
+@@ -33,6 +33,6 @@ export const player = (
+ 
+ export const fullName = (p: LightUserNoId & { realName?: string }): MaybeVNodes => [
+   userTitle(p),
+-  ...(p.realName ? [p.realName, h('br'), h('span.username-low', `(${p.name})`)] : [p.name]),
++  ...(p.realName ? [p.realName, h('br'), h('span.username-low', `(${p.displayName || p.name})`)] : [p.displayName || p.name]),
+   userFlair(p),
+ ];
 diff --git a/ui/user/css/_account.scss b/ui/user/css/_account.scss
 index fc3e09e..2b2a8be 100644
 --- a/ui/user/css/_account.scss
@@ -12513,6 +13020,24 @@ index 5b6c2f1..d946ea8 100644
    tmpRandomTutorLink();
    updatePackedTrophies();
    window.addEventListener('resize', updatePackedTrophies);
+diff --git a/app/NoSweatArenaRoster.scala b/app/NoSweatArenaRoster.scala
+new file mode 100644
+index 0000000..029b2c8
+--- /dev/null
++++ b/app/NoSweatArenaRoster.scala
+@@ -0,0 +1,12 @@
++package lila.app
++
++/** Fixed event roster selected by earned native rating, never model input. */
++private[app] object NoSweatArenaRoster:
++  def select(candidates: List[(UserId, Int)]): List[UserId] =
++    val targets = List(1500, 1450, 1550, 1400, 1600, 1350, 1650, 1300, 1700, 1200)
++    targets.foldLeft(List.empty[UserId]): (selected, rating) =>
++      candidates
++        .filter((id, r) => !selected.contains(id) && r >= 1200 && r <= 1700)
++        .sortBy((id, r) => (math.abs(r - rating), id.value))
++        .headOption
++        .fold(selected)(entry => selected :+ entry._1)
 diff --git a/app/NoSweatBotCatalog.scala b/app/NoSweatBotCatalog.scala
 new file mode 100644
 index 0000000..8efd4b7
@@ -12721,10 +13246,10 @@ index 0000000..e1cb129
 +    bdoc("_id" -> payment, "userId" -> user, "paid" -> false)
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..8d674d9
+index 0000000..684e415
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,942 @@
+@@ -0,0 +1,1142 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -12738,6 +13263,7 @@ index 0000000..8d674d9
 +import lila.core.perf.PerfKey
 +import lila.db.dsl.{ *, given }
 +import lila.user.BSONFields as UserFields
++import lila.common.config.given
 +
 +final case class NoSweatError(status: Int, reason: String, code: Option[String] = None)
 +    extends RuntimeException(reason)
@@ -12757,12 +13283,16 @@ index 0000000..8d674d9
 +    !activityEnabled || !env.config.getOptional[Boolean]("nosweat.study.enabled").getOrElse(false),
 +    "Automatic public play and bounded studies cannot run together"
 +  )
-+  val normalCapacity = if activityEnabled then lila.bot.PublicBotActivity.capacity else 2
++  val normalCapacity =
++    if activityEnabled || env.config.getOptional[List[String]]("nosweat.arena.hosts").exists(_.nonEmpty) then
++      lila.bot.PublicBotActivity.capacity
++    else 2
 +  private val activityState = env.mongo.mainDb(CollName("nosweat_activity"))
 +  private val nextActivityAdmission = AtomicLong(0)
 +  private def automatic(doc: Bdoc): Boolean = doc.getAsOpt[Boolean]("automatic").contains(true)
 +  private def occupied(doc: Bdoc): Set[UserId] =
-+    if automatic(doc) then List("white", "black").flatMap(doc.getAsOpt[UserId]).toSet
++    if doc.getAsOpt[TourId]("arena").isDefined then doc.getAsOpt[List[UserId]]("managed").getOrElse(Nil).toSet
++    else if automatic(doc) then List("white", "black").flatMap(doc.getAsOpt[UserId]).toSet
 +    else doc.getAsOpt[UserId]("bot").toSet
 +  private def disconnectBot(id: GameId): Unit =
 +    Option(connectedBots.remove(id)).foreach: colors =>
@@ -12842,7 +13372,7 @@ index 0000000..8d674d9
 +            case _ =>
 +              ratingCatalog.update(id, Map.empty)
 +              pick(excluded + id, retries - 1)
-+    pick(busy, 4)
++    env.tournament.noSweatArena.reservedBots.flatMap(reserved => pick(busy ++ reserved, 4))
 +  private def requireThat(ok: Boolean, status: Int, message: String): Unit =
 +    if !ok then throw NoSweatError(status, message)
 +
@@ -13083,10 +13613,29 @@ index 0000000..8d674d9
 +          .list(100)
 +          .flatMap: docs =>
 +            docs.foldLeft(funit)((prev, doc) =>
-+              prev.flatMap(_ => failGame(doc.getAsOpt[GameId]("_id").get, "application_restart"))
++              prev.flatMap: _ =>
++                val id = doc.getAsOpt[GameId]("_id").get
++                doc
++                  .getAsOpt[TourId]("arena")
++                  .fold(funit): tour =>
++                    env.round.proxyRepo
++                      .game(id)
++                      .flatMap:
++                        case Some(_) => funit
++                        case None =>
++                          env.mongo
++                            .mainDb(CollName("tournament_pairing"))
++                            .delete
++                            .one(
++                              bdoc("_id" -> id, "tid" -> tour, "s" -> chess.Status.Created.id)
++                            )
++                            .void
++                  .flatMap(_ => failGame(id, "application_restart"))
 +            )
 +
 +  val ready: Funit = if enabled then initialize() else funit
++
++  if enabled then env.tournament.noSweatArena.admit = reserveArenaPairings
 +
 +  if enabled then
 +    lila.common.Bus.sub[lila.core.game.FinishGame]: finish =>
@@ -13427,7 +13976,7 @@ index 0000000..8d674d9
 +      "enabled" -> activityEnabled,
 +      "scope" -> "all-games",
 +      "paused" -> paused,
-+      "active" -> games.count(g => automatic(g._1)),
++      "active" -> games.count(g => automatic(g._1) && g._1.getAsOpt[TourId]("arena").isEmpty),
 +      "target" -> lila.bot.PublicBotActivity.target,
 +      "totalActive" -> nativeActive,
 +      "poolPending" -> poolPending,
@@ -13453,9 +14002,14 @@ index 0000000..8d674d9
 +        for
 +          paused <- activityPaused
 +          games <- current()
++          arenaSuppressed <- env.tournament.noSweatArena.suppressed
 +          totalGames <- activeGameCount
 +          _ <-
-+            if !lila.bot.PublicBotActivity.canAdmit(paused, games.count(g => automatic(g._1)), totalGames)
++            if arenaSuppressed || !lila.bot.PublicBotActivity.canAdmit(
++                paused,
++                games.count(g => automatic(g._1) && g._1.getAsOpt[TourId]("arena").isEmpty),
++                totalGames
++              )
 +            then funit
 +            else
 +              val busy = games.flatMap(g => occupied(g._1)).toSet
@@ -13568,6 +14122,8 @@ index 0000000..8d674d9
 +    ready
 +      .map(_ => pollingInstance.foreach(_ => env.bot.onlineApiUsers.setManagedOnline(botIds)))
 +      .flatMap(_ => recover)
++      .flatMap(_ => current())
++      .flatMap(_ => env.tournament.noSweatArena.reconcileLifecycle(id => arenaHasGames(id)))
 +      .flatMap(_ => replenishActivity())
 +      .flatMap(_ => current())
 +      .flatMap: games =>
@@ -13577,15 +14133,21 @@ index 0000000..8d674d9
 +              .gameState(WithInitialFen(game, None))
 +              .flatMap: state =>
 +                val isAutomatic = automatic(doc)
++                val isArena = doc.getAsOpt[TourId]("arena").isDefined
++                val managed = occupied(doc)
 +                val bot = if isAutomatic then game.player.userId.get else doc.getAsOpt[UserId]("bot").get
-+                val colors = if isAutomatic then Color.all.toSet else Set(game.player(bot).get.color)
++                val colors = if isArena then managed.flatMap(id => game.player(id).map(_.color))
++                else if isAutomatic then Color.all.toSet
++                else Set(game.player(bot).get.color)
 +                if Option(connectedBots.putIfAbsent(game.id, colors)).isEmpty then
 +                  colors.foreach: color =>
 +                    lila.common.Bus.pub(
 +                      lila.core.round.Tell(game.id, lila.core.round.RoundBus.BotConnected(color, true))
 +                    )
 +                val snapshot = Json.parse(doc.getAsOpt[String]("snapshot").get)
-+                val policy = if isAutomatic then (snapshot \ game.turnColor.name).as[JsObject] else snapshot
++                val policy = if isArena || isAutomatic then
++                  (snapshot \ game.turnColor.name).asOpt[JsObject].getOrElse(Json.obj())
++                else snapshot
 +                val healthyPoll = pollingInstance.isDefined && !restarted && botIds(bot)
 +                val claimBot = Option.when(healthyPoll && !isAutomatic)(bot)
 +                env.round
@@ -13596,6 +14158,7 @@ index 0000000..8d674d9
 +                      "ply" -> game.ply.value,
 +                      "botToMove" -> (isAutomatic || game.player.userId.contains(bot)),
 +                      "automatic" -> isAutomatic,
++                      "arena" -> isArena,
 +                      "botColor" -> game.player(bot).get.color.name,
 +                      "policy" -> policy,
 +                      "clock" -> game.clock.map(c =>
@@ -13622,7 +14185,7 @@ index 0000000..8d674d9
 +      p = pov.getOrElse(throw NoSweatError(404, "No bot seat"))
 +      _ = requireThat(
 +        doc.getAsOpt[String]("state").contains("active") && p.game.playable &&
-+          p.game.ply.value == ply && p.isMyTurn && bot.exists(_.isBot),
++          p.game.ply.value == ply && p.isMyTurn && bot.exists(_.isBot) && occupied(doc)(botId),
 +        409,
 +        "Game position changed"
 +      )
@@ -13657,6 +14220,168 @@ index 0000000..8d674d9
 +                  .one(bid(id), set("state" -> "service_failure", "failure" -> reason.take(80)))
 +                  .void
 +
++  private def arenaHasGames(id: TourId): Fu[Boolean] =
++    env.game.gameRepo
++      .count(q => q.notFinished ++ bdoc(lila.game.Game.BSONFields.tournamentId -> id))
++      .map(_ > 0)
++
++  def arenaStatus(tour: lila.tournament.Tournament): Fu[JsObject] =
++    for
++      scope <- env.tournament.noSweatArena.scope(tour)
++      games <- current()
++    yield Json.obj(
++      "prepared" -> scope.isDefined,
++      "ready" -> (scope.isDefined && !games
++        .exists(g => automatic(g._1) && g._1.getAsOpt[TourId]("arena").isEmpty)),
++      "bots" -> scope.fold(0)(lila.tournament.NoSweatArena.rosterOf(_).size)
++    )
++
++  def prepareArena(tour: lila.tournament.Tournament): Fu[JsObject] = queue:
++    for
++      _ <- ready
++      _ = requireThat(
++        env.tournament.noSweatArena.ownerEvent(tour) && tour.isCreated,
++        403,
++        "Arena preparation unavailable"
++      )
++      _ = requireThat(
++        !env.config.getOptional[Boolean]("nosweat.study.enabled").getOrElse(false),
++        409,
++        "Study active"
++      )
++      previous <- env.tournament.noSweatArena.current
++      same = previous.exists(d =>
++        d.getAsOpt[TourId]("tour").contains(tour.id) && !d.getAsOpt[String]("state").contains("idle")
++      )
++      _ = requireThat(
++        same || previous.forall(_.getAsOpt[String]("state").contains("idle")),
++        409,
++        "Another Arena is prepared"
++      )
++      _ <-
++        if same then funit
++        else
++          for
++            games <- current()
++            perfs <- env.user.perfsRepo.idsMap(botIds.toList, _.pri)
++            busy = games.flatMap(g => occupied(g._1)).toSet
++            candidates = perfs.toList.filter((id, ps) =>
++              !busy(id) && ps(tour.perfType.key).intRating.value >= 1200 && ps(
++                tour.perfType.key
++              ).intRating.value <= 1700
++            )
++            chosen = lila.app.NoSweatArenaRoster.select(
++              candidates.map((id, ps) => id -> ps(tour.perfType.key).intRating.value)
++            )
++            _ = requireThat(chosen.size == 10, 409, "Not enough Arena bots")
++            bots <- chosen.traverse(id => env.user.api.byIdWithPerf(id, tour.perfType.key))
++            _ = requireThat(
++              bots.flatten.size == 10 && bots.flatten.forall(b => b.user.isBot && b.user.enabled.yes),
++              409,
++              "Arena roster unavailable"
++            )
++            _ <- env.tournament.noSweatArena.register(tour, bots.flatten)
++          yield ()
++      status <- arenaStatus(tour)
++    yield status
++
++  private def reserveArenaPairings(
++      tour: lila.tournament.Tournament,
++      pairs: List[lila.tournament.NoSweatArena.Seats],
++      commit: List[GameId] => Funit
++  ): Funit = queue:
++    val work = for
++      _ <- ready
++      scope <- env.tournament.noSweatArena.scope(tour)
++      _ = requireThat(
++        scope.isDefined && tour.isStarted && !tour.secondsToFinish.isZero,
++        409,
++        "Arena is not prepared"
++      )
++      _ <- env.game.noSweatAdmission.check
++      games <- current()
++      studyBusy <- env.noSweatStudy.busy
++      roster = lila.tournament.NoSweatArena.rosterOf(scope.get).toSet
++      occupiedBots = games.flatMap(g => occupied(g._1)).toSet ++ studyBusy._2
++      free = (normalCapacity - games.size - studyBusy._1).max(0)
++      withBots = pairs.filter(p => p.users.exists(botIds))
++      backgroundDraining = games.exists(g => automatic(g._1) && g._1.getAsOpt[TourId]("arena").isEmpty)
++      eligible = withBots
++        .filter(_ => !backgroundDraining)
++        .filter(p => p.users.filter(botIds).forall(id => roster(id) && !occupiedBots(id)))
++        .take(free)
++      // Keep native human/human pairings even when managed inference slots are full.
++      accepted = pairs.filterNot(p => p.users.exists(botIds)) ++ eligible
++      _ <- eligible.sequentiallyVoid: pair =>
++        val managed = pair.users.filter(botIds)
++        managed
++          .traverse: id =>
++            val color = if pair.white == id then "white" else "black"
++            val opponent = if pair.white == id then pair.black else pair.white
++            env.user.api
++              .byIdWithPerf(opponent, tour.perfType.key)
++              .flatMap: other =>
++                requireThat(other.isDefined, 409, "Arena opponent unavailable")
++                adapter(
++                  "/freeze-arena",
++                  Json.obj("bot" -> (botsById(id) \ "id").as[String], "rated" -> tour.rated.yes) ++
++                    Option
++                      .when(!botIds(opponent))(Json.obj("opponentRating" -> other.get.perf.intRating.value))
++                      .getOrElse(Json.obj()),
++                  1.second
++                )
++                  .map(color -> _)
++          .flatMap: policies =>
++            records.insert
++              .one(
++                bdoc(
++                  "_id" -> pair.id,
++                  "arena" -> tour.id,
++                  "managed" -> managed,
++                  "white" -> pair.white,
++                  "black" -> pair.black,
++                  "bot" -> managed.head,
++                  "human" -> pair.users.find(id => !botIds(id)),
++                  "automatic" -> (managed.size == 2),
++                  "state" -> "reserved",
++                  "rated" -> tour.rated.yes,
++                  "snapshot" -> Json.stringify(JsObject(policies)),
++                  "createdAt" -> nowInstant
++                )
++              )
++              .void
++      _ <- commit(accepted.map(_.id))
++      _ <- eligible.sequentiallyVoid(p => records.update.one(bid(p.id), set("state" -> "active")).void)
++    yield ()
++    work.recoverWith: error =>
++      // Starts are sequential for this small managed batch. Keep any game that
++      // actually started; remove only unpublished pairings with no native game.
++      pairs
++        .sequentiallyVoid: pair =>
++          env.round.proxyRepo
++            .game(pair.id)
++            .flatMap:
++              case Some(game) =>
++                records.update
++                  .one(bid(pair.id), set("state" -> (if game.playable then "active" else "finished")))
++                  .void
++              case None =>
++                for
++                  _ <- records.update.one(bid(pair.id), set("state" -> "finished")).void
++                  _ <- env.mongo
++                    .mainDb(CollName("tournament_pairing"))
++                    .delete
++                    .one(bdoc("_id" -> pair.id, "tid" -> tour.id, "s" -> chess.Status.Created.id))
++                    .void
++                yield ()
++        .flatMap(_ => fufail(error))
++
++  private def publicArenaPolicy(value: JsValue): JsValue = value match
++    case obj: JsObject =>
++      JsObject(obj.fields.filterNot(_._1 == "samplingSeed").map((k, v) => k -> publicArenaPolicy(v)))
++    case JsArray(values) => JsArray(values.map(publicArenaPolicy))
++    case other => other
++
 +  def details(id: GameId, user: UserModel): Fu[Option[JsValue]] =
 +    records
 +      .one[Bdoc](bid(id) ++ bdoc("human" -> user.id))
@@ -13665,7 +14390,7 @@ index 0000000..8d674d9
 +          "id" -> id.value,
 +          "state" -> doc.getAsOpt[String]("state"),
 +          "failure" -> doc.getAsOpt[String]("failure"),
-+          "policy" -> (Json.parse(doc.getAsOpt[String]("snapshot").get).as[JsObject] - "samplingSeed")
++          "policy" -> publicArenaPolicy(Json.parse(doc.getAsOpt[String]("snapshot").get))
 +        )
 diff --git a/app/NoSweatStudy.scala b/app/NoSweatStudy.scala
 new file mode 100644
@@ -14340,6 +15065,41 @@ index 0000000..a54b1de
 +
 +  def game(id: GameId) = Auth: context ?=>
 +    user ?=> handle(club.details(id, user.value).map(_.fold(NotFound)(Ok(_))))
+diff --git a/app/views/noSweatArena.scala b/app/views/noSweatArena.scala
+new file mode 100644
+index 0000000..f402ee0
+--- /dev/null
++++ b/app/views/noSweatArena.scala
+@@ -0,0 +1,29 @@
++package views
++
++import play.api.libs.json.JsObject
++import lila.app.UiEnv.{ *, given }
++import lila.core.i18n.I18nKey
++
++def noSweatArenaHome(events: List[lila.tournament.Tournament], host: Boolean)(using Context) =
++  Page(trans.arena.arenaTournaments.txt()).css("tournament.home", "bits.page"):
++    main(cls := "box box-pad")(
++      h1(trans.arena.arenaTournaments()),
++      host.option(a(cls := "button", href := routes.Tournament.form)(trans.site.createANewTournament())),
++      a(cls := "button button-empty", href := routes.Tournament.help)(trans.site.tournamentFAQ()),
++      tournament.ui.enterable(events.filterNot(_.isFinished)),
++      table(cls := "slist")(tournament.ui.finishedList(events.filter(_.isFinished)))
++    )
++
++def noSweatArenaControls(t: lila.tournament.Tournament, status: JsObject)(using Context): Frag =
++  frag(
++    p(I18nKey("muteArenaHelp").apply()),
++    if (status \ "prepared").asOpt[Boolean].contains(true) then
++      p(I18nKey(if (status \ "ready").asOpt[Boolean].contains(true) then "muteArenaReady"
++      else "muteArenaDraining").apply())
++    else
++      t.isCreated.option(
++        postForm(action := routes.Tournament.prepare(t.id))(
++          submitButton(cls := "button")(I18nKey("muteArenaPrepare").apply())
++        )
++      )
++  )
 diff --git a/app/views/noSweatBot.scala b/app/views/noSweatBot.scala
 new file mode 100644
 index 0000000..ea79016
@@ -15667,6 +16427,42 @@ index 0000000..a4729c5
 +          ErrorStr("PGN must contain a legal standard chess mainline of 1 to 600 plies")
 +        )
 +        .flatMap(_ => importer.parseImport(pgn, none))
+diff --git a/modules/game/src/main/NoSweatArenaAdmission.scala b/modules/game/src/main/NoSweatArenaAdmission.scala
+new file mode 100644
+index 0000000..b6534de
+--- /dev/null
++++ b/modules/game/src/main/NoSweatArenaAdmission.scala
+@@ -0,0 +1,30 @@
++package lila.game
++
++import lila.db.dsl.{ *, given }
++
++/** Exact native pairing authorization; never a blanket Source.Arena bypass. */
++private[game] object NoSweatArenaAdmission:
++  def allows(
++      tour: TourId,
++      white: UserId,
++      black: UserId,
++      bots: Set[UserId],
++      hosts: Set[UserId],
++      scope: Option[Bdoc],
++      pairing: Option[Bdoc],
++      reservation: Option[Bdoc]
++  ): Boolean =
++    white != black && scope.exists(d =>
++      d.getAsOpt[TourId]("tour").contains(tour) &&
++        d.getAsOpt[String]("state").contains("prepared") &&
++        d.getAsOpt[UserId]("host").exists(hosts)
++    ) && pairing.exists(p =>
++      p.getAsOpt[TourId]("tid").contains(tour) &&
++        p.getAsOpt[List[UserId]]("u").contains(List(white, black))
++    ) && (bots.isEmpty || reservation.exists(d =>
++      d.getAsOpt[String]("state").contains("reserved") &&
++        d.getAsOpt[TourId]("arena").contains(tour) &&
++        d.getAsOpt[List[UserId]]("managed").exists(_.toSet == bots) &&
++        d.getAsOpt[UserId]("white").contains(white) && d.getAsOpt[UserId]("black").contains(black) &&
++        bots.subsetOf(scope.toSet.flatMap(_.getAsOpt[List[UserId]]("roster").getOrElse(Nil)))
++    ))
 diff --git a/modules/game/src/main/NoSweatGameAdmission.scala b/modules/game/src/main/NoSweatGameAdmission.scala
 new file mode 100644
 index 0000000..4860bf0
@@ -15783,6 +16579,61 @@ index 0000000..efe2bb3
 +      assertEquals(game.sloppy.startedAtPly.value, 39)
 +      assertEquals(game.sloppy.sans.map(_.value).toList, List("Kd7", "Rh7+"))
 +      assertEquals(game.sloppy.turnColor, Color.Black)
+diff --git a/modules/game/src/test/NoSweatArenaAdmissionTest.scala b/modules/game/src/test/NoSweatArenaAdmissionTest.scala
+new file mode 100644
+index 0000000..4693d84
+--- /dev/null
++++ b/modules/game/src/test/NoSweatArenaAdmissionTest.scala
+@@ -0,0 +1,49 @@
++package lila.game
++
++import lila.db.dsl.{ *, given }
++
++class NoSweatArenaAdmissionTest extends munit.FunSuite:
++  val tour = TourId("abcdefgh")
++  val host = UserId("owner")
++  val human = UserId("human")
++  val bot = UserId("maia")
++  val scope = bdoc("tour" -> tour, "host" -> host, "state" -> "prepared", "roster" -> List(bot))
++  val pairing = bdoc("tid" -> tour, "u" -> List(human, bot))
++  val reserved =
++    bdoc("arena" -> tour, "white" -> human, "black" -> bot, "managed" -> List(bot), "state" -> "reserved")
++  def allowed(
++      s: Bdoc = scope,
++      p: Bdoc = pairing,
++      r: Option[Bdoc] = Some(reserved),
++      bots: Set[UserId] = Set(bot)
++  ) =
++    NoSweatArenaAdmission.allows(tour, human, bot, bots, Set(host), Some(s), Some(p), r)
++  test("authorized native human/bot pairing requires exact reserved bot seats"):
++    assert(allowed())
++    assert(!allowed(r = None))
++    assert(!allowed(r = Some(reserved ++ bdoc("state" -> "finished"))))
++    assert(!allowed(r = Some(reserved ++ bdoc("black" -> UserId("someone")))))
++  test("unprepared events, other hosts and other pairings are rejected"):
++    assert(!allowed(s = scope ++ bdoc("state" -> "idle")))
++    assert(!allowed(s = scope ++ bdoc("host" -> UserId("other"))))
++    assert(!allowed(s = scope ++ bdoc("tour" -> TourId("ijklmnop"))))
++    assert(!allowed(p = pairing ++ bdoc("u" -> List(bot, human))))
++    assert(!allowed(s = scope ++ bdoc("roster" -> List(UserId("other")))))
++  test("human-only pairings need native event and pairing authorization but no inference reservation"):
++    assert(allowed(r = None, bots = Set.empty))
++    assert(!allowed(p = bdoc(), r = None, bots = Set.empty))
++  test("two-bot games authorize both managed seats and reject duplicates"):
++    val other = UserId("other-maia")
++    val s = scope ++ bdoc("roster" -> List(bot, other))
++    val p = bdoc("tid" -> tour, "u" -> List(bot, other))
++    val r = bdoc(
++      "arena" -> tour,
++      "white" -> bot,
++      "black" -> other,
++      "managed" -> List(bot, other),
++      "state" -> "reserved"
++    )
++    assert(
++      NoSweatArenaAdmission.allows(tour, bot, other, Set(bot, other), Set(host), Some(s), Some(p), Some(r))
++    )
++    assert(!NoSweatArenaAdmission.allows(tour, bot, bot, Set(bot), Set(host), Some(s), Some(p), Some(r)))
 diff --git a/modules/game/src/test/NoSweatGameAdmissionTest.scala b/modules/game/src/test/NoSweatGameAdmissionTest.scala
 new file mode 100644
 index 0000000..b5a866e
@@ -16446,6 +17297,226 @@ index 0000000..f738ddd
 +      () => Future.successful(true),
 +      () => Future.successful { replies += 1 }
 +    ).map(_ => assertEquals(replies, 1))
+diff --git a/modules/tournament/src/main/NoSweatArena.scala b/modules/tournament/src/main/NoSweatArena.scala
+new file mode 100644
+index 0000000..df388d4
+--- /dev/null
++++ b/modules/tournament/src/main/NoSweatArena.scala
+@@ -0,0 +1,171 @@
++package lila.tournament
++
++import play.api.Configuration
++import lila.common.config.given
++import lila.core.config.CollName
++import lila.db.dsl.{ *, given }
++import lila.tournament.BSONHandlers.given
++
++/** Managed seats around native Arena pairing, never a second tournament scorer. */
++final class NoSweatArena(
++    appConfig: Configuration,
++    db: lila.db.Db,
++    userApi: lila.core.user.UserApi,
++    playerRepo: PlayerRepo,
++    pairingRepo: PairingRepo,
++    tournamentRepo: TournamentRepo,
++    cached: TournamentCache,
++    socket: TournamentSocket
++)(using Executor):
++  import NoSweatArena.*
++  val focused = appConfig.getOptional[Boolean]("nosweat.enabled").getOrElse(false)
++  private val hosts =
++    appConfig.getOptional[List[String]]("nosweat.arena.hosts").getOrElse(Nil).map(UserId(_)).toSet
++  val state = db(CollName("nosweat_arena"))
++  def hostAllowed(id: UserId): Boolean = focused && hosts(id)
++  def ownerEvent(t: Tournament): Boolean =
++    hostAllowed(t.createdBy) && t.variant.standard && t.position.isEmpty && !t.isTeamBattle
++
++  // Installed by the existing managed adapter. Fail closed until it is ready.
++  @volatile var admit: (Tournament, List[Seats], List[GameId] => Funit) => Funit =
++    (_, _, _) => fufail(new IllegalStateException("Arena adapter is not ready"))
++
++  def events: Fu[List[Tournament]] =
++    tournamentRepo.coll
++      .find(bdoc("createdBy" -> bdoc("$in" -> hosts.toList)))
++      .sort(sort.desc("startsAt"))
++      .cursor[Tournament]()
++      .list(50)
++      .map(_.filter(ownerEvent))
++
++  def current: Fu[Option[Bdoc]] = state.byId[Bdoc]("current")
++  def reservedBots: Fu[Set[UserId]] =
++    current.map(_.filterNot(_.getAsOpt[String]("state").contains("idle")).toSet.flatMap(rosterOf))
++  def suppressed: Fu[Boolean] = current.map(_.exists(d => !d.getAsOpt[String]("state").contains("idle")))
++  def scope(t: Tournament): Fu[Option[Bdoc]] =
++    if !ownerEvent(t) then fuccess(None)
++    else
++      current.map(
++        _.filter(d =>
++          d.getAsOpt[TourId]("tour").contains(t.id) && !d.getAsOpt[String]("state").contains("idle")
++        )
++      )
++
++  def register(t: Tournament, bots: List[lila.core.user.WithPerf]): Funit =
++    require(ownerEvent(t) && t.isCreated && bots.size == 10 && bots.map(_.id).distinct.size == 10)
++    require(
++      bots.forall(b =>
++        b.user.isBot && b.user.enabled.yes && b.perf.intRating.value >= 1200 && b.perf.intRating.value <= 1700
++      )
++    )
++    for
++      _ <- state.update.one(
++        bdoc("_id" -> "current", "$or" -> List(bdoc("state" -> "idle"), bdoc("tour" -> t.id))),
++        set(
++          "tour" -> t.id,
++          "host" -> t.createdBy,
++          "roster" -> bots.map(_.id),
++          "state" -> "prepared",
++          "lastSeen" -> bdoc()
++        ),
++        upsert = true
++      )
++      _ <- bots.sequentiallyVoid(b =>
++        playerRepo.find(t.id, b.id).flatMap(p => playerRepo.join(t.id, b, None, p)).void
++      )
++      count <- playerRepo.count(t.id)
++      _ <- tournamentRepo.setNbPlayers(t.id, count)
++    yield
++      cached.tourCache.clear(t.id)
++      socket.reload(t.id)
++
++  // Called inside TournamentApi's native per-tournament sequencer.
++  private[tournament] def waiting(t: Tournament, users: WaitingUsers): Fu[WaitingUsers] =
++    if !focused then fuccess(users)
++    else
++      scope(t).flatMap:
++        case None => fuccess(users.copy(hash = Map.empty))
++        case Some(doc) =>
++          for
++            players <- playerRepo.coll.find(playerRepo.selectTour(t.id)).cursor[Player]().listAll()
++            playing <- pairingRepo.playingUserIds(t.id)
++            roster = rosterOf(doc)
++            activeHumans = players.filter(p => p.active && !p.bot).map(_.userId).toSet
++            observed = users.all.intersect(activeHumans) ++ playing.diff(roster.toSet)
++            now = nowInstant.toEpochMilli
++            previous = doc
++              .getAsOpt[Map[String, Long]]("lastSeen")
++              .getOrElse(Map.empty)
++              .map((id, at) => UserId(id) -> at)
++            seen = recentHumans(activeHumans, observed, previous, now)
++            humans = seen.keySet ++ playing.diff(roster.toSet)
++            enabledBots <- userApi.byIds(roster)
++            availableBots = enabledBots.filter(u => u.isBot && u.enabled.yes).map(_.id).toSet
++            ranking <- cached.ranking(t)
++            ordered = roster
++              .filter(availableBots)
++              .sortBy(id => (ranking.ranking.get(id).fold(Int.MaxValue)(_.value), roster.indexOf(id)))
++            selected = selectBots(ordered, humans.size, playing.intersect(roster.toSet))
++            _ <- players
++              .filter(p => p.bot && p.active && !selected(p.userId))
++              .sequentiallyVoid(p => playerRepo.withdraw(t.id, p.userId))
++            _ <- selected.toList.sequentiallyVoid: id =>
++              userApi
++                .byIdWithPerf(id, t.perfType.key)
++                .flatMap:
++                  case Some(bot) if bot.user.isBot && bot.user.enabled.yes =>
++                    playerRepo.join(t.id, bot, None, players.find(_.userId == id)).void
++                  case _ => funit
++            _ <- state.update.one(
++              bdoc("_id" -> "current", "tour" -> t.id),
++              set("lastSeen" -> seen.map((id, at) => id.value -> at))
++            )
++          yield
++            val eligible = users.all.intersect(activeHumans) ++ selected.diff(playing)
++            users.copy(hash = eligible.map(id => id -> users.hash.getOrElse(id, nowInstant)).toMap)
++
++  private[tournament] def commit(t: Tournament, pairs: List[Pairing.WithPlayers])(
++      run: List[Pairing.WithPlayers] => Funit
++  ): Funit =
++    if !focused then run(pairs)
++    else
++      admit(
++        t,
++        pairs.map(p => Seats(p.pairing.gameId, p.pairing.user1, p.pairing.user2)),
++        ids => run(pairs.filter(p => ids.contains(p.pairing.gameId)))
++      )
++
++  /** Release only event-owned suppression, and only after all its native games finish. */
++  def reconcileLifecycle(hasLiveGames: TourId => Fu[Boolean]): Funit = current.flatMap:
++    case Some(doc) if !doc.getAsOpt[String]("state").contains("idle") =>
++      doc
++        .getAsOpt[TourId]("tour")
++        .fold(funit): id =>
++          tournamentRepo
++            .byId(id)
++            .flatMap:
++              case Some(t) if t.isCreated || t.isStarted => funit
++              case _ =>
++                hasLiveGames(id).flatMap:
++                  case true =>
++                    state.update.one(bdoc("_id" -> "current", "tour" -> id), set("state" -> "draining")).void
++                  case false =>
++                    state.update.one(bdoc("_id" -> "current", "tour" -> id), set("state" -> "idle")).void
++    case _ => funit
++
++object NoSweatArena:
++  case class Seats(id: GameId, white: UserId, black: UserId):
++    def users = List(white, black)
++  val reconnectMillis = 60000L
++  def rosterOf(d: Bdoc): List[UserId] = d.getAsOpt[List[UserId]]("roster").getOrElse(Nil)
++  def recentHumans(
++      active: Set[UserId],
++      observed: Set[UserId],
++      previous: Map[UserId, Long],
++      now: Long
++  ): Map[UserId, Long] =
++    (previous ++ observed.map(_ -> now)).filter((id, at) => active(id) && now - at <= reconnectMillis)
++  def selectBots(ranked: List[UserId], humans: Int, playing: Set[UserId]): Set[UserId] =
++    val target = (10 - humans).max(0)
++    val desired = ranked.take(target)
++    desired.filter(playing).toSet ++ desired.filterNot(playing).take((target - playing.size).max(0))
+diff --git a/modules/tournament/src/test/NoSweatArenaTest.scala b/modules/tournament/src/test/NoSweatArenaTest.scala
+new file mode 100644
+index 0000000..8f53096
+--- /dev/null
++++ b/modules/tournament/src/test/NoSweatArenaTest.scala
+@@ -0,0 +1,37 @@
++package lila.tournament
++
++class NoSweatArenaTest extends munit.FunSuite:
++  val ranked = (1 to 10).map(i => UserId(s"bot$i")).toList
++  test("human participation is unlimited and bots only fill a target of ten"):
++    for humans <- List(0, 1, 3, 9, 10, 15) do
++      assertEquals(
++        NoSweatArena.selectBots(ranked, humans, Set.empty),
++        ranked.take((10 - humans).max(0)).toSet
++      )
++  test("lowest-standing bots leave first and leading bots return first"):
++    val standings = ranked.reverse
++    assertEquals(NoSweatArena.selectBots(standings, 7, Set.empty), standings.take(3).toSet)
++    assertEquals(NoSweatArena.selectBots(standings, 6, Set.empty), standings.take(4).toSet)
++  test("retiring bots finish their games before replacement seats are filled"):
++    val retiring = ranked.takeRight(4).toSet
++    assertEquals(NoSweatArena.selectBots(ranked, 5, retiring), ranked.take(1).toSet)
++    assertEquals(NoSweatArena.selectBots(ranked, 5, Set.empty), ranked.take(5).toSet)
++  test("an influx of humans never requires interrupting a bot game"):
++    val playing = ranked.toSet
++    assertEquals(NoSweatArena.selectBots(ranked, 15, playing), Set.empty[UserId])
++    assertEquals(NoSweatArena.selectBots(ranked, 1, playing), ranked.take(9).toSet)
++  test("a participant allowance does not change native in-game clocks"):
++    assertEquals(NoSweatArena.reconnectMillis, 60000L)
++  test("spectators and future registrations do not count; reconnect grace counts only active members"):
++    val human = UserId("human")
++    val spectator = UserId("spectator")
++    val now = 100000L
++    assertEquals(
++      NoSweatArena.recentHumans(Set(human), Set(spectator), Map.empty, now),
++      Map.empty[UserId, Long]
++    )
++    val seen = NoSweatArena.recentHumans(Set(human), Set(human), Map.empty, now)
++    assertEquals(NoSweatArena.recentHumans(Set(human), Set.empty, seen, now + 59000).keySet, Set(human))
++    assertEquals(NoSweatArena.recentHumans(Set(human), Set.empty, seen, now + 61000), Map.empty[UserId, Long])
++    assertEquals(NoSweatArena.recentHumans(Set.empty, Set.empty, seen, now + 1000), Map.empty[UserId, Long])
++    assertEquals(NoSweatArena.recentHumans(Set(human), Set(human), seen, now + 61000)(human), now + 61000)
 diff --git a/modules/user/src/main/NoSweatPlayerRatings.scala b/modules/user/src/main/NoSweatPlayerRatings.scala
 new file mode 100644
 index 0000000..28ad57d
@@ -28955,6 +30026,51 @@ index 0000000..87bf6b4
 +      "com.sun.mail" % "jakarta.mail" % "1.6.8"
 +    )
 +}
+diff --git a/src/test/scala/NoSweatArenaLocaleTest.scala b/src/test/scala/NoSweatArenaLocaleTest.scala
+new file mode 100644
+index 0000000..28d979b
+--- /dev/null
++++ b/src/test/scala/NoSweatArenaLocaleTest.scala
+@@ -0,0 +1,19 @@
++package lila.i18n
++
++import play.api.i18n.Lang
++import lila.core.i18n.{ I18nKey, Translate }
++
++class NoSweatArenaLocaleTest extends munit.FunSuite:
++  test("all Arena help, host feedback and form errors render in ten native languages"):
++    Registry.syncLoadLanguages()
++    val keys = List("Prepare", "Ready", "Draining", "Unavailable", "Help", "Settings").map("muteArena" + _)
++    for code <- List("en-GB", "de-DE", "es-ES", "fr-FR", "hi-IN", "ja-JP", "ko-KR", "pt-BR", "ru-RU", "zh-CN")
++    do
++      val lang = Lang.get(code).get
++      given Translate = Translator.to(lang)
++      val catalog = Registry.getAll(lang).get
++      for key <- keys do
++        assert(catalog.containsKey(key), s"$code/$key")
++        val rendered = I18nKey(key)().render
++        assert(rendered.nonEmpty && !rendered.contains(key), s"$code/$key")
++        if code != "en-GB" then assert(!rendered.startsWith("Arena bots are ready"), code)
+diff --git a/src/test/scala/NoSweatArenaRosterTest.scala b/src/test/scala/NoSweatArenaRosterTest.scala
+new file mode 100644
+index 0000000..80784af
+--- /dev/null
++++ b/src/test/scala/NoSweatArenaRosterTest.scala
+@@ -0,0 +1,14 @@
++package lila.app
++
++class NoSweatArenaRosterTest extends munit.FunSuite:
++  test("select ten distinct saved ratings in the requested band, centered near 1500"):
++    val candidates = (1100 to 1800 by 25).map(r => UserId(s"bot$r") -> r).toList
++    val selected = NoSweatArenaRoster.select(candidates)
++    assertEquals(selected.size, 10)
++    assertEquals(selected.distinct.size, 10)
++    assertEquals(selected.head, UserId("bot1500"))
++    val ratings = candidates.toMap
++    assert(selected.forall(id => ratings(id) >= 1200 && ratings(id) <= 1700))
++  test("shortages do not create bots or expand the band"):
++    val candidates = List(UserId("low") -> 1199, UserId("ok") -> 1500, UserId("high") -> 1701)
++    assertEquals(NoSweatArenaRoster.select(candidates), List(UserId("ok")))
 diff --git a/src/test/scala/NoSweatBotCatalogTest.scala b/src/test/scala/NoSweatBotCatalogTest.scala
 new file mode 100644
 index 0000000..bb36ad1

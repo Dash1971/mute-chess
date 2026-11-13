@@ -12,7 +12,7 @@ const nostrIdentity = Buffer.from(JSON.stringify({
   relays: { [nostrPubkey]: ['wss://relay.damus.io', 'wss://nos.lol', 'wss://relay.primal.net'] },
 }));
 const buckets = new Map();
-const websocketPaths = /^\/(?:socket(?:\/v\d+)?|analysis\/socket(?:\/v\d+)?|lobby\/socket(?:\/v\d+)?|study\/[A-Za-z0-9]{8}\/socket\/v\d+|challenge\/[A-Za-z0-9]{8}\/socket\/v\d+|play\/[A-Za-z0-9]{12}\/v\d+|watch\/[A-Za-z0-9]{8}\/(?:white|black)\/v\d+)$/;
+const websocketPaths = /^\/(?:socket(?:\/v\d+)?|analysis\/socket(?:\/v\d+)?|lobby\/socket(?:\/v\d+)?|study\/[A-Za-z0-9]{8}\/socket\/v\d+|(?:challenge|tournament)\/[A-Za-z0-9]{8}\/socket\/v\d+|play\/[A-Za-z0-9]{12}\/v\d+|watch\/[A-Za-z0-9]{8}\/(?:white|black)\/v\d+)$/;
 function pathOf(req) {
   try { return decodeURIComponent(new URL(req.url, 'http://local').pathname).replace(/\/+/g, '/'); }
   catch { return ''; }
@@ -136,6 +136,9 @@ const server = http.createServer((req, res) => {
   const analysisExportRoute = read && (/^\/export\/fen\.gif$/.test(path) || /^\/embed\/(?:analysis|game\/[A-Za-z0-9]{8}(?:\/(?:white|black))?)$/.test(path));
   const insightsRoute = (read && /^\/insights\/[A-Za-z0-9_-]{1,30}(?:\/[^/?#]+){0,12}$/.test(path) && !/^\/insights\/(?:data|refresh)\//.test(path)) ||
     (post && /^\/insights\/(?:data|refresh)\/[A-Za-z0-9_-]{1,30}$/.test(path));
+  const arenaRoute = !['/tournament/calendar', '/tournament/featured'].includes(path) && (
+    (read && /^\/tournament(?:\/(?:new|help|[A-Za-z0-9]{8}(?:\/(?:edit|standing\/[1-9][0-9]{0,3}|(?:page-of|player)\/[A-Za-z0-9_-]{1,30}))?))?$/.test(path)) ||
+    (post && /^\/tournament\/(?:new|[A-Za-z0-9]{8}\/(?:join|withdraw|edit|terminate|prepare))$/.test(path)));
   // Known inherited feature links get a translated native notice, never their blocked controller.
   const unsupportedFeature = (
     /^\/(?:blog|ublog|coach|tournament|simul|team|teams|broadcast|tv|racer|tutor|video|streamer|mobile|paste|import|report|inbox|page)(?:\.atom$|\/|$)/.test(path) ||
@@ -144,9 +147,9 @@ const server = http.createServer((req, res) => {
     /^\/player\/(?:bots|top\/correspondence)$/.test(path) ||
     /^\/stat\/rating\/distribution\/correspondence$/.test(path)
   );
-  const unsupportedRead = read && (unsupportedFeature || path === "/account/kid");
-  const supported = insightsRoute || unsupportedRead || languageHome || analysisExportRoute || friendRoute || infoRoute || featureRoute || patronRoute || puzzleRoute || profileRoute || path === '/' || /^\/(?:club(?:\/|$)|analysis(?:\/|$)|editor(?:\/|$)|game(?:\/|$)|@\/|login$|signup$|logout$|player-count$|account\/now-playing$|lobby\/seeks$|timeline$|pref(?:\/|$)|whats-next\/|opening(?:\/|$)|api\/cloud-eval$)/.test(path) || /^\/[A-Za-z0-9]{8}(?:[A-Za-z0-9]{4})?(?:\/(?:white|black))?$/.test(path);
-  if (!supported || ((unsupportedFeature || path === "/account/kid") && !read)) return reject(res, 404, 'This page is unavailable. Return to the homepage.');
+  const unsupportedRead = read && !arenaRoute && (unsupportedFeature || path === "/account/kid");
+  const supported = arenaRoute || insightsRoute || unsupportedRead || languageHome || analysisExportRoute || friendRoute || infoRoute || featureRoute || patronRoute || puzzleRoute || profileRoute || path === '/' || /^\/(?:club(?:\/|$)|analysis(?:\/|$)|editor(?:\/|$)|game(?:\/|$)|@\/|login$|signup$|logout$|player-count$|account\/now-playing$|lobby\/seeks$|timeline$|pref(?:\/|$)|whats-next\/|opening(?:\/|$)|api\/cloud-eval$)/.test(path) || /^\/[A-Za-z0-9]{8}(?:[A-Za-z0-9]{4})?(?:\/(?:white|black))?$/.test(path);
+  if (!supported || ((unsupportedFeature || path === "/account/kid") && !read && !arenaRoute)) return reject(res, 404, 'This page is unavailable. Return to the homepage.');
   if (Number(req.headers['content-length'] ?? 0) > 16 * 1024 * 1024) return reject(res, 413, 'Request too large');
   const upstream = http.request({ hostname: '127.0.0.1', port: 29663, path: unsupportedRead ? "/club/unsupported" : req.url,
     method: req.method, headers: headers(req), timeout: 30000 }, response => {

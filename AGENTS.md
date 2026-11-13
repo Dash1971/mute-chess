@@ -514,3 +514,16 @@ never belongs on a public profile or in search transport. Managed bots keep
 native names and BOT labels and have no Nostr identities. No bot keys, social
 publishing or account migrations are part of this work. Bot names and canonical
 handles participate in the same uniqueness reservation as chosen human names.
+
+
+## Owner-hosted Arenas (November 13, 2026, #311/#313)
+
+The owner authorized implementing native standard-chess Arenas in draft PR #313,
+without merging or deploying. Default to 120 minutes and 15+10; reserve ten
+existing bots with saved event-speed ratings of 1200–1700. Bots fill a target of
+ten active humans plus bots, while human entry remains unlimited. Use native
+pairing, scoring, clocks and results; finish ongoing games before releasing bot
+seats. Suppress only ordinary background bot games during preparation/event/drain,
+respect independent maintenance pauses, and retain the shared twenty-Maia-game
+cap. Follow docs/arena-plan.md and the exact-path departure register. No new
+scheduler, deployment tooling or infrastructure changes are authorized.

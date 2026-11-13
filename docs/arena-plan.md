@@ -1,8 +1,8 @@
-# Weekly community Arenas — draft design
+# Weekly community Arenas — draft implementation
 
-**Status:** proposed implementation for [#311](https://github.com/Dash1971/mute-chess/issues/311).
-This document does not enable Arenas, start games, schedule an event or change the
-live bot pool. It supersedes the one-human-per-Arena idea in
+**Status:** draft implementation for [#311](https://github.com/Dash1971/mute-chess/issues/311).
+The implementation is on draft PR #313 and is not merged or deployed. It does
+not start a live event or change the live bot pool. It supersedes the one-human-per-Arena idea in
 [#84](https://github.com/Dash1971/mute-chess/issues/84).
 
 ## Event setup
@@ -56,7 +56,7 @@ pause/withdrawal removes an idle human from H immediately. A playing human still
 counts even if disconnected or withdrawn until that game ends.
 
 For idle humans who disappear without withdrawing, retain their place for a
-short reconnect allowance before replacing them with a bot. The proposed first
+short reconnect allowance before replacing them with a bot. The initial
 value is **60 seconds**, using native lobby presence/waiting signals. This is an
 Arena participation allowance, not a change to native in-game disconnect claims
 or clocks. Rejoining restores participation without resetting points.
@@ -122,7 +122,7 @@ and native help should make that behavior clear; do not silently extend scoring.
 
 ## Native integration boundaries
 
-This needs scoped integration, not just exposing the tournament route:
+The implementation adds scoped integration rather than just exposing the tournament route:
 
 - The public gateway currently treats tournaments as unsupported. Permit only the
   native Arena browsing, creation/editing, join/pause, standings/player, chat and
@@ -183,6 +183,24 @@ this feature.
 - [ ] Native Arena assets, sockets, public names/BOT labels and required routes
   work in the actual browser; new UI text passes ten-locale parity/render checks.
 
+## Draft validation
+
+The isolated native build passed application compilation and Scala formatting.
+The six participation/reconnect tests, four native pairing-admission tests, two
+saved-rating roster tests, and one native translation-render test passed. The
+last test renders all six added strings in all ten supported locales. The Arena
+UI build passed TypeScript checking, bundling, styles and translation generation.
+All 120 existing/new adapter regressions passed, including Arena frozen policy,
+human timing, gateway methods/sockets and denial of the affected tournament API
+exports. Native patch reconstruction and the departure-register checks passed.
+
+The checklist above deliberately remains open for integrated browser/game
+acceptance before merge: these unit/build checks do not establish that a complete
+event has run successfully. No live test accounts, games, event, configuration or
+service state were changed. The draft requires an isolated owner/human/bot event
+smoke test, especially for preparation, withdrawal/rejoin, capacity contention,
+cancellation/deadline and drain restoration, before it is ready to merge.
+
 ## References
 
 - [Native Arena rules](https://lichess.org/tournament/help).
@@ -190,3 +208,29 @@ this feature.
 - [Existing background activity and shared capacity](public-bot-activity.md).
 - [Feature and site behavior manual](site-manual.md).
 - [Upstream alignment and departure policy](upstream-alignment.md).
+
+## Host configuration and use
+
+The feature is gated by the native `nosweat.arena.hosts` configuration list, which
+defaults to empty. An operator must explicitly list the owner’s **canonical
+account ID**, not the editable display name. This PR does not change live config
+or grant any moderator/OAuth permissions.
+
+After a reviewed release, open **Community → Arena tournaments**. Authorized
+hosts can create an event with the native form, change its clock or start date,
+and share the resulting URL. Open the event and choose **Prepare Arena bots**
+before its start time. Preparation reserves ten existing eligible identities and
+suppresses background admissions; it does not globally pause games. Refresh the
+event to check whether background games have finished draining. Only one event
+can hold that preparation reservation at a time.
+
+The new `NoSweatArena` helper manages the filler seats and the singleton
+`nosweat_arena` preparation record. `NoSweatService` retains the existing shared
+admission queue and immutable bot-policy records. Native Arena insertion checks
+the authorized event, native pairing and exact reserved bot seats. The adapter’s
+versioned Arena timing wrapper preserves each bot’s configured policy and enables
+human timing without overwriting it. The source register records the exact
+patched paths.
+
+Validation results and remaining browser acceptance checks are recorded in the
+draft PR. No merge, deployment or live event is authorized by this implementation.

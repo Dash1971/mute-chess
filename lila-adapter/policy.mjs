@@ -24,6 +24,23 @@ export function automaticTargetTime(policy, clock, random) {
   return targetTimeForPolicy({ ...production, humanTiming: true }, clock, random);
 }
 
+export const ARENA_POLICY_VERSION = 'arena-human-timing-v1';
+export function freezeArena(bot, rated, opponentRating) {
+  if (typeof rated !== 'boolean') throw new AdapterError(400, 'Invalid Arena mode');
+  const production = opponentRating === undefined ? freeze(bot) : freezeForHuman(bot, opponentRating);
+  return { version: ARENA_POLICY_VERSION, addedHumanWait: true, rated,
+    production: { ...production, rated } };
+}
+export function arenaProduction(policy) {
+  if (policy?.version !== ARENA_POLICY_VERSION || policy.addedHumanWait !== true ||
+      typeof policy.rated !== 'boolean' || policy.production?.rated !== policy.rated)
+    throw new AdapterError(503, 'Arena policy unavailable');
+  return policy.production;
+}
+export function arenaTargetTime(policy, clock, random) {
+  return targetTimeForPolicy({ ...arenaProduction(policy), humanTiming: true }, clock, random);
+}
+
 function humanVersionFor(bot, opponentElo) {
   return 'maia79-lila-v4-' + createHash('sha256').update(JSON.stringify({
     botVersion: versionFor(bot), conditioning: HUMAN_OPPONENT_CONDITIONING, opponentElo,
