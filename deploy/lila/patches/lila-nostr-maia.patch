@@ -4663,10 +4663,17 @@ index 1873610..09d061e 100644
        .css("tournament.calendar"):
          main(cls := "box")(
 diff --git a/modules/tournament/src/main/ui/TournamentShow.scala b/modules/tournament/src/main/ui/TournamentShow.scala
-index 95262f7..5c08b82 100644
+index 95262f7..76d5270 100644
 --- a/modules/tournament/src/main/ui/TournamentShow.scala
 +++ b/modules/tournament/src/main/ui/TournamentShow.scala
-@@ -14,7 +14,8 @@ import lila.ui.*
+@@ -8,23 +8,28 @@ import lila.common.Json.given
+ import lila.common.String.html.markdownLinksOrRichText
+ import lila.core.config.NetDomain
+ import lila.core.team.LightTeam
+-import lila.gathering.Condition.WithVerdicts
++import lila.gathering.Condition.{ Bots, WithVerdict, WithVerdicts }
+ import lila.gathering.ui.GatheringUi
+ import lila.ui.*
  import lila.ui.ScalatagsTemplate.{ *, given }
  
  final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(
@@ -4676,7 +4683,11 @@ index 95262f7..5c08b82 100644
  )(using NetDomain):
    import helpers.{ *, given }
  
-@@ -24,7 +25,9 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(
++  private val focusedClass = if focused then " nosweat-arena" else ""
++
+   def apply(
+       tour: Tournament,
+       verdicts: lila.gathering.Condition.WithVerdicts,
        shieldOwner: Option[UserId],
        data: JsObject,
        chat: Option[(Frag, JsObject)],
@@ -4687,7 +4698,7 @@ index 95262f7..5c08b82 100644
    )(using ctx: Context) =
      val extraCls = tour.scheduleData.so: (freq, speed) =>
        s" tour-sched tour-sched-${freq.name} tour-speed-${speed.name} tour-variant-${tour.variant.key} tour-id-${tour.id}"
-@@ -36,13 +39,14 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(
+@@ -36,13 +41,14 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(
              "data" -> data,
              "userId" -> ctx.userId,
              "chat" -> chat._2F,
@@ -4697,52 +4708,85 @@ index 95262f7..5c08b82 100644
            )
          )
        .csp(_.withLilaHttp):
-         main(cls := s"tour variant-${tour.variant.key}$extraCls")(
+-        main(cls := s"tour variant-${tour.variant.key}$extraCls")(
++        main(cls := s"tour variant-${tour.variant.key}$extraCls$focusedClass")(
            st.aside(cls := "tour__side"):
 -            side(tour, verdicts, shieldOwner, chat._1F, streamers)
-+            frag(side(tour, verdicts, shieldOwner, chat._1F, streamers), arenaControls)
++            side(tour, verdicts, shieldOwner, chat._1F, streamers, arenaControls)
            ,
            div(cls := "tour__main")(div(cls := "box")),
            tour.isCreated.option(div(cls := "tour__faq"):
-@@ -190,18 +194,30 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(
+@@ -51,7 +57,7 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(
+ 
+   def restricted(tour: Tournament)(using ctx: Context) =
+     basePage(tour):
+-      main(cls := s"tour variant-${tour.variant.key}")(
++      main(cls := s"tour variant-${tour.variant.key}$focusedClass")(
+         st.aside(cls := "tour__side"):
+           side(tour, WithVerdicts(Nil), none, none, emptyFrag)
+         ,
+@@ -97,8 +103,16 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(
+         verdicts: lila.gathering.Condition.WithVerdicts,
+         shieldOwner: Option[UserId],
+         chat: Option[Frag],
+-        streamers: Frag
++        streamers: Frag,
++        arenaControls: Option[Frag] = None
+     )(using ctx: Context) =
++      val entryVerdicts =
++        if focused then
++          WithVerdicts(verdicts.list.filterNot {
++            case WithVerdict(Bots(true), verdict) => verdict.accepted
++            case _ => false
++          })
++        else verdicts
+       frag(
+         div(cls := "tour__meta")(
+           st.section(cls := "tour__meta__head", dataIcon := tour.perfType.icon.toString)(
+@@ -179,19 +193,39 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(
+                 )
+               })
+           ),
+-          gathering.verdicts(verdicts, tour.perfType, tour.isEnterable),
++          focused.option(sideBotsExplanation(tour)),
++          gathering.verdicts(entryVerdicts, tour.perfType, tour.isEnterable),
+           tour.looksLikePrize.option(gathering.userPrizeDisclaimer(tour.createdBy)),
+-          List(shieldOwner, tour.description, tour.payouts)
+-            .exists(_.isDefined)
++          (!focused && List(shieldOwner, tour.description, tour.payouts).exists(_.isDefined))
+             .option(button(cls := "disclosure"))
+         ),
+         streamers,
+         sideBotsWarning(tour),
++        arenaControls,
          chat
        )
  
 -    private def sideBotsWarning(tour: Tournament) =
-+    private def sideBotsWarning(tour: Tournament)(using Context) =
++    private def sideBotsExplanation(tour: Tournament)(using Context) =
        tour.conditions.allowsBots.option:
++        details(cls := "nosweat-arena-bots")(
++          summary(
++            span(lila.core.i18n.I18nKey("muteArenaBotNoticeTitle")()),
++            span(dataIcon := Icon.InfoCircle, attr("aria-hidden") := "true")
++          ),
++          div(cls := "nosweat-arena-bots__body")(
++            p(
++              lila.core.i18n.I18nKey("muteArenaBotNoticeIntro")(
++                tour.arenaSettings.minRating,
++                tour.arenaSettings.maxRating,
++                tour.arenaSettings.target
++              )
++            ),
++            p(lila.core.i18n.I18nKey("muteArenaBotNoticeFill")(tour.arenaSettings.target))
++          )
++        )
++
++    private def sideBotsWarning(tour: Tournament)(using Context) =
++      (!focused && tour.conditions.allowsBots).option:
          div(cls := "tour__bots-warning")(
            img(src := staticAssetPath("images/icons/bot.webp")),
            div(
--            h2("Bot tournament"),
--            p(
--              "The organizer has decided to let ",
--              userTitleTag(chess.PlayerTitle.BOT),
--              " accounts play in this tournament."
--            ),
--            p("You will have to face ", strong("chess engines"), " in some of your games.")
-+            if focused then
-+              frag(
-+                h2(lila.core.i18n.I18nKey("muteArenaBotNoticeTitle")()),
-+                p(lila.core.i18n.I18nKey("muteArenaBotNoticeIntro")()),
-+                p(
-+                  lila.core.i18n
-+                    .I18nKey("muteArenaBotNoticeFill")(tour.arenaSettings.target, tour.arenaSettings.target)
-+                )
-+              )
-+            else
-+              frag(
-+                h2("Bot tournament"),
-+                p(
-+                  "The organizer has decided to let ",
-+                  userTitleTag(chess.PlayerTitle.BOT),
-+                  " accounts play in this tournament."
-+                ),
-+                p("You will have to face ", strong("chess engines"), " in some of your games.")
-+              )
-           )
-         )
- 
 diff --git a/modules/tv/src/main/TvUi.scala b/modules/tv/src/main/TvUi.scala
 index 2303c7d..302c7a4 100644
 --- a/modules/tv/src/main/TvUi.scala
@@ -6649,10 +6693,10 @@ index 58403d3..bdb1c27 100644
 +  <string name="allowBotAccounts">允许机器人账号参赛</string>
  </resources>
 diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
-index 88adade..5bf1580 100644
+index 88adade..b890f5b 100644
 --- a/translation/dest/site/de-DE.xml
 +++ b/translation/dest/site/de-DE.xml
-@@ -1064,4 +1064,177 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
+@@ -1064,4 +1064,178 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
    <string name="write">Schreiben</string>
    <string name="preview">Vorschau</string>
    <string name="done">Erledigt</string>
@@ -6811,7 +6855,7 @@ index 88adade..5bf1580 100644
 +  <string name="muteInsightLastDay">Letzte 24 Stunden</string>
 +  <string name="muteArenaPrepare">Arena-Bots vorbereiten</string>
 +  <string name="muteArenaReady">Die Arena ist vorbereitet. Gespielt wird ab der geplanten Startzeit.</string>
-+  <string name="muteArenaDraining">Die laufenden Bot-Spiele werden beendet. Aktualisiere die Seite, um die Bereitschaft zu prüfen.</string>
++  <string name="muteArenaDraining">Warte, bis die Hintergrundpartien beendet sind.</string>
 +  <string name="muteArenaUnavailable">Die Arena konnte nicht vorbereitet werden. Möglicherweise ist ein anderes Turnier aktiv oder es sind zu wenige geeignete Bots verfügbar.</string>
 +  <string name="muteArenaHelp">Bots mit einer Wertung von %1$s–%2$s ergänzen das Feld auf bis zu %3$s aktive Teilnehmer. Menschen können ohne Teilnehmerlimit beitreten; laufende Partien werden regulär beendet.</string>
 +  <string name="muteArenaSettings">Verwende Standardschach mit der normalen Ausgangsstellung. Mannschaftskämpfe und Preise sind nicht verfügbar.</string>
@@ -6826,15 +6870,16 @@ index 88adade..5bf1580 100644
 +  <string name="muteArenaTargetHelp">Bots ergänzen das Feld bis zu dieser Zahl (1–20). Weitere Menschen können jederzeit beitreten.</string>
 +  <string name="muteArenaRangeInvalid">Die Mindestwertung der Bots darf die Höchstwertung nicht überschreiten.</string>
 +  <string name="muteArenaLocked">Bot-Einstellungen, Bedenkzeit und Wertungsmodus können nach der Vorbereitung oder dem Start der Arena nicht geändert werden.</string>
-+  <string name="muteArenaBotNoticeTitle">Maia-Bots als Teilnehmer</string>
-+  <string name="muteArenaBotNoticeIntro">Der Veranstalter erlaubt menschenähnlich spielenden Maia-BOT-Konten, freie Plätze in diesem Turnier zu füllen.</string>
-+  <string name="muteArenaBotNoticeFill">Maia-Bots ergänzen das Feld auf bis zu %1$s aktive Teilnehmer. Solange mindestens %2$s Menschen aktiv bleiben, erhalten Bots keine neuen Paarungen. Laufende Partien werden regulär beendet.</string>
++  <string name="muteArenaBotNoticeTitle">Maia-Bots füllen freie Plätze</string>
++  <string name="muteArenaBotNoticeIntro">Bots mit einer Wertung von %1$s–%2$s füllen freie Plätze, bis die Zahl der aktiven Teilnehmer %3$s erreicht.</string>
++  <string name="muteArenaBotNoticeFill">Wenn Menschen beitreten, treten Bots zurück. Sobald die Zahl der aktiven Menschen %s erreicht, erhalten Bots keine neuen Paarungen. Laufende Partien werden regulär beendet.</string>
++  <string name="muteArenaRefresh">Aktualisieren</string>
  </resources>
 diff --git a/translation/dest/site/es-ES.xml b/translation/dest/site/es-ES.xml
-index 76004f5..62db20b 100644
+index 76004f5..c0906c4 100644
 --- a/translation/dest/site/es-ES.xml
 +++ b/translation/dest/site/es-ES.xml
-@@ -1064,4 +1064,177 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
+@@ -1064,4 +1064,178 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
    <string name="write">Escribir</string>
    <string name="preview">Vista previa</string>
    <string name="done">Listo</string>
@@ -6993,7 +7038,7 @@ index 76004f5..62db20b 100644
 +  <string name="muteInsightLastDay">Últimas 24 horas</string>
 +  <string name="muteArenaPrepare">Preparar los bots de la arena</string>
 +  <string name="muteArenaReady">La Arena está preparada. Las partidas comenzarán a la hora programada.</string>
-+  <string name="muteArenaDraining">Esperando a que terminen las partidas de bots en segundo plano. Actualiza la página para comprobarlo.</string>
++  <string name="muteArenaDraining">Esperando a que terminen las partidas en segundo plano.</string>
 +  <string name="muteArenaUnavailable">No se ha podido preparar la Arena. Puede que haya otro torneo activo o que no haya suficientes bots aptos.</string>
 +  <string name="muteArenaHelp">Los bots con puntuación de %1$s–%2$s completan las plazas hasta llegar a %3$s participantes activos. No hay límite de participantes humanos; las partidas en curso terminan normalmente.</string>
 +  <string name="muteArenaSettings">Usa ajedrez estándar y la posición inicial normal. Las batallas por equipos y los premios no están disponibles.</string>
@@ -7008,15 +7053,16 @@ index 76004f5..62db20b 100644
 +  <string name="muteArenaTargetHelp">Los bots completan las plazas hasta este total (1–20). Siempre pueden unirse más personas.</string>
 +  <string name="muteArenaRangeInvalid">La puntuación mínima de los bots no puede superar la máxima.</string>
 +  <string name="muteArenaLocked">Los ajustes de bots, el ritmo de juego y el modo por puntos no pueden cambiar tras preparar o iniciar la Arena.</string>
-+  <string name="muteArenaBotNoticeTitle">Participación de bots Maia</string>
-+  <string name="muteArenaBotNoticeIntro">El organizador permite que las cuentas BOT de Maia, que juegan como personas, cubran las plazas libres de este torneo.</string>
-+  <string name="muteArenaBotNoticeFill">Los bots Maia completan las plazas hasta llegar a %1$s participantes activos. Mientras al menos %2$s personas sigan activas, los bots no recibirán nuevos emparejamientos. Las partidas en curso terminan normalmente.</string>
++  <string name="muteArenaBotNoticeTitle">Los bots Maia cubren las plazas libres</string>
++  <string name="muteArenaBotNoticeIntro">Los bots con una puntuación de %1$s–%2$s cubren plazas libres hasta alcanzar %3$s participantes activos.</string>
++  <string name="muteArenaBotNoticeFill">A medida que se unen personas, los bots dejan su lugar. Cuando hay %s personas activas, los bots dejan de recibir nuevos emparejamientos. Las partidas en curso terminan con normalidad.</string>
++  <string name="muteArenaRefresh">Actualizar</string>
  </resources>
 diff --git a/translation/dest/site/fr-FR.xml b/translation/dest/site/fr-FR.xml
-index 7dfd5f7..fbd4f5d 100644
+index 7dfd5f7..7444686 100644
 --- a/translation/dest/site/fr-FR.xml
 +++ b/translation/dest/site/fr-FR.xml
-@@ -1063,4 +1063,177 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
+@@ -1063,4 +1063,178 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
    <string name="write">Écrire</string>
    <string name="preview">Aperçu</string>
    <string name="done">Terminé</string>
@@ -7175,7 +7221,7 @@ index 7dfd5f7..fbd4f5d 100644
 +  <string name="muteInsightLastDay">Les dernières 24 heures</string>
 +  <string name="muteArenaPrepare">Préparer les bots de l’arène</string>
 +  <string name="muteArenaReady">L’Arena est prête. Les parties commenceront à l’heure prévue.</string>
-+  <string name="muteArenaDraining">En attente de la fin des parties de bots en arrière-plan. Actualisez pour vérifier.</string>
++  <string name="muteArenaDraining">En attente de la fin des parties en arrière-plan.</string>
 +  <string name="muteArenaUnavailable">Impossible de préparer l’Arena. Un autre tournoi est peut-être actif ou trop peu de bots admissibles sont disponibles.</string>
 +  <string name="muteArenaHelp">Les bots classés entre %1$s et %2$s complètent les places jusqu’à %3$s participants actifs. Le nombre de joueurs humains est illimité ; les parties en cours se terminent normalement.</string>
 +  <string name="muteArenaSettings">Utilisez les échecs classiques et la position initiale normale. Les batailles par équipes et les prix ne sont pas disponibles.</string>
@@ -7190,15 +7236,16 @@ index 7dfd5f7..fbd4f5d 100644
 +  <string name="muteArenaTargetHelp">Les bots complètent les places jusqu’à ce total (1–20). Davantage de joueurs humains peuvent toujours participer.</string>
 +  <string name="muteArenaRangeInvalid">Le classement minimal des bots ne doit pas dépasser le maximum.</string>
 +  <string name="muteArenaLocked">Les réglages des bots, la cadence et le mode classé ne peuvent plus changer une fois l’Arena préparée ou commencée.</string>
-+  <string name="muteArenaBotNoticeTitle">Participation des bots Maia</string>
-+  <string name="muteArenaBotNoticeIntro">L’organisateur autorise des comptes BOT Maia au jeu humain à occuper les places libres de ce tournoi.</string>
-+  <string name="muteArenaBotNoticeFill">Les bots Maia complètent les places jusqu’à %1$s participants actifs. Tant qu’au moins %2$s joueurs humains restent actifs, les bots ne reçoivent aucun nouvel appariement. Les parties en cours se terminent normalement.</string>
++  <string name="muteArenaBotNoticeTitle">Les bots Maia occupent les places libres</string>
++  <string name="muteArenaBotNoticeIntro">Les bots classés entre %1$s et %2$s occupent les places libres jusqu’à atteindre %3$s participants actifs.</string>
++  <string name="muteArenaBotNoticeFill">À mesure que des humains rejoignent le tournoi, les bots leur cèdent la place. Lorsque le nombre d’humains actifs atteint %s, les bots ne reçoivent plus de nouveaux appariements. Les parties en cours se terminent normalement.</string>
++  <string name="muteArenaRefresh">Actualiser</string>
  </resources>
 diff --git a/translation/dest/site/hi-IN.xml b/translation/dest/site/hi-IN.xml
-index bbf1703..bf33a35 100644
+index bbf1703..bc2e699 100644
 --- a/translation/dest/site/hi-IN.xml
 +++ b/translation/dest/site/hi-IN.xml
-@@ -893,4 +893,177 @@
+@@ -893,4 +893,178 @@
    <string name="closingAccountWithdrawAppeal">आपका खाता बंद करने से आपकी अपील वापस ले ली जाएगी</string>
    <string name="ourEventTips">कार्यक्रम आयोजित करने कि सलाह</string>
    <string name="nothingToSeeHere">इस समय यहां देखने को कुछ भी नहीं है।</string>
@@ -7357,7 +7404,7 @@ index bbf1703..bf33a35 100644
 +  <string name="muteInsightLastDay">पिछले 24 घंटे</string>
 +  <string name="muteArenaPrepare">एरीना बॉट तैयार करें</string>
 +  <string name="muteArenaReady">अरीना तैयार है। खेल निर्धारित समय पर शुरू होगा।</string>
-+  <string name="muteArenaDraining">पृष्ठभूमि में चल रही बॉट बाज़ियों के समाप्त होने की प्रतीक्षा है। तैयारी जाँचने के लिए पेज ताज़ा करें।</string>
++  <string name="muteArenaDraining">पृष्ठभूमि की बाज़ियाँ समाप्त होने की प्रतीक्षा है।</string>
 +  <string name="muteArenaUnavailable">अरीना तैयार नहीं हो सका। कोई दूसरा टूर्नामेंट सक्रिय हो सकता है या पर्याप्त योग्य बॉट उपलब्ध नहीं हैं।</string>
 +  <string name="muteArenaHelp">%1$s–%2$s रेटिंग वाले बॉट कुल %3$s सक्रिय प्रतिभागियों तक खाली स्थान भरते हैं। मानव खिलाड़ियों की संख्या पर कोई सीमा नहीं है; चल रही बाज़ियाँ सामान्य रूप से पूरी होंगी।</string>
 +  <string name="muteArenaSettings">मानक शतरंज और सामान्य प्रारंभिक स्थिति का उपयोग करें। टीम मुकाबले और पुरस्कार उपलब्ध नहीं हैं।</string>
@@ -7372,15 +7419,16 @@ index bbf1703..bf33a35 100644
 +  <string name="muteArenaTargetHelp">बॉट इस कुल संख्या (1–20) तक स्थान भरते हैं। अधिक मानव खिलाड़ी हमेशा शामिल हो सकते हैं।</string>
 +  <string name="muteArenaRangeInvalid">बॉट की न्यूनतम रेटिंग अधिकतम रेटिंग से अधिक नहीं हो सकती।</string>
 +  <string name="muteArenaLocked">अरीना तैयार होने या शुरू होने के बाद बॉट सेटिंग, समय नियंत्रण और रेटिंग मोड नहीं बदल सकते।</string>
-+  <string name="muteArenaBotNoticeTitle">Maia बॉट प्रतिभागी</string>
-+  <string name="muteArenaBotNoticeIntro">आयोजक इस टूर्नामेंट में खाली स्थान भरने के लिए इंसानों की तरह खेलने वाले Maia BOT खातों को अनुमति देता है।</string>
-+  <string name="muteArenaBotNoticeFill">Maia बॉट कुल %1$s सक्रिय प्रतिभागियों तक खाली स्थान भरते हैं। जब तक कम से कम %2$s मानव खिलाड़ी सक्रिय रहते हैं, बॉट को नई जोड़ियाँ नहीं मिलतीं। चल रही बाज़ियाँ सामान्य रूप से पूरी होंगी।</string>
++  <string name="muteArenaBotNoticeTitle">Maia बॉट खाली स्थान भरते हैं</string>
++  <string name="muteArenaBotNoticeIntro">%1$s–%2$s रेटिंग वाले बॉट तब तक खाली स्थान भरते हैं जब तक सक्रिय प्रतिभागियों की संख्या %3$s नहीं हो जाती।</string>
++  <string name="muteArenaBotNoticeFill">जैसे-जैसे मानव खिलाड़ी जुड़ते हैं, बॉट उनके लिए जगह छोड़ते हैं। सक्रिय मानव खिलाड़ियों की संख्या %s होने पर बॉट को नए मुकाबले नहीं दिए जाते। चल रही बाज़ियाँ सामान्य रूप से पूरी होती हैं।</string>
++  <string name="muteArenaRefresh">रीफ़्रेश करें</string>
  </resources>
 diff --git a/translation/dest/site/ja-JP.xml b/translation/dest/site/ja-JP.xml
-index e628bdb..5c24763 100644
+index e628bdb..bb464e0 100644
 --- a/translation/dest/site/ja-JP.xml
 +++ b/translation/dest/site/ja-JP.xml
-@@ -1023,4 +1023,177 @@
+@@ -1023,4 +1023,178 @@
    <string name="write">書く</string>
    <string name="preview">プレビュー</string>
    <string name="done">完了</string>
@@ -7539,7 +7587,7 @@ index e628bdb..5c24763 100644
 +  <string name="muteInsightLastDay">過去24時間</string>
 +  <string name="muteArenaPrepare">アリーナのボットを準備</string>
 +  <string name="muteArenaReady">アリーナの準備ができました。対局は予定の開始時刻に始まります。</string>
-+  <string name="muteArenaDraining">バックグラウンドのボット対局の終了を待っています。ページを更新して準備状況を確認してください。</string>
++  <string name="muteArenaDraining">バックグラウンドの対局が終わるのを待っています。</string>
 +  <string name="muteArenaUnavailable">アリーナを準備できませんでした。別の大会が開催中か、条件を満たすボットが不足している可能性があります。</string>
 +  <string name="muteArenaHelp">レーティング%1$s～%2$sのボットが、活動中の参加者数が%3$s人になるまで空きを補います。人間の参加人数に上限はなく、進行中の対局は通常どおり終了まで続きます。</string>
 +  <string name="muteArenaSettings">通常のチェスと初期配置を使用してください。チーム戦と賞品には対応していません。</string>
@@ -7554,15 +7602,16 @@ index e628bdb..5c24763 100644
 +  <string name="muteArenaTargetHelp">この合計人数（1～20人）までボットが補います。人間はそれを超えても参加できます。</string>
 +  <string name="muteArenaRangeInvalid">ボットの最低レーティングは最高レーティング以下にしてください。</string>
 +  <string name="muteArenaLocked">アリーナの準備後または開始後は、ボット設定、持ち時間、レート戦の設定を変更できません。</string>
-+  <string name="muteArenaBotNoticeTitle">Maiaボットの参加</string>
-+  <string name="muteArenaBotNoticeIntro">主催者は、この大会の空きを補うために、人間らしく指すMaiaのBOTアカウントの参加を許可しています。</string>
-+  <string name="muteArenaBotNoticeFill">Maiaボットは活動中の参加者が%1$s人になるまで空きを補います。人間の参加者が%2$s人以上である間は、ボットに新しい対局は割り当てられません。進行中の対局は通常どおり終了まで続きます。</string>
++  <string name="muteArenaBotNoticeTitle">Maiaボットが空きを補います</string>
++  <string name="muteArenaBotNoticeIntro">レーティング%1$s～%2$sのボットが、活動中の参加者数が%3$s人になるまで空きを補います。</string>
++  <string name="muteArenaBotNoticeFill">人間が参加すると、ボットは枠を譲ります。活動中の人間が%s人に達すると、ボットに新しい対局は割り当てられません。進行中の対局は通常どおり終了まで続きます。</string>
++  <string name="muteArenaRefresh">更新</string>
  </resources>
 diff --git a/translation/dest/site/ko-KR.xml b/translation/dest/site/ko-KR.xml
-index 9341bf0..4cd0e56 100644
+index 9341bf0..ba40288 100644
 --- a/translation/dest/site/ko-KR.xml
 +++ b/translation/dest/site/ko-KR.xml
-@@ -1022,4 +1022,177 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
+@@ -1022,4 +1022,178 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
    <string name="write">작성</string>
    <string name="preview">미리보기</string>
    <string name="done">완료</string>
@@ -7721,7 +7770,7 @@ index 9341bf0..4cd0e56 100644
 +  <string name="muteInsightLastDay">최근 24시간</string>
 +  <string name="muteArenaPrepare">아레나 봇 준비</string>
 +  <string name="muteArenaReady">아레나가 준비되었습니다. 예정된 시작 시각에 대국이 시작됩니다.</string>
-+  <string name="muteArenaDraining">백그라운드 봇 대국이 끝나기를 기다리는 중입니다. 새로고침하여 준비 상태를 확인하세요.</string>
++  <string name="muteArenaDraining">백그라운드 대국이 끝나기를 기다리고 있습니다.</string>
 +  <string name="muteArenaUnavailable">아레나를 준비할 수 없습니다. 다른 대회가 진행 중이거나 조건에 맞는 봇이 부족할 수 있습니다.</string>
 +  <string name="muteArenaHelp">레이팅 %1$s~%2$s의 봇이 활동 중인 참가자가 %3$s명이 될 때까지 빈자리를 채웁니다. 사람 참가자 수에는 제한이 없으며, 진행 중인 대국은 정상적으로 끝까지 진행됩니다.</string>
 +  <string name="muteArenaSettings">표준 체스와 기본 시작 배치를 사용하세요. 팀 대항전과 상금은 지원하지 않습니다.</string>
@@ -7736,15 +7785,16 @@ index 9341bf0..4cd0e56 100644
 +  <string name="muteArenaTargetHelp">봇이 이 총원(1~20명)까지 채웁니다. 사람은 이 수를 넘어서도 참가할 수 있습니다.</string>
 +  <string name="muteArenaRangeInvalid">봇의 최소 레이팅은 최대 레이팅보다 높을 수 없습니다.</string>
 +  <string name="muteArenaLocked">아레나가 준비되거나 시작된 후에는 봇 설정, 시간 형식, 레이팅 반영 여부를 변경할 수 없습니다.</string>
-+  <string name="muteArenaBotNoticeTitle">Maia 봇 참가</string>
-+  <string name="muteArenaBotNoticeIntro">주최자는 이 대회의 빈자리를 채우기 위해 사람처럼 플레이하는 Maia BOT 계정의 참가를 허용했습니다.</string>
-+  <string name="muteArenaBotNoticeFill">Maia 봇은 활동 중인 참가자가 %1$s명이 될 때까지 빈자리를 채웁니다. 사람 참가자가 %2$s명 이상으로 유지되면 봇에는 새 대국이 배정되지 않습니다. 진행 중인 대국은 정상적으로 끝까지 진행됩니다.</string>
++  <string name="muteArenaBotNoticeTitle">Maia 봇이 빈자리를 채웁니다</string>
++  <string name="muteArenaBotNoticeIntro">레이팅이 %1$s~%2$s인 봇이 활동 중인 참가자가 %3$s명에 이를 때까지 빈자리를 채웁니다.</string>
++  <string name="muteArenaBotNoticeFill">사람이 참가하면 봇이 자리를 내줍니다. 활동 중인 사람이 %s명에 이르면 봇은 새로운 대국에 배정되지 않습니다. 진행 중인 대국은 정상적으로 끝까지 계속됩니다.</string>
++  <string name="muteArenaRefresh">새로고침</string>
  </resources>
 diff --git a/translation/dest/site/pt-BR.xml b/translation/dest/site/pt-BR.xml
-index 569e752..76830b9 100644
+index 569e752..66e9b1e 100644
 --- a/translation/dest/site/pt-BR.xml
 +++ b/translation/dest/site/pt-BR.xml
-@@ -1063,4 +1063,177 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
+@@ -1063,4 +1063,178 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
    <string name="write">Escrever</string>
    <string name="preview">Pré-visualizar</string>
    <string name="done">Feito</string>
@@ -7903,7 +7953,7 @@ index 569e752..76830b9 100644
 +  <string name="muteInsightLastDay">Últimas 24 horas</string>
 +  <string name="muteArenaPrepare">Preparar bots da arena</string>
 +  <string name="muteArenaReady">A Arena está preparada. As partidas começam no horário programado.</string>
-+  <string name="muteArenaDraining">Aguardando o fim das partidas de bots em segundo plano. Atualize a página para verificar.</string>
++  <string name="muteArenaDraining">Aguardando o término das partidas em segundo plano.</string>
 +  <string name="muteArenaUnavailable">Não foi possível preparar a Arena. Outro torneio pode estar ativo ou pode haver poucos bots elegíveis disponíveis.</string>
 +  <string name="muteArenaHelp">Bots com rating entre %1$s e %2$s completam as vagas até %3$s participantes ativos. Não há limite de participantes humanos; as partidas em andamento terminam normalmente.</string>
 +  <string name="muteArenaSettings">Use xadrez padrão e a posição inicial normal. Batalhas entre equipes e prêmios não estão disponíveis.</string>
@@ -7918,15 +7968,16 @@ index 569e752..76830b9 100644
 +  <string name="muteArenaTargetHelp">Os bots completam as vagas até este total (1–20). Mais pessoas sempre podem entrar.</string>
 +  <string name="muteArenaRangeInvalid">O rating mínimo dos bots não pode superar o máximo.</string>
 +  <string name="muteArenaLocked">As configurações dos bots, o ritmo de jogo e o modo ranqueado não podem mudar após a preparação ou o início da Arena.</string>
-+  <string name="muteArenaBotNoticeTitle">Participação de bots Maia</string>
-+  <string name="muteArenaBotNoticeIntro">O organizador permite que contas BOT Maia, que jogam como humanos, preencham as vagas deste torneio.</string>
-+  <string name="muteArenaBotNoticeFill">Os bots Maia completam as vagas até %1$s participantes ativos. Enquanto pelo menos %2$s humanos permanecerem ativos, os bots não recebem novos emparceiramentos. As partidas em andamento terminam normalmente.</string>
++  <string name="muteArenaBotNoticeTitle">Bots Maia preenchem as vagas</string>
++  <string name="muteArenaBotNoticeIntro">Bots com rating de %1$s–%2$s preenchem as vagas até que o número de participantes ativos chegue a %3$s.</string>
++  <string name="muteArenaBotNoticeFill">Conforme humanos entram, os bots cedem lugar. Quando o número de humanos ativos chega a %s, os bots deixam de receber novos emparceiramentos. As partidas em andamento terminam normalmente.</string>
++  <string name="muteArenaRefresh">Atualizar</string>
  </resources>
 diff --git a/translation/dest/site/ru-RU.xml b/translation/dest/site/ru-RU.xml
-index 6384657..2960ee0 100644
+index 6384657..60f1b2e 100644
 --- a/translation/dest/site/ru-RU.xml
 +++ b/translation/dest/site/ru-RU.xml
-@@ -1146,4 +1146,177 @@
+@@ -1146,4 +1146,178 @@
    <string name="write">Написать</string>
    <string name="preview">Предпросмотр</string>
    <string name="done">Готово</string>
@@ -8085,7 +8136,7 @@ index 6384657..2960ee0 100644
 +  <string name="muteInsightLastDay">Последние 24 часа</string>
 +  <string name="muteArenaPrepare">Подготовить ботов арены</string>
 +  <string name="muteArenaReady">Арена подготовлена. Партии начнутся в назначенное время.</string>
-+  <string name="muteArenaDraining">Ожидание завершения фоновых партий ботов. Обновите страницу для проверки готовности.</string>
++  <string name="muteArenaDraining">Ожидание завершения фоновых партий.</string>
 +  <string name="muteArenaUnavailable">Не удалось подготовить Арену. Возможно, уже активен другой турнир или доступно недостаточно подходящих ботов.</string>
 +  <string name="muteArenaHelp">Боты с рейтингом %1$s–%2$s заполняют места до %3$s активных участников. Число участников-людей не ограничено; начатые партии завершаются в обычном порядке.</string>
 +  <string name="muteArenaSettings">Используйте обычные шахматы и начальную позицию. Командные битвы и призы недоступны.</string>
@@ -8100,15 +8151,16 @@ index 6384657..2960ee0 100644
 +  <string name="muteArenaTargetHelp">Боты заполняют места до этого общего числа (1–20). Люди могут присоединяться и сверх него.</string>
 +  <string name="muteArenaRangeInvalid">Минимальный рейтинг ботов не должен превышать максимальный.</string>
 +  <string name="muteArenaLocked">Настройки ботов, контроль времени и рейтинговый режим нельзя менять после подготовки или начала Арены.</string>
-+  <string name="muteArenaBotNoticeTitle">Участие ботов Maia</string>
-+  <string name="muteArenaBotNoticeIntro">Организатор разрешает BOT-аккаунтам Maia, играющим в человеческом стиле, заполнять свободные места в этом турнире.</string>
-+  <string name="muteArenaBotNoticeFill">Боты Maia заполняют места до %1$s активных участников. Пока активны не менее %2$s людей, боты не получают новых пар. Начатые партии завершаются в обычном порядке.</string>
++  <string name="muteArenaBotNoticeTitle">Боты Maia занимают свободные места</string>
++  <string name="muteArenaBotNoticeIntro">Боты с рейтингом %1$s–%2$s занимают свободные места, пока число активных участников не достигнет %3$s.</string>
++  <string name="muteArenaBotNoticeFill">По мере присоединения людей боты уступают им места. Когда число активных людей достигает %s, боты больше не получают новых соперников. Уже начатые партии завершаются в обычном порядке.</string>
++  <string name="muteArenaRefresh">Обновить</string>
  </resources>
 diff --git a/translation/dest/site/zh-CN.xml b/translation/dest/site/zh-CN.xml
-index 176f4d1..38996b9 100644
+index 176f4d1..ca1f3bd 100644
 --- a/translation/dest/site/zh-CN.xml
 +++ b/translation/dest/site/zh-CN.xml
-@@ -1022,4 +1022,177 @@
+@@ -1022,4 +1022,178 @@
    <string name="write">撰写</string>
    <string name="preview">预览</string>
    <string name="done">完成</string>
@@ -8267,7 +8319,7 @@ index 176f4d1..38996b9 100644
 +  <string name="muteInsightLastDay">最近24小时</string>
 +  <string name="muteArenaPrepare">准备竞技场机器人</string>
 +  <string name="muteArenaReady">竞技场已准备就绪。对局将在预定时间开始。</string>
-+  <string name="muteArenaDraining">正在等待后台机器人对局结束。请刷新页面查看准备状态。</string>
++  <string name="muteArenaDraining">正在等待后台对局结束。</string>
 +  <string name="muteArenaUnavailable">无法准备竞技场。可能有其他赛事正在进行，或符合条件的机器人数量不足。</string>
 +  <string name="muteArenaHelp">等级分为%1$s–%2$s的机器人会补足空位，直到活跃参赛者达到%3$s人。真人参赛人数不限；已经开始的对局将正常结束。</string>
 +  <string name="muteArenaSettings">请使用标准国际象棋和正常初始局面。不支持团体对抗赛和奖金。</string>
@@ -8282,15 +8334,16 @@ index 176f4d1..38996b9 100644
 +  <string name="muteArenaTargetHelp">机器人补足至此总人数（1–20人）。真人始终可以超出此人数加入。</string>
 +  <string name="muteArenaRangeInvalid">机器人最低等级分不能高于最高等级分。</string>
 +  <string name="muteArenaLocked">竞技场准备就绪或开始后，无法更改机器人设置、用时规则和是否计分。</string>
-+  <string name="muteArenaBotNoticeTitle">Maia机器人参赛</string>
-+  <string name="muteArenaBotNoticeIntro">主办方允许模仿人类棋风的Maia BOT账号补足本赛事的空位。</string>
-+  <string name="muteArenaBotNoticeFill">Maia机器人会补足空位，直到活跃参赛者达到%1$s人。当至少有%2$s名真人持续活跃时，机器人将不再获得新的配对。已经开始的对局将正常结束。</string>
++  <string name="muteArenaBotNoticeTitle">Maia机器人补充空位</string>
++  <string name="muteArenaBotNoticeIntro">评分为%1$s至%2$s的机器人会补充空位，直到活跃参赛人数达到%3$s。</string>
++  <string name="muteArenaBotNoticeFill">随着人类棋手加入，机器人会让出位置。当活跃的人类棋手人数达到%s时，机器人将不再获得新的对局配对。已经开始的对局会正常进行至结束。</string>
++  <string name="muteArenaRefresh">刷新</string>
  </resources>
 diff --git a/translation/source/site.xml b/translation/source/site.xml
-index 8b5a6a1..efdf973 100644
+index 8b5a6a1..7087c1b 100644
 --- a/translation/source/site.xml
 +++ b/translation/source/site.xml
-@@ -1066,4 +1066,177 @@ Leave empty to start games from the normal initial position.</string>
+@@ -1066,4 +1066,178 @@ Leave empty to start games from the normal initial position.</string>
    <string name="write">Write</string>
    <string name="preview">Preview</string>
    <string name="done">Done</string>
@@ -8449,7 +8502,7 @@ index 8b5a6a1..efdf973 100644
 +  <string name="muteInsightLastDay">Last 24 hours</string>
 +  <string name="muteArenaPrepare">Prepare Arena bots</string>
 +  <string name="muteArenaReady">The Arena is prepared. Play begins at the scheduled start time.</string>
-+  <string name="muteArenaDraining">Waiting for background bot games to finish. Refresh to check readiness.</string>
++  <string name="muteArenaDraining">Waiting for background games to finish.</string>
 +  <string name="muteArenaUnavailable">The Arena could not be prepared. Another event may be active, or too few eligible bots are available.</string>
 +  <string name="muteArenaHelp">Bots rated %1$s–%2$s fill places up to %3$s active participants. Humans can join without a participant limit; games already underway finish normally.</string>
 +  <string name="muteArenaSettings">Use standard chess and the normal starting position. Team battles and prizes are unavailable.</string>
@@ -8464,9 +8517,10 @@ index 8b5a6a1..efdf973 100644
 +  <string name="muteArenaTargetHelp">Bots fill up to this total (1–20). More humans can always join.</string>
 +  <string name="muteArenaRangeInvalid">The minimum bot rating must not exceed the maximum.</string>
 +  <string name="muteArenaLocked">Bot settings, time control and rated mode cannot change after the Arena is prepared or started.</string>
-+  <string name="muteArenaBotNoticeTitle">Maia bot participants</string>
-+  <string name="muteArenaBotNoticeIntro">The organizer allows human-like Maia BOT accounts to fill empty places in this tournament.</string>
-+  <string name="muteArenaBotNoticeFill">Maia bots fill places up to %1$s active participants. Once at least %2$s humans remain active, bots receive no new pairings. Games already underway finish normally.</string>
++  <string name="muteArenaBotNoticeTitle">Maia bots fill empty seats</string>
++  <string name="muteArenaBotNoticeIntro">Bots rated %1$s–%2$s fill empty seats until the active participant count reaches %3$s.</string>
++  <string name="muteArenaBotNoticeFill">As humans join, bots step aside. Once the number of active humans reaches %s, bots receive no new pairings. Games already underway finish normally.</string>
++  <string name="muteArenaRefresh">Refresh</string>
  </resources>
 diff --git a/ui/.build/src/build.ts b/ui/.build/src/build.ts
 index 7d6adeb..b433f0c 100644
@@ -14092,6 +14146,22 @@ index d15ce0b..4ee4f44 100644
    ]);
  }
  
+diff --git a/ui/tournament/src/view/main.ts b/ui/tournament/src/view/main.ts
+index 9277bb6..e76be79 100644
+--- a/ui/tournament/src/view/main.ts
++++ b/ui/tournament/src/view/main.ts
+@@ -26,7 +26,10 @@ export default function (ctrl: TournamentController) {
+         const side = ctrl.opts.$side;
+         $(el).replaceWith(side);
+         side
+-          .toggleClass('collapsed', ctrl.collapsedDescription())
++          .toggleClass(
++            'collapsed',
++            !ctrl.opts.classes?.includes('nosweat-arena') && ctrl.collapsedDescription(),
++          )
+           .find('.disclosure')
+           .on('click', () => {
+             side.toggleClass('collapsed');
 diff --git a/ui/tournament/src/view/started.ts b/ui/tournament/src/view/started.ts
 index 7ec25b0..182830e 100644
 --- a/ui/tournament/src/view/started.ts
@@ -16483,10 +16553,10 @@ index 0000000..a54b1de
 +    user ?=> handle(club.details(id, user.value).map(_.fold(NotFound)(Ok(_))))
 diff --git a/app/views/noSweatArena.scala b/app/views/noSweatArena.scala
 new file mode 100644
-index 0000000..64bb508
+index 0000000..6d8ffd0
 --- /dev/null
 +++ b/app/views/noSweatArena.scala
-@@ -0,0 +1,19 @@
+@@ -0,0 +1,24 @@
 +package views
 +
 +import play.api.libs.json.JsObject
@@ -16494,10 +16564,15 @@ index 0000000..64bb508
 +import lila.core.i18n.I18nKey
 +
 +def noSweatArenaControls(t: lila.tournament.Tournament, status: JsObject)(using Context): Frag =
-+  frag(
++  div(cls := "nosweat-arena-controls")(
 +    if (status \ "prepared").asOpt[Boolean].contains(true) then
-+      p(I18nKey(if (status \ "ready").asOpt[Boolean].contains(true) then "muteArenaReady"
-+      else "muteArenaDraining").apply())
++      p(
++        I18nKey(if (status \ "ready").asOpt[Boolean].contains(true) then "muteArenaReady"
++        else "muteArenaDraining").apply(),
++        (!(status \ "ready").asOpt[Boolean].contains(true)).option(
++          a(href := routes.Tournament.show(t.id))(I18nKey("muteArenaRefresh")())
++        )
++      )
 +    else
 +      t.isCreated.option(
 +        postForm(action := routes.Tournament.prepare(t.id))(
@@ -30945,10 +31020,10 @@ HcmV?d00001
 
 diff --git a/public/nosweat/brand.css b/public/nosweat/brand.css
 new file mode 100644
-index 0000000..402eef2
+index 0000000..372d160
 --- /dev/null
 +++ b/public/nosweat/brand.css
-@@ -0,0 +1,174 @@
+@@ -0,0 +1,198 @@
 +.site-title .nosweat-header-icon{width:38px;height:38px;margin-right:2px}.site-title .nosweat-wordmark{width:174px;height:50px;object-fit:contain}.nosweat-light{display:none}.light .nosweat-dark{display:none}.light .nosweat-light{display:block}.nosweat-login-wordmark{width:272px;max-width:100%;height:62px}.auth__brand{justify-content:center}@media(max-width:799px){.site-title .nosweat-wordmark{display:none!important}.site-title .nosweat-header-icon{width:36px;height:36px;margin:0}}
 +
 +main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-dark.svg")}.light main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-light.svg")}
@@ -31122,6 +31197,30 @@ index 0000000..402eef2
 +}
 +@media(min-width:800px) {
 +  .nosweat-arena-home { grid-template-areas:'side schedule' 'side list'; }
++}
++
++/* Focused Arena sidebar: disclosure replaces the duplicate warning, leaving room for native chat. */
++.tour.nosweat-arena { grid-template-rows:auto auto; }
++.nosweat-arena .tour__side { min-width:0; }
++.nosweat-arena .tour__meta { flex:0 0 auto; gap:.8rem; padding:1rem 0; }
++.nosweat-arena .tour__meta section { padding-inline:1rem; }
++.nosweat-arena .tour__meta__head::before { font-size:2.2rem; }
++.nosweat-arena .tour__meta .scrollable-content { overflow:visible; flex:none; gap:.7rem; }
++.nosweat-arena .tour__meta .description { overflow-wrap:anywhere; }
++.nosweat-arena-bots { border-top:1px solid var(--c-border); padding-top:.2rem; }
++.nosweat-arena-bots summary { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:.7rem 1rem .2rem; list-style:none; color:var(--c-primary); cursor:pointer; font-size:.9em; }
++.nosweat-arena-bots summary::-webkit-details-marker { display:none; }
++.nosweat-arena-bots summary [data-icon] { flex:none; color:var(--c-font-dim); }
++.nosweat-arena-bots__body { padding:.7rem 1rem 0; color:var(--c-font-dim); font-size:.85em; overflow-wrap:anywhere; }
++.nosweat-arena-bots__body p { margin:0; }
++.nosweat-arena-bots__body p + p { margin-top:.7rem; }
++.nosweat-arena-controls { flex:none; margin:.7rem 0 0; color:var(--c-font-dim); font-size:.85em; }
++.nosweat-arena-controls p { display:flex; flex-wrap:wrap; gap:.25em .7em; margin:0; }
++.nosweat-arena-controls .button { white-space:normal; }
++.nosweat-arena .tour__side .mchat { min-height:15rem; flex:1 0 15rem; margin-top:.8rem; }
++@media(pointer:coarse) {
++  .nosweat-arena-bots summary { min-height:44px; }
++  .nosweat-arena-controls a { min-height:44px; display:inline-flex; align-items:center; }
 +}
 diff --git a/public/nosweat/favicon-32.png b/public/nosweat/favicon-32.png
 new file mode 100644
@@ -32128,10 +32227,10 @@ index 0000000..87bf6b4
 +}
 diff --git a/src/test/scala/NoSweatArenaLocaleTest.scala b/src/test/scala/NoSweatArenaLocaleTest.scala
 new file mode 100644
-index 0000000..909850e
+index 0000000..a826222
 --- /dev/null
 +++ b/src/test/scala/NoSweatArenaLocaleTest.scala
-@@ -0,0 +1,56 @@
+@@ -0,0 +1,58 @@
 +package lila.i18n
 +
 +import play.api.i18n.Lang
@@ -32144,6 +32243,7 @@ index 0000000..909850e
 +      "Prepare",
 +      "Ready",
 +      "Draining",
++      "Refresh",
 +      "Unavailable",
 +      "Help",
 +      "Settings",
@@ -32181,7 +32281,8 @@ index 0000000..909850e
 +        assert(catalog.containsKey(key), s"$code/$key")
 +        val rendered = (key match
 +          case "muteArenaHelp" => I18nKey(key)(1400, 1700, 10)
-+          case "muteArenaBotNoticeFill" => I18nKey(key)(10, 10)
++          case "muteArenaBotNoticeIntro" => I18nKey(key)(1200, 1700, 10)
++          case "muteArenaBotNoticeFill" => I18nKey(key)(10)
 +          case _ => I18nKey(key)()
 +        ).render
 +        assert(rendered.nonEmpty && !rendered.contains(key), s"$code/$key")
