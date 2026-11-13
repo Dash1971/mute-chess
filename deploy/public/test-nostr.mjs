@@ -92,7 +92,7 @@ try {
     ['/api/streak/27','POST'], ['/storm','DELETE'], ['/learn','DELETE'], ['/games/atomic','GET'], ['/club/internal/games','GET'],
   ]) assert.equal((await request(path, method)).status, 404, `${method} ${path}`);
   // Owner authorization remains native; supported Arena pages reach that controller.
-  for (const path of ['/tournament', '/tournament/new', '/tournament/help', '/tournament/abcdefgh']) {
+  for (const path of ['/tournament', '/tournament/new', '/tournament/help', '/tournament/abcdefgh', '/tournament/calendar', '/tournament/history', '/tournament/history/unique?page=2']) {
     const res = await request(path);
     assert.equal(res.status, 209, path);
     assert.equal(Buffer.from(await res.arrayBuffer()).toString(), path, path);
@@ -100,7 +100,7 @@ try {
   // Known unsupported view links proxy only the fixed notice, not their original controller.
   for (const path of ['/ublog', '/ublog/community', '/ublog/month/2026/11', '/ublog/topic/chess', '/blog',
     '/ublog/liked', '/ublog.atom', '/@/User/blog.atom', '/ublog/friends', '/ublog/User/new', '/@/User/blog', '/@/User/blog/drafts',
-    '/racer', '/coach', '/tutor', '/tournament/calendar', '/simul', '/team/all', '/broadcast', '/tv',
+    '/racer', '/coach', '/tutor', '/simul', '/team/all', '/broadcast', '/tv',
     '/forum/search', '/study/search', '/games/search', '/page/forum-etiquette',
     '/report?username=User', '/inbox/User', '/account/kid', '/paste', '/import', '/player/bots',
     '/player/top/correspondence', '/stat/rating/distribution/correspondence']) {
