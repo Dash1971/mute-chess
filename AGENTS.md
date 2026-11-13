@@ -529,6 +529,15 @@ cap. Follow docs/arena-plan.md and the exact-path departure register. No new
 scheduler, deployment tooling or infrastructure changes are authorized.
 
 
+## Distinctive legacy bot aliases (November 13, #322)
+
+The owner authorized replacing generic generated labels as well as every remaining SignalTrain/SignalTest
+public label using the existing alias mechanism, drawing on sci-fi, Metal Gear,
+other fitting games, early computing history, Wipeout and electronic music. Retain existing aliases and
+all canonical IDs, policies, ratings, games and history. Assign Elon Musk to an
+existing lower-rated identity, without changing its rating. Proper names remain
+untranslated. Keep this as a separate draft; no live writes, merge or deployment.
+
 ## Configurable Arena fillers (November 13, #319)
 
 The owner approved a draft follow-up to merged #313: make Allow bot accounts

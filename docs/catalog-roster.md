@@ -157,3 +157,12 @@ are played.
 The [initial live verification](https://github.com/Dash1971/mobile-maia-research/blob/140e2eb411923930fb0d5950b92abf6f3c0166dd/studies/bot-rating-establishment-2026-10-31/data/catalog-2026-11-01/deployment-status.json)
 records these starting counts and preserved accounts. It is a deployment
 snapshot; ratings and game counts continue to evolve.
+
+
+## Legacy public-name follow-up (#322, draft)
+
+The owner approved replacing all remaining SignalTrain/SignalTest display labels,
+including character homages, game references, computing pioneers, Wipeout and electronic music. See the
+[public bot name guide](bot-names.md). This uses the existing alias mechanism and
+preserves canonical identities, all policies and earned history. It does not
+rename or regenerate any of the 9,750 added catalog identities.

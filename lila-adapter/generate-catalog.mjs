@@ -45,13 +45,14 @@ export async function generateCatalog() {
   const distributions={blitz:await read('docs/data/catalog-2026-11-01/distribution-blitz.json'),rapid:await read('docs/data/catalog-2026-11-01/distribution-rapid.json')};
   const references=await read('docs/data/lichess-maia-adjustment-reference-2026-10-30.json');
   const naming=await read('lila-adapter/catalog-names.json');
+  const aliases={...naming.legacyAliases,...(naming.catalogAliases??{})};
   const allocation=allocateCatalog({roster:existing,perfs,distributions,totalSize:10000,minRating:800,seed:CATALOG_VERSION});
   const byId=new Map(existing.map(b=>[b.id,b]));
   const chosen=[];
   for (const t of allocation.templates) for(let n=0;n<t.assignedCount;n++) chosen.push(t);
   // Highest NEW measured policies receive character homages. No rating changes.
   chosen.sort((a,b)=>b.ratings.blitz-a.ratings.blitz || b.ratings.rapid-a.ratings.rapid || compare(a.key,b.key));
-  const names=uniqueNames(existing.flatMap(b=>[b.username,b.name]),[...Object.values(naming.legacyAliases),...naming.newCandidates.map(n=>n.name)]);
+  const names=uniqueNames(existing.flatMap(b=>[b.username,b.name]),[...Object.values(aliases),...naming.newCandidates.map(n=>n.name)]);
   if(names.length<chosen.length) throw Error('Insufficient unique display names');
   const catalog=chosen.map((t,index)=>{
     const id='catalog-'+String(index+1).padStart(5,'0');
@@ -82,21 +83,21 @@ export async function generateCatalog() {
   const all=[...existing,...catalog];
   for(const field of ['id','username'])if(new Set(all.map(b=>b[field].toLowerCase())).size!==10000)throw Error('Duplicate '+field);
   const compact=n=>n.replace(/[^a-z0-9]/gi,'').toLowerCase();
-  const displayNames=all.map(b=>naming.legacyAliases[b.username]??b.name);
+  const displayNames=all.map(b=>aliases[b.username]??b.name);
   if(new Set(displayNames.map(compact)).size!==10000)throw Error('Duplicate public display name');
   if(all.some(b=>b.name.length>20||b.username.length>20))throw Error('Name exceeds supported length');
   const ranks={};
-  for(const speed of ['blitz','rapid']) ranks[speed]=all.map(b=>({id:b.id,username:b.username,name:naming.legacyAliases[b.username]??b.name,
+  for(const speed of ['blitz','rapid']) ranks[speed]=all.map(b=>({id:b.id,username:b.username,name:aliases[b.username]??b.name,
     rating:perfs[b.id]?.[speed].rating??b.ratings[speed].initial_rating,reference:byId.has(b.id)})).sort((a,b)=>b.rating-a.rating||compare(a.username,b.username)).slice(0,20);
   const used=allocation.templates.filter(t=>t.assignedCount);
   const manifest={schema:1,version:CATALOG_VERSION,total:10000,preserved:250,added:9750,referencePolicies:allocation.templates.length,usedPolicies:used.length,
     method:'Exact measured policy reuse; equivalent-policy RD-weighted reference means; joint Blitz/Rapid CDF allocation',
     assignedRd:100,assignedGameCount:0,researchUrl:RESEARCH_URL,referenceRosterSha256:digest(recorded),referencePerfsSha256:digest(perfs),
-    aliases:naming.legacyAliases,distributionSource:await read('docs/data/catalog-2026-11-01/distribution-source.json'),
+    aliases,distributionSource:await read('docs/data/catalog-2026-11-01/distribution-source.json'),
     distribution:{thresholds:allocation.thresholds,target:allocation.target,achieved:allocation.achieved},
     templateCounts:used.map(t=>({key:t.key,sourceIds:t.sourceIds,ratings:t.ratings,count:t.assignedCount})),top20:ranks,
     ranges:Object.fromEntries(['blitz','rapid','bullet','classical'].map(s=>[s,{newMin:Math.min(...catalog.map(b=>b.ratings[s].initial_rating)),newMax:Math.max(...catalog.map(b=>b.ratings[s].initial_rating))}]))};
-  return {catalog,all,aliases:naming.legacyAliases,manifest};
+  return {catalog,all,aliases,manifest};
 }
 if(process.argv[1]===fileURLToPath(import.meta.url)) {
   const {catalog,aliases,manifest}=await generateCatalog();

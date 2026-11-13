@@ -13,6 +13,7 @@ const manifest=await read('../../docs/data/catalog-2026-11-01/catalog-manifest.j
 const source=await read('../../docs/data/catalog-2026-11-01/reference-settings.json');
 const perfs=await read('../../docs/data/catalog-2026-11-01/reference-perfs.json');
 const aliases=await read('../catalog-aliases.json');
+const naming=await read('../catalog-names.json');
 const hash=v=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
 
 test('ten thousand unique identities preserve the exact250 measured policies',()=>{
@@ -55,12 +56,27 @@ test('the generated catalog is reproducible and fills both speed distributions',
  assert.equal(new Set(newBots.map(b=>b.personality.timingStyle)).size,5);
 });
 test('existing alias changes are display-only and limited to measured placeholders',()=>{
- assert.equal(Object.keys(aliases).length,12);
+ assert.equal(Object.keys(aliases).length,old.filter(b=>/^Signal(?:Train|Test)\d{3}$/.test(b.username)).length+Object.keys(naming.catalogAliases).length);
+ assert.ok(old.filter(b=>/^Signal(?:Train|Test)\d{3}$/.test(b.username)).every(b=>aliases[b.username]));
  for(const [username,name]of Object.entries(aliases)){
-   assert.match(username,/^Signal(?:Train|Test)\d{3}$/);assert.ok(name.length<=20);
-   assert.ok(old.some(b=>b.username===username));
+   const bot=full.find(b=>b.username===username);assert.ok(bot);assert.ok(/^Signal(?:Train|Test)\d{3}$/.test(username)||bot.rating_assignment);assert.ok(name.length<=20);
  }
  assert.equal(manifest.top20.blitz[0].name,'Wintermute');
  assert.ok(manifest.top20.blitz.some(b=>b.name==='Roy Batty'));
  assert.ok(manifest.top20.blitz.some(b=>b.name==='Judge Dredd'));
+});
+
+
+test('legacy labels cover the requested themes without editing measured identities or ratings',()=>{
+ for(const name of ['Data','Lore','Locutus','Solid Snake','Liquid Snake','Raiden','Otacon','Gray Fox','Alan Turing','John von Neumann','Ada Lovelace','Grace Hopper','Elon Musk'])assert.ok(Object.values(aliases).includes(name),name);
+ const elon=old.find(b=>aliases[b.username]==='Elon Musk');
+ assert.ok(elon);assert.ok(perfs[elon.id].rapid.rating<1000,'Use an existing low-rated identity; never modify a rating to fit a name');
+});
+
+
+test('Wipeout and additional references rename existing generated accounts without expanding the population',()=>{
+ assert.equal(Object.keys(naming.catalogAliases).length,157);
+ for(const name of ['FEISAR','AG Systems','Auricom','Qirex','Piranha',"Talon's Reach",'Spilskinanke','Goteki 45','Icaras','Chemical Brothers','The Prodigy','Underworld','Orbital','Fluke','FSOL'])assert.ok(Object.values(naming.catalogAliases).includes(name),name);
+ for(const username of Object.keys(naming.catalogAliases))assert.ok(full.find(b=>b.username===username)?.rating_assignment);
+ assert.equal(full.length,10000);
 });
