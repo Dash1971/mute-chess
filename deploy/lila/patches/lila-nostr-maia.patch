@@ -3898,6 +3898,42 @@ index 8dccb41..27691b2 100644
    lazy val api: TournamentApi = wire[TournamentApi]
  
    lazy val coreApi: lila.core.tournament.TournamentApi = new:
+diff --git a/modules/tournament/src/main/JsonView.scala b/modules/tournament/src/main/JsonView.scala
+index bc5ef5f..4bfbbb4 100644
+--- a/modules/tournament/src/main/JsonView.scala
++++ b/modules/tournament/src/main/JsonView.scala
+@@ -128,6 +128,7 @@ final class JsonView(
+           .add("description" -> withDescription.so(tour.description))
+           .add("payouts" -> tour.payouts)
+           .add("myUsername" -> me.map(_.username))
++          .add("myDisplayName" -> me.flatMap(_.publicDisplayName))
+           .add[Condition.RatingCondition]("minRating", tour.conditions.minRating)
+           .add[Condition.RatingCondition]("maxRating", tour.conditions.maxRating)
+           .add("minRatedGames", tour.conditions.nbRatedGame)
+@@ -351,6 +352,7 @@ final class JsonView(
+             "k" -> p.rank.value
+           )
+           .add("t" -> u.title)
++          .add("displayName" -> u.displayName)
+ 
+   private def duelJson(d: Duel): Fu[JsObject] = for
+     u1 <- duelPlayerJson(d.p1)
+@@ -485,6 +487,7 @@ object JsonView:
+             "s" -> p.score
+           )
+           .add("t" -> light.flatMap(_.title))
++          .add("displayName" -> light.flatMap(_.displayName))
+           .add("f" -> p.fire)
+           .add("w" -> p.withdraw)
+ 
+@@ -498,6 +501,7 @@ object JsonView:
+           "username" -> user.name
+         )
+         .add("title" -> user.title)
++        .add("displayName" -> user.displayName)
+         .add("flair" -> user.flair)
+         .add("patronColor" -> user.patronAndColor.map(_.color))
+         .add("performance" -> player.performance)
 diff --git a/modules/tournament/src/main/StartedOrganizer.scala b/modules/tournament/src/main/StartedOrganizer.scala
 index e19843a..6d4cbbc 100644
 --- a/modules/tournament/src/main/StartedOrganizer.scala
@@ -4042,7 +4078,7 @@ index 012d0f4..0d464e7 100644
    private def featureOneOf(tour: Tournament, pairings: List[Pairing.WithPlayers], ranking: Ranking): Funit =
      tour.featured
 diff --git a/modules/tournament/src/main/TournamentForm.scala b/modules/tournament/src/main/TournamentForm.scala
-index 9161f5d..5c0175a 100644
+index 9161f5d..60193ff 100644
 --- a/modules/tournament/src/main/TournamentForm.scala
 +++ b/modules/tournament/src/main/TournamentForm.scala
 @@ -13,7 +13,9 @@ import lila.core.perm.Granter
@@ -4056,13 +4092,15 @@ index 9161f5d..5c0175a 100644
  
    import TournamentForm.*
    import GatheringClock.*
-@@ -26,26 +28,29 @@ final class TournamentForm:
+@@ -25,27 +27,30 @@ final class TournamentForm:
+ 
    private[tournament] def empty(teamBattleId: Option[TeamId] = None, forClas: Boolean)(using me: Me) =
      TournamentSetup(
-       name = teamBattleId.isEmpty.option(me.titleUsername),
+-      name = teamBattleId.isEmpty.option(me.titleUsername),
 -      clockTime = if forClas then 5d else timeDefault,
 -      clockIncrement = incrementDefault,
 -      minutes = minuteDefault,
++      name = teamBattleId.isEmpty.option(if focused then me.publicName else me.titleUsername),
 +      clockTime = if focused then 15d else if forClas then 5d else timeDefault,
 +      clockIncrement = if focused then IncrementSeconds(10) else incrementDefault,
 +      minutes = if focused then 120 else minuteDefault,
@@ -12021,6 +12059,69 @@ index 334435d..05a29ed 100644
  
  export const userRating = (u: Pick<AnyUser, 'rating' | 'provisional' | 'brackets'>): string | undefined => {
    if (u.rating) {
+diff --git a/ui/lib/src/view/watchers.ts b/ui/lib/src/view/watchers.ts
+index 3bacef2..fd9d369 100644
+--- a/ui/lib/src/view/watchers.ts
++++ b/ui/lib/src/view/watchers.ts
+@@ -1,6 +1,7 @@
+ import { get, set } from '@/data';
+ import { licon } from '@/licon';
+ import { pubsub } from '@/pubsub';
++import { json, url } from '@/xhr';
+ 
+ import { profileUrl } from './userLink';
+ 
+@@ -14,6 +15,16 @@ let watchersData: Data | undefined;
+ 
+ const name = (u: string) => (u.includes(' ') ? u.split(' ')[1] : u);
+ 
++export function watcherLink(user: string, displayName?: string): HTMLAnchorElement {
++  const canonical = name(user);
++  const link = document.createElement('a');
++  link.className = 'user-link ulpt';
++  link.href = profileUrl(canonical);
++  const title = user.includes(' ') ? user.slice(0, user.indexOf(' ') + 1) : '';
++  link.textContent = title + (displayName || canonical);
++  return link;
++}
++
+ export function watchers(element: HTMLElement, withUserList = true): void {
+   if (element.dataset.watched) return;
+   element.dataset.watched = '1';
+@@ -42,10 +53,29 @@ export function watchers(element: HTMLElement, withUserList = true): void {
+       const currUsers = data.users.map(u => u || '').join(';');
+       if (get(listEl, 'prevUsers') !== currUsers) {
+         set(listEl, 'prevUsers', currUsers);
+-        const tags = data.users.map(u =>
+-          u ? `<a class="user-link ulpt" href="${profileUrl(name(u))}">${u}</a>` : i18n.site.anonymous,
+-        );
+-        $listEl.html(tags.join(', '));
++        const render = (displayNames: Map<string, string> = new Map()) => {
++          // A lookup for an older crowd must not overwrite the current spectator list.
++          if (get(listEl, 'prevUsers') !== currUsers) return;
++          listEl.replaceChildren();
++          data.users!.forEach((user, index) => {
++            if (index) listEl.append(', ');
++            if (!user) listEl.append(i18n.site.anonymous);
++            else {
++              listEl.append(watcherLink(user, displayNames.get(name(user).toLowerCase())));
++            }
++          });
++        };
++        render();
++        if (document.documentElement.dataset.brand === 'mutechess') {
++          const ids = [...new Set(data.users.filter(Boolean).map(user => name(user).toLowerCase()))].slice(
++            0,
++            100,
++          );
++          if (ids.length)
++            json<LightUser[]>(url('/api/users/status', { ids: ids.join(',') }))
++              .then(users => render(new Map(users.map(user => [user.id, user.displayName || user.name]))))
++              .catch(() => {}); // Keep canonical labels when the optional name lookup is unavailable.
++        }
+       }
+     } else $listEl.html('');
+ 
 diff --git a/ui/lobby/css/_layout.scss b/ui/lobby/css/_layout.scss
 index e1f9396..11096a3 100644
 --- a/ui/lobby/css/_layout.scss
@@ -13431,7 +13532,7 @@ index 18646b3..5eb1d07 100644
    {
      // stick top bar
 diff --git a/ui/tournament/src/interfaces.ts b/ui/tournament/src/interfaces.ts
-index 9d6399b..b815938 100644
+index 9d6399b..8be2da0 100644
 --- a/ui/tournament/src/interfaces.ts
 +++ b/ui/tournament/src/interfaces.ts
 @@ -29,6 +29,7 @@ export interface TournamentOpts {
@@ -13442,6 +13543,24 @@ index 9d6399b..b815938 100644
  }
  
  export interface TournamentData {
+@@ -95,6 +96,7 @@ export interface TournamentData {
+   duels: Duel[];
+   duelTeams?: DuelTeams;
+   myUsername?: string;
++  myDisplayName?: string;
+   reloadDelay?: number;
+   reloadEndpoint: string;
+ }
+@@ -203,7 +205,8 @@ export interface Duel {
+ }
+ 
+ export interface DuelPlayer {
+-  n: string; // name
++  n: string; // canonical name
++  displayName?: string;
+   r: number; // rating
+   k: number; // rank
+   t?: string; // title
 diff --git a/ui/tournament/src/view/finished.ts b/ui/tournament/src/view/finished.ts
 index d15ce0b..4ee4f44 100644
 --- a/ui/tournament/src/view/finished.ts
@@ -13496,6 +13615,37 @@ index d15ce0b..4ee4f44 100644
 +        ])
 +      : null,
    ]);
+ }
+ 
+diff --git a/ui/tournament/src/view/started.ts b/ui/tournament/src/view/started.ts
+index 7ec25b0..182830e 100644
+--- a/ui/tournament/src/view/started.ts
++++ b/ui/tournament/src/view/started.ts
+@@ -20,7 +20,7 @@ function joinTheGame(gameId: string) {
+ 
+ function notice(ctrl: TournamentController): VNode {
+   return ctrl.willBePaired()
+-    ? h('div.tour__notice.bar-glider', i18n.site.standByX(ctrl.data.myUsername!))
++    ? h('div.tour__notice.bar-glider', i18n.site.standByX(ctrl.data.myDisplayName || ctrl.data.myUsername!))
+     : h('div.tour__notice.closed', i18n.arena.tournamentPairingsAreNowClosed);
+ }
+ 
+diff --git a/ui/tournament/src/view/table.ts b/ui/tournament/src/view/table.ts
+index 7264e26..c02e9a2 100644
+--- a/ui/tournament/src/view/table.ts
++++ b/ui/tournament/src/view/table.ts
+@@ -59,8 +59,11 @@ function renderDuel(ctrl: TournamentController) {
+             return teamId && teamName(battle, teamId);
+           }),
+         ),
+-      hl('line.a', [hl('strong', d.p[0].n), hl('span', duelPlayerMeta(d.p[1], ctrl).reverse())]),
+-      hl('line.b', [hl('span', duelPlayerMeta(d.p[0], ctrl)), hl('strong', d.p[1].n)]),
++      hl('line.a', [
++        hl('strong', d.p[0].displayName || d.p[0].n),
++        hl('span', duelPlayerMeta(d.p[1], ctrl).reverse()),
++      ]),
++      hl('line.b', [hl('span', duelPlayerMeta(d.p[0], ctrl)), hl('strong', d.p[1].displayName || d.p[1].n)]),
+     ]);
  }
  
 diff --git a/ui/tournament/src/view/util.ts b/ui/tournament/src/view/util.ts
@@ -15835,10 +15985,10 @@ index 0000000..a54b1de
 +    user ?=> handle(club.details(id, user.value).map(_.fold(NotFound)(Ok(_))))
 diff --git a/app/views/noSweatArena.scala b/app/views/noSweatArena.scala
 new file mode 100644
-index 0000000..756ff31
+index 0000000..3b5262e
 --- /dev/null
 +++ b/app/views/noSweatArena.scala
-@@ -0,0 +1,36 @@
+@@ -0,0 +1,29 @@
 +package views
 +
 +import play.api.libs.json.JsObject
@@ -15857,13 +16007,6 @@ index 0000000..756ff31
 +
 +def noSweatArenaControls(t: lila.tournament.Tournament, status: JsObject)(using Context): Frag =
 +  frag(
-+    p(if t.conditions.allowsBots then
-+      I18nKey("muteArenaHelp")(
-+        t.arenaSettings.minRating,
-+        t.arenaSettings.maxRating,
-+        t.arenaSettings.target
-+      )
-+    else I18nKey("muteArenaHumanOnly")()),
 +    if (status \ "prepared").asOpt[Boolean].contains(true) then
 +      p(I18nKey(if (status \ "ready").asOpt[Boolean].contains(true) then "muteArenaReady"
 +      else "muteArenaDraining").apply())
@@ -101374,6 +101517,35 @@ index 0000000..0a3f68a
 +  assert.ok(result.includes('href="/@/n0123456789abcdef"'));
 +  assert.ok(result.includes('Alice &lt;friend&gt;'));
 +  assert.ok(!result.includes('Alice <friend>'));
++});
+diff --git a/ui/lib/tests/watchersPublicNames.test.ts b/ui/lib/tests/watchersPublicNames.test.ts
+new file mode 100644
+index 0000000..bb1eabb
+--- /dev/null
++++ b/ui/lib/tests/watchersPublicNames.test.ts
+@@ -0,0 +1,23 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++
++import { watcherLink } from '../src/view/watchers';
++
++test('spectator labels use chosen names while links retain canonical account IDs', () => {
++  const link = watcherLink('n066f8597b3952d996bc', 'Dash');
++  assert.equal(link.textContent, 'Dash');
++  assert.equal(link.getAttribute('href'), '/@/n066f8597b3952d996bc');
++});
++
++test('spectator display names render as text and cannot inject markup', () => {
++  const link = watcherLink('canonical', '<img src=x onerror=alert(1)>');
++  assert.equal(link.textContent, '<img src=x onerror=alert(1)>');
++  assert.equal(link.querySelector('img'), null);
++  assert.equal(link.getAttribute('href'), '/@/canonical');
++});
++
++test('anonymous name lookups leave titles and canonical fallback intact', () => {
++  assert.equal(watcherLink('BOT Wintermute').textContent, 'BOT Wintermute');
++  assert.equal(watcherLink('BOT Wintermute', 'Wintermute').getAttribute('href'), '/@/Wintermute');
++  assert.equal(watcherLink('n123', '').textContent, 'n123');
 +});
 diff --git a/ui/lobby/tests/maiaPoolBootstrap.test.ts b/ui/lobby/tests/maiaPoolBootstrap.test.ts
 new file mode 100644

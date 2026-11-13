@@ -58,6 +58,12 @@ descriptions and other compatible native edits remain available. To change the
 reserved roster configuration, cancel and create a new event. A participant notice
 uses the actual target and explains that bots stop receiving new pairings when
 that many humans remain active, while games already underway finish normally.
+Arena spectator lists, the pairing banner and top-game labels show chosen public
+names, keeping permanent IDs for links and pairing. Standings, podium, player
+cards and chat retain the existing public-name paths. The native status lookup
+for spectator labels is read-only, batched and safely renders names as text.
+The host sidebar omits the repeated explanatory paragraph beneath chat.
+
 All added labels, help, validation, and participant notices use the ten native
 translation catalogs. This follow-up remains draft and is not a deployment.
 
