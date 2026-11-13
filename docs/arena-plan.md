@@ -266,7 +266,7 @@ defaults to empty. An operator must explicitly list the owner’s **canonical
 account ID**, not the editable display name. This PR does not change live config
 or grant any moderator/OAuth permissions.
 
-After a reviewed release, open **Community → Arena tournaments**. Authorized
+After a reviewed release, open **Play → Arena tournaments**. Authorized
 hosts can create an event with the native form, change its clock or start date,
 and share the resulting URL. Open the event and choose **Prepare Arena bots**
 before its start time. Preparation reserves ten existing eligible identities and
@@ -289,3 +289,40 @@ draft PR. No merge, deployment or live event is authorized by this implementatio
 ### Security follow-up stacked on this draft (#314)
 
 The follow-up backports the upstream tournament visibility fix for games/results/teams exports and the broadcast source-address validation fix. It retains this draft's owner-event gate, gateway API denial and hidden export controls; no API route is opened. The source inventory's tournament advisory decision becomes a backported source target when the follow-up is included. The earlier draft-only unpatched status above remains historical validation context. Merge #313 before the follow-up and verify/deploy the combined final main once. The moderator-token advisory is outside this follow-up.
+
+
+## Discovery alignment (#324, draft)
+
+The Arena index reuses the native Lichess schedule/timeline and Finished table.
+Its selection contains public, standard, non-position, non-team Arenas from the
+existing configured hosts only. Upcoming events enter the timeline data within
+six hours of starting; active events are included; the latest twenty finished
+events supply the Finished table. The native browser timeline clips events whose
+scheduled finish is more than three hours ago. The Finished table has no age
+expiry: an older result leaves it when twenty newer events supersede it.
+
+Older public results remain in the native paginated Arena history (twenty per
+page); the native calendar exposes future host events up to a year ahead. Results
+and event URLs are retained. Private Arenas and events by unapproved hosts never
+enter these discovery pages, their JSON, or schedule socket messages. Hosting,
+private direct access, bot preparation, clocks, pairings and ratings retain their
+existing permissions and behavior.
+
+Play → Arena tournaments replaces the Community entry. The existing native
+homepage spotlight card sits at the upper left of quick pairing on desktop, above
+it on smaller screens. It shows the next public host Arena within the native
+24-hour maximum feature horizon, or an active one while native late-entry rules
+still consider it worth joining. It uses the native event icon, player count,
+countdown/in-progress label and direct Arena URL. No eligible event means no card
+or empty side column. Quick pairing and the homepage counters retain their normal
+behavior.
+
+The host events do not carry Lichess's official schedule metadata. A focused
+snapshot mode in the native schedule client therefore replaces the complete
+host-only data on reload, avoiding the upstream team-event merge keeping stale or
+duplicate unscheduled host events. Non-Mute schedules keep their original path.
+Reused UI keys are checked through the native registry in all ten supported
+locales; calendar date tooltips use the document locale. No new UI catalog key,
+service, scheduler, deployment procedure or database migration is introduced.
+
+This discovery follow-up is a draft PR. It is not merged or deployed.

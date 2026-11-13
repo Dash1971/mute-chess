@@ -223,12 +223,15 @@ friend games retain Lichess's manual claims. Older games created with the
 no-claim rule do not gain automatic disconnect claims. See
 [abandoned-game handling](public-bot-activity.md#abandoned-human-games-302).
 
-## Planned features
+## Community Arenas
 
-[Weekly community Arenas](arena-plan.md) is a draft implementation for owner-hosted
-two-hour events, initially at 15+10, with 1200–1700-rated bots filling a target
-of ten active participants as humans join and leave. It is not available on the
-live site yet.
+[Weekly community Arenas](arena-plan.md) use native Arena pairing, clocks, scores
+and results. Approved hosts can configure human-only events or managed Maia
+fillers (default saved-rating range 1400–1700, target ten active participants).
+Human entry remains unlimited. See the guide for setup and bot behavior.
+
+The native discovery/menu/homepage alignment in #324 is a draft follow-up; its
+schedule, Finished history and homepage spotlight are not deployed yet.
 
 ## Related feature guides
 

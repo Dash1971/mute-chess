@@ -137,8 +137,8 @@ const server = http.createServer((req, res) => {
   const analysisExportRoute = read && (/^\/export\/fen\.gif$/.test(path) || /^\/embed\/(?:analysis|game\/[A-Za-z0-9]{8}(?:\/(?:white|black))?)$/.test(path));
   const insightsRoute = (read && /^\/insights\/[A-Za-z0-9_-]{1,30}(?:\/[^/?#]+){0,12}$/.test(path) && !/^\/insights\/(?:data|refresh)\//.test(path)) ||
     (post && /^\/insights\/(?:data|refresh)\/[A-Za-z0-9_-]{1,30}$/.test(path));
-  const arenaRoute = !['/tournament/calendar', '/tournament/featured'].includes(path) && (
-    (read && /^\/tournament(?:\/(?:new|help|[A-Za-z0-9]{8}(?:\/(?:edit|standing\/[1-9][0-9]{0,3}|(?:page-of|player)\/[A-Za-z0-9_-]{1,30}))?))?$/.test(path)) ||
+  const arenaRoute = path !== '/tournament/featured' && (
+    (read && /^\/tournament(?:\/(?:new|help|calendar|history(?:\/unique)?|[A-Za-z0-9]{8}(?:\/(?:edit|standing\/[1-9][0-9]{0,3}|(?:page-of|player)\/[A-Za-z0-9_-]{1,30}))?))?$/.test(path)) ||
     (post && /^\/tournament\/(?:new|[A-Za-z0-9]{8}\/(?:join|withdraw|edit|terminate|prepare))$/.test(path)));
   // Known inherited feature links get a translated native notice, never their blocked controller.
   const unsupportedFeature = (

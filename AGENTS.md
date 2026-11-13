@@ -546,3 +546,13 @@ authoritative for human-only events and expose each event’s bot rating range
 target in the Maia participation notice, preserve ongoing games and unlimited
 human entry, and translate all UI text into ten locales. Keep this follow-up
 draft; do not merge or deploy without further instruction.
+
+
+## Native Arena discovery (#324, November 13)
+
+The owner approved a draft PR for the native timeline and Finished/history views,
+Play → Arena tournaments, and an upper-left homepage Arena spotlight. Reuse native
+views and timing, retain public approved-host filtering and all Arena admission
+semantics, and verify all exposed copy in ten locales. Keep this draft unmerged
+and undeployed pending further instruction. No general tooling or infrastructure
+changes are authorized.

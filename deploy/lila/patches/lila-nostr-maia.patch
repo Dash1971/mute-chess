@@ -765,30 +765,52 @@ index 638f3c9..f7351b6 100644
    private[controllers] def chatOf(study: lila.study.Study)(using ctx: Context) = {
      ctx.kid.no && ctx.noBot // no public chats for kids and bots
 diff --git a/app/controllers/Tournament.scala b/app/controllers/Tournament.scala
-index 383bbdb..0217f94 100644
+index 383bbdb..6d54e42 100644
 --- a/app/controllers/Tournament.scala
 +++ b/app/controllers/Tournament.scala
-@@ -25,7 +25,18 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
+@@ -25,7 +25,31 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
    def home = Open(serveHome)
    def homeLang = LangPage(routes.Tournament.home)(serveHome)
  
 -  private def serveHome(using ctx: Context) = NoBot:
 +  private def serveHome(using ctx: Context): Fu[Result] =
 +    if env.noSweat.enabled then
-+      env.tournament.noSweatArena.events.flatMap: events =>
-+        Ok.page(
-+          views.noSweatArenaHome(
-+            events.filter(t => !t.isPrivate || ctx.is(t.createdBy)),
-+            ctx.userId.exists(env.tournament.noSweatArena.hostAllowed)
-+          )
++      for
++        visible <- api.fetchVisibleTournaments
++        json <- env.tournament.apiJsonView(visible)
++        response <- negotiate(
++          html = for
++            _ <- env.user.lightUserApi.preloadMany(visible.finished.flatMap(_.winnerId))
++            page <- renderPage(
++              views.tournament.list.home(
++                Nil,
++                visible.finished,
++                None,
++                json,
++                focused = true,
++                canCreate = ctx.userId.exists(env.tournament.noSweatArena.hostAllowed)
++              )
++            )
++          yield Ok(page).noCache,
++          json = Ok(json)
 +        )
++      yield response
 +    else serveNativeHome
 +
 +  private def serveNativeHome(using ctx: Context) = NoBot:
      for
        teamIds <- ctx.userId.so(env.team.cached.teamIdsList)
        (scheduled, visible) <- env.tournament.featuring.tourIndex.get(teamIds)
-@@ -98,7 +109,13 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
+@@ -34,7 +58,7 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
+         html = for
+           finished <- api.notableFinished
+           winners <- env.tournament.winners.all
+-          page <- renderPage(views.tournament.list.home(scheduled, finished, winners, scheduleJson))
++          page <- renderPage(views.tournament.list.home(scheduled, finished, Some(winners), scheduleJson))
+         yield Ok(page).noCache,
+         json = Ok(scheduleJson)
+       )
+@@ -98,7 +122,13 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
                  env.team.cached.preloadSet(b.teams)
                streamers <- streamerCache.get(tour.id)
                shieldOwner <- env.tournament.shieldApi.currentOwner(tour)
@@ -803,7 +825,7 @@ index 383bbdb..0217f94 100644
              yield
                env.tournament.lilaHttp.hit(tour)
                Ok(page).noCache
-@@ -220,10 +237,23 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
+@@ -220,10 +250,23 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
    }
  
    def form = Auth { ctx ?=> me ?=>
@@ -831,7 +853,7 @@ index 383bbdb..0217f94 100644
    }
  
    def teamBattleForm(teamId: TeamId) = Auth { _ ?=> me ?=>
-@@ -246,7 +276,11 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
+@@ -246,7 +289,11 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
    def webCreate = AuthBody(_ ?=> _ ?=> create)
    def apiCreate = ScopedBody(_.Tournament.Write)(_ ?=> _ ?=> create)
  
@@ -844,7 +866,7 @@ index 383bbdb..0217f94 100644
      env.team.api
        .lightsByTourLeader(me)
        .flatMap: teams =>
-@@ -286,26 +320,27 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
+@@ -286,26 +333,27 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
    def apiUpdate(id: TourId) = ScopedBody(_.Tournament.Write) { ctx ?=> me ?=>
      WithEditableTournament(id): tour =>
        env.team.api.lightsByTourLeader(me).flatMap { teams =>
@@ -892,13 +914,44 @@ index 383bbdb..0217f94 100644
        }
    }
  
-@@ -395,21 +430,25 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
-       }
-     }
+@@ -383,33 +431,48 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
+         .inject(views.tournament.list.shields.byCateg(categ, awards))
  
+   def calendar = Open:
+-    api.calendar.json.flatMap: json =>
+-      negotiate(Ok.page(views.tournament.list.calendar(json)), Ok(json))
++    (if env.noSweat.enabled then env.tournament.noSweatDiscovery.calendarJson else api.calendar.json).flatMap:
++      json => negotiate(Ok.page(views.tournament.list.calendar(json)), Ok(json))
+ 
+   def history(freq: String, page: Int) = Open:
+-    lila.tournament.Schedule.Freq.byName.get(freq).so { fr =>
+-      api.history(fr, page).flatMap { pager =>
+-        val userIds = pager.currentPageResults.flatMap(_.winnerId)
+-        env.user.lightUserApi.preloadMany(userIds) >>
+-          Ok.page(views.tournament.list.history(fr, pager))
++    if env.noSweat.enabled then
++      if freq != "unique" then notFound
++      else
++        env.tournament.noSweatDiscovery
++          .history(page)
++          .flatMap: pager =>
++            env.user.lightUserApi.preloadMany(pager.currentPageResults.flatMap(_.winnerId)) >>
++              Ok.page(
++                views.tournament.list.history(lila.tournament.Schedule.Freq.Unique, pager, focused = true)
++              )
++    else
++      lila.tournament.Schedule.Freq.byName.get(freq).so { fr =>
++        api.history(fr, page).flatMap { pager =>
++          val userIds = pager.currentPageResults.flatMap(_.winnerId)
++          env.user.lightUserApi.preloadMany(userIds) >>
++            Ok.page(views.tournament.list.history(fr, pager))
++        }
+       }
+-    }
++
 +  private def editArenaForm(teams: List[lila.core.team.LightTeam], tour: Tour)(using Me) =
 +    env.tournament.noSweatArena.scope(tour).map(s => forms.edit(teams, tour, arenaPrepared = s.isDefined))
-+
+ 
    def edit(id: TourId) = Auth { ctx ?=> me ?=>
      WithEditableTournament(id): tour =>
        env.team.api.lightsByTourLeader(me).flatMap { teams =>
@@ -924,7 +977,7 @@ index 383bbdb..0217f94 100644
        }
    }
  
-@@ -449,12 +488,41 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
+@@ -449,12 +512,41 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
            Ok.page(views.tournament.moderation.page(tour, view, players))
    }
  
@@ -968,7 +1021,7 @@ index 383bbdb..0217f94 100644
        else Redirect(routes.Tournament.show(t.id))
  
    private def WithVisibleTournament(id: TourId)(
-@@ -463,6 +531,7 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
+@@ -463,6 +555,7 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
      def nope = negotiate(tournamentNotFound, notFoundJson("No such tournament"))
      cachedTour(id).flatMap:
        case None => nope
@@ -1471,7 +1524,7 @@ index 625c944..0890d6f 100644
    ):
      frag(
 diff --git a/app/views/lobby/home.scala b/app/views/lobby/home.scala
-index 2db52a9..6f794d9 100644
+index 2db52a9..ffea0d5 100644
 --- a/app/views/lobby/home.scala
 +++ b/app/views/lobby/home.scala
 @@ -5,27 +5,12 @@ import play.api.libs.json.Json
@@ -1529,11 +1582,12 @@ index 2db52a9..6f794d9 100644
          )
        )
        .hrefLangs(lila.ui.LangPath("/")):
-@@ -56,53 +46,63 @@ object home:
+@@ -56,53 +46,69 @@ object home:
          main(
            cls := List(
              "lobby" -> true,
 +            "mutechess-play" -> env.noSweat.enabled,
++            "mutechess-play--arena" -> (env.noSweat.enabled && tours.nonEmpty),
              "lobby-nope" -> (playban.isDefined || currentGame.isDefined || homepage.hasUnreadLichessMessage)
            )
          )(
@@ -1581,6 +1635,11 @@ index 2db52a9..6f794d9 100644
 -                " ",
 -                a(href := "/about")(trans.site.aboutX("Lichess"), "...")
 -              )
++          (env.noSweat.enabled && tours.nonEmpty).option(
++            div(cls := "lobby__side nosweat-arena-spotlight")(
++              div(cls := "lobby__spotlights")(tours.take(1).map(views.tournament.list.homepageSpotlight))
++            )
++          ),
 +          Option.unless(env.noSweat.enabled)(
 +            div(cls := "lobby__side")(
 +              ctx.blind.option(h2(trans.nvui.featuredEvents())),
@@ -1637,7 +1696,7 @@ index 2db52a9..6f794d9 100644
            ),
            currentGame
              .map(bits.currentGameInfo)
-@@ -114,42 +114,32 @@ object home:
+@@ -114,42 +120,32 @@ object home:
                if ctx.blind then blindLobby(blindGames) else bits.lobbyApp
            ,
            div(cls := "lobby__table")(
@@ -3886,14 +3945,15 @@ index 31d65db..e51b8e4 100644
  
    given BSON[Player] with
 diff --git a/modules/tournament/src/main/Env.scala b/modules/tournament/src/main/Env.scala
-index 8dccb41..27691b2 100644
+index 8dccb41..c715b45 100644
 --- a/modules/tournament/src/main/Env.scala
 +++ b/modules/tournament/src/main/Env.scala
-@@ -84,6 +84,8 @@ final class Env(
+@@ -84,6 +84,9 @@ final class Env(
  
    private lazy val colorHistoryApi = wire[ColorHistoryApi]
  
 +  lazy val noSweatArena = wire[NoSweatArena]
++  lazy val noSweatDiscovery = wire[NoSweatArenaDiscovery]
 +
    lazy val api: TournamentApi = wire[TournamentApi]
  
@@ -3985,20 +4045,21 @@ index 2fa6c7c..7f3ce6a 100644
  
    def scheduleAs(sched: Schedule, startsAt: Instant, minutes: Int)(using Translate) =
 diff --git a/modules/tournament/src/main/TournamentApi.scala b/modules/tournament/src/main/TournamentApi.scala
-index 012d0f4..0d464e7 100644
+index 012d0f4..f9138a1 100644
 --- a/modules/tournament/src/main/TournamentApi.scala
 +++ b/modules/tournament/src/main/TournamentApi.scala
-@@ -48,7 +48,8 @@ final class TournamentApi(
+@@ -48,7 +48,9 @@ final class TournamentApi(
      cacheApi: lila.memo.CacheApi,
      lightUserApi: lila.core.user.LightUserApi,
      ircApi: lila.core.irc.IrcApi,
 -    teamApi: lila.core.team.TeamApi
 +    teamApi: lila.core.team.TeamApi,
-+    noSweatArena: NoSweatArena
++    noSweatArena: NoSweatArena,
++    noSweatDiscovery: NoSweatArenaDiscovery
  )(using scheduler: Scheduler)(using
      Executor,
      org.apache.pekko.actor.ActorSystem,
-@@ -148,18 +149,17 @@ final class TournamentApi(
+@@ -148,18 +150,17 @@ final class TournamentApi(
        users: WaitingUsers,
        smallTourNbActivePlayers: Option[Int]
    ): Funit =
@@ -4024,7 +4085,7 @@ index 012d0f4..0d464e7 100644
              then logger.warn(s"Almost paired a playing player in ${forTour.id}")
              pairingSystem
                .createPairings(tour, idle, ranking, smallTourNbActivePlayers)
-@@ -167,27 +167,31 @@ final class TournamentApi(
+@@ -167,27 +168,31 @@ final class TournamentApi(
                .flatMap:
                  case Nil => funit
                  case pairings =>
@@ -4077,6 +4138,107 @@ index 012d0f4..0d464e7 100644
  
    private def featureOneOf(tour: Tournament, pairings: List[Pairing.WithPlayers], ranking: Ranking): Funit =
      tour.featured
+@@ -674,14 +679,18 @@ final class TournamentApi(
+ 
+   // when loading /tournament
+   def fetchVisibleTournaments: Fu[VisibleTournaments] =
+-    scheduledCreatedAndStarted.zip(notableFinished).map { case ((created, started), finished) =>
+-      VisibleTournaments(created, started, finished)
+-    }
++    if noSweatDiscovery.enabled then noSweatDiscovery.visible
++    else
++      scheduledCreatedAndStarted.zip(notableFinished).map { case ((created, started), finished) =>
++        VisibleTournaments(created, started, finished)
++      }
+ 
+   // when updating /tournament
+   def fetchUpdateTournaments: Fu[VisibleTournaments] =
+-    scheduledCreatedAndStarted.dmap: (created, started) =>
+-      VisibleTournaments(created, started, Nil)
++    if noSweatDiscovery.enabled then noSweatDiscovery.visible
++    else
++      scheduledCreatedAndStarted.dmap: (created, started) =>
++        VisibleTournaments(created, started, Nil)
+ 
+   def fetchModable: Fu[List[lila.core.tournament.Tournament]] =
+     fetchVisibleTournaments.map(_.all)
+@@ -806,6 +815,7 @@ final class TournamentApi(
+         _.flatMap { LightPov(_, userId) }
+ 
+   private def notifyBBB(next: Tournament, prev: Option[Tournament])(using me: MyId) =
++    if noSweatDiscovery.enabled then publish()
+     if next.isScheduled then
+       scalalib
+         .ProductDiff(
+diff --git a/modules/tournament/src/main/TournamentFeaturing.scala b/modules/tournament/src/main/TournamentFeaturing.scala
+index b1d3975..a65db20 100644
+--- a/modules/tournament/src/main/TournamentFeaturing.scala
++++ b/modules/tournament/src/main/TournamentFeaturing.scala
+@@ -10,13 +10,16 @@ import lila.mon.extensions.*
+ final class TournamentFeaturing(
+     api: TournamentApi,
+     repo: TournamentRepo,
+-    cacheApi: lila.memo.CacheApi
++    cacheApi: lila.memo.CacheApi,
++    noSweatDiscovery: NoSweatArenaDiscovery
+ )(using Executor, Scheduler):
+ 
+   object tourIndex:
+     def get(teamIds: List[TeamId]): Fu[(List[Tournament], VisibleTournaments)] = for
+       (base, scheduled) <- sameForEveryone.get(())
+-      teamTours <- visibleForTeams(teamIds, Minutes(5 * 60), "index", Max(30))
++      teamTours <-
++        if noSweatDiscovery.enabled then fuccess(Nil)
++        else visibleForTeams(teamIds, Minutes(5 * 60), "index", Max(30))
+       forMe = base.add(teamTours)
+     yield (scheduled, forMe)
+ 
+@@ -25,29 +28,33 @@ final class TournamentFeaturing(
+         _.refreshAfterWrite(3.seconds).buildAsyncTimeout(): _ =>
+           for
+             visible <- api.fetchVisibleTournaments
+-            scheduled <- repo.allScheduledDedup
++            scheduled <- if noSweatDiscovery.enabled then fuccess(Nil) else repo.allScheduledDedup
+           yield (visible, scheduled)
+ 
+   object homepage:
+ 
+     def get(teamIds: List[TeamId]): Fu[List[Tournament]] = for
+       base <- sameForEveryone.get(())
+-      teamTours <- visibleForTeams(teamIds, Minutes(3 * 60), "homepage", Max(3))
++      teamTours <-
++        if noSweatDiscovery.enabled then fuccess(Nil)
++        else visibleForTeams(teamIds, Minutes(3 * 60), "homepage", Max(3))
+     yield teamTours ::: base
+ 
+     private val sameForEveryone: AsyncLoadingCache[Unit, List[Tournament]] =
+       cacheApi.unit[List[Tournament]]("tournamentFeaturing.homepage.sameForEveryone"):
+         _.refreshAfterWrite(2.seconds).buildAsyncTimeout(): _ =>
+-          for
+-            started <- repo.scheduledNotHourlyStillWorthEntering
+-            created <- repo.scheduledNotHourlyCreated(Minutes(crud.CrudForm.maxHomepageHours * 60))
+-          yield (started ::: created)
+-            .sortBy(_.startsAt.toSeconds)
+-            .foldLeft(List.empty[Tournament]): (acc, tour) =>
+-              if !tour.homepageSince.exists(_.isBefore(nowInstant)) then acc
+-              else if acc.exists(_.similarSchedule(tour)) then acc
+-              else tour :: acc
+-            .reverse
++          if noSweatDiscovery.enabled then noSweatDiscovery.homepage
++          else
++            for
++              started <- repo.scheduledNotHourlyStillWorthEntering
++              created <- repo.scheduledNotHourlyCreated(Minutes(crud.CrudForm.maxHomepageHours * 60))
++            yield (started ::: created)
++              .sortBy(_.startsAt.toSeconds)
++              .foldLeft(List.empty[Tournament]): (acc, tour) =>
++                if !tour.homepageSince.exists(_.isBefore(nowInstant)) then acc
++                else if acc.exists(_.similarSchedule(tour)) then acc
++                else tour :: acc
++              .reverse
+ 
+   private def visibleForTeams(
+       teamIds: List[TeamId],
 diff --git a/modules/tournament/src/main/TournamentForm.scala b/modules/tournament/src/main/TournamentForm.scala
 index 9161f5d..60193ff 100644
 --- a/modules/tournament/src/main/TournamentForm.scala
@@ -4323,6 +4485,183 @@ index edd2d36..6a8a283 100644
    def waitStart =
      form3.fieldset(trans.arena.startDate(), toggle = tour.forall(_.isCreated).some, disabled = frozen)(
        form3.split(waitMinutes, startDate)
+diff --git a/modules/tournament/src/main/ui/TournamentList.scala b/modules/tournament/src/main/ui/TournamentList.scala
+index 1873610..09d061e 100644
+--- a/modules/tournament/src/main/ui/TournamentList.scala
++++ b/modules/tournament/src/main/ui/TournamentList.scala
+@@ -18,67 +18,82 @@ final class TournamentList(helpers: Helpers, ui: TournamentUi)(
+   def home(
+       scheduled: List[Tournament],
+       finished: List[Tournament],
+-      winners: AllWinners,
+-      json: JsObject
++      winners: Option[AllWinners],
++      json: JsObject,
++      focused: Boolean = false,
++      canCreate: Boolean = true
+   )(using ctx: Context) =
+-    Page(trans.site.tournaments.txt())
++    Page(if focused then trans.arena.arenaTournaments.txt() else trans.site.tournaments.txt())
+       .css("tournament.home")
+       .js(infiniteScrollEsmInit)
+-      .js(PageModule("tournament.schedule", Json.obj("data" -> json)))
++      .js(PageModule("tournament.schedule", Json.obj("data" -> json, "noSweat" -> focused)))
+       .hrefLangs(LangPath(routes.Tournament.home))
+       .flag(_.fullScreen)
+       .graph(
+         url = routeUrl(routes.Tournament.home),
+-        title = trans.site.tournamentHomeTitle.txt(),
+-        description = trans.site.tournamentHomeDescription.txt()
++        title = if focused then trans.arena.arenaTournaments.txt() else trans.site.tournamentHomeTitle.txt(),
++        description = if focused then lila.core.i18n.I18nKey("muteSiteDescription").txt()
++        else trans.site.tournamentHomeDescription.txt()
+       ):
+-        main(cls := "tour-home")(
++        main(cls := (if focused then "tour-home nosweat-arena-home" else "tour-home"))(
+           st.aside(cls := "tour-home__side")(
+             p(cls := "tour__links")(
+-              ctx.me.map: me =>
+-                frag(
+-                  a(href := routes.UserTournament.path(me.username, "created"))(trans.arena.myTournaments()),
+-                  br
+-                ),
++              ctx.me
++                .filter(_ => !focused)
++                .map: me =>
++                  frag(
++                    a(href := routes.UserTournament.path(me.username, "created"))(
++                      trans.arena.myTournaments()
++                    ),
++                    br
++                  ),
+               a(href := routes.Tournament.calendar)(trans.site.tournamentCalendar()),
+               br,
+               a(href := routes.Tournament.history(Freq.Unique.name))(trans.arena.history()),
+               br,
+               a(href := routes.Tournament.help)(trans.site.tournamentFAQ()),
+               br,
+-              a(href := routes.Cms.lonePage(lila.core.id.CmsPageKey("leagues-and-battles")))(
+-                trans.arena.leaguesAndStreamerBattles()
+-              )
+-            ),
+-            h2(
+-              a(href := routes.Tournament.leaderboard)(trans.site.leaderboard())
+-            ),
+-            ul(cls := "leaderboard")(
+-              winners.top.map: w =>
+-                li(
+-                  userIdLink(w.userId.some),
+-                  a(title := w.tourName, href := routes.Tournament.show(w.tourId))(
+-                    ui.scheduledTournamentNameShortHtml(w.tourName)
+-                  )
++              (!focused).option(
++                a(href := routes.Cms.lonePage(lila.core.id.CmsPageKey("leagues-and-battles")))(
++                  trans.arena.leaguesAndStreamerBattles()
+                 )
++              )
+             ),
+-            h2(trans.site.lichessTournaments()),
+-            div(cls := "scheduled")(
+-              scheduled.map: tour =>
+-                tour.schedule
+-                  .exists(_.freq != Freq.Hourly)
+-                  .option:
+-                    a(href := routes.Tournament.show(tour.id), dataIcon := ui.tournamentIcon(tour))(
+-                      strong(tour.name(full = false)),
+-                      momentFromNow(tour.startsAt)
+-                    )
+-            ),
+-            a(cls := "button button-empty", href := routes.Tournament.calendar)(trans.site.more(), " »")
++            (!focused).option(
++              frag(
++                h2(
++                  a(href := routes.Tournament.leaderboard)(trans.site.leaderboard())
++                ),
++                ul(cls := "leaderboard")(
++                  winners.toList
++                    .flatMap(_.top)
++                    .map: w =>
++                      li(
++                        userIdLink(w.userId.some),
++                        a(title := w.tourName, href := routes.Tournament.show(w.tourId))(
++                          ui.scheduledTournamentNameShortHtml(w.tourName)
++                        )
++                      )
++                ),
++                h2(trans.site.lichessTournaments()),
++                div(cls := "scheduled")(
++                  scheduled.map: tour =>
++                    tour.schedule
++                      .exists(_.freq != Freq.Hourly)
++                      .option:
++                        a(href := routes.Tournament.show(tour.id), dataIcon := ui.tournamentIcon(tour))(
++                          strong(tour.name(full = false)),
++                          momentFromNow(tour.startsAt)
++                        )
++                ),
++                a(cls := "button button-empty", href := routes.Tournament.calendar)(trans.site.more(), " »")
++              )
++            )
+           ),
+           st.section(cls := "tour-home__schedule box")(
+             boxTop(
+-              h1(trans.site.tournaments()),
+-              ctx.isAuth.option(
++              h1(if focused then trans.arena.arenaTournaments() else trans.site.tournaments()),
++              (ctx.isAuth && canCreate).option(
+                 div(cls := "box__top__actions")(
+                   a(
+                     href := routes.Tournament.form,
+@@ -90,7 +105,7 @@ final class TournamentList(helpers: Helpers, ui: TournamentUi)(
+             ),
+             div(cls := "tour-chart")
+           ),
+-          div(cls := "arena-list box")(
++          div(cls := (if focused then "arena-list tour-home__list box" else "arena-list box"))(
+             table(cls := "slist slist-pad")(
+               thead(
+                 tr(
+@@ -104,19 +119,21 @@ final class TournamentList(helpers: Helpers, ui: TournamentUi)(
+           )
+         )
+ 
+-  def history(freq: Freq, pager: Paginator[Tournament])(using Context) =
+-    Page("Tournament history")
++  def history(freq: Freq, pager: Paginator[Tournament], focused: Boolean = false)(using Context) =
++    Page(if focused then trans.arena.history.txt() else "Tournament history")
+       .js(infiniteScrollEsmInit)
+       .css("tournament.history"):
+-        main(cls := "page-menu arena-history")(
+-          lila.ui.bits.pageMenuSubnav(
+-            allFreqs.map: f =>
+-              a(cls := freq.name.active(f.name), href := routes.Tournament.history(f.name))(
+-                nameOf(f)
+-              )
++        main(cls := (if focused then "arena-history" else "page-menu arena-history"))(
++          (!focused).option(
++            lila.ui.bits.pageMenuSubnav(
++              allFreqs.map: f =>
++                a(cls := freq.name.active(f.name), href := routes.Tournament.history(f.name))(
++                  nameOf(f)
++                )
++            )
+           ),
+-          div(cls := "page-menu__content box")(
+-            boxTop(h1(nameOf(freq), " tournaments")),
++          div(cls := (if focused then "box" else "page-menu__content box"))(
++            boxTop(h1(if focused then trans.arena.history() else frag(nameOf(freq), " tournaments"))),
+             div(cls := "arena-list")(
+               table(cls := "slist slist-pad")(
+                 tbody(cls := "infinite-scroll")(
+@@ -129,7 +146,7 @@ final class TournamentList(helpers: Helpers, ui: TournamentUi)(
+         )
+ 
+   def calendar(json: play.api.libs.json.JsObject)(using Context) =
+-    Page("Tournament calendar")
++    Page(trans.site.tournamentCalendar.txt())
+       .js(PageModule("tournament.calendar", Json.obj("data" -> json)))
+       .css("tournament.calendar"):
+         main(cls := "box")(
 diff --git a/modules/tournament/src/main/ui/TournamentShow.scala b/modules/tournament/src/main/ui/TournamentShow.scala
 index 95262f7..5c08b82 100644
 --- a/modules/tournament/src/main/ui/TournamentShow.scala
@@ -5328,10 +5667,10 @@ index 28e5bc4..66c01ad 100644
        )
        .add("fen" -> fen)
 diff --git a/modules/web/src/main/ui/TopNav.scala b/modules/web/src/main/ui/TopNav.scala
-index 4d9306b..5fb911f 100644
+index 4d9306b..43586a2 100644
 --- a/modules/web/src/main/ui/TopNav.scala
 +++ b/modules/web/src/main/ui/TopNav.scala
-@@ -12,92 +12,108 @@ final class TopNav(helpers: Helpers):
+@@ -12,92 +12,110 @@ final class TopNav(helpers: Helpers):
    private def linkTitle(url: String, name: Frag)(using ctx: Context) =
      if ctx.blind then h3(name) else a(href := url)(name)
  
@@ -5343,21 +5682,15 @@ index 4d9306b..5fb911f 100644
 -          frag(
 -            span(cls := "play")(trans.site.play()),
 -            span(cls := "home")("lichess.org")
+-          )
 +  def apply(@scala.annotation.unused seesClassMenu: Boolean, hasDgt: Boolean, compact: Boolean = false)(using
 +      ctx: Context
 +  ) =
 +    if compact then
 +      st.nav(id := "topnav", cls := "hover")(
-+        st.section(a(href := "/")(trans.site.play())),
 +        st.section(
-+          linkTitle(routes.Puzzle.home.url, trans.site.puzzles()),
-+          div(role := "group")(
-+            a(href := routes.Puzzle.home)(trans.site.puzzles()),
-+            a(href := routes.Puzzle.themes)(trans.puzzle.puzzleThemes()),
-+            a(href := routes.Puzzle.dashboard(Days(30), "home", none))(trans.puzzle.puzzleDashboard()),
-+            a(href := routes.Puzzle.streak)("Puzzle Streak"),
-+            a(href := routes.Storm.home)("Puzzle Storm")
-           )
++          linkTitle("/", trans.site.play()),
++          div(role := "group")(a(href := routes.Tournament.home)(trans.arena.arenaTournaments()))
          ),
 -        div(role := "group")(
 -          if ctx.noBot then a(href := s"${langHref("/")}?any#hook")(trans.site.createLobbyGame())
@@ -5377,14 +5710,23 @@ index 4d9306b..5fb911f 100644
 -        val puzzleUrl = langHref(routes.Puzzle.home.url)
          st.section(
 -          linkTitle(puzzleUrl, trans.site.puzzles()),
-+          linkTitle(routes.Learn.index.url, trans.site.learnMenu()),
++          linkTitle(routes.Puzzle.home.url, trans.site.puzzles()),
            div(role := "group")(
 -            a(href := puzzleUrl)(trans.site.puzzles()),
 -            a(href := langHref(routes.Puzzle.themes))(trans.puzzle.puzzleThemes()),
--            a(href := routes.Puzzle.dashboard(Days(30), "home", none))(trans.puzzle.puzzleDashboard()),
++            a(href := routes.Puzzle.home)(trans.site.puzzles()),
++            a(href := routes.Puzzle.themes)(trans.puzzle.puzzleThemes()),
+             a(href := routes.Puzzle.dashboard(Days(30), "home", none))(trans.puzzle.puzzleDashboard()),
 -            a(href := langHref(routes.Puzzle.streak))("Puzzle Streak"),
 -            a(href := langHref(routes.Storm.home))("Puzzle Storm"),
 -            a(href := langHref(routes.Racer.home))("Puzzle Racer")
++            a(href := routes.Puzzle.streak)("Puzzle Streak"),
++            a(href := routes.Storm.home)("Puzzle Storm")
++          )
++        ),
++        st.section(
++          linkTitle(routes.Learn.index.url, trans.site.learnMenu()),
++          div(role := "group")(
 +            a(href := routes.Learn.index)(trans.site.chessBasics()),
 +            a(href := routes.Practice.index)(trans.site.practice())
            )
@@ -5398,8 +5740,7 @@ index 4d9306b..5fb911f 100644
 +        st.section(
 +          linkTitle(routes.ForumCateg.index.url, trans.site.community()),
 +          div(role := "group")(
-+            a(href := routes.ForumCateg.index)(trans.site.forum()),
-+            a(href := routes.Tournament.home)(trans.arena.arenaTournaments())
++            a(href := routes.ForumCateg.index)(trans.site.forum())
 +          )
 +        ),
 +        toolsMenu(compact)
@@ -5466,13 +5807,21 @@ index 4d9306b..5fb911f 100644
 +        ),
 +        st.section(
 +          linkTitle(routes.Tv.games.url, trans.site.watch()),
++          div(role := "group")(
++            a(href := routes.Tv.games)(trans.site.currentGames())
++          )
++        ),
++        st.section(
++          linkTitle(routes.ForumCateg.index.url, trans.site.community()),
            div(role := "group")(
 -            a(href := routes.RelayTour.index())(trans.broadcast.broadcasts()),
 -            a(href := langHref(routes.Tv.index))("Lichess TV"),
 -            a(href := routes.Tv.games)(trans.site.currentGames()),
 -            (ctx.kid.no && ctx.noBot).option(a(href := routes.Streamer.index())(trans.site.streamersMenu())),
 -            ctx.noBot.option(a(href := langHref(routes.Video.index))(trans.site.videoLibrary()))
-+            a(href := routes.Tv.games)(trans.site.currentGames())
++            ctx.kid.no.option(a(href := routes.ForumCateg.index)(trans.site.forum())),
++            (ctx.kid.no && ctx.me.exists(_.isPatron))
++              .option(a(cls := "community-patron", href := routes.Plan.index())(trans.patron.donate()))
            )
 -        )
 -      ,
@@ -5497,14 +5846,6 @@ index 4d9306b..5fb911f 100644
 -          a(href := routes.Importer.importGame)(trans.site.importGame()),
 -          a(href := routes.Search.index())(trans.search.advancedSearch())
 -        )
-+        ),
-+        st.section(
-+          linkTitle(routes.ForumCateg.index.url, trans.site.community()),
-+          div(role := "group")(
-+            ctx.kid.no.option(a(href := routes.ForumCateg.index)(trans.site.forum())),
-+            (ctx.kid.no && ctx.me.exists(_.isPatron))
-+              .option(a(cls := "community-patron", href := routes.Plan.index())(trans.patron.donate()))
-+          )
 +        ),
 +        toolsMenu(compact)
 +      )
@@ -13651,6 +13992,50 @@ index 9d6399b..8be2da0 100644
    r: number; // rating
    k: number; // rank
    t?: string; // title
+diff --git a/ui/tournament/src/tournament.schedule.ts b/ui/tournament/src/tournament.schedule.ts
+index e68b158..a522ddf 100644
+--- a/ui/tournament/src/tournament.schedule.ts
++++ b/ui/tournament/src/tournament.schedule.ts
+@@ -19,7 +19,7 @@ export interface Ctrl {
+   data(): Data;
+ }
+ 
+-export function initModule(opts: { data: Data }) {
++export function initModule(opts: { data: Data; noSweat?: boolean }) {
+   wsConnect('/socket/v5', false, { params: { flag: 'tournament' } });
+ 
+   const element = document.querySelector('.tour-chart') as HTMLElement;
+@@ -38,7 +38,7 @@ export function initModule(opts: { data: Data }) {
+   setInterval(redraw, 3700);
+ 
+   pubsub.on('socket.in.reload', d => {
+-    opts.data = {
++    opts.data = opts.noSweat ? d : {
+       created: update(opts.data.created, d.created),
+       started: update(opts.data.started, d.started),
+       finished: update(opts.data.finished, d.finished),
+diff --git a/ui/tournament/src/view/calendarView.ts b/ui/tournament/src/view/calendarView.ts
+index 98d775b..e69b8b8 100644
+--- a/ui/tournament/src/view/calendarView.ts
++++ b/ui/tournament/src/view/calendarView.ts
+@@ -41,7 +41,7 @@ function renderTournament(tour: Tournament, day: Date) {
+       attrs: {
+         href: '/tournament/' + tour.id,
+         style: 'width: ' + width + '%; ' + startDirection() + ': ' + left + '%',
+-        title: `${tour.fullName} - ${format(tour.bounds.start, 'EEEE, dd/MM/yyyy HH:mm')}`,
++        title: `${tour.fullName} - ${new Intl.DateTimeFormat(document.documentElement.lang, { dateStyle: 'full', timeStyle: 'short' }).format(tour.bounds.start)}`,
+       },
+     },
+     [h('span.icon', tour.perf ? { attrs: dataIcon(iconOf(tour)) } : {}), h('span.body', [tour.fullName])],
+@@ -76,7 +76,7 @@ function renderDay(ctrl: Ctrl) {
+     const dayEnd = addDays(day, 1);
+     const tours = ctrl.data.tournaments.filter(t => t.bounds.start < dayEnd && t.bounds.end > day);
+     return h('day', [
+-      h('date', { attrs: { title: format(day, 'EEEE, dd/MM/yyyy') } }, [format(day, 'dd/MM')]),
++      h('date', { attrs: { title: new Intl.DateTimeFormat(document.documentElement.lang, { dateStyle: 'full' }).format(day) } }, [format(day, 'dd/MM')]),
+       h(
+         'lanes',
+         makeLanes(tours).map(l => renderLane(l, day)),
 diff --git a/ui/tournament/src/view/finished.ts b/ui/tournament/src/view/finished.ts
 index d15ce0b..4ee4f44 100644
 --- a/ui/tournament/src/view/finished.ts
@@ -16098,25 +16483,15 @@ index 0000000..a54b1de
 +    user ?=> handle(club.details(id, user.value).map(_.fold(NotFound)(Ok(_))))
 diff --git a/app/views/noSweatArena.scala b/app/views/noSweatArena.scala
 new file mode 100644
-index 0000000..3b5262e
+index 0000000..64bb508
 --- /dev/null
 +++ b/app/views/noSweatArena.scala
-@@ -0,0 +1,29 @@
+@@ -0,0 +1,19 @@
 +package views
 +
 +import play.api.libs.json.JsObject
 +import lila.app.UiEnv.{ *, given }
 +import lila.core.i18n.I18nKey
-+
-+def noSweatArenaHome(events: List[lila.tournament.Tournament], host: Boolean)(using Context) =
-+  Page(trans.arena.arenaTournaments.txt()).css("tournament.home", "bits.page"):
-+    main(cls := "box box-pad")(
-+      h1(trans.arena.arenaTournaments()),
-+      host.option(a(cls := "button", href := routes.Tournament.form)(trans.site.createANewTournament())),
-+      a(cls := "button button-empty", href := routes.Tournament.help)(trans.site.tournamentFAQ()),
-+      tournament.ui.enterable(events.filterNot(_.isFinished)),
-+      table(cls := "slist")(tournament.ui.finishedList(events.filter(_.isFinished)))
-+    )
 +
 +def noSweatArenaControls(t: lila.tournament.Tournament, status: JsObject)(using Context): Frag =
 +  frag(
@@ -18643,6 +19018,91 @@ index 0000000..b4a595b
 +    val target = (participantTarget - humans).max(0)
 +    val desired = ranked.take(target)
 +    desired.filter(playing).toSet ++ desired.filterNot(playing).take((target - playing.size).max(0))
+diff --git a/modules/tournament/src/main/NoSweatArenaDiscovery.scala b/modules/tournament/src/main/NoSweatArenaDiscovery.scala
+new file mode 100644
+index 0000000..9d8eb37
+--- /dev/null
++++ b/modules/tournament/src/main/NoSweatArenaDiscovery.scala
+@@ -0,0 +1,79 @@
++package lila.tournament
++
++import play.api.Configuration
++import play.api.i18n.Lang
++import play.api.libs.json.*
++import scalalib.paginator.Paginator
++
++import lila.common.Json.given
++import lila.common.config.given
++import lila.core.tournament.Status
++import lila.db.dsl.{ *, given }
++import lila.tournament.BSONHandlers.given
++
++/** Native discovery surfaces, restricted to the configured Mute hosts and public standard Arenas. */
++final class NoSweatArenaDiscovery(
++    appConfig: Configuration,
++    repo: TournamentRepo,
++    apiJsonView: ApiJsonView
++)(using Executor, lila.core.i18n.Translator):
++  val enabled = appConfig.getOptional[Boolean]("nosweat.enabled").getOrElse(false)
++  private val hosts = appConfig.getOptional[List[String]]("nosweat.arena.hosts").getOrElse(Nil).map(UserId(_))
++  private val publicEvents = NoSweatArenaDiscovery.publicEvents(hosts)
++
++  private def select(status: Status) = publicEvents ++ bdoc("status" -> status.id)
++  private def list(query: Bdoc, ascending: Boolean = true, limit: Int = Int.MaxValue): Fu[List[Tournament]] =
++    repo.coll
++      .find(query)
++      .sort(bdoc("startsAt" -> (if ascending then 1 else -1)))
++      .cursor[Tournament]()
++      .list(limit)
++
++  def visible: Fu[VisibleTournaments] = for
++    created <- list(select(Status.created) ++ bdoc("startsAt".lt(nowInstant.plusHours(6))))
++    started <- list(select(Status.started))
++    finished <- list(select(Status.finished), ascending = false, limit = 20)
++  yield VisibleTournaments(created, started, finished)
++
++  def history(page: Int): Fu[Paginator[Tournament]] =
++    Paginator(
++      adapter = new lila.db.paginator.Adapter[Tournament](
++        collection = repo.coll,
++        selector = select(Status.finished),
++        projection = none,
++        sort = sort.desc("startsAt")
++      ),
++      currentPage = page,
++      maxPerPage = MaxPerPage(20)
++    )
++
++  def calendarJson(using Lang): Fu[JsObject] =
++    val from = nowInstant.minusDays(1)
++    list(publicEvents ++ bdoc("startsAt".gte(from).lt(from.plusYears(1)))).map: events =>
++      if events.nonEmpty then apiJsonView.calendar(events)
++      else
++        Json.obj(
++          "since" -> from.withTimeAtStartOfDay,
++          "to" -> from.plusDays(7).withTimeAtStartOfDay,
++          "tournaments" -> Json.arr()
++        )
++
++  def homepage: Fu[List[Tournament]] =
++    list(publicEvents ++ bdoc("status".in(List(Status.created.id, Status.started.id))))
++      .map(_.filter(NoSweatArenaDiscovery.spotlight(_, nowInstant)).take(1))
++
++object NoSweatArenaDiscovery:
++  private[tournament] def publicEvents(hosts: List[UserId]): Bdoc =
++    bdoc(
++      "createdBy".in(hosts),
++      "password".exists(false),
++      "variant".exists(false),
++      "fen".exists(false),
++      "teamBattle".exists(false)
++    )
++
++  private[tournament] def spotlight(tour: Tournament, now: Instant): Boolean =
++    !tour.isPrivate && tour.variant.standard && tour.position.isEmpty && !tour.isTeamBattle &&
++      (tour.isStarted && tour.isStillWorthEntering || tour.isCreated && tour.startsAt.isBefore(
++        now.plusHours(crud.CrudForm.maxHomepageHours)
++      ))
 diff --git a/modules/tournament/src/main/NoSweatArenaSettings.scala b/modules/tournament/src/main/NoSweatArenaSettings.scala
 new file mode 100644
 index 0000000..cb6a556
@@ -18668,10 +19128,10 @@ index 0000000..cb6a556
 +      .verifying("muteArenaRangeInvalid", s => s.minRating <= s.maxRating)
 diff --git a/modules/tournament/src/test/NoSweatArenaTest.scala b/modules/tournament/src/test/NoSweatArenaTest.scala
 new file mode 100644
-index 0000000..52798f9
+index 0000000..0c399f2
 --- /dev/null
 +++ b/modules/tournament/src/test/NoSweatArenaTest.scala
-@@ -0,0 +1,82 @@
+@@ -0,0 +1,135 @@
 +package lila.tournament
 +
 +class NoSweatArenaTest extends munit.FunSuite:
@@ -18754,6 +19214,59 @@ index 0000000..52798f9
 +    assertEquals(restored.arenaSettings, tour.arenaSettings)
 +    assert(!restored.conditions.allowsBots)
 +    assertEquals(handler.readDocument(doc -- "noSweatArena").get.arenaSettings, NoSweatArenaSettings.default)
++
++  test("public discovery never includes private, variant, position or team-battle tournaments"):
++    import lila.db.dsl.{ *, given }
++    val selector = NoSweatArenaDiscovery.publicEvents(List(UserId("host")))
++    assertEquals(
++      selector.getAsOpt[Bdoc]("createdBy").flatMap(_.getAsOpt[List[UserId]]("$in")),
++      Some(List(UserId("host")))
++    )
++    for key <- List("password", "variant", "fen", "teamBattle") do
++      assertEquals(selector.getAsOpt[Bdoc](key).flatMap(_.getAsOpt[Boolean]("$exists")), Some(false))
++    assertEquals(
++      NoSweatArenaDiscovery
++        .publicEvents(Nil)
++        .getAsOpt[Bdoc]("createdBy")
++        .flatMap(_.getAsOpt[List[UserId]]("$in")),
++      Some(Nil)
++    )
++
++  test("homepage spotlight respects the native 24-hour horizon, finish state and late-entry cutoff"):
++    val now = nowInstant
++    val tour = Tournament(
++      id = TourId("spottest"),
++      name = "Weekly",
++      status = lila.core.tournament.Status.created,
++      clock = chess.Clock.Config(chess.Clock.LimitSeconds(900), chess.Clock.IncrementSeconds(10)),
++      minutes = 120,
++      variant = chess.variant.Standard,
++      position = None,
++      rated = chess.Rated.Yes,
++      conditions = TournamentCondition.All.empty,
++      schedule = None,
++      nbPlayers = 0,
++      createdAt = now,
++      createdBy = UserId("host"),
++      startsAt = now.plusHours(23)
++    )
++    assert(NoSweatArenaDiscovery.spotlight(tour, now))
++    assert(!NoSweatArenaDiscovery.spotlight(tour.copy(startsAt = now.plusHours(24)), now))
++    assert(!NoSweatArenaDiscovery.spotlight(tour.copy(startsAt = now.plusDays(7)), now))
++    assert(!NoSweatArenaDiscovery.spotlight(tour.copy(password = Some("secret")), now))
++    assert(!NoSweatArenaDiscovery.spotlight(tour.copy(status = lila.core.tournament.Status.finished), now))
++    assert(
++      NoSweatArenaDiscovery.spotlight(
++        tour.copy(status = lila.core.tournament.Status.started, startsAt = now.minusMinutes(60)),
++        now
++      )
++    )
++    assert(
++      !NoSweatArenaDiscovery.spotlight(
++        tour.copy(status = lila.core.tournament.Status.started, startsAt = now.minusMinutes(119)),
++        now
++      )
++    )
 diff --git a/modules/user/src/main/NoSweatPlayerRatings.scala b/modules/user/src/main/NoSweatPlayerRatings.scala
 new file mode 100644
 index 0000000..28ad57d
@@ -30432,10 +30945,10 @@ HcmV?d00001
 
 diff --git a/public/nosweat/brand.css b/public/nosweat/brand.css
 new file mode 100644
-index 0000000..7b51bd8
+index 0000000..402eef2
 --- /dev/null
 +++ b/public/nosweat/brand.css
-@@ -0,0 +1,162 @@
+@@ -0,0 +1,174 @@
 +.site-title .nosweat-header-icon{width:38px;height:38px;margin-right:2px}.site-title .nosweat-wordmark{width:174px;height:50px;object-fit:contain}.nosweat-light{display:none}.light .nosweat-dark{display:none}.light .nosweat-light{display:block}.nosweat-login-wordmark{width:272px;max-width:100%;height:62px}.auth__brand{justify-content:center}@media(max-width:799px){.site-title .nosweat-wordmark{display:none!important}.site-title .nosweat-header-icon{width:36px;height:36px;margin:0}}
 +
 +main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-dark.svg")}.light main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-light.svg")}
@@ -30598,6 +31111,18 @@ index 0000000..7b51bd8
 +
 +
 +.analyse .game__meta__players .player { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
++
++/* Native Arena discovery: keep the compact quick-pair grid and add only its spotlight. */
++.nosweat-arena-home { grid-template-areas:'schedule' 'list' 'side'; }
++.nosweat-arena-home .tour-home__list { display:block; }
++.lobby.mutechess-play.mutechess-play--arena { grid-template-areas:'side' 'app' 'table' 'about'; }
++.mutechess-play .nosweat-arena-spotlight { margin:0; min-width:0; align-self:start; }
++@media(min-width:1100px) {
++  .lobby.mutechess-play.mutechess-play--arena { max-width:88em; grid-template-columns:minmax(15em,22em) minmax(0,64em); grid-template-areas:'side app' '. table' '. about'; }
++}
++@media(min-width:800px) {
++  .nosweat-arena-home { grid-template-areas:'side schedule' 'side list'; }
++}
 diff --git a/public/nosweat/favicon-32.png b/public/nosweat/favicon-32.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..4261e6d916997479521a76cde8d32c2f0eee3236
@@ -31603,10 +32128,10 @@ index 0000000..87bf6b4
 +}
 diff --git a/src/test/scala/NoSweatArenaLocaleTest.scala b/src/test/scala/NoSweatArenaLocaleTest.scala
 new file mode 100644
-index 0000000..3719591
+index 0000000..909850e
 --- /dev/null
 +++ b/src/test/scala/NoSweatArenaLocaleTest.scala
-@@ -0,0 +1,46 @@
+@@ -0,0 +1,56 @@
 +package lila.i18n
 +
 +import play.api.i18n.Lang
@@ -31636,7 +32161,17 @@ index 0000000..3719591
 +      "BotNoticeTitle",
 +      "BotNoticeIntro",
 +      "BotNoticeFill"
-+    ).map("muteArena" + _) :+ "arena:allowBotAccounts"
++    ).map("muteArena" + _) ++ List(
++      "arena:allowBotAccounts",
++      "arena:history",
++      "arena:arenaTournaments",
++      "tournaments",
++      "finished",
++      "tournamentCalendar",
++      "tournamentFAQ",
++      "createANewTournament",
++      "eventInProgress"
++    )
 +    for code <- List("en-GB", "de-DE", "es-ES", "fr-FR", "hi-IN", "ja-JP", "ko-KR", "pt-BR", "ru-RU", "zh-CN")
 +    do
 +      val lang = Lang.get(code).get
