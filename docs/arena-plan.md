@@ -24,6 +24,10 @@ Use the existing native tournament page, shareable URL, join/pause/rejoin,
 standings, chat controls, spectator boards and account identity. Tournament
 creation, editing and cancellation remain owner-authorized; ordinary human entry
 uses native authentication, blocking, playban and tournament eligibility checks.
+Bulk tournament exports remain unavailable: their native controls are hidden
+while the affected API routes remain blocked. Individual game exports retain
+their existing behavior.
+
 Do not impose an established-rating requirement that excludes new visitors by
 default. Preserve other native abuse checks.
 

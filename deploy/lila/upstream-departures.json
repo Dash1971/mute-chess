@@ -698,7 +698,7 @@
         },
         {
           "id": "owner-hosted-arena",
-          "rationale": "#311/#313 restores native owner-hosted standard Arenas. A namespaced managed-seat controller selects ten saved-rating 1200\u20131700 bots, reserves the event roster, reconciles human waiting/playing presence with a 60-second idle reconnect allowance and native standings, and withdraws/returns fillers without touching ongoing results. The existing admission sequencer freezes bot policies before native pairing insertion; human/human games retain native Arena pairing. Background-only suppression persists until event games drain, independently of the maintenance pause. Native clocks, scoring, ratings, deadlines, per-player identity and owner/CSRF checks remain authoritative. New host status/help/error text uses all ten native locales. Defaults are 15+10 and 120 minutes; no new service, scheduler or infrastructure is introduced.",
+          "rationale": "#311/#313 restores native owner-hosted standard Arenas. A namespaced managed-seat controller selects ten saved-rating 1200\u20131700 bots, reserves the event roster, reconciles human waiting/playing presence with a 60-second idle reconnect allowance and native standings, and withdraws/returns fillers without touching ongoing results. The existing admission sequencer freezes bot policies before native pairing insertion; human/human games retain native Arena pairing. Background-only suppression persists until event games drain, independently of the maintenance pause. Native clocks, scoring, ratings, deadlines, per-player identity and owner/CSRF checks remain authoritative. New host status/help/error text uses all ten native locales. Defaults are 15+10 and 120 minutes; no new service, scheduler or infrastructure is introduced. Focused Arena views hide native bulk-download controls while the affected tournament export APIs remain blocked; the optional view flag defaults to native enabled behavior outside Mute.",
           "verification": [
             "Native NoSweatArenaTest, NoSweatArenaAdmissionTest, NoSweatArenaRosterTest and NoSweatArenaLocaleTest; native compile and formatting; existing admission and full adapter policy/gateway regressions.",
             "Before merge: isolated native browser verification of owner-only create/prepare/edit/cancel, human and bot pairings, waiting/reconnect transitions, deadline/drain restoration and all ten locale renders."
@@ -720,6 +720,8 @@
             "modules/tournament/src/test/NoSweatArenaTest.scala",
             "src/test/scala/NoSweatArenaLocaleTest.scala",
             "src/test/scala/NoSweatArenaRosterTest.scala",
+            "ui/tournament/src/interfaces.ts",
+            "ui/tournament/src/view/finished.ts",
             "ui/tournament/src/view/util.ts"
           ]
         }

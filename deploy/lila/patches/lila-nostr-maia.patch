@@ -1614,7 +1614,7 @@ index 692c27c..fa8ae33 100644
      )
      .flag(_.noRobots, !s.isPublic)
 diff --git a/app/views/tournament.scala b/app/views/tournament.scala
-index b87db05..4ac2cb2 100644
+index b87db05..c10acf1 100644
 --- a/app/views/tournament.scala
 +++ b/app/views/tournament.scala
 @@ -24,7 +24,8 @@ export showUi.faq.page as faq
@@ -1637,7 +1637,7 @@ index b87db05..4ac2cb2 100644
  )(using ctx: Context) =
    val chat = chatOption.map: c =>
      views.chat.frag -> views.chat.json(
-@@ -46,6 +48,14 @@ def show(
+@@ -46,6 +48,15 @@ def show(
        localMod = ctx.userId.has(tour.createdBy),
        writeable = !c.locked
      )
@@ -1649,7 +1649,8 @@ index b87db05..4ac2cb2 100644
 +    data,
 +    chat,
 +    views.streamer.bits.contextual(streamers),
-+    arena.map(views.noSweatArenaControls(tour, _))
++    arena.map(views.noSweatArenaControls(tour, _)),
++    allowDownloads = !env.noSweat.enabled
 +  )
  
  export showUi.restricted
@@ -3826,20 +3827,29 @@ index edd2d36..4ba4a2b 100644
      form3.fieldset(trans.arena.startDate(), toggle = tour.forall(_.isCreated).some, disabled = frozen)(
        form3.split(waitMinutes, startDate)
 diff --git a/modules/tournament/src/main/ui/TournamentShow.scala b/modules/tournament/src/main/ui/TournamentShow.scala
-index 95262f7..ed194d6 100644
+index 95262f7..6603983 100644
 --- a/modules/tournament/src/main/ui/TournamentShow.scala
 +++ b/modules/tournament/src/main/ui/TournamentShow.scala
-@@ -24,7 +24,8 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(
+@@ -24,7 +24,9 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(
        shieldOwner: Option[UserId],
        data: JsObject,
        chat: Option[(Frag, JsObject)],
 -      streamers: Frag
 +      streamers: Frag,
-+      arenaControls: Option[Frag] = None
++      arenaControls: Option[Frag] = None,
++      allowDownloads: Boolean = true
    )(using ctx: Context) =
      val extraCls = tour.scheduleData.so: (freq, speed) =>
        s" tour-sched tour-sched-${freq.name} tour-speed-${speed.name} tour-variant-${tour.variant.key} tour-id-${tour.id}"
-@@ -42,7 +43,7 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(
+@@ -36,13 +38,14 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(
+             "data" -> data,
+             "userId" -> ctx.userId,
+             "chat" -> chat._2F,
+-            "showRatings" -> ctx.pref.showRatings
++            "showRatings" -> ctx.pref.showRatings,
++            "allowDownloads" -> allowDownloads
+           )
+         )
        .csp(_.withLilaHttp):
          main(cls := s"tour variant-${tour.variant.key}$extraCls")(
            st.aside(cls := "tour__side"):
@@ -12747,6 +12757,74 @@ index 18646b3..5eb1d07 100644
  
    {
      // stick top bar
+diff --git a/ui/tournament/src/interfaces.ts b/ui/tournament/src/interfaces.ts
+index 9d6399b..b815938 100644
+--- a/ui/tournament/src/interfaces.ts
++++ b/ui/tournament/src/interfaces.ts
+@@ -29,6 +29,7 @@ export interface TournamentOpts {
+   userId?: string;
+   chat?: any;
+   showRatings: boolean;
++  allowDownloads?: boolean;
+ }
+ 
+ export interface TournamentData {
+diff --git a/ui/tournament/src/view/finished.ts b/ui/tournament/src/view/finished.ts
+index d15ce0b..4ee4f44 100644
+--- a/ui/tournament/src/view/finished.ts
++++ b/ui/tournament/src/view/finished.ts
+@@ -44,28 +44,30 @@ function stats(ctrl: TournamentController): VNode | undefined {
+   return h('div.tour__stats', [
+     h('h2', i18n.site.tournamentComplete),
+     h('table', tableData),
+-    h('div.tour__stats__downloads', [
+-      ...(data.teamBattle
+-        ? [
+-            h(
+-              'a',
+-              { attrs: { href: `/tournament/${data.id}/teams` } },
+-              i18n.arena.viewAllXTeams(Object.keys(data.teamBattle.teams).length),
+-            ),
+-            h('br'),
+-          ]
+-        : []),
+-      toggleBox(i18n.site.download, [
+-        downloadLink(`/api/tournament/${data.id}/games`, [i18n.site.downloadAllGames, ' (PGN)']),
+-        data.me &&
+-          downloadLink(`/api/tournament/${data.id}/games?player=${ctrl.opts.userId}`, [
+-            i18n.site.downloadMyGames,
+-            ' (PGN)',
++    ctrl.opts.allowDownloads !== false
++      ? h('div.tour__stats__downloads', [
++          ...(data.teamBattle
++            ? [
++                h(
++                  'a',
++                  { attrs: { href: `/tournament/${data.id}/teams` } },
++                  i18n.arena.viewAllXTeams(Object.keys(data.teamBattle.teams).length),
++                ),
++                h('br'),
++              ]
++            : []),
++          toggleBox(i18n.site.download, [
++            downloadLink(`/api/tournament/${data.id}/games`, [i18n.site.downloadAllGames, ' (PGN)']),
++            data.me &&
++              downloadLink(`/api/tournament/${data.id}/games?player=${ctrl.opts.userId}`, [
++                i18n.site.downloadMyGames,
++                ' (PGN)',
++              ]),
++            downloadLink(`/api/tournament/${data.id}/results`, [i18n.site.downloadResults, ' (NDJSON)']),
++            downloadLink(`/api/tournament/${data.id}/results?as=csv`, [i18n.site.downloadResults, ' (CSV)']),
+           ]),
+-        downloadLink(`/api/tournament/${data.id}/results`, [i18n.site.downloadResults, ' (NDJSON)']),
+-        downloadLink(`/api/tournament/${data.id}/results?as=csv`, [i18n.site.downloadResults, ' (CSV)']),
+-      ]),
+-    ]),
++        ])
++      : null,
+   ]);
+ }
+ 
 diff --git a/ui/tournament/src/view/util.ts b/ui/tournament/src/view/util.ts
 index e492c0b..7e28137 100644
 --- a/ui/tournament/src/view/util.ts
