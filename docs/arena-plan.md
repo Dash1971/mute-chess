@@ -160,33 +160,36 @@ text in all ten supported locales. Reuse native translated Arena UI wherever
 possible. No deployment, backup, monitoring or scheduling framework is part of
 this feature.
 
-## Implementation acceptance checks
+## Browser/event coverage requirements
 
-- [ ] Owner creates an event with 15+10 and 120-minute defaults, can choose a
+Execution results for these checks are recorded on draft PR #313. This list
+defines coverage; it is not a claim that the feature is live.
+
+- Owner creates an event with 15+10 and 120-minute defaults, can choose a
   different supported clock next week, and obtains a shareable native URL.
-- [ ] Non-owner creation/edit/cancel and forged event/pairing/bot reservations fail.
-- [ ] Only existing eligible 1200–1700 bots enter the fixed roster; their saved
+- Non-owner creation/edit/cancel and forged event/pairing/bot reservations fail.
+- Only existing eligible 1200–1700 bots enter the fixed roster; their saved
   ratings, identities and ordinary timing preferences are not overwritten.
-- [ ] H = 0, 1, 3, 9, 10 and 15 produce the specified target; late registration,
+- H = 0, 1, 3, 9, 10 and 15 produce the specified target; late registration,
   spectators, duplicate tabs, explicit pause and reconnect are handled correctly.
-- [ ] A human arrival blocks a retiring bot's next pairing without ending its
+- A human arrival blocks a retiring bot's next pairing without ending its
   existing game. A rapid leave/rejoin cannot create duplicate seats.
-- [ ] Returning bots follow native standing order and retain points and history.
-- [ ] Human/human, human/bot and bot/bot pairings finish through native results;
+- Returning bots follow native standing order and retain points and history.
+- Human/human, human/bot and bot/bot pairings finish through native results;
   bot turns use the configured worker, human timing and normal clock protection.
-- [ ] Capacity contention cannot publish a pairing that has no playable game or
+- Capacity contention cannot publish a pairing that has no playable game or
   starve human-versus-human Arena pairings.
-- [ ] Preparing the Arena suppresses background admissions without closing human
+- Preparing the Arena suppresses background admissions without closing human
   play. End, cancellation and restart recovery restore only event-owned state.
-- [ ] The deadline stops further scoring/pairing while existing games finish;
+- The deadline stops further scoring/pairing while existing games finish;
   only then are occupied bots released and background activity restored.
-- [ ] Native Arena assets, sockets, public names/BOT labels and required routes
+- Native Arena assets, sockets, public names/BOT labels and required routes
   work in the actual browser; new UI text passes ten-locale parity/render checks.
 
 ## Draft validation
 
 The isolated native build passed application compilation and Scala formatting.
-The six participation/reconnect tests, four native pairing-admission tests, two
+The six participation/reconnect tests, five native pairing-admission tests, two
 saved-rating roster tests, and one native translation-render test passed. The
 last test renders all six added strings in all ten supported locales. The Arena
 UI build passed TypeScript checking, bundling, styles and translation generation.
@@ -194,12 +197,24 @@ All 120 existing/new adapter regressions passed, including Arena frozen policy,
 human timing, gateway methods/sockets and denial of the affected tournament API
 exports. Native patch reconstruction and the departure-register checks passed.
 
-The checklist above deliberately remains open for integrated browser/game
-acceptance before merge: these unit/build checks do not establish that a complete
-event has run successfully. No live test accounts, games, event, configuration or
-service state were changed. The draft requires an isolated owner/human/bot event
-smoke test, especially for preparation, withdrawal/rejoin, capacity contention,
-cancellation/deadline and drain restoration, before it is ready to merge.
+Browser testing uses a fresh private database and the existing native app,
+WebSocket service and real 79M worker. It has exercised the host form defaults
+and configurable clock/duration, ten saved-rating bot seats, non-owner refusals,
+the 0/1/3/9/10/15-human participation matrix, duplicate tabs, spectators, explicit
+pause/rejoin and idle reconnect expiry. Real bot/bot and human/bot games progressed,
+a human moved on the browser board, and twenty simultaneous Maia games refused
+the next admission.
+
+This caught a configuration-loader bug at the actual native game-insertion
+boundary: the host setting was interpreted as a list of objects. Admission now
+uses the native string-sequence loader, with an executable regression for the
+documented canonical-ID string list and the absent-setting default. The corrected
+application was rebuilt and the private game tests resumed on that source.
+
+The PR's validation record contains the detailed lifecycle/scoring outcomes and
+screenshots. Private test games and identities never enter the public database.
+No live configuration or service state is changed, and these checks authorize
+neither merging nor deploying the draft.
 
 ## References
 
