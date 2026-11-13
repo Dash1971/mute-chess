@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "release-targets",
-  "reviewedAt": "2026-11-11",
+  "reviewedAt": "2026-11-13",
   "deploymentIdentity": "Read RELEASE.json from the SAME current release. These targets are not proof of installation; compare with SECURITY279_BUILD.json and actual running versions. Recheck after every release or host/tool update.",
   "upstreamPins": {
     "lila": {
@@ -14,6 +14,12 @@
           "advisory": "GHSA-2cpx-9573-5pwp",
           "file": "modules/markdown/src/main/MarkdownRender.scala",
           "fix": "Escape original Markdown on StackOverflowError with scalalib.StringUtils.escapeHtmlRaw."
+        },
+        {
+          "commit": "e71a2964ec3b3c6da7fa7c4ec6b53de53bba4326",
+          "advisory": "GHSA-2236-pwjw-m8m4",
+          "file": "app/controllers/Study.scala",
+          "fix": "Load study/chapter together and enforce native CanView for chapter config and divisionOnly; retain pinned unauthorized/forbidden continuations."
         }
       ]
     },
@@ -74,8 +80,8 @@
       "note": "Installed with production dependencies only; assess advisory ranges against this graph, not the retired root Node prototype."
     },
     "cloudflared": {
-      "observedVersion": "2026.10.7",
-      "observedAt": "2026-11-05",
+      "observedVersion": "2026.11.0",
+      "observedAt": "2026-11-13",
       "maintenance": "APT managed; read actual cloudflared --version, not a frozen assumption."
     }
   },
@@ -194,6 +200,34 @@
       ],
       "status": "not-affected-branch",
       "evidence": "MongoDB CNA affected versions are9.0 before9.0.7, not8.0."
+    },
+    {
+      "ids": [
+        "GHSA-2236-pwjw-m8m4"
+      ],
+      "status": "fixed-in-pinned-source",
+      "evidence": "Upstream e71a2964ec3b3c6da7fa7c4ec6b53de53bba4326 backported in the local patch. Verify compiled controller and temporary-fixture HTTP public/private config and divisionOnly checks before release completion."
+    },
+    {
+      "ids": [
+        "GHSA-5gjj-x225-jrr3"
+      ],
+      "status": "public-path-blocked-not-patched",
+      "evidence": "Deployed gateway does not expose OAuth token creation or moderator endpoints. Advisory requires an existing moderator session without enrolled TOTP. Underlying source is not claimed patched; retain visibility and revisit if routes change."
+    },
+    {
+      "ids": [
+        "GHSA-hr3c-7vww-ffrj"
+      ],
+      "status": "public-path-blocked-not-patched",
+      "evidence": "Tournament APIs are not exposed by the gateway. Underlying source is not claimed patched; retain visibility and revisit if routes change."
+    },
+    {
+      "ids": [
+        "GHSA-582f-w2m6-pr6m"
+      ],
+      "status": "public-path-blocked-not-patched",
+      "evidence": "Broadcast writes and relay source-validation routes are not exposed by the gateway. Underlying source is not claimed patched; retain visibility and revisit if routes change."
     }
   ],
   "dailyReportRules": [
