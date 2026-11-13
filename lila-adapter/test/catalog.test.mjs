@@ -55,7 +55,8 @@ test('the generated catalog is reproducible and fills both speed distributions',
  assert.equal(new Set(newBots.map(b=>b.personality.timingStyle)).size,5);
 });
 test('existing alias changes are display-only and limited to measured placeholders',()=>{
- assert.equal(Object.keys(aliases).length,12);
+ assert.equal(Object.keys(aliases).length,old.filter(b=>/^Signal(?:Train|Test)\d{3}$/.test(b.username)).length);
+ assert.ok(old.filter(b=>/^Signal(?:Train|Test)\d{3}$/.test(b.username)).every(b=>aliases[b.username]));
  for(const [username,name]of Object.entries(aliases)){
    assert.match(username,/^Signal(?:Train|Test)\d{3}$/);assert.ok(name.length<=20);
    assert.ok(old.some(b=>b.username===username));
@@ -63,4 +64,11 @@ test('existing alias changes are display-only and limited to measured placeholde
  assert.equal(manifest.top20.blitz[0].name,'Wintermute');
  assert.ok(manifest.top20.blitz.some(b=>b.name==='Roy Batty'));
  assert.ok(manifest.top20.blitz.some(b=>b.name==='Judge Dredd'));
+});
+
+
+test('legacy labels cover the requested themes without editing measured identities or ratings',()=>{
+ for(const name of ['Data','Lore','Locutus','Solid Snake','Liquid Snake','Raiden','Otacon','Gray Fox','Alan Turing','John von Neumann','Ada Lovelace','Grace Hopper','Elon Musk'])assert.ok(Object.values(aliases).includes(name),name);
+ const elon=old.find(b=>aliases[b.username]==='Elon Musk');
+ assert.ok(elon);assert.ok(perfs[elon.id].rapid.rating<1000,'Use an existing low-rated identity; never modify a rating to fit a name');
 });

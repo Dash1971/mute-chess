@@ -527,3 +527,13 @@ seats. Suppress only ordinary background bot games during preparation/event/drai
 respect independent maintenance pauses, and retain the shared twenty-Maia-game
 cap. Follow docs/arena-plan.md and the exact-path departure register. No new
 scheduler, deployment tooling or infrastructure changes are authorized.
+
+
+## Distinctive legacy bot aliases (November 13, #322)
+
+The owner authorized replacing every remaining generic SignalTrain/SignalTest
+public label using the existing alias mechanism, drawing on sci-fi, Metal Gear,
+other fitting games and early computing history. Retain existing aliases and
+all canonical IDs, policies, ratings, games and history. Assign Elon Musk to an
+existing lower-rated identity, without changing its rating. Proper names remain
+untranslated. Keep this as a separate draft; no live writes, merge or deployment.
