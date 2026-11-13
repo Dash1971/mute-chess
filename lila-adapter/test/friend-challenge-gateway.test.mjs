@@ -130,3 +130,20 @@ test('spectator public-name lookups expose only the native read-only status endp
     assert.equal(app.request(path,method).res.status,404);
   }
 });
+
+
+test('Arena discovery exposes native read-only calendar and history without widening tournament administration',()=>{
+  const app=gateway();
+  for (const path of ['/tournament/calendar','/tournament/history?page=2','/tournament/history/unique?page=2']) {
+    for(const method of ['GET','HEAD']) {
+      const result=app.request(path,method);
+      assert.equal(result.req.upstream?.options.path,path);
+    }
+    const count=app.calls.length;
+    app.request(path,'POST');assert.equal(app.calls.length,count);
+  }
+  for(const path of ['/tournament/featured','/tournament/history/weekly','/tournament/calendar/export']) {
+    app.request(path,'GET');
+    assert.equal(app.calls.at(-1).options.path,'/club/unsupported');
+  }
+});
