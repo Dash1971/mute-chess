@@ -527,3 +527,13 @@ seats. Suppress only ordinary background bot games during preparation/event/drai
 respect independent maintenance pauses, and retain the shared twenty-Maia-game
 cap. Follow docs/arena-plan.md and the exact-path departure register. No new
 scheduler, deployment tooling or infrastructure changes are authorized.
+
+
+## Configurable Arena fillers (November 13, #319)
+
+The owner approved a draft follow-up to merged #313: make Allow bot accounts
+authoritative for human-only events and expose each event’s bot rating range
+(default 1400–1700) and active participant target (default ten). Use the actual
+target in the Maia participation notice, preserve ongoing games and unlimited
+human entry, and translate all UI text into ten locales. Keep this follow-up
+draft; do not merge or deploy without further instruction.

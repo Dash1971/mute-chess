@@ -14,8 +14,8 @@ not start a live event or change the live bot pool. It supersedes the one-human-
 | Duration | 120 minutes |
 | Clock | 15+10 Rapid by default; editable per event through native controls |
 | Entry | Signed-in human accounts, including new Nostr accounts; spectators can browse |
-| Human limit | None imposed by the ten-participant bot target |
-| Bot roster | At most ten existing managed bots, selected using event-speed ratings of 1200–1700 |
+| Human limit | None imposed by the configurable filler target |
+| Bot roster | Configurable saved event-speed rating range, default 1400–1700; roster size matches the active participant target (default ten, allowed 1–20) |
 | Bot timing | Human timing enabled, including low-clock protection |
 | Scoring and standings | Native mixed human/BOT standings and scoring |
 | Recurrence | Host creates each weekly event manually; no new recurring scheduler |
@@ -32,17 +32,42 @@ Do not impose an established-rating requirement that excludes new visitors by
 default. Preserve other native abuse checks.
 
 The initial bot band refers to **saved playing ratings**, not Maia model input.
-Select a spread within 1200–1700, centered around 1500, once when preparing the
+Select a spread within the configured band, centered on its midpoint, once when preparing the
 event. Freeze those identities for its duration. Earned ratings may move outside
 the band during play; do not replace bots mid-event or reset their ratings.
-If ten eligible bots cannot be reserved, show the shortage to the host rather
+If the configured number of eligible bots cannot be reserved, show the shortage to the host rather
 than creating accounts, changing ratings or silently widening the band.
+
+## Configurable fillers and human-only events (#319, draft)
+
+The owner-approved follow-up to merged #313 adds **Allow bot accounts**, a minimum
+and maximum saved rating (400–3200), and an active participant target (1–20).
+The default band is 1400–1700 and the default target is ten. These are per-event
+settings; the native Arena clock remains independently editable before preparation.
+The bounded participant target does not raise the existing shared game cap.
+
+Unchecking bots hides the bot-specific controls and creates a human-only event.
+Native bot entry checks remain enforced. The host still clicks **Prepare Arena**
+to activate the event lifecycle with an empty bot roster; this reserves no bots
+and uses no inference slots. Preparation does not start play early. For events
+with fillers, **Prepare Arena bots** reserves the configured roster. Both modes
+suppress new ordinary background bot games until all event games have drained.
+
+After preparation or start, bot settings, clock and rated mode are locked; names,
+descriptions and other compatible native edits remain available. To change the
+reserved roster configuration, cancel and create a new event. A participant notice
+uses the actual target and explains that bots stop receiving new pairings when
+that many humans remain active, while games already underway finish normally.
+All added labels, help, validation, and participant notices use the ten native
+translation catalogs. This follow-up remains draft and is not a deployment.
 
 ## Participation rule
 
 Let H be the number of active humans in this Arena:
 
-`targetBots = max(0, 10 - H)`
+`targetBots = botsAllowed ? max(0, configuredTarget - H) : 0`
+
+The table below illustrates the default target of ten.
 
 | Active humans | Target bots available for pairing |
 | ---: | ---: |
@@ -66,7 +91,7 @@ Arena participation allowance, not a change to native in-game disconnect claims
 or clocks. Rejoining restores participation without resetting points.
 
 Reconcile eligibility before the next pairing batch, not just on a slow display
-refresh. Humans are always admitted; the ten-participant target limits filler
+refresh. Humans are always admitted; the configured participant target limits filler
 bots, not human registrations or human-versus-human games.
 
 ## Withdrawing and returning bots
@@ -86,8 +111,8 @@ standing exists.
 - Never seat one bot in two games, another event or ordinary quick pairing at the
   same time. Reserve the whole event roster until the event's bot games drain.
 
-Ten is a **steady-state participation target**. Human arrivals can temporarily
-put the number of playing/available participants above ten while withdrawn bots
+The configured number (ten by default) is a **steady-state participation target**. Human arrivals can temporarily
+put the number of playing/available participants above the target while withdrawn bots
 finish games. At 15+10 this transition can take a substantial time; do not promise
 instant replacement or interrupt a human's game to enforce the target.
 
