@@ -20,6 +20,18 @@
           "advisory": "GHSA-2236-pwjw-m8m4",
           "file": "app/controllers/Study.scala",
           "fix": "Load study/chapter together and enforce native CanView for chapter config and divisionOnly; retain pinned unauthorized/forbidden continuations."
+        },
+        {
+          "commit": "8f583aaf9db9fe32aebdbe460a789dd5630f17f6",
+          "advisory": "GHSA-hr3c-7vww-ffrj",
+          "file": "app/controllers/Tournament.scala",
+          "fix": "All games/results/teams exports use WithVisibleTournament, retaining class-team and Arena owner-event restrictions. Pinned PGN rendering remains behind the guard."
+        },
+        {
+          "commit": "3cf8d5c524ebac6eb71d392bf45f4113128b8bdb",
+          "advisory": "GHSA-582f-w2m6-pr6m",
+          "file": "modules/relay/src/main/RelayRoundForm.scala",
+          "fix": "Resolve and validate source IPs using upstream production loopback/wildcard/link-local/site-local rejection, additional lichess.ovh blocklist; reuse Invalid source URL and omit debug URL logging."
         }
       ]
     },
@@ -219,15 +231,15 @@
       "ids": [
         "GHSA-hr3c-7vww-ffrj"
       ],
-      "status": "public-path-blocked-not-patched",
-      "evidence": "Reviewed again for #313: GHSA-hr3c-7vww-ffrj affects anonymous /api/tournament/{id}/games, /results and /teams exports. All /api/tournament routes remain denied by the gateway, with explicit negative route tests. Newly exposed native web Arena routes retain WithVisibleTournament and owner-event checks; team battles/class-team creation remain excluded. This is route containment, not a source-level patch; keep the advisory visible."
+      "status": "fixed-in-pinned-source",
+      "evidence": "Source target for stacked #314, not proof of live installation: 8f583aaf9db9fe32aebdbe460a789dd5630f17f6 locally backported. All games/results/teams exports use WithVisibleTournament, retaining class-team and Arena owner-event restrictions. Pinned PGN rendering remains behind the guard. Combined release must verify actual compiled artifacts and refresh current security records after both PRs merge."
     },
     {
       "ids": [
         "GHSA-582f-w2m6-pr6m"
       ],
-      "status": "public-path-blocked-not-patched",
-      "evidence": "Broadcast writes and relay source-validation routes are not exposed by the gateway. Underlying source is not claimed patched; retain visibility and revisit if routes change."
+      "status": "fixed-in-pinned-source",
+      "evidence": "Source target for stacked #314, not proof of live installation: 3cf8d5c524ebac6eb71d392bf45f4113128b8bdb locally backported. Resolve and validate source IPs using upstream production loopback/wildcard/link-local/site-local rejection, additional lichess.ovh blocklist; reuse Invalid source URL and omit debug URL logging. Combined release must verify actual compiled artifacts and refresh current security records after both PRs merge."
     }
   ],
   "dailyReportRules": [
