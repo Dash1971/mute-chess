@@ -162,7 +162,7 @@ snapshot; ratings and game counts continue to evolve.
 ## Legacy public-name follow-up (#322, draft)
 
 The owner approved replacing all remaining SignalTrain/SignalTest display labels,
-including character homages, game references and computing pioneers. See the
+including character homages, game references, computing pioneers, Wipeout and electronic music. See the
 [public bot name guide](bot-names.md). This uses the existing alias mechanism and
 preserves canonical identities, all policies and earned history. It does not
 rename or regenerate any of the 9,750 added catalog identities.

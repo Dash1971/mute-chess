@@ -531,9 +531,9 @@ scheduler, deployment tooling or infrastructure changes are authorized.
 
 ## Distinctive legacy bot aliases (November 13, #322)
 
-The owner authorized replacing every remaining generic SignalTrain/SignalTest
+The owner authorized replacing generic generated labels as well as every remaining SignalTrain/SignalTest
 public label using the existing alias mechanism, drawing on sci-fi, Metal Gear,
-other fitting games and early computing history. Retain existing aliases and
+other fitting games, early computing history, Wipeout and electronic music. Retain existing aliases and
 all canonical IDs, policies, ratings, games and history. Assign Elon Musk to an
 existing lower-rated identity, without changing its rating. Proper names remain
 untranslated. Keep this as a separate draft; no live writes, merge or deployment.

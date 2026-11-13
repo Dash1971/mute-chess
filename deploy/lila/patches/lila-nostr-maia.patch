@@ -13282,10 +13282,10 @@ index 0000000..029b2c8
 +        .fold(selected)(entry => selected :+ entry._1)
 diff --git a/app/NoSweatBotCatalog.scala b/app/NoSweatBotCatalog.scala
 new file mode 100644
-index 0000000..8efd4b7
+index 0000000..5c7a576
 --- /dev/null
 +++ b/app/NoSweatBotCatalog.scala
-@@ -0,0 +1,186 @@
+@@ -0,0 +1,199 @@
 +package lila.app
 +
 +import play.api.libs.json.*
@@ -13453,12 +13453,17 @@ index 0000000..8efd4b7
 +    !assigned(bot) || !existing || registeredIdentity.contains((bot \ "id").as[String])
 +
 +  def aliases(input: Map[String, String], roster: List[JsObject]): Map[String, String] =
-+    val names = roster.map(bot => (bot \ "username").as[String].toLowerCase).toSet
++    val names = roster
++      .filter(bot =>
++        assigned(bot) || (bot \ "username").as[String].toLowerCase.matches("signal(train|test)[0-9]+")
++      )
++      .map(bot => (bot \ "username").as[String].toLowerCase)
++      .toSet
 +    val aliases = input.map((username, value) => username.toLowerCase -> value)
 +    require(aliases.size == input.size, "Duplicate case-insensitive bot aliases")
 +    require(aliases.values.map(_.toLowerCase).toSet.size == aliases.size, "Duplicate public bot aliases")
 +    aliases.foreach: (username, value) =>
-+      require(names(username) && username.matches("signal(train|test)[0-9]+"), "Unapproved bot alias target")
++      require(names(username), "Unapproved bot alias target")
 +      require(validDisplayName(value), "Invalid public bot alias")
 +    aliases
 +
@@ -13467,11 +13472,19 @@ index 0000000..8efd4b7
 +      value.forall(c => c.isLetterOrDigit || " ._-'".contains(c))
 +
 +  def publicName(bot: JsObject, aliases: Map[String, String]): Option[String] =
-+    if assigned(bot) then (bot \ "name").asOpt[String]
-+    else aliases.get((bot \ "username").as[String].toLowerCase)
++    aliases
++      .get((bot \ "username").as[String].toLowerCase)
++      .orElse(Option.when(assigned(bot))((bot \ "name").as[String]))
 +
-+  def aliasEligible(current: Option[String], username: String, alias: String): Boolean =
-+    current.isEmpty || current.contains(username) || current.contains(alias)
++  def aliasEligible(
++      current: Option[String],
++      username: String,
++      alias: String,
++      originalDisplayName: Option[String] = None
++  ): Boolean =
++    current.isEmpty || current.contains(username) || current.contains(alias) || current.exists(
++      originalDisplayName.contains
++    )
 diff --git a/app/NoSweatDonation.scala b/app/NoSweatDonation.scala
 new file mode 100644
 index 0000000..e1cb129
@@ -13488,10 +13501,10 @@ index 0000000..e1cb129
 +    bdoc("_id" -> payment, "userId" -> user, "paid" -> false)
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..61824fa
+index 0000000..0197146
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,1146 @@
+@@ -0,0 +1,1156 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -13797,14 +13810,24 @@ index 0000000..61824fa
 +      _ <- NoSweatBotCatalog
 +        .publicName(bot, botAliases)
 +        .fold(funit): alias =>
-+          if NoSweatBotCatalog.aliasEligible(user.profile.flatMap(_.displayName), name.value, alias) then
++          val originalDisplayName = Option.when(NoSweatBotCatalog.assigned(bot))((bot \ "name").as[String])
++          if NoSweatBotCatalog.aliasEligible(
++              user.profile.flatMap(_.displayName),
++              name.value,
++              alias,
++              originalDisplayName
++            )
++          then
 +            env.user.repo.withColl:
 +              _.update
 +                .one(
 +                  bid(name.id) ++ bdoc("noSweatBot" -> true) ++ or(
 +                    bdoc(s"${UserFields.profile}.displayName".exists(false)),
-+                    bdoc(s"${UserFields.profile}.displayName" -> name.value),
-+                    bdoc(s"${UserFields.profile}.displayName" -> alias)
++                    bdoc(
++                      s"${UserFields.profile}.displayName" -> bdoc(
++                        "$in" -> (List(name.value, alias) ++ originalDisplayName.toList)
++                      )
++                    )
 +                  ),
 +                  set(
 +                    s"${UserFields.profile}.displayName" -> alias,
@@ -18793,10 +18816,10 @@ index 0000000..9d040d7
 +<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8" shape-rendering="crispEdges"><title>Quiet Signal chessboard</title><rect width="8" height="8" fill="#c7cfba"/><path d="M1 0h1v1h-1z M3 0h1v1h-1z M5 0h1v1h-1z M7 0h1v1h-1z M0 1h1v1h-1z M2 1h1v1h-1z M4 1h1v1h-1z M6 1h1v1h-1z M1 2h1v1h-1z M3 2h1v1h-1z M5 2h1v1h-1z M7 2h1v1h-1z M0 3h1v1h-1z M2 3h1v1h-1z M4 3h1v1h-1z M6 3h1v1h-1z M1 4h1v1h-1z M3 4h1v1h-1z M5 4h1v1h-1z M7 4h1v1h-1z M0 5h1v1h-1z M2 5h1v1h-1z M4 5h1v1h-1z M6 5h1v1h-1z M1 6h1v1h-1z M3 6h1v1h-1z M5 6h1v1h-1z M7 6h1v1h-1z M0 7h1v1h-1z M2 7h1v1h-1z M4 7h1v1h-1z M6 7h1v1h-1z" fill="#668478"/></svg>
 diff --git a/public/nosweat-bot-aliases.json b/public/nosweat-bot-aliases.json
 new file mode 100644
-index 0000000..421470e
+index 0000000..7e5365d
 --- /dev/null
 +++ b/public/nosweat-bot-aliases.json
-@@ -0,0 +1,195 @@
+@@ -0,0 +1,352 @@
 +{
 +  "SignalTrain084": "Roy Batty",
 +  "SignalTrain072": "Judge Dredd",
@@ -18990,7 +19013,164 @@ index 0000000..421470e
 +  "SignalTrain129": "Joseph Manderley",
 +  "SignalTrain055": "Charles Babbage",
 +  "SignalTrain125": "Joe Pineapples",
-+  "SignalTrain067": "Jadzia Dax"
++  "SignalTrain067": "Jadzia Dax",
++  "SignalArc": "FEISAR",
++  "SignalJournal": "AG Systems",
++  "SignalProtocol": "Auricom",
++  "SignalBloom": "Qirex",
++  "SignalRank": "Piranha",
++  "SignalPhantom": "Talon's Reach",
++  "SignalFable": "Sagarmatha",
++  "SignalVine": "Valparaiso",
++  "SignalParadox": "Phenitia Park",
++  "SignalCape": "Gare d'Europa",
++  "SignalPower": "Odessa Keys",
++  "SignalSpirit": "Vostok Island",
++  "SignalMotion": "Spilskinanke",
++  "SignalChord": "Assegai",
++  "SignalOasis": "Tigron",
++  "SignalSubway": "Van-Uber",
++  "SignalRhythm": "Goteki 45",
++  "SignalReed": "Icaras",
++  "SignalAlloy": "Harimau",
++  "SignalStream": "Triakis",
++  "SignalVector": "Deadlock",
++  "SignalRoot": "Blackblood",
++  "SignalEclipse": "Johnny Alpha",
++  "SignalPilot": "Wulf Sternhammer",
++  "SignalBeat": "Durham Red",
++  "SignalDusk": "Sam Slade",
++  "SignalCurrent": "Benjamin Sisko",
++  "SignalPuzzle": "Kathryn Janeway",
++  "SignalReef": "The Doctor",
++  "SignalServo": "Zefram Cochrane",
++  "SignalShade": "VGer",
++  "SignalCrypt": "Nomad",
++  "SignalHarbor": "M-5",
++  "SignalCircuit": "Minuet",
++  "SignalCarbon": "Landru",
++  "SignalLens": "Garak",
++  "SignalIris": "Scotty",
++  "SignalOnyx": "Uhura",
++  "SignalDesert": "Sulu",
++  "SignalProcess": "Tuvok",
++  "SignalFrost": "Moriarty",
++  "SignalBronze": "Julian Bashir",
++  "SignalStation": "Ghost",
++  "SignalRelay": "Seraph",
++  "SignalPawn": "The Merovingian",
++  "SignalDiver": "Persephone",
++  "SignalMeadow": "The Keymaker",
++  "SignalKernel": "Sentinel",
++  "SignalIdea": "Sati",
++  "SignalSleeper": "Link",
++  "SignalSynth": "Mifune",
++  "SignalGalaxy": "Sparks",
++  "SignalEmber": "Bane",
++  "SignalMotor": "Hudson",
++  "SignalDune": "Vasquez",
++  "SignalFlow": "Dillon",
++  "SignalGate": "Call",
++  "SignalQuartz": "Jonesy",
++  "SignalSignal": "Quiet",
++  "SignalLock": "Colonel Campbell",
++  "SignalMyth": "Mei Ling",
++  "SignalDream": "Naomi Hunter",
++  "SignalCove": "Vulcan Raven",
++  "SignalLedger": "Decoy Octopus",
++  "SignalRooftop": "Skull Face",
++  "SignalRay": "Eva",
++  "SignalMidnight": "The Sorrow",
++  "SignalFlame": "The End",
++  "SignalDrone": "The Fear",
++  "SignalShadow": "The Fury",
++  "SignalKing": "The Pain",
++  "SignalRobot": "Major Zero",
++  "SignalRefuge": "Sunny",
++  "SignalMirage": "Drebin",
++  "SignalAnode": "Metal Gear REX",
++  "SignalLantern": "Metal Gear RAY",
++  "SignalToken": "Peace Walker",
++  "SignalSymbol": "Colonel Volgin",
++  "SignalCloud": "Laughing Octopus",
++  "SignalTide": "Raging Raven",
++  "WhiteTunnel": "Crying Wolf",
++  "DataCape": "Morgan Everett",
++  "GhostRain": "David Sarif",
++  "LambdaOrbit": "Eliza Cassan",
++  "FirstChord": "Francis Pritchard",
++  "BlueAlley": "Faridah Malik",
++  "ArgonAxiom": "Hugh Darrow",
++  "GoldenSmoke": "George Boole",
++  "OmegaGhost": "Alonzo Church",
++  "SlowGlyph": "Herman Hollerith",
++  "LostAura": "John Atanasoff",
++  "DarkOasis": "Clifford Berry",
++  "PlasmaMystery": "Tommy Flowers",
++  "ScarletJunction": "Maurice Wilkes",
++  "BronzeCape": "Tom Kilburn",
++  "AlphaSpiral": "Freddie Williams",
++  "LynxMetro": "John Mauchly",
++  "SilverFlint": "J Presper Eckert",
++  "ScalarPlanet": "Howard Aiken",
++  "ColdSynth": "Donald Knuth",
++  "AzureCape": "Edsger Dijkstra",
++  "ChromeAura": "John Backus",
++  "OneGlass": "Peter Naur",
++  "SilverFlame": "John McCarthy",
++  "PhotonNight": "Marvin Minsky",
++  "MoonMetro": "Allen Newell",
++  "ThetaMotion": "Herbert Simon",
++  "GoldenPearl": "Alan Kay",
++  "FirstNomad": "Douglas Engelbart",
++  "SlateLock": "Ivan Sutherland",
++  "FlintIron": "JCR Licklider",
++  "FlintOracle": "Barbara Liskov",
++  "PlasmaCapacitor": "Frances Allen",
++  "QuietSynth": "Margaret Hamilton",
++  "BrokenMoon": "Karen Sparck Jones",
++  "AstralRune": "Dennis Ritchie",
++  "LunarChapter": "Ken Thompson",
++  "StormEnigma": "Douglas Hartree",
++  "NightRider": "Vannevar Bush",
++  "SigmaThread": "Gottfried Leibniz",
++  "ByteSpecter": "Blaise Pascal",
++  "NeonStream": "Emil Post",
++  "GreenAsh": "Kurt Godel",
++  "HexWhisper": "Seymour Cray",
++  "LowGate": "Chemical Brothers",
++  "VioletTerminal": "The Prodigy",
++  "ThunderPeak": "Underworld",
++  "QuantumCape": "Orbital",
++  "ByteBronze": "Fluke",
++  "PixelFlint": "FSOL",
++  "PixelRain": "CoLD SToRAGE",
++  "ScalarGalaxy": "Leftfield",
++  "DuskFrost": "Aphex Twin",
++  "KestrelSpiral": "Autechre",
++  "PrismRelay": "Squarepusher",
++  "NightChapter": "Boards of Canada",
++  "BlackPebble": "Daft Punk",
++  "MercuryVerse": "Kraftwerk",
++  "KryptonAsh": "808 State",
++  "BrokenSummit": "LFO",
++  "RavenFork": "The Orb",
++  "OwlSymbol": "Propellerheads",
++  "ColdStack": "The Crystal Method",
++  "KryptonLogic": "Groove Armada",
++  "EmberNova": "Basement Jaxx",
++  "PhoenixEcho": "Faithless",
++  "SoftGraphite": "Goldie",
++  "MothTide": "Roni Size",
++  "DeepCastle": "Photek",
++  "RosePulse": "LTJ Bukem",
++  "FalconWraith": "Jeff Mills",
++  "EmberSignal": "Plastikman",
++  "LostSnow": "Carl Cox",
++  "OnyxFork": "Paul Oakenfold",
++  "DataJournal": "Sasha",
++  "KryptonEmber": "John Digweed",
++  "CopperVerse": "Justice"
 +}
 diff --git a/public/nosweat-roster.json b/public/nosweat-roster.json
 new file mode 100644
@@ -30623,10 +30803,10 @@ index 0000000..80784af
 +    assertEquals(NoSweatArenaRoster.select(candidates), List(UserId("ok")))
 diff --git a/src/test/scala/NoSweatBotCatalogTest.scala b/src/test/scala/NoSweatBotCatalogTest.scala
 new file mode 100644
-index 0000000..bb36ad1
+index 0000000..cdc5a67
 --- /dev/null
 +++ b/src/test/scala/NoSweatBotCatalogTest.scala
-@@ -0,0 +1,116 @@
+@@ -0,0 +1,122 @@
 +package lila.app
 +
 +import play.api.libs.json.*
@@ -30709,13 +30889,19 @@ index 0000000..bb36ad1
 +    )
 +    intercept[IllegalArgumentException](NoSweatBotCatalog.validate(List(wrong)))
 +
-+  test("public aliases are restricted to managed placeholder names and cannot overwrite a chosen name"):
++  test("public aliases are restricted to managed placeholders/catalog identities and preserve chosen names"):
 +    assertEquals(
 +      NoSweatBotCatalog.aliases(Map("SignalTrain001" -> "Roy Batty"), List(legacy)),
 +      Map("signaltrain001" -> "Roy Batty")
 +    )
++    val assignedAliases = NoSweatBotCatalog.aliases(Map("CatalogOne" -> "FEISAR"), List(catalog))
++    assertEquals(NoSweatBotCatalog.publicName(catalog, assignedAliases), Some("FEISAR"))
++    assert(NoSweatBotCatalog.aliasEligible(Some("Catalog One"), "CatalogOne", "FEISAR", Some("Catalog One")))
++    assert(!NoSweatBotCatalog.aliasEligible(Some("Custom Name"), "CatalogOne", "FEISAR", Some("Catalog One")))
 +    intercept[IllegalArgumentException]:
-+      NoSweatBotCatalog.aliases(Map("CatalogOne" -> "Roy Batty"), List(catalog))
++      NoSweatBotCatalog.aliases(Map("UnknownAccount" -> "FEISAR"), List(catalog))
++    intercept[IllegalArgumentException]:
++      NoSweatBotCatalog.aliases(Map("Wintermute" -> "FEISAR"), List(Json.obj("username" -> "Wintermute")))
 +    intercept[IllegalArgumentException]:
 +      NoSweatBotCatalog.aliases(Map("SignalTrain001" -> "x" * 21), List(legacy))
 +    assert(NoSweatBotCatalog.aliasEligible(None, "SignalTrain001", "Roy Batty"))
