@@ -359,3 +359,10 @@ wording or classifications. Unannotated moves, upstream/unbranded trees, other
 page controls and Maia probability/quality palettes retain their existing styles.
 The same document-brand guard as the board badges applies this independently of
 engine availability, including practice views.
+
+## Arrow behavior reference (#328)
+
+The [arrow behavior feature page](arrow-behavior.md) documents each app's current
+overlap order, Mute's retained Lichess tapering and classification-badge layering.
+The accompanying comparison captures use matching pieces and legal inputs. This
+is documentation only; it does not change either application's rendering policy.

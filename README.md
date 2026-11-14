@@ -89,7 +89,8 @@ stacked behavior and native single premoves.
 Stockfish looks for strong moves. Maia predicts what people might play. Put both
 beside the same board, with two independently rated Maia channels, move
 probabilities and shared board arrows. Click a candidate to explore it in the
-native analysis tree.
+native analysis tree. See [arrow behavior and classification badges](docs/arrow-behavior.md)
+for the overlap rules, retained Lichess tapering and cross-app screenshot comparisons.
 
 **Moves by Rating** shows how a move's likelihood changes from Maia 600 to 2600.
 Review a whole game with the familiar Lichess graph, accuracy and mistake-review
