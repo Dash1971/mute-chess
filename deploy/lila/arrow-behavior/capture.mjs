@@ -70,9 +70,19 @@ try {
     const plane=document.querySelector('.cg-custom-below');const badges=document.querySelector('.cg-custom-svgs');
     const piece=document.querySelector('piece');
     if(piece && (!getComputedStyle(piece).backgroundImage.includes('cburnett') || piece.getBoundingClientRect().width===0))throw Error('Piece artwork missing from fixture');
-    return {arrows,arrowZ:plane?getComputedStyle(plane).zIndex:null,badgeZ:badges?getComputedStyle(badges).zIndex:null,
+    const pieces=Object.fromEntries([...document.querySelectorAll('cg-board > piece')].map(p=>[p.cgKey,{name:(p.classList.contains('white')?'white':'black')+' '+['pawn','knight','bishop','rook','queen','king'].find(role=>p.classList.contains(role)),x:p.getBoundingClientRect().x+p.getBoundingClientRect().width/2,y:p.getBoundingClientRect().y+p.getBoundingClientRect().height/2}]));
+    return {arrows,pieces,board:document.querySelector('cg-board').getBoundingClientRect().toJSON(),arrowZ:plane?getComputedStyle(plane).zIndex:null,badgeZ:badges?getComputedStyle(badges).zIndex:null,
      badgeColors:[...document.querySelectorAll('.cg-custom-svgs circle')].map(c=>c.getAttribute('fill'))};
    });
+   for(const [square,expectedPiece] of Object.entries(c.expectedPieces)) {
+     const piece=observed.pieces[square];
+     assert.equal(piece?.name,expectedPiece,`${c.id} ${surface}: visible piece on ${square}`);
+     const file=square.charCodeAt(0)-97,rank=Number(square[1])-1;
+     const x=orientation==='white'?file:7-file,y=orientation==='white'?7-rank:rank;
+     assert.ok(Math.abs(piece.x-(observed.board.x+(x+.5)*observed.board.width/8))<.5,`${c.id}: piece x`);
+     assert.ok(Math.abs(piece.y-(observed.board.y+(y+.5)*observed.board.height/8))<.5,`${c.id}: piece y`);
+   }
+   for(const arrow of observed.arrows)assert.ok(observed.pieces[arrow.uci.slice(0,2)],`${c.id}: arrow has no visible source piece`);
    const normalize=arr=>arr.map(a=>({...a,uci:a.uci.slice(0,4)}));
    assert.deepEqual(normalize(observed.arrows),normalize(expected.arrows),`${c.id} ${orientation} ${surface}`);
    if(observed.arrows.length)assert.ok(Number(observed.badgeZ)>Number(observed.arrowZ),'badges must be above arrows');
@@ -83,13 +93,15 @@ try {
   }
  }
  // Existing SVG siblings must not defeat refreshed paint order (without remounting board).
+ const sequencePosition=fixtures.cases.find(c=>c.id==='agreement-00');
+ await page.evaluate(c=>window.arrowFixture.render(c,'white','analysis'),sequencePosition);
  const sequences=[
-  [[{uci:'a1a6'}],'h1h7','a1a6'],
-  [[{uci:'a1a6'}],'h1h7','b1b6'],
-  [[{uci:'a1a6'}],'h1h7','h1h7'],
-  [[{uci:'a1a6'},{uci:'b1b6',width:3.125}],'b1b6','a1a6'],
+  [[{uci:'d4d5'}],'d4d7','d4d5'],
+  [[{uci:'d4d5'}],'d4d7','d4d6'],
+  [[{uci:'d4d5'}],'d4d7','d4d7'],
+  [[{uci:'d4d5'},{uci:'d4d6',width:3.125}],'d4d6','d4d5'],
   [[],undefined,undefined],
-  [[{uci:'h1h6'},{uci:'c8c7',width:3.125}],'h1h7','h1h6'],
+  [[{uci:'d4d5'},{uci:'d4d6',width:3.125}],'d4d7','d4d5'],
  ];
  for(const [sf,m1,m2] of sequences){
   const arrows=await page.evaluate(({sf,m1,m2})=>window.arrowFixture.paintRaw(sf,m1,m2),{sf,m1,m2});

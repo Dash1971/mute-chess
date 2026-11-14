@@ -1,27 +1,28 @@
 ▶ Native analysis extensions
-  ✔ review controls replace stale start, stop and navigation actions on redraw (1.362346ms)
-  ✔ two separate Maia channels draw only their top moves at full width (1.824784ms)
-  ✔ Mobile Maia agreement fixtures retain the SF shaft and merge Maia heads (0.628125ms)
-  ✔ arrow origins and tips align with native square centers at every orientation and scale (3.954327ms)
-  ✔ standard-only analysis rejects variant PGNs while retaining standard FEN positions (10.150724ms)
-  ✔ engine settings validate persisted input instead of trusting browser JSON (0.713747ms)
-  ✔ explicit whole-window confirmation can veto an apparently stable standout (25.329231ms)
-  ✔ classifier ownership rejects cancellation and isolates a stale worker from the next job (1.514368ms)
-✔ Native analysis extensions (47.755702ms)
-✔ custom arrow palettes retain split agreement and native move geometry (0.406253ms)
-✔ reported puzzle: ordinary Qh7 is below the SF/secondary Maia Qh6 agreement (2.522644ms)
-✔ agreement paint order follows Maia channels rather than Stockfish rank (0.380155ms)
-✔ every owned SVG changes identity when the engine scene changes (0.799288ms)
-✔ Mute tree annotation colors use the badge palette independently of engine availability (49.143685ms)
-✔ Mute Chess board badges match every summary color at each native stack position (57.056253ms)
-✔ unbranded and non-Mute boards retain the exact upstream classification SVGs (1.843032ms)
-✔ Mute Chess preserves other native badges and unknown glyph labels (1.86411ms)
-✔ glyph rendering without a document retains upstream SVGs (0.477886ms)
-ℹ tests 17
+  ✔ review controls replace stale start, stop and navigation actions on redraw (1.893775ms)
+  ✔ two separate Maia channels draw only their top moves at full width (2.461169ms)
+  ✔ Mobile Maia agreement fixtures retain the SF shaft and merge Maia heads (0.791091ms)
+  ✔ arrow origins and tips align with native square centers at every orientation and scale (4.706318ms)
+  ✔ standard-only analysis rejects variant PGNs while retaining standard FEN positions (9.963634ms)
+  ✔ engine settings validate persisted input instead of trusting browser JSON (0.630178ms)
+  ✔ explicit whole-window confirmation can veto an apparently stable standout (20.411083ms)
+  ✔ classifier ownership rejects cancellation and isolates a stale worker from the next job (1.621497ms)
+✔ Native analysis extensions (45.351339ms)
+✔ custom arrow palettes retain split agreement and native move geometry (0.391935ms)
+✔ reported puzzle: ordinary Qh7 is below the SF/secondary Maia Qh6 agreement (3.358044ms)
+✔ agreement paint order follows Maia channels rather than Stockfish rank (0.64606ms)
+✔ every owned SVG changes identity when the engine scene changes (2.030736ms)
+✔ every screenshot fixture has legal roots, the named pieces and valid badge history (29.286543ms)
+✔ Mute tree annotation colors use the badge palette independently of engine availability (86.901897ms)
+✔ Mute Chess board badges match every summary color at each native stack position (92.627838ms)
+✔ unbranded and non-Mute boards retain the exact upstream classification SVGs (1.476655ms)
+✔ Mute Chess preserves other native badges and unknown glyph labels (1.689377ms)
+✔ glyph rendering without a document retains upstream SVGs (0.318515ms)
+ℹ tests 18
 ℹ suites 1
-ℹ pass 17
+ℹ pass 18
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 8699.159329
+ℹ duration_ms 1760.123568

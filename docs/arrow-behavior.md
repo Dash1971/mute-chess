@@ -67,12 +67,16 @@ settings and backend behavior are unchanged.
 
 The board position is reconstructed from the supplied screenshot; it is a
 **rendering regression fixture**, not a newly fetched puzzle record or a model
-prediction. Other matrix positions deliberately use controlled engine roots,
-sometimes geometric rather than legal moves, to isolate paint order.
+prediction. All matrix positions now use legal candidate moves from explicitly verified source
+pieces. Badge rows have a valid preceding move and deliberately injected labels
+for palette/layer tests; they do not assert a move-quality judgment. See the
+[full fixture QC review](arrow-behavior/qc-review.md), including the superseded
+input errors and all inspected contact sheets.
 
 ## Screenshot evidence
 
-[Open the complete comparison gallery](arrow-behavior/gallery.md). Every matrix
+[Open the corrected comparison gallery](arrow-behavior/gallery.md) or the
+[full fixture QC review](arrow-behavior/qc-review.md). Every matrix
 row links the actual Flutter board/overlay capture and each Mute surface capture.
 
 ![Reported overlap, Mobile Maia alongside Mute's three surfaces](arrow-behavior/overview.png)
@@ -100,13 +104,16 @@ Coverage and limits:
   deliberately different shaft widths and badge geometry are not pixel-diffed.
 - Six sequential DOM updates without remounting the board, including agreement
   changes, removal/reappearance and reversed SF/Maia source ordering.
+- Both chess libraries validate every candidate root and badge history; native DOM
+  checks verify visible source roles/positions. All 96 Mute surface groups are
+  pixel-identical, and all twelve visual-review sheets were inspected.
 - 21 Mute preference/hover/threat cases, plus existing six-class/four-stack badge
   SVG regression tests and origin/tip geometry checks at four board sizes.
 
 The headless Flutter runner normally substitutes Ahem squares for unspecified
 text fonts. For **captures only**, its badge TextStyle was temporarily given
 `fontFamily: 'Roboto'`, using the existing shared SDK font; no geometry, color or
-paint-order code changed. That one-line override was removed, and all 96 tests
+paint-order code changed. That one-line override was removed, and all 97 tests (including the new fixture audit)
 were rerun successfully against unmodified production source. The Mobile draft
 contains the test/fixtures and reproduction details. The Mute screenshots keep
 native SVG badge paths and require no text/font override.

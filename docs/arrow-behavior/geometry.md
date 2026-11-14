@@ -1,6 +1,8 @@
 # Geometry, promotions, castling, tapering and small boards
 
-[All comparisons](gallery.md) · [Methodology and limits](../arrow-behavior.md)
+[Full fixture QC](qc-review.md) · [All comparisons](gallery.md) · [Methodology and limits](../arrow-behavior.md)
+
+Every arrow is a legal candidate move from the displayed position. Knights start on b1/g1; promotions start from a pawn on e7. Geometry rows have no invented classification badge.
 
 | Case / orientation | Mobile Maia | Mute puzzle review | Mute analysis | Mute post-game |
 | --- | --- | --- | --- | --- |

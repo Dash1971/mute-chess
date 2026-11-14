@@ -37574,15 +37574,17 @@ index 0000000..802a3a6
 +});
 diff --git a/ui/analyse/tests/fixtures/arrowBehavior.browser.mts b/ui/analyse/tests/fixtures/arrowBehavior.browser.mts
 new file mode 100644
-index 0000000..cb80afe
+index 0000000..fa9b2e2
 --- /dev/null
 +++ b/ui/analyse/tests/fixtures/arrowBehavior.browser.mts
-@@ -0,0 +1,120 @@
+@@ -0,0 +1,140 @@
 +// Browser-only fixture: production surface selectors, auto-shapes, Chessground,
 +// annotation SVGs and compiled board CSS. Only engine/controller inputs are fixed.
 +import { Chessground } from '@lichess-org/chessground';
++import { parseSquare } from 'chessops/util';
 +
 +import { engineArrows, engineShapes, engineColors } from '../../../lib/src/nosweat/arrows';
++import { legalUcis, position } from '../../../lib/src/nosweat/core';
 +import { moveClasses } from '../../../lib/src/nosweat/moveClasses';
 +import puzzleShapes from '../../../puzzle/src/autoShape';
 +import { PuzzleMaia } from '../../../puzzle/src/noSweatMaia';
@@ -37593,6 +37595,15 @@ index 0000000..cb80afe
 +const host = document.getElementById('board')!;
 +let current: any;
 +function render(c: any, orientation: Color, surface = 'analysis', options: any = {}) {
++  const pos = position(c.fen);
++  const legal = new Set(legalUcis(c.fen));
++  for (const uci of [...c.sf, c.maia, c.second].filter(Boolean))
++    if (!legal.has(uci)) throw Error(`${c.id}: illegal screenshot candidate ${uci}`);
++  for (const [square, expected] of Object.entries(c.expectedPieces)) {
++    const piece = pos.board.get(parseSquare(square)!);
++    if (!piece || `${piece.color} ${piece.role}` !== expected)
++      throw Error(`${c.id}: missing expected piece on ${square}`);
++  }
 +  current = { c, orientation, surface, options };
 +  host.style.width = host.style.height = `${c.size ?? 400}px`;
 +  const category = moveClasses.find(m => m.name.toLowerCase() === c.badge);
@@ -37600,8 +37611,8 @@ index 0000000..cb80afe
 +  const pvs = c.sf.map((uci: string, i: number) => ({ moves: [uci], cp: c.sfCp?.[i] ?? 0, depth: 22 }));
 +  const node = {
 +    fen: c.fen,
-+    uci: `a1${c.badgeSquare}`,
-+    san: 'Fixture',
++    uci: c.lastMove,
++    san: c.lastMoveSan ?? 'Fixture',
 +    glyphs,
 +    children: [{}],
 +    dests: () => new Map([['a1', ['a2']]]),
@@ -37680,10 +37691,19 @@ index 0000000..cb80afe
 +      drawable: { enabled: false },
 +      addPieceZIndex: false,
 +    });
-+  board.set({ fen: c.fen, orientation, drawable: { autoShapes: shapes } });
++  board.set({
++    fen: c.fen,
++    orientation,
++    lastMove: c.lastMove ? [c.lastMove.slice(0, 2), c.lastMove.slice(2, 4)] : undefined,
++    highlight: { lastMove: !!c.lastMove },
++    drawable: { autoShapes: shapes },
++  });
 +  return shapes;
 +}
 +function paintRaw(sf: any[], primary?: string, secondary?: string, orientation: Color = 'white') {
++  const legal = new Set(legalUcis(current.c.fen));
++  for (const uci of [...sf.map(s => s.uci), primary, secondary].filter(Boolean))
++    if (!legal.has(uci!)) throw Error(`Illegal sequential fixture root ${uci}`);
 +  const arrows = engineArrows(sf, primary, secondary);
 +  board.setAutoShapes(engineShapes(arrows, orientation));
 +  return arrows;
@@ -37700,10 +37720,10 @@ index 0000000..cb80afe
 +};
 diff --git a/ui/analyse/tests/fixtures/arrowBehavior.json b/ui/analyse/tests/fixtures/arrowBehavior.json
 new file mode 100644
-index 0000000..ca3a402
+index 0000000..8664fb6
 --- /dev/null
 +++ b/ui/analyse/tests/fixtures/arrowBehavior.json
-@@ -0,0 +1,576 @@
+@@ -0,0 +1,660 @@
 +{
 +  "schema": 1,
 +  "mobileReference": "be6b97cd5ec0c1386233fbd824183c4fbb9c6efd",
@@ -37714,8 +37734,9 @@ index 0000000..ca3a402
 +      "sf": [],
 +      "maia": null,
 +      "second": null,
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-01",
@@ -37723,8 +37744,9 @@ index 0000000..ca3a402
 +      "sf": [],
 +      "maia": null,
 +      "second": "d4d5",
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-02",
@@ -37732,8 +37754,9 @@ index 0000000..ca3a402
 +      "sf": [],
 +      "maia": "d4d5",
 +      "second": null,
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-03",
@@ -37741,8 +37764,9 @@ index 0000000..ca3a402
 +      "sf": [],
 +      "maia": "d4d5",
 +      "second": "d4d5",
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-04",
@@ -37750,8 +37774,9 @@ index 0000000..ca3a402
 +      "sf": [],
 +      "maia": "d4d5",
 +      "second": "d4d6",
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-05",
@@ -37761,8 +37786,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": null,
 +      "second": null,
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-06",
@@ -37772,8 +37798,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": null,
 +      "second": "d4d5",
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-07",
@@ -37783,8 +37810,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": null,
 +      "second": "d4d6",
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-08",
@@ -37794,8 +37822,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": "d4d5",
 +      "second": null,
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-09",
@@ -37805,8 +37834,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": "d4d6",
 +      "second": null,
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-10",
@@ -37816,8 +37846,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": "d4d5",
 +      "second": "d4d5",
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-11",
@@ -37827,8 +37858,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": "d4d5",
 +      "second": "d4d6",
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-12",
@@ -37838,8 +37870,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": "d4d6",
 +      "second": "d4d5",
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-13",
@@ -37849,8 +37882,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": "d4d6",
 +      "second": "d4d6",
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-14",
@@ -37860,8 +37894,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": "d4d6",
 +      "second": "d4d7",
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-15",
@@ -37872,8 +37907,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": null,
 +      "second": null,
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-16",
@@ -37884,8 +37920,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": null,
 +      "second": "d4d5",
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-17",
@@ -37896,8 +37933,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": null,
 +      "second": "d4d6",
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-18",
@@ -37908,8 +37946,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": null,
 +      "second": "d4d7",
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-19",
@@ -37920,8 +37959,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": "d4d5",
 +      "second": null,
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-20",
@@ -37932,8 +37972,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": "d4d6",
 +      "second": null,
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-21",
@@ -37944,8 +37985,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": "d4d7",
 +      "second": null,
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-22",
@@ -37956,8 +37998,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": "d4d5",
 +      "second": "d4d5",
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-23",
@@ -37968,8 +38011,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": "d4d5",
 +      "second": "d4d6",
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-24",
@@ -37980,8 +38024,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": "d4d5",
 +      "second": "d4d7",
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-25",
@@ -37992,8 +38037,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": "d4d6",
 +      "second": "d4d5",
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-26",
@@ -38004,8 +38050,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": "d4d6",
 +      "second": "d4d6",
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-27",
@@ -38016,8 +38063,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": "d4d6",
 +      "second": "d4d7",
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-28",
@@ -38028,8 +38076,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": "d4d7",
 +      "second": "d4d5",
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-29",
@@ -38040,8 +38089,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": "d4d7",
 +      "second": "d4d6",
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-30",
@@ -38052,8 +38102,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": "d4d7",
 +      "second": "d4d7",
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "agreement-31",
@@ -38064,8 +38115,9 @@ index 0000000..ca3a402
 +      ],
 +      "maia": "d4d7",
 +      "second": "d4d8",
-+      "badgeSquare": "d5",
-+      "selection": true
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "reported-J2VCe",
@@ -38076,177 +38128,221 @@ index 0000000..ca3a402
 +      ],
 +      "maia": "h1h7",
 +      "second": "h1h6",
-+      "badgeSquare": "h6",
-+      "selection": true
++      "expectedPieces": {
++        "h1": "black queen",
++        "c8": "black rook"
++      }
 +    },
 +    {
 +      "id": "badge-brilliant",
-+      "fen": "2r3k1/6p1/4pPQ1/pp1p4/3P4/P7/KR6/7q b - - 0 29",
++      "fen": "k6b/8/8/8/3P4/8/8/K7 b - - 0 1",
 +      "sf": [
-+        "h1h6",
-+        "c8c7"
++        "h8d4",
++        "h8f6"
 +      ],
-+      "maia": "h1h7",
-+      "second": "h1h6",
-+      "badgeSquare": "h7",
-+      "selection": true,
-+      "badge": "brilliant"
++      "maia": "h8e5",
++      "second": "h8d4",
++      "badgeSquare": "d4",
++      "badge": "brilliant",
++      "previousFen": "k6b/8/8/8/8/3P4/8/K7 w - - 0 1",
++      "lastMove": "d3d4",
++      "lastMoveSan": "d4",
++      "expectedPieces": {
++        "h8": "black bishop",
++        "d4": "white pawn"
++      }
 +    },
 +    {
 +      "id": "badge-good",
-+      "fen": "2r3k1/6p1/4pPQ1/pp1p4/3P4/P7/KR6/7q b - - 0 29",
++      "fen": "k6b/8/8/8/3P4/8/8/K7 b - - 0 1",
 +      "sf": [
-+        "h1h6",
-+        "c8c7"
++        "h8d4",
++        "h8f6"
 +      ],
-+      "maia": "h1h7",
-+      "second": "h1h6",
-+      "badgeSquare": "h7",
-+      "selection": true,
-+      "badge": "good"
++      "maia": "h8e5",
++      "second": "h8d4",
++      "badgeSquare": "d4",
++      "badge": "good",
++      "previousFen": "k6b/8/8/8/8/3P4/8/K7 w - - 0 1",
++      "lastMove": "d3d4",
++      "lastMoveSan": "d4",
++      "expectedPieces": {
++        "h8": "black bishop",
++        "d4": "white pawn"
++      }
 +    },
 +    {
 +      "id": "badge-interesting",
-+      "fen": "2r3k1/6p1/4pPQ1/pp1p4/3P4/P7/KR6/7q b - - 0 29",
++      "fen": "k6b/8/8/8/3P4/8/8/K7 b - - 0 1",
 +      "sf": [
-+        "h1h6",
-+        "c8c7"
++        "h8d4",
++        "h8f6"
 +      ],
-+      "maia": "h1h7",
-+      "second": "h1h6",
-+      "badgeSquare": "h7",
-+      "selection": true,
-+      "badge": "interesting"
++      "maia": "h8e5",
++      "second": "h8d4",
++      "badgeSquare": "d4",
++      "badge": "interesting",
++      "previousFen": "k6b/8/8/8/8/3P4/8/K7 w - - 0 1",
++      "lastMove": "d3d4",
++      "lastMoveSan": "d4",
++      "expectedPieces": {
++        "h8": "black bishop",
++        "d4": "white pawn"
++      }
 +    },
 +    {
 +      "id": "badge-dubious",
-+      "fen": "2r3k1/6p1/4pPQ1/pp1p4/3P4/P7/KR6/7q b - - 0 29",
++      "fen": "k6b/8/8/8/3P4/8/8/K7 b - - 0 1",
 +      "sf": [
-+        "h1h6",
-+        "c8c7"
++        "h8d4",
++        "h8f6"
 +      ],
-+      "maia": "h1h7",
-+      "second": "h1h6",
-+      "badgeSquare": "h7",
-+      "selection": true,
-+      "badge": "dubious"
++      "maia": "h8e5",
++      "second": "h8d4",
++      "badgeSquare": "d4",
++      "badge": "dubious",
++      "previousFen": "k6b/8/8/8/8/3P4/8/K7 w - - 0 1",
++      "lastMove": "d3d4",
++      "lastMoveSan": "d4",
++      "expectedPieces": {
++        "h8": "black bishop",
++        "d4": "white pawn"
++      }
 +    },
 +    {
 +      "id": "badge-mistake",
-+      "fen": "2r3k1/6p1/4pPQ1/pp1p4/3P4/P7/KR6/7q b - - 0 29",
++      "fen": "k6b/8/8/8/3P4/8/8/K7 b - - 0 1",
 +      "sf": [
-+        "h1h6",
-+        "c8c7"
++        "h8d4",
++        "h8f6"
 +      ],
-+      "maia": "h1h7",
-+      "second": "h1h6",
-+      "badgeSquare": "h7",
-+      "selection": true,
-+      "badge": "mistake"
++      "maia": "h8e5",
++      "second": "h8d4",
++      "badgeSquare": "d4",
++      "badge": "mistake",
++      "previousFen": "k6b/8/8/8/8/3P4/8/K7 w - - 0 1",
++      "lastMove": "d3d4",
++      "lastMoveSan": "d4",
++      "expectedPieces": {
++        "h8": "black bishop",
++        "d4": "white pawn"
++      }
 +    },
 +    {
 +      "id": "badge-blunder",
-+      "fen": "2r3k1/6p1/4pPQ1/pp1p4/3P4/P7/KR6/7q b - - 0 29",
++      "fen": "k6b/8/8/8/3P4/8/8/K7 b - - 0 1",
 +      "sf": [
-+        "h1h6",
-+        "c8c7"
++        "h8d4",
++        "h8f6"
 +      ],
-+      "maia": "h1h7",
-+      "second": "h1h6",
-+      "badgeSquare": "h7",
-+      "selection": true,
-+      "badge": "blunder"
++      "maia": "h8e5",
++      "second": "h8d4",
++      "badgeSquare": "d4",
++      "badge": "blunder",
++      "previousFen": "k6b/8/8/8/8/3P4/8/K7 w - - 0 1",
++      "lastMove": "d3d4",
++      "lastMoveSan": "d4",
++      "expectedPieces": {
++        "h8": "black bishop",
++        "d4": "white pawn"
++      }
 +    },
 +    {
 +      "id": "diagonal",
-+      "fen": "2r3k1/6p1/4pPQ1/pp1p4/3P4/P7/KR6/7q b - - 0 29",
++      "fen": "4k3/8/8/8/8/8/8/B3K2B w - - 0 1",
 +      "sf": [
 +        "a1h8",
 +        "h1a8"
 +      ],
 +      "maia": "a1g7",
 +      "second": "h1b7",
-+      "badgeSquare": "h8",
-+      "selection": false,
-+      "badge": "interesting"
++      "expectedPieces": {
++        "a1": "white bishop",
++        "h1": "white bishop"
++      }
 +    },
 +    {
 +      "id": "knight",
-+      "fen": "2r3k1/6p1/4pPQ1/pp1p4/3P4/P7/KR6/7q b - - 0 29",
++      "fen": "4k3/8/8/8/8/8/8/1N2K1N1 w - - 0 1",
 +      "sf": [
 +        "g1f3",
 +        "b1c3"
 +      ],
 +      "maia": "g1f3",
 +      "second": "b1c3",
-+      "badgeSquare": "f3",
-+      "selection": false,
-+      "badge": "interesting"
++      "expectedPieces": {
++        "b1": "white knight",
++        "g1": "white knight"
++      }
 +    },
 +    {
 +      "id": "opposite",
-+      "fen": "2r3k1/6p1/4pPQ1/pp1p4/3P4/P7/KR6/7q b - - 0 29",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
 +      "sf": [
-+        "a1h1",
-+        "h1a1"
++        "d4a4",
++        "d4h4"
 +      ],
-+      "maia": "a1g1",
-+      "second": "h1a1",
-+      "badgeSquare": "h1",
-+      "selection": false,
-+      "badge": "interesting"
++      "maia": "d4b4",
++      "second": "d4h4",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
 +    },
 +    {
 +      "id": "promotion",
-+      "fen": "2r3k1/6p1/4pPQ1/pp1p4/3P4/P7/KR6/7q b - - 0 29",
++      "fen": "7k/4P3/8/8/8/8/8/K7 w - - 0 1",
 +      "sf": [
 +        "e7e8q",
 +        "e7e8n"
 +      ],
 +      "maia": "e7e8q",
 +      "second": "e7e8q",
-+      "badgeSquare": "e8",
-+      "selection": false,
-+      "badge": "interesting"
++      "expectedPieces": {
++        "e7": "white pawn"
++      }
 +    },
 +    {
 +      "id": "castling",
-+      "fen": "2r3k1/6p1/4pPQ1/pp1p4/3P4/P7/KR6/7q b - - 0 29",
++      "fen": "4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1",
 +      "sf": [
 +        "e1g1",
 +        "e1c1"
 +      ],
 +      "maia": "e1g1",
 +      "second": "e1c1",
-+      "badgeSquare": "g1",
-+      "selection": false,
-+      "badge": "interesting"
++      "expectedPieces": {
++        "a1": "white rook",
++        "e1": "white king",
++        "h1": "white rook"
++      }
 +    },
 +    {
 +      "id": "same-destination",
-+      "fen": "2r3k1/6p1/4pPQ1/pp1p4/3P4/P7/KR6/7q b - - 0 29",
++      "fen": "7k/8/8/4R3/3R4/5B2/8/K7 w - - 0 1",
 +      "sf": [
 +        "d4e4",
 +        "e5e4"
 +      ],
 +      "maia": "d4e4",
 +      "second": "f3e4",
-+      "badgeSquare": "e4",
-+      "selection": false,
-+      "badge": "interesting"
++      "expectedPieces": {
++        "d4": "white rook",
++        "e5": "white rook",
++        "f3": "white bishop"
++      }
 +    },
 +    {
 +      "id": "short-long",
-+      "fen": "2r3k1/6p1/4pPQ1/pp1p4/3P4/P7/KR6/7q b - - 0 29",
++      "fen": "7k/8/8/8/8/8/8/RK6 w - - 0 1",
 +      "sf": [
 +        "a1a2",
 +        "a1a8"
 +      ],
 +      "maia": "a1a2",
 +      "second": "a1a8",
-+      "badgeSquare": "a2",
-+      "selection": false,
-+      "badge": "interesting"
++      "expectedPieces": {
++        "a1": "white rook"
++      }
 +    },
 +    {
 +      "id": "sf-taper",
@@ -38255,28 +38351,36 @@ index 0000000..ca3a402
 +        "h1h6",
 +        "c8c7"
 +      ],
-+      "maia": "g6e4",
++      "maia": "h1h5",
 +      "second": null,
-+      "badgeSquare": "h6",
-+      "selection": true,
 +      "sfCp": [
 +        0,
 +        1000
-+      ]
++      ],
++      "expectedPieces": {
++        "h1": "black queen",
++        "c8": "black rook"
++      }
 +    },
 +    {
 +      "id": "small-board",
-+      "fen": "2r3k1/6p1/4pPQ1/pp1p4/3P4/P7/KR6/7q b - - 0 29",
++      "fen": "k6b/8/8/8/3P4/8/8/K7 b - - 0 1",
 +      "sf": [
-+        "h1h6",
-+        "c8c7"
++        "h8d4",
++        "h8f6"
 +      ],
-+      "maia": "h1h7",
-+      "second": "h1h6",
-+      "badgeSquare": "h6",
-+      "selection": true,
++      "maia": "h8e5",
++      "second": "h8d4",
++      "badgeSquare": "d4",
 +      "size": 256,
-+      "badge": "brilliant"
++      "badge": "brilliant",
++      "previousFen": "k6b/8/8/8/8/3P4/8/K7 w - - 0 1",
++      "lastMove": "d3d4",
++      "lastMoveSan": "d4",
++      "expectedPieces": {
++        "h8": "black bishop",
++        "d4": "white pawn"
++      }
 +    }
 +  ]
 +}
@@ -102887,14 +102991,17 @@ index 0000000..7d0511b
 +});
 diff --git a/ui/lib/tests/noSweatArrowOrder.test.ts b/ui/lib/tests/noSweatArrowOrder.test.ts
 new file mode 100644
-index 0000000..8c93518
+index 0000000..b250b0f
 --- /dev/null
 +++ b/ui/lib/tests/noSweatArrowOrder.test.ts
-@@ -0,0 +1,34 @@
+@@ -0,0 +1,64 @@
++import { parseSquare } from 'chessops/util';
 +import assert from 'node:assert/strict';
++import { readFileSync } from 'node:fs';
 +import { test } from 'node:test';
 +
 +import { engineArrows, engineShapes, engineColors } from '../src/nosweat/arrows';
++import { after, legalUcis, position } from '../src/nosweat/core';
 +
 +test('reported puzzle: ordinary Qh7 is below the SF/secondary Maia Qh6 agreement', () => {
 +  const arrows = engineArrows([{ uci: 'h1h6' }, { uci: 'c8c7', width: 3.125 }], 'h1h7', 'h1h6');
@@ -102924,6 +103031,33 @@ index 0000000..8c93518
 +  const unchangedMove = (shapes: typeof before) => shapes.find(s => s.orig === 'h1')!.customSvg!.html;
 +  assert.notEqual(unchangedMove(before), unchangedMove(after));
 +  assert.ok(before.every(s => s.below));
++});
++
++test('every screenshot fixture has legal roots, the named pieces and valid badge history', () => {
++  const fixtures = JSON.parse(
++    readFileSync(new URL('../../analyse/tests/fixtures/arrowBehavior.json', import.meta.url), 'utf8'),
++  );
++  for (const c of fixtures.cases) {
++    const pos = position(c.fen);
++    const legal = new Set(legalUcis(c.fen));
++    for (const uci of [...c.sf, c.maia, c.second].filter(Boolean))
++      assert.ok(legal.has(uci), `${c.id}: ${uci} is not legal for ${pos.turn} in ${c.fen}`);
++    for (const [square, expected] of Object.entries(c.expectedPieces)) {
++      const piece = pos.board.get(parseSquare(square)!);
++      assert.equal(piece && `${piece.color} ${piece.role}`, expected, `${c.id}: ${square}`);
++    }
++    if (c.badge) {
++      assert.ok(c.previousFen && c.lastMove, `${c.id}: badge needs selected-move history`);
++      assert.equal(
++        after(c.previousFen, c.lastMove).split(' ').slice(0, 4).join(' '),
++        c.fen.split(' ').slice(0, 4).join(' '),
++        `${c.id}: previous move must produce the shown board`,
++      );
++      assert.equal(c.lastMove.slice(2, 4), c.badgeSquare);
++      const piece = pos.board.get(parseSquare(c.badgeSquare)!);
++      assert.ok(piece && piece.color !== pos.turn, `${c.id}: badge must be on the just-moved piece`);
++    }
++  }
 +});
 diff --git a/ui/lib/tests/noSweatGlyphs.test.ts b/ui/lib/tests/noSweatGlyphs.test.ts
 new file mode 100644
