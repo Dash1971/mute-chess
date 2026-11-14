@@ -360,8 +360,9 @@ page controls and Maia probability/quality palettes retain their existing styles
 The same document-brand guard as the board badges applies this independently of
 engine availability, including practice views.
 
-## Arrow overlap parity (#328)
+## Arrow behavior reference (#328)
 
-The [arrow behavior feature page](arrow-behavior.md) records Mobile Maia paint
-order, the intentionally retained Lichess second-arrow tapering, classification
-badge layering, the bounded shared-helper fix and the cross-app screenshot matrix.
+The [arrow behavior feature page](arrow-behavior.md) documents each app's current
+overlap order, Mute's retained Lichess tapering and classification-badge layering.
+The accompanying comparison captures use matching pieces and legal inputs. This
+is documentation only; it does not change either application's rendering policy.

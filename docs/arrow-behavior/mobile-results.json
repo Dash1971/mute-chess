@@ -2888,5 +2888,79 @@
       }
     ],
     "badge": "brilliant"
+  },
+  {
+    "id": "Qh5-shorter",
+    "orientation": "white",
+    "arrows": [
+      {
+        "uci": "c8c7",
+        "tail": [
+          "#8ac8f5"
+        ],
+        "head": [
+          "#8ac8f5"
+        ],
+        "layer": "ordinary"
+      },
+      {
+        "uci": "h1h5",
+        "tail": [
+          "#e89b3c"
+        ],
+        "head": [
+          "#e89b3c"
+        ],
+        "layer": "ordinary"
+      },
+      {
+        "uci": "h1h6",
+        "tail": [
+          "#3d9be9"
+        ],
+        "head": [
+          "#e85d68"
+        ],
+        "layer": "agreement"
+      }
+    ],
+    "badge": null
+  },
+  {
+    "id": "Qh5-shorter",
+    "orientation": "black",
+    "arrows": [
+      {
+        "uci": "c8c7",
+        "tail": [
+          "#8ac8f5"
+        ],
+        "head": [
+          "#8ac8f5"
+        ],
+        "layer": "ordinary"
+      },
+      {
+        "uci": "h1h5",
+        "tail": [
+          "#e89b3c"
+        ],
+        "head": [
+          "#e89b3c"
+        ],
+        "layer": "ordinary"
+      },
+      {
+        "uci": "h1h6",
+        "tail": [
+          "#3d9be9"
+        ],
+        "head": [
+          "#e85d68"
+        ],
+        "layer": "agreement"
+      }
+    ],
+    "badge": null
   }
 ]

@@ -655,6 +655,20 @@
         "h8": "black bishop",
         "d4": "white pawn"
       }
+    },
+    {
+      "id": "Qh5-shorter",
+      "fen": "2r3k1/6p1/4pPQ1/pp1p4/3P4/P7/KR6/7q b - - 0 29",
+      "sf": [
+        "h1h6",
+        "c8c7"
+      ],
+      "maia": "h1h5",
+      "second": "h1h6",
+      "expectedPieces": {
+        "h1": "black queen",
+        "c8": "black rook"
+      }
     }
   ]
 }

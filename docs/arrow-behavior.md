@@ -1,143 +1,165 @@
-# Arrow behavior and classification badges
+# Engine arrows and classification badges
 
-[Feature guide](../README.md#see-the-human-move-as-well-as-the-engine-move) · [Issue #328](https://github.com/Dash1971/mute-chess/issues/328) · [Mobile Maia reference](https://github.com/Dash1971/maia-chess-android/blob/be6b97cd5ec0c1386233fbd824183c4fbb9c6efd/lib/src/review.dart#L1838)
+This page documents the existing behavior of **Mute Chess and Mobile Maia**.
+The documentation PR changes neither app's arrows, engine logic nor badges.
+No application build, service restart or deployment is needed for these docs.
 
-Mute uses Mobile Maia's engine-agreement colors, geometry and overlap order on
-puzzle review, standalone analysis and post-game analysis. It deliberately keeps
-Lichess's evaluation-based tapering of an independent second Stockfish arrow.
+The source snapshots used here are Mute Chess
+[`f1b93b9`](https://github.com/Dash1971/mute-chess/commit/f1b93b9703296ca0681cb53afa857dca9dcc1789)
+and Mobile Maia
+[`be6b97c`](https://github.com/Dash1971/maia-chess-android/commit/be6b97cd5ec0c1386233fbd824183c4fbb9c6efd).
+Mute's helper is stored in its existing native patch as
+`ui/lib/src/nosweat/arrows.ts`. Mobile's selection and agreement code is in
+[`review.dart`](https://github.com/Dash1971/maia-chess-android/blob/be6b97cd5ec0c1386233fbd824183c4fbb9c6efd/lib/src/review.dart#L1838),
+with its later overlay in
+[`review_widgets.dart`](https://github.com/Dash1971/maia-chess-android/blob/be6b97cd5ec0c1386233fbd824183c4fbb9c6efd/lib/src/review_widgets.dart#L928).
 
-## What the arrows mean
+## Colors and shared moves
 
-| Source | Shaft | Head |
+| Engine source | Shaft | Arrowhead |
 | --- | --- | --- |
 | Stockfish best | Blue `#3d9be9` | Blue |
 | Stockfish second | Light blue `#8ac8f5` | Light blue |
 | Primary Maia | Orange `#e89b3c` | Orange |
 | Second Maia | Red `#e85d68` | Red |
-| Stockfish and one Maia agree | Corresponding Stockfish blue | Agreeing Maia color |
-| Both Maias agree without Stockfish | Split orange/red | Split orange/red |
-| Stockfish and both Maias agree | Corresponding Stockfish blue | Split orange/red |
+| Stockfish and one Maia choose the same UCI | Corresponding Stockfish blue | Agreeing Maia's color |
+| Both Maias choose the same UCI, without Stockfish | Split orange/red | Split orange/red |
+| Stockfish and both Maias choose the same UCI | Corresponding Stockfish blue | Split orange/red |
 
-Each Maia contributes its **one top move**. Stockfish contributes up to two PV
-roots. A shared UCI is painted once; its colors communicate agreement. Different
-promotion choices remain different UCIs even when their arrow endpoints coincide.
+Each Maia contributes its **one top move**; Stockfish contributes up to two PV
+roots. A shared move is drawn once with combined colors. Different promotion
+choices remain distinct UCIs even when the visible arrow endpoints coincide.
+These colors identify engine sources, not whether a move is good or bad.
 
-Ordinary arrows are painted in this order: independent Stockfish best, independent
-Stockfish second, independent primary Maia, independent second Maia. Agreement
-arrows are painted afterward, in primary/secondary Maia insertion order. Thus an
-agreement stays above an ordinary overlapping arrow. This is **not** a rule that
-every blue arrow must always be uppermost: ordinary overlaps follow Mobile Maia.
+## Overlap order: the apps currently differ
 
-Arrows sit above pieces. Classification badges sit above every engine arrow.
-The six badge colors match the review summary and native move-list palette:
-Brilliant cyan, Good teal, Interesting lime, Dubious yellow, Mistake orange and
-Blunder red. Arrow colors describe engine sources; badge colors describe move
-classifications. They are separate concepts.
+### Mute Chess
 
-## Intentional differences retained
+On a fresh board, the existing helper emits:
 
-- **Tapering:** Mute keeps the existing native Lichess winning-chance-gap formula
-  in both surface callers. A less competitive independent second Stockfish arrow
-  gets a narrower shaft; its head geometry is unchanged. Shared agreement arrows
-  retain their existing full-width shaft. This fix changes none of those widths.
-  Mobile Maia uses fixed-width shafts for both Stockfish choices.
-- **Native badges:** Mute retains Lichess's SVG glyph shapes, shadow, stacking and
-  placement, recolored with the shared six-class palette. Mobile Maia draws its
-  own circle/text and translucent classified-square tint after its arrows. These
-  are intentionally not pixel-identical badges or board highlights.
-- **Preferences:** Mute retains separate source-visibility controls and custom
-  arrow colors. Disabling one source recomputes agreements using the remaining
-  sources. Puzzle hover/threat behavior remains native; it is not replaced by
-  engine arrows. Analysis and post-game share the existing analysis controller.
+1. Stockfish best, including its combined Maia head if any.
+2. Stockfish second, including its combined Maia head if any.
+3. Remaining Maia moves, in primary/secondary channel order. If both Maias share
+   a remaining move, it uses the split shaft and head.
 
-## The reported overlap and bounded fix
+All these engine arrows occupy the same owned SVG plane. A later arrow can cover
+an earlier arrow's shaft or part of its head. **Combined Stockfish/Maia arrows do
+not currently get a separate upper layer.** Consequently, a separate Maia move
+can cover a Stockfish agreement arrow.
 
-The reported J2VCe screenshot has Qh6 as Stockfish's best move and the second
-Maia's choice, while the primary Maia chooses Qh7. Previously Mute emitted the
-Qh6 agreement before the ordinary Qh7 arrow, which could hide its blue shaft.
-Mobile Maia separates ordinary arrows from its later agreement overlay.
+On subsequent updates there is another detail: native Chessground retains
+unchanged SVG siblings and appends changed ones. The observed order can therefore
+depend on which results changed and when they arrived, rather than only the
+helper's newly returned array. The [recorded update sequences](arrow-behavior/browser-results.json)
+include both helper order and retained DOM order. That behavior is preserved.
 
-The shared helper now emits ordinary arrows first and agreements last. A common
-scene identity also refreshes the small group of engine SVGs together when any
-input changes. This matters because native Chessground retains unchanged SVG
-siblings and appends changed ones: array ordering alone is insufficient after an
-asynchronous result arrives. User-drawn shapes and the separate badge plane keep
-their native lifetimes. Engine inference, classifications, arrow geometry,
-settings and backend behavior are unchanged.
+### Mobile Maia
 
-The board position is reconstructed from the supplied screenshot; it is a
-**rendering regression fixture**, not a newly fetched puzzle record or a model
-prediction. All matrix positions now use legal candidate moves from explicitly verified source
-pieces. Badge rows have a valid preceding move and deliberately injected labels
-for palette/layer tests; they do not assert a move-quality judgment. See the
-[full fixture QC review](arrow-behavior/qc-review.md), including the superseded
-input errors and all inspected contact sheets.
+Mobile paints ordinary arrows first: independent Stockfish best, independent
+Stockfish second, independent primary Maia, independent second Maia.
 
-## Screenshot evidence
+It then paints combined agreement arrows in a separate overlay, in Maia-channel
+insertion order. An agreement arrow therefore appears above ordinary arrows that
+cross or share its path. Ordinary Maia arrows can still cover ordinary Stockfish
+arrows: Mobile does **not** put every blue arrow on top.
 
-[Open the corrected comparison gallery](arrow-behavior/gallery.md) or the
-[full fixture QC review](arrow-behavior/qc-review.md). Every matrix
-row links the actual Flutter board/overlay capture and each Mute surface capture.
+These are the existing rules, not a proposed change. Neither policy guarantees
+that every overlapping shaft remains fully visible.
 
-![Reported overlap, Mobile Maia alongside Mute's three surfaces](arrow-behavior/overview.png)
+## Longer, shorter and independent examples
 
-The reference is Mobile Maia commit
-[`be6b97c`](https://github.com/Dash1971/maia-chess-android/commit/be6b97cd5ec0c1386233fbd824183c4fbb9c6efd).
-The Flutter fixture obtains arrows through the production `ReviewPage` injected
-engine boundaries, then captures its real Chessground widget and
-`ReviewBoardOverlayPainter`. Mute's browser fixture calls the production
-`PuzzleMaia.shapes`/puzzle auto-shapes and `NoSweatAnalysis.shapes`/analysis
-`compute` paths, then draws their results with actual Chessground, native board
-CSS, native badge SVGs and Cburnett pieces. Only controller/engine inputs are
-fixed. These are **board-renderer/surface-path fixture screenshots**, not
-full-page navigation, Android device screenshots, or live neural-inference tests.
+The comparison gallery includes these deliberately fixed, legal inputs:
 
-Coverage and limits:
+| Case | Stockfish best | Maia 1600 | Maia 2600 | Existing overlap result |
+| --- | --- | --- | --- | --- |
+| Longer independent Maia | Qh6 | Qh7 | Qh6 | Mute's later orange arrow can cover the blue/red agreement shaft. Mobile puts that agreement above orange. |
+| Shorter independent Maia | Qh6 | Qh5 | Qh6 | Mute draws orange over the shared part of blue. Mobile draws blue over orange; the shorter orange head is partly covered, with its sides visible. |
+| No agreement (source combination 18) | Rd5; second choice Rd6 | No result | Rd7 | Both apps draw the independent red Maia arrow after the blue arrows, obscuring their shafts. |
 
-- All **32 canonical presence/agreement partitions** of SF1/SF2/Maia1/Maia2,
-  both orientations. SF2 requires SF1; its root differs from SF1 in this matrix.
-- The reported overlap, all six classification badges, diagonal crossings,
-  opposite directions, knight vectors, shared destinations, short/long rays,
-  promotion, castling, a 256px board and a large evaluation gap for tapering.
-- **48 cases × 2 orientations × 3 Mute surfaces = 288 comparisons** against
-  96 Flutter captures. These compare source colors, agreements and paint order;
-  deliberately different shaft widths and badge geometry are not pixel-diffed.
-- Six sequential DOM updates without remounting the board, including agreement
-  changes, removal/reappearance and reversed SF/Maia source ordering.
-- Both chess libraries validate every candidate root and badge history; native DOM
-  checks verify visible source roles/positions. All 96 Mute surface groups are
-  pixel-identical, and all twelve visual-review sheets were inspected.
-- 21 Mute preference/hover/threat cases, plus existing six-class/four-stack badge
-  SVG regression tests and origin/tip geometry checks at four board sizes.
+The `agreement-18` filename is a historical matrix identifier, not a claim that
+engines agree in that row. Gallery labels describe these as source combinations.
 
-The headless Flutter runner normally substitutes Ahem squares for unspecified
-text fonts. For **captures only**, its badge TextStyle was temporarily given
-`fontFamily: 'Roboto'`, using the existing shared SDK font; no geometry, color or
-paint-order code changed. That one-line override was removed, and all 97 tests (including the new fixture audit)
-were rerun successfully against unmodified production source. The Mobile draft
-contains the test/fixtures and reproduction details. The Mute screenshots keep
-native SVG badge paths and require no text/font override.
+[Open all current-behavior comparisons](arrow-behavior/gallery.md).
 
-See [validation results and hashes](arrow-behavior/validation.json),
-[Mobile arrow descriptors](arrow-behavior/mobile-results.json),
-[Mute browser results](arrow-behavior/browser-results.json), and
-[fixture inputs](arrow-behavior/fixtures.json). Testing establishes this bounded
-rendering contract; it does not claim to exhaust all chess positions or unrelated
-UI interactions. No application service was stopped, no public game was created,
-and nothing was merged or deployed for this audit.
+![Unchanged longer, shorter and independent-arrow policies](arrow-behavior/overview.png)
+The pictured Qh6 position was reconstructed from the owner's screenshot; its
+candidate moves are verified legal. These are illustrative engine inputs, not
+fresh predictions from Maia or Stockfish.
 
-## Reproduce the browser comparison
+## Tapering and geometry
 
-Reconstruct the pinned native source with its patch and install its existing
-locked dependencies. Build the native UI once so `public/css` contains `site` and
-`lib.theme.all`. Use the Mobile capture procedure documented in the companion
-feature page, then run with the native checkout's Node/Playwright environment:
+Mute retains the native Lichess second-Stockfish shaft-width calculation:
 
-```sh
-node deploy/lila/arrow-behavior/capture.mjs NATIVE_ROOT MOBILE_CAPTURE_DIR OUTPUT_DIR
-```
+`max(3.125, (12 - max(0, winning-chance difference) * 50) * 100 / 64)`
 
-The fixture checks the bundle input paths so it cannot silently render a helper
-from another checkout. It opens a loopback-only temporary fixture server and
-closes that server/browser on completion. It is specific to this arrow matrix;
-it does not control services, deployments, backups, models or databases.
+The score difference uses the mover's perspective. A less competitive second
+choice becomes narrower. The best Stockfish shaft is width 25 in the helper's
+100-unit square coordinates. Existing shared agreement arrows and Maia arrows
+also use width 25. Arrowhead geometry is unchanged by that shaft tapering.
+Mobile Maia uses a fixed quarter-square shaft for both Stockfish choices.
+
+Both use a straight arrow from the source square toward the destination, even
+for a knight move. Shaft start is about one third of a square from the source
+center; the head reaches the destination center. The head length is 0.48 square,
+with a half-angle of pi/5. Flipping the board mirrors the square mapping.
+
+## Classification badges
+
+Arrows sit above pieces; classification badges sit above engine arrows in both
+apps. Mute retains the native Lichess SVG glyph geometry, shadow, placement and
+stacking. Its engine SVG plane has z-index 3; native glyph SVGs have z-index 4.
+Mobile's overlay paints agreement arrows, then the classified-square translucent
+tint, then the badge circle and white symbol.
+
+| Classification | Symbol | Color |
+| --- | --- | --- |
+| Brilliant | !! | Cyan `#15aabf` |
+| Good | ! | Teal `#12b886` |
+| Interesting | !? | Lime `#82c91e` |
+| Dubious | ?! | Yellow `#fab005` |
+| Mistake | ? | Orange `#fd7e14` |
+| Blunder | ?? | Red `#fa5252` |
+
+Badge colors describe the selected move's classification and match its summary.
+They are independent of engine-source colors. Mute's SVG badges and Mobile's
+circle/text badges intentionally have different artwork and square highlighting.
+
+## Settings and surface behavior
+
+Mute's puzzle-review, analysis and post-game paths use the existing shared arrow
+helper. Its custom colors and separate Maia/Stockfish visibility preferences are
+retained. The gallery's preference rows use fixed controller inputs to exercise
+those branches. “Off” and “threat” rows check suppression of the **custom engine
+layer**, while native stored-PV arrows can still be present in those fixtures.
+They are not full-page tests of every engine-toggle or threat-search interaction.
+Puzzle hovering hands control back to its native hover-arrow path; the analysis
+and post-game paths retain their own existing hover behavior.
+
+## Evidence and scope
+
+The [gallery](arrow-behavior/gallery.md) and [fixture QC notes](arrow-behavior/qc-review.md)
+show the actual board renderers with controlled inputs. Fresh-board snapshots
+use the unmodified Mute helper and unmodified Mobile rendering logic; a separate
+record observes retained-DOM updates. They document source colors, paint order,
+visible source pieces, valid badge history and the intentional width/artwork
+differences. They do not claim pixel-identical cross-app output.
+
+Every candidate is legal for its shown position and side. Knight examples contain
+knights on b1/g1; promotion examples contain a pawn on e7. Badge examples use a
+legal preceding d3–d4 move and deliberately inject each classification label to
+show the palette and layering. They do **not** claim that pawn move deserves any
+particular classification. The original misleading geometry screenshots are
+superseded by these matching-piece examples.
+
+These are board-renderer/surface-path fixtures, not full application navigation,
+physical-device screenshots or engine-strength tests. Mobile's headless captures
+use its actual Chessground widget and overlay painter; a temporary explicit
+Roboto font family makes unspecified badge text readable instead of test-runner
+Ahem squares. That capture-only override is absent from the PR and app source.
+Mute uses its actual helper, native surface selectors, board CSS, Cburnett pieces
+and badge SVGs. No executable capture framework or tests are added by this PR.
+
+[Fixture inputs](arrow-behavior/fixtures.json) ·
+[Current capture record](arrow-behavior/validation.json) ·
+[Observed Mute colors and orders](arrow-behavior/browser-results.json) ·
+[Mobile arrow descriptors](arrow-behavior/mobile-results.json)

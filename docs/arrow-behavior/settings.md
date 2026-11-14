@@ -1,6 +1,8 @@
-# Mute preferences and native hover/threat paths
+# Existing Mute preferences and native hand-offs
 
-[All comparisons](gallery.md)
+[Current comparisons](gallery.md)
+
+“Off” and “threat” exercise suppression of custom arrows with stored native PV inputs still present. Native arrows can remain. These are surface-path examples, not full-page toggle or threat-search tests.
 
 | Setting | Puzzle review | Analysis | Post-game |
 | --- | --- | --- | --- |

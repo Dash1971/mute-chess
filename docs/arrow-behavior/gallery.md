@@ -1,13 +1,14 @@
-# Screenshot comparison gallery
+# Current arrow-behavior comparison gallery
 
-[Behavior and methodology](../arrow-behavior.md) · [Full fixture QC and inspected sheets](qc-review.md)
+[Behavior reference](../arrow-behavior.md) · [Input and capture QC](qc-review.md)
 
-This corrected set uses legal moves and matching source pieces throughout. Badge rows are injected palette tests with valid preceding-move context. Each thumbnail opens its original PNG. These are deterministic **production renderer/surface-path fixtures**, not full application/device screens. Mobile uses its default brown board; Mute uses moss. Native badge shapes and retained Mute tapering are intentional differences.
+These images compare the **unchanged** Mute and Mobile renderers. They intentionally show their different overlap policies. Every arrow is a legal candidate from a visible source piece. Badges are controlled palette examples with valid last-move context, not judgments about those moves. Fresh boards are used for static comparisons; retained-DOM updates are recorded separately. Each thumbnail opens its full PNG.
 
-- [Agreement partitions 00–07](agreements-1.md)
-- [Agreement partitions 08–15](agreements-2.md)
-- [Agreement partitions 16–23](agreements-3.md)
-- [Agreement partitions 24–31](agreements-4.md)
-- [Reported overlap and all six badges](reported-and-badges.md)
-- [Geometry, promotions, castling, tapering and small boards](geometry.md)
-- [Mute settings, hover and threat paths](settings.md)
+- [Source combinations 00–07](agreements-1.md)
+- [Source combinations 08–15](agreements-2.md)
+- [Source combinations 16–23](agreements-3.md)
+- [Source combinations 24–31](agreements-4.md)
+- [Original Qh6 overlap and badge palette examples](reported-and-badges.md)
+- [Matching-piece geometry and tapering examples](geometry.md)
+- [Qh5 below the Qh6 agreement](shorter-maia.md)
+- [Mute source visibility and native hand-offs](settings.md)
