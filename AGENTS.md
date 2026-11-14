@@ -556,3 +556,13 @@ views and timing, retain public approved-host filtering and all Arena admission
 semantics, and verify all exposed copy in ten locales. Keep this draft unmerged
 and undeployed pending further instruction. No general tooling or infrastructure
 changes are authorized.
+
+
+## Compact Arena sidebar (#326, November 14)
+
+The owner approved the compact sidebar preview: native bot-details disclosure,
+full-height metadata, native chat breathing room and preparation feedback above
+chat. Preserve real entry requirements/refusals and every game/host/bot contract;
+translate all changed text in ten locales. Keep the PR draft, unmerged and
+undeployed for a future explicitly approved batch. Do not pause public games,
+stop public services or add release/infrastructure tooling for this UI change.
