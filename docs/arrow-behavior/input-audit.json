@@ -1,0 +1,152 @@
+{
+  "oldIssues": [
+    {
+      "case": "badge-brilliant",
+      "problem": "missing selected move history for badge"
+    },
+    {
+      "case": "badge-good",
+      "problem": "missing selected move history for badge"
+    },
+    {
+      "case": "badge-interesting",
+      "problem": "missing selected move history for badge"
+    },
+    {
+      "case": "badge-dubious",
+      "problem": "missing selected move history for badge"
+    },
+    {
+      "case": "badge-mistake",
+      "problem": "missing selected move history for badge"
+    },
+    {
+      "case": "badge-blunder",
+      "problem": "missing selected move history for badge"
+    },
+    {
+      "case": "diagonal",
+      "problem": "illegal root or missing/wrong-side source piece",
+      "uci": "a1h8"
+    },
+    {
+      "case": "diagonal",
+      "problem": "illegal root or missing/wrong-side source piece",
+      "uci": "h1a8"
+    },
+    {
+      "case": "diagonal",
+      "problem": "illegal root or missing/wrong-side source piece",
+      "uci": "a1g7"
+    },
+    {
+      "case": "diagonal",
+      "problem": "illegal root or missing/wrong-side source piece",
+      "uci": "h1b7"
+    },
+    {
+      "case": "diagonal",
+      "problem": "missing selected move history for badge"
+    },
+    {
+      "case": "knight",
+      "problem": "illegal root or missing/wrong-side source piece",
+      "uci": "g1f3"
+    },
+    {
+      "case": "knight",
+      "problem": "illegal root or missing/wrong-side source piece",
+      "uci": "b1c3"
+    },
+    {
+      "case": "knight",
+      "problem": "missing selected move history for badge"
+    },
+    {
+      "case": "opposite",
+      "problem": "illegal root or missing/wrong-side source piece",
+      "uci": "a1h1"
+    },
+    {
+      "case": "opposite",
+      "problem": "illegal root or missing/wrong-side source piece",
+      "uci": "a1g1"
+    },
+    {
+      "case": "opposite",
+      "problem": "missing selected move history for badge"
+    },
+    {
+      "case": "promotion",
+      "problem": "illegal root or missing/wrong-side source piece",
+      "uci": "e7e8q"
+    },
+    {
+      "case": "promotion",
+      "problem": "illegal root or missing/wrong-side source piece",
+      "uci": "e7e8n"
+    },
+    {
+      "case": "promotion",
+      "problem": "missing selected move history for badge"
+    },
+    {
+      "case": "castling",
+      "problem": "illegal root or missing/wrong-side source piece",
+      "uci": "e1g1"
+    },
+    {
+      "case": "castling",
+      "problem": "illegal root or missing/wrong-side source piece",
+      "uci": "e1c1"
+    },
+    {
+      "case": "castling",
+      "problem": "missing selected move history for badge"
+    },
+    {
+      "case": "same-destination",
+      "problem": "illegal root or missing/wrong-side source piece",
+      "uci": "d4e4"
+    },
+    {
+      "case": "same-destination",
+      "problem": "illegal root or missing/wrong-side source piece",
+      "uci": "e5e4"
+    },
+    {
+      "case": "same-destination",
+      "problem": "illegal root or missing/wrong-side source piece",
+      "uci": "f3e4"
+    },
+    {
+      "case": "same-destination",
+      "problem": "missing selected move history for badge"
+    },
+    {
+      "case": "short-long",
+      "problem": "illegal root or missing/wrong-side source piece",
+      "uci": "a1a2"
+    },
+    {
+      "case": "short-long",
+      "problem": "illegal root or missing/wrong-side source piece",
+      "uci": "a1a8"
+    },
+    {
+      "case": "short-long",
+      "problem": "missing selected move history for badge"
+    },
+    {
+      "case": "sf-taper",
+      "problem": "illegal root or missing/wrong-side source piece",
+      "uci": "g6e4"
+    },
+    {
+      "case": "small-board",
+      "problem": "missing selected move history for badge"
+    }
+  ],
+  "correctedIssues": [],
+  "correctedCases": 48
+}

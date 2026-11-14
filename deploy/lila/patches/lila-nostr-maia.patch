@@ -37572,6 +37572,818 @@ index 0000000..802a3a6
 +  assert.equal(candidateQuality({ mate: -2 }, { mate: 2 }, false), 'blunder');
 +  assert.equal(candidateQuality({ mate: 2 }, { mate: 4 }, true), 'good');
 +});
+diff --git a/ui/analyse/tests/fixtures/arrowBehavior.browser.mts b/ui/analyse/tests/fixtures/arrowBehavior.browser.mts
+new file mode 100644
+index 0000000..fa9b2e2
+--- /dev/null
++++ b/ui/analyse/tests/fixtures/arrowBehavior.browser.mts
+@@ -0,0 +1,140 @@
++// Browser-only fixture: production surface selectors, auto-shapes, Chessground,
++// annotation SVGs and compiled board CSS. Only engine/controller inputs are fixed.
++import { Chessground } from '@lichess-org/chessground';
++import { parseSquare } from 'chessops/util';
++
++import { engineArrows, engineShapes, engineColors } from '../../../lib/src/nosweat/arrows';
++import { legalUcis, position } from '../../../lib/src/nosweat/core';
++import { moveClasses } from '../../../lib/src/nosweat/moveClasses';
++import puzzleShapes from '../../../puzzle/src/autoShape';
++import { PuzzleMaia } from '../../../puzzle/src/noSweatMaia';
++import { compute } from '../../src/autoShape';
++import { NoSweatAnalysis } from '../../src/noSweatAnalysis';
++
++let board: ReturnType<typeof Chessground>;
++const host = document.getElementById('board')!;
++let current: any;
++function render(c: any, orientation: Color, surface = 'analysis', options: any = {}) {
++  const pos = position(c.fen);
++  const legal = new Set(legalUcis(c.fen));
++  for (const uci of [...c.sf, c.maia, c.second].filter(Boolean))
++    if (!legal.has(uci)) throw Error(`${c.id}: illegal screenshot candidate ${uci}`);
++  for (const [square, expected] of Object.entries(c.expectedPieces)) {
++    const piece = pos.board.get(parseSquare(square)!);
++    if (!piece || `${piece.color} ${piece.role}` !== expected)
++      throw Error(`${c.id}: missing expected piece on ${square}`);
++  }
++  current = { c, orientation, surface, options };
++  host.style.width = host.style.height = `${c.size ?? 400}px`;
++  const category = moveClasses.find(m => m.name.toLowerCase() === c.badge);
++  const glyphs = category ? [{ id: category.id, symbol: category.symbol, name: category.name }] : [];
++  const pvs = c.sf.map((uci: string, i: number) => ({ moves: [uci], cp: c.sfCp?.[i] ?? 0, depth: 22 }));
++  const node = {
++    fen: c.fen,
++    uci: c.lastMove,
++    san: c.lastMoveSan ?? 'Fixture',
++    glyphs,
++    children: [{}],
++    dests: () => new Map([['a1', ['a2']]]),
++    ceval: { pvs, depth: 22 },
++    outcome: () => undefined,
++  };
++  const hover = options.hover ? { fen: c.fen, uci: c.sf[0] } : undefined;
++  const ctrl: any = {
++    node,
++    path: 'fixture',
++    mainline: [],
++    data: { game: { status: { name: 'started' } }, puzzle: { id: 'fixture' } },
++    explorer: { hovering: () => hover },
++    ceval: { hovering: () => hover, search: { multiPv: 2 }, storedPv: () => 1 },
++    fork: { hover: () => {} },
++    settings: { showLiveAnnotations: false, showManeuverMoveArrows: false },
++    showEvaluation: () => true,
++    showMoveAnnotations: () => true,
++    visibleGlyphs: () => glyphs,
++    showVariationArrows: () => false,
++    motifEnabled: () => false,
++    isCevalAllowed: () => true,
++    cevalEnabled: () => !options.off,
++    showBestMoveArrows: () => true,
++    threatMode: () => !!options.threat,
++    bottomColor: () => orientation,
++    nextNodeBest: () => undefined,
++    pov: orientation,
++    flipped: () => false,
++    hintSquare: () => undefined,
++  };
++  const primary = c.maia && !options.hideMaia ? [{ uci: c.maia }] : [];
++  const secondary = c.second && !options.hideMaia && !options.single ? [{ uci: c.second }] : [];
++  const colors = options.colors ?? engineColors;
++  let shapes: any[];
++  if (surface === 'puzzle') {
++    const maia: any = Object.create(PuzzleMaia.prototype);
++    Object.assign(maia, {
++      ctrl,
++      allowed: () => !options.off && !options.threat,
++      preferences: () => ({
++        fishArrows: !options.hideFish,
++        maiaArrows: !options.hideMaia,
++        arrowColors: colors,
++      }),
++      engine: { primary, secondary },
++    });
++    ctrl.maia = maia;
++    shapes = puzzleShapes(ctrl);
++  } else {
++    const analysis: any = Object.create(NoSweatAnalysis.prototype);
++    Object.assign(analysis, {
++      ctrl,
++      enabled: !options.off,
++      analysisAllowed: () => true,
++      nativeLines: () => pvs,
++      normalUci: (uci: string) => uci,
++      fishArrows: !options.hideFish,
++      maiaArrows: !options.hideMaia,
++      secondMaiaEnabled: !options.single,
++      candidates: primary,
++      secondaryCandidates: secondary,
++      arrowColors: colors,
++    });
++    ctrl.noSweat = analysis;
++    if (surface === 'postgame') ctrl.data.game.status.name = 'mate';
++    shapes = compute(ctrl);
++  }
++  if (!board)
++    board = Chessground(host, {
++      fen: c.fen,
++      orientation,
++      viewOnly: true,
++      coordinates: true,
++      animation: { enabled: false },
++      drawable: { enabled: false },
++      addPieceZIndex: false,
++    });
++  board.set({
++    fen: c.fen,
++    orientation,
++    lastMove: c.lastMove ? [c.lastMove.slice(0, 2), c.lastMove.slice(2, 4)] : undefined,
++    highlight: { lastMove: !!c.lastMove },
++    drawable: { autoShapes: shapes },
++  });
++  return shapes;
++}
++function paintRaw(sf: any[], primary?: string, secondary?: string, orientation: Color = 'white') {
++  const legal = new Set(legalUcis(current.c.fen));
++  for (const uci of [...sf.map(s => s.uci), primary, secondary].filter(Boolean))
++    if (!legal.has(uci!)) throw Error(`Illegal sequential fixture root ${uci}`);
++  const arrows = engineArrows(sf, primary, secondary);
++  board.setAutoShapes(engineShapes(arrows, orientation));
++  return arrows;
++}
++(window as any).arrowFixture = {
++  render,
++  paintRaw,
++  get board() {
++    return board;
++  },
++  get current() {
++    return current;
++  },
++};
+diff --git a/ui/analyse/tests/fixtures/arrowBehavior.json b/ui/analyse/tests/fixtures/arrowBehavior.json
+new file mode 100644
+index 0000000..8664fb6
+--- /dev/null
++++ b/ui/analyse/tests/fixtures/arrowBehavior.json
+@@ -0,0 +1,660 @@
++{
++  "schema": 1,
++  "mobileReference": "be6b97cd5ec0c1386233fbd824183c4fbb9c6efd",
++  "cases": [
++    {
++      "id": "agreement-00",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [],
++      "maia": null,
++      "second": null,
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-01",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [],
++      "maia": null,
++      "second": "d4d5",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-02",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [],
++      "maia": "d4d5",
++      "second": null,
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-03",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [],
++      "maia": "d4d5",
++      "second": "d4d5",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-04",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [],
++      "maia": "d4d5",
++      "second": "d4d6",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-05",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5"
++      ],
++      "maia": null,
++      "second": null,
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-06",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5"
++      ],
++      "maia": null,
++      "second": "d4d5",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-07",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5"
++      ],
++      "maia": null,
++      "second": "d4d6",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-08",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5"
++      ],
++      "maia": "d4d5",
++      "second": null,
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-09",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5"
++      ],
++      "maia": "d4d6",
++      "second": null,
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-10",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5"
++      ],
++      "maia": "d4d5",
++      "second": "d4d5",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-11",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5"
++      ],
++      "maia": "d4d5",
++      "second": "d4d6",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-12",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5"
++      ],
++      "maia": "d4d6",
++      "second": "d4d5",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-13",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5"
++      ],
++      "maia": "d4d6",
++      "second": "d4d6",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-14",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5"
++      ],
++      "maia": "d4d6",
++      "second": "d4d7",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-15",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5",
++        "d4d6"
++      ],
++      "maia": null,
++      "second": null,
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-16",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5",
++        "d4d6"
++      ],
++      "maia": null,
++      "second": "d4d5",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-17",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5",
++        "d4d6"
++      ],
++      "maia": null,
++      "second": "d4d6",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-18",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5",
++        "d4d6"
++      ],
++      "maia": null,
++      "second": "d4d7",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-19",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5",
++        "d4d6"
++      ],
++      "maia": "d4d5",
++      "second": null,
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-20",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5",
++        "d4d6"
++      ],
++      "maia": "d4d6",
++      "second": null,
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-21",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5",
++        "d4d6"
++      ],
++      "maia": "d4d7",
++      "second": null,
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-22",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5",
++        "d4d6"
++      ],
++      "maia": "d4d5",
++      "second": "d4d5",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-23",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5",
++        "d4d6"
++      ],
++      "maia": "d4d5",
++      "second": "d4d6",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-24",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5",
++        "d4d6"
++      ],
++      "maia": "d4d5",
++      "second": "d4d7",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-25",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5",
++        "d4d6"
++      ],
++      "maia": "d4d6",
++      "second": "d4d5",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-26",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5",
++        "d4d6"
++      ],
++      "maia": "d4d6",
++      "second": "d4d6",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-27",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5",
++        "d4d6"
++      ],
++      "maia": "d4d6",
++      "second": "d4d7",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-28",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5",
++        "d4d6"
++      ],
++      "maia": "d4d7",
++      "second": "d4d5",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-29",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5",
++        "d4d6"
++      ],
++      "maia": "d4d7",
++      "second": "d4d6",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-30",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5",
++        "d4d6"
++      ],
++      "maia": "d4d7",
++      "second": "d4d7",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "agreement-31",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4d5",
++        "d4d6"
++      ],
++      "maia": "d4d7",
++      "second": "d4d8",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "reported-J2VCe",
++      "fen": "2r3k1/6p1/4pPQ1/pp1p4/3P4/P7/KR6/7q b - - 0 29",
++      "sf": [
++        "h1h6",
++        "c8c7"
++      ],
++      "maia": "h1h7",
++      "second": "h1h6",
++      "expectedPieces": {
++        "h1": "black queen",
++        "c8": "black rook"
++      }
++    },
++    {
++      "id": "badge-brilliant",
++      "fen": "k6b/8/8/8/3P4/8/8/K7 b - - 0 1",
++      "sf": [
++        "h8d4",
++        "h8f6"
++      ],
++      "maia": "h8e5",
++      "second": "h8d4",
++      "badgeSquare": "d4",
++      "badge": "brilliant",
++      "previousFen": "k6b/8/8/8/8/3P4/8/K7 w - - 0 1",
++      "lastMove": "d3d4",
++      "lastMoveSan": "d4",
++      "expectedPieces": {
++        "h8": "black bishop",
++        "d4": "white pawn"
++      }
++    },
++    {
++      "id": "badge-good",
++      "fen": "k6b/8/8/8/3P4/8/8/K7 b - - 0 1",
++      "sf": [
++        "h8d4",
++        "h8f6"
++      ],
++      "maia": "h8e5",
++      "second": "h8d4",
++      "badgeSquare": "d4",
++      "badge": "good",
++      "previousFen": "k6b/8/8/8/8/3P4/8/K7 w - - 0 1",
++      "lastMove": "d3d4",
++      "lastMoveSan": "d4",
++      "expectedPieces": {
++        "h8": "black bishop",
++        "d4": "white pawn"
++      }
++    },
++    {
++      "id": "badge-interesting",
++      "fen": "k6b/8/8/8/3P4/8/8/K7 b - - 0 1",
++      "sf": [
++        "h8d4",
++        "h8f6"
++      ],
++      "maia": "h8e5",
++      "second": "h8d4",
++      "badgeSquare": "d4",
++      "badge": "interesting",
++      "previousFen": "k6b/8/8/8/8/3P4/8/K7 w - - 0 1",
++      "lastMove": "d3d4",
++      "lastMoveSan": "d4",
++      "expectedPieces": {
++        "h8": "black bishop",
++        "d4": "white pawn"
++      }
++    },
++    {
++      "id": "badge-dubious",
++      "fen": "k6b/8/8/8/3P4/8/8/K7 b - - 0 1",
++      "sf": [
++        "h8d4",
++        "h8f6"
++      ],
++      "maia": "h8e5",
++      "second": "h8d4",
++      "badgeSquare": "d4",
++      "badge": "dubious",
++      "previousFen": "k6b/8/8/8/8/3P4/8/K7 w - - 0 1",
++      "lastMove": "d3d4",
++      "lastMoveSan": "d4",
++      "expectedPieces": {
++        "h8": "black bishop",
++        "d4": "white pawn"
++      }
++    },
++    {
++      "id": "badge-mistake",
++      "fen": "k6b/8/8/8/3P4/8/8/K7 b - - 0 1",
++      "sf": [
++        "h8d4",
++        "h8f6"
++      ],
++      "maia": "h8e5",
++      "second": "h8d4",
++      "badgeSquare": "d4",
++      "badge": "mistake",
++      "previousFen": "k6b/8/8/8/8/3P4/8/K7 w - - 0 1",
++      "lastMove": "d3d4",
++      "lastMoveSan": "d4",
++      "expectedPieces": {
++        "h8": "black bishop",
++        "d4": "white pawn"
++      }
++    },
++    {
++      "id": "badge-blunder",
++      "fen": "k6b/8/8/8/3P4/8/8/K7 b - - 0 1",
++      "sf": [
++        "h8d4",
++        "h8f6"
++      ],
++      "maia": "h8e5",
++      "second": "h8d4",
++      "badgeSquare": "d4",
++      "badge": "blunder",
++      "previousFen": "k6b/8/8/8/8/3P4/8/K7 w - - 0 1",
++      "lastMove": "d3d4",
++      "lastMoveSan": "d4",
++      "expectedPieces": {
++        "h8": "black bishop",
++        "d4": "white pawn"
++      }
++    },
++    {
++      "id": "diagonal",
++      "fen": "4k3/8/8/8/8/8/8/B3K2B w - - 0 1",
++      "sf": [
++        "a1h8",
++        "h1a8"
++      ],
++      "maia": "a1g7",
++      "second": "h1b7",
++      "expectedPieces": {
++        "a1": "white bishop",
++        "h1": "white bishop"
++      }
++    },
++    {
++      "id": "knight",
++      "fen": "4k3/8/8/8/8/8/8/1N2K1N1 w - - 0 1",
++      "sf": [
++        "g1f3",
++        "b1c3"
++      ],
++      "maia": "g1f3",
++      "second": "b1c3",
++      "expectedPieces": {
++        "b1": "white knight",
++        "g1": "white knight"
++      }
++    },
++    {
++      "id": "opposite",
++      "fen": "7k/8/8/8/3R4/8/8/K7 w - - 0 1",
++      "sf": [
++        "d4a4",
++        "d4h4"
++      ],
++      "maia": "d4b4",
++      "second": "d4h4",
++      "expectedPieces": {
++        "d4": "white rook"
++      }
++    },
++    {
++      "id": "promotion",
++      "fen": "7k/4P3/8/8/8/8/8/K7 w - - 0 1",
++      "sf": [
++        "e7e8q",
++        "e7e8n"
++      ],
++      "maia": "e7e8q",
++      "second": "e7e8q",
++      "expectedPieces": {
++        "e7": "white pawn"
++      }
++    },
++    {
++      "id": "castling",
++      "fen": "4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1",
++      "sf": [
++        "e1g1",
++        "e1c1"
++      ],
++      "maia": "e1g1",
++      "second": "e1c1",
++      "expectedPieces": {
++        "a1": "white rook",
++        "e1": "white king",
++        "h1": "white rook"
++      }
++    },
++    {
++      "id": "same-destination",
++      "fen": "7k/8/8/4R3/3R4/5B2/8/K7 w - - 0 1",
++      "sf": [
++        "d4e4",
++        "e5e4"
++      ],
++      "maia": "d4e4",
++      "second": "f3e4",
++      "expectedPieces": {
++        "d4": "white rook",
++        "e5": "white rook",
++        "f3": "white bishop"
++      }
++    },
++    {
++      "id": "short-long",
++      "fen": "7k/8/8/8/8/8/8/RK6 w - - 0 1",
++      "sf": [
++        "a1a2",
++        "a1a8"
++      ],
++      "maia": "a1a2",
++      "second": "a1a8",
++      "expectedPieces": {
++        "a1": "white rook"
++      }
++    },
++    {
++      "id": "sf-taper",
++      "fen": "2r3k1/6p1/4pPQ1/pp1p4/3P4/P7/KR6/7q b - - 0 29",
++      "sf": [
++        "h1h6",
++        "c8c7"
++      ],
++      "maia": "h1h5",
++      "second": null,
++      "sfCp": [
++        0,
++        1000
++      ],
++      "expectedPieces": {
++        "h1": "black queen",
++        "c8": "black rook"
++      }
++    },
++    {
++      "id": "small-board",
++      "fen": "k6b/8/8/8/3P4/8/8/K7 b - - 0 1",
++      "sf": [
++        "h8d4",
++        "h8f6"
++      ],
++      "maia": "h8e5",
++      "second": "h8d4",
++      "badgeSquare": "d4",
++      "size": 256,
++      "badge": "brilliant",
++      "previousFen": "k6b/8/8/8/8/3P4/8/K7 w - - 0 1",
++      "lastMove": "d3d4",
++      "lastMoveSan": "d4",
++      "expectedPieces": {
++        "h8": "black bishop",
++        "d4": "white pawn"
++      }
++    }
++  ]
++}
 diff --git a/ui/analyse/tests/fixtures/noSweat/annotation-boundaries.json b/ui/analyse/tests/fixtures/noSweat/annotation-boundaries.json
 new file mode 100644
 index 0000000..e30a560
@@ -98758,7 +99570,7 @@ index 0000000..90bbbf5
 +});
 diff --git a/ui/analyse/tests/noSweatFullReview.test.ts b/ui/analyse/tests/noSweatFullReview.test.ts
 new file mode 100644
-index 0000000..d6baf70
+index 0000000..a0fc766
 --- /dev/null
 +++ b/ui/analyse/tests/noSweatFullReview.test.ts
 @@ -0,0 +1,255 @@
@@ -98829,8 +99641,8 @@ index 0000000..d6baf70
 +    const sf = [{ uci: 'e2e4' }, { uci: 'd2d4' }];
 +    const both = engineArrows(sf, 'e2e4', 'e2e4');
 +    assert.equal(both.length, 2);
-+    assert.deepEqual(both[0].tail, [engineColors.stockfish]);
-+    assert.deepEqual(both[0].head, [engineColors.maia, engineColors.maiaSecond]);
++    assert.deepEqual(both[1].tail, [engineColors.stockfish]);
++    assert.deepEqual(both[1].head, [engineColors.maia, engineColors.maiaSecond]);
 +    const withoutSf = engineArrows(sf, 'c2c4', 'c2c4');
 +    assert.deepEqual(withoutSf[2].tail, [engineColors.maia, engineColors.maiaSecond]);
 +    assert.deepEqual(withoutSf[2].head, withoutSf[2].tail);
@@ -99008,14 +99820,14 @@ index 0000000..d6baf70
 +test('custom arrow palettes retain split agreement and native move geometry', () => {
 +  const colors = { stockfish: '#112233', stockfishSecond: '#445566', maia: '#778899', maiaSecond: '#aabbcc' };
 +  const arrows = engineArrows([{ uci: 'e2e4' }, { uci: 'd2d4' }], 'e2e4', 'e2e4', colors);
-+  assert.deepEqual(arrows[0].tail, [colors.stockfish]);
-+  assert.deepEqual(arrows[0].head, [colors.maia, colors.maiaSecond]);
-+  assert.deepEqual(arrows[1].head, [colors.stockfishSecond]);
++  assert.deepEqual(arrows[1].tail, [colors.stockfish]);
++  assert.deepEqual(arrows[1].head, [colors.maia, colors.maiaSecond]);
++  assert.deepEqual(arrows[0].head, [colors.stockfishSecond]);
 +  const shapes = engineShapes(arrows, 'white');
-+  assert.equal(shapes[0].orig, 'e2');
-+  assert.equal(shapes[0].dest, 'e4');
-+  assert.ok(shapes[0].customSvg!.html.includes('#778899'));
-+  assert.ok(shapes[0].customSvg!.html.includes('#aabbcc'));
++  assert.equal(shapes[1].orig, 'e2');
++  assert.equal(shapes[1].dest, 'e4');
++  assert.ok(shapes[1].customSvg!.html.includes('#778899'));
++  assert.ok(shapes[1].customSvg!.html.includes('#aabbcc'));
 +});
 diff --git a/ui/analyse/tests/noSweatMaterialPrecision.test.ts b/ui/analyse/tests/noSweatMaterialPrecision.test.ts
 new file mode 100644
@@ -101045,10 +101857,10 @@ index 0000000..d607d68
 +}
 diff --git a/ui/lib/src/nosweat/arrows.ts b/ui/lib/src/nosweat/arrows.ts
 new file mode 100644
-index 0000000..204d2bb
+index 0000000..9cd3d82
 --- /dev/null
 +++ b/ui/lib/src/nosweat/arrows.ts
-@@ -0,0 +1,85 @@
+@@ -0,0 +1,106 @@
 +// Mobile Maia review.dart / ReviewBoardOverlayPainter, AGPL-3.0.
 +import type { DrawShape } from '@lichess-org/chessground/draw';
 +export const engineColors = {
@@ -101063,6 +101875,7 @@ index 0000000..204d2bb
 +  tail: string[];
 +  head: string[];
 +  width: number;
++  layer: 'ordinary' | 'agreement';
 +}
 +const valid = (uci?: string): uci is string => !!uci && /^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci);
 +// Each Maia channel contributes ONE top move, not its top three probabilities.
@@ -101086,14 +101899,30 @@ index 0000000..204d2bb
 +    [secondary, colors.maiaSecond],
 +  ] as const)
 +    if (valid(move)) maia.set(move, [...(maia.get(move) ?? []), color]);
++  const palette = colors;
 +  const result: EngineArrow[] = [];
++  // Mobile Maia paints ordinary arrows inside Chessground, then agreements
++  // in its board overlay. Keep that order even when engines return asynchronously.
 +  sf.forEach((s, i) => {
++    if (maia.has(s.uci)) return;
 +    const color = i ? colors.stockfishSecond : colors.stockfish;
-+    const agreed = maia.get(s.uci);
-+    result.push({ uci: s.uci, tail: [color], head: agreed ?? [color], width: agreed ? 25 : (s.width ?? 25) });
-+    maia.delete(s.uci);
++    result.push({ uci: s.uci, tail: [color], head: [color], width: s.width ?? 25, layer: 'ordinary' });
 +  });
-+  for (const [uci, colors] of maia) result.push({ uci, tail: colors, head: colors, width: 25 });
++  for (const [uci, colors] of maia)
++    if (!sf.some(s => s.uci === uci) && colors.length === 1)
++      result.push({ uci, tail: colors, head: colors, width: 25, layer: 'ordinary' });
++  // Agreement order follows the Maia channels, not Stockfish rank.
++  for (const [uci, colors] of maia) {
++    const index = sf.findIndex(s => s.uci === uci);
++    if (index < 0 && colors.length < 2) continue;
++    result.push({
++      uci,
++      tail: index < 0 ? colors : [index ? palette.stockfishSecond : palette.stockfish],
++      head: colors,
++      width: 25,
++      layer: 'agreement',
++    });
++  }
 +  return result;
 +}
 +// One owned Chessground custom SVG per unique move. Agreement is painted once:
@@ -101101,6 +101930,10 @@ index 0000000..204d2bb
 +// Chessground anchors a custom 100x100 SVG at the square corner (its outer
 +// viewBox starts at -3.5). Translate to (50,50) before rotating around the center.
 +export function engineShapes(arrows: EngineArrow[], orientation: Color): DrawShape[] {
++  // Chessground retains unchanged SVG siblings and only appends new ones.
++  // Invalidate the small engine scene together when its inputs/order change;
++  // otherwise an older ordinary arrow can stay above a new agreement arrow.
++  const scene = encodeURIComponent(JSON.stringify(arrows));
 +  return arrows.map(arrow => {
 +    const { uci, tail, head, width } = arrow;
 +    const sign = orientation === 'white' ? 1 : -1;
@@ -101129,7 +101962,7 @@ index 0000000..204d2bb
 +      dest: uci.slice(2, 4) as Key,
 +      below: true,
 +      customSvg: {
-+        html: `<g class="nosweat-engine-arrow" data-move="${uci}" data-tail="${tail.join(',')}" data-head="${head.join(',')}" transform="translate(50,50) rotate(${angle})" fill="none">${shaft}${tip}</g>`,
++        html: `<g class="nosweat-engine-arrow" data-scene="${scene}" data-layer="${arrow.layer}" data-move="${uci}" data-tail="${tail.join(',')}" data-head="${head.join(',')}" transform="translate(50,50) rotate(${angle})" fill="none">${shaft}${tip}</g>`,
 +      },
 +    };
 +  });
@@ -102155,6 +102988,76 @@ index 0000000..7d0511b
 +  assert.equal(loadEnginePreferences().selfElo, 1800);
 +  assert.equal(loadEnginePreferences().opponentElo, 1800);
 +  assert.deepEqual(updates, [false, false]);
++});
+diff --git a/ui/lib/tests/noSweatArrowOrder.test.ts b/ui/lib/tests/noSweatArrowOrder.test.ts
+new file mode 100644
+index 0000000..b250b0f
+--- /dev/null
++++ b/ui/lib/tests/noSweatArrowOrder.test.ts
+@@ -0,0 +1,64 @@
++import { parseSquare } from 'chessops/util';
++import assert from 'node:assert/strict';
++import { readFileSync } from 'node:fs';
++import { test } from 'node:test';
++
++import { engineArrows, engineShapes, engineColors } from '../src/nosweat/arrows';
++import { after, legalUcis, position } from '../src/nosweat/core';
++
++test('reported puzzle: ordinary Qh7 is below the SF/secondary Maia Qh6 agreement', () => {
++  const arrows = engineArrows([{ uci: 'h1h6' }, { uci: 'c8c7', width: 3.125 }], 'h1h7', 'h1h6');
++  assert.deepEqual(
++    arrows.map(a => [a.uci, a.layer, a.width]),
++    [
++      ['c8c7', 'ordinary', 3.125],
++      ['h1h7', 'ordinary', 25],
++      ['h1h6', 'agreement', 25],
++    ],
++  );
++  assert.deepEqual(arrows[2].tail, [engineColors.stockfish]);
++  assert.deepEqual(arrows[2].head, [engineColors.maiaSecond]);
++});
++
++test('agreement paint order follows Maia channels rather than Stockfish rank', () => {
++  const arrows = engineArrows([{ uci: 'e2e4' }, { uci: 'd2d4' }], 'd2d4', 'e2e4');
++  assert.deepEqual(
++    arrows.map(a => a.uci),
++    ['d2d4', 'e2e4'],
++  );
++});
++
++test('every owned SVG changes identity when the engine scene changes', () => {
++  const before = engineShapes(engineArrows([{ uci: 'a1a6' }], 'h1h7', 'a1a6'), 'white');
++  const after = engineShapes(engineArrows([{ uci: 'a1a6' }], 'h1h7', 'b1b6'), 'white');
++  const unchangedMove = (shapes: typeof before) => shapes.find(s => s.orig === 'h1')!.customSvg!.html;
++  assert.notEqual(unchangedMove(before), unchangedMove(after));
++  assert.ok(before.every(s => s.below));
++});
++
++test('every screenshot fixture has legal roots, the named pieces and valid badge history', () => {
++  const fixtures = JSON.parse(
++    readFileSync(new URL('../../analyse/tests/fixtures/arrowBehavior.json', import.meta.url), 'utf8'),
++  );
++  for (const c of fixtures.cases) {
++    const pos = position(c.fen);
++    const legal = new Set(legalUcis(c.fen));
++    for (const uci of [...c.sf, c.maia, c.second].filter(Boolean))
++      assert.ok(legal.has(uci), `${c.id}: ${uci} is not legal for ${pos.turn} in ${c.fen}`);
++    for (const [square, expected] of Object.entries(c.expectedPieces)) {
++      const piece = pos.board.get(parseSquare(square)!);
++      assert.equal(piece && `${piece.color} ${piece.role}`, expected, `${c.id}: ${square}`);
++    }
++    if (c.badge) {
++      assert.ok(c.previousFen && c.lastMove, `${c.id}: badge needs selected-move history`);
++      assert.equal(
++        after(c.previousFen, c.lastMove).split(' ').slice(0, 4).join(' '),
++        c.fen.split(' ').slice(0, 4).join(' '),
++        `${c.id}: previous move must produce the shown board`,
++      );
++      assert.equal(c.lastMove.slice(2, 4), c.badgeSquare);
++      const piece = pos.board.get(parseSquare(c.badgeSquare)!);
++      assert.ok(piece && piece.color !== pos.turn, `${c.id}: badge must be on the just-moved piece`);
++    }
++  }
 +});
 diff --git a/ui/lib/tests/noSweatGlyphs.test.ts b/ui/lib/tests/noSweatGlyphs.test.ts
 new file mode 100644

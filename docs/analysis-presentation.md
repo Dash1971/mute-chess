@@ -359,3 +359,9 @@ wording or classifications. Unannotated moves, upstream/unbranded trees, other
 page controls and Maia probability/quality palettes retain their existing styles.
 The same document-brand guard as the board badges applies this independently of
 engine availability, including practice views.
+
+## Arrow overlap parity (#328)
+
+The [arrow behavior feature page](arrow-behavior.md) records Mobile Maia paint
+order, the intentionally retained Lichess second-arrow tapering, classification
+badge layering, the bounded shared-helper fix and the cross-app screenshot matrix.
