@@ -1377,6 +1377,37 @@ index 3fb4283..712b229 100644
  
      val side = views.game.side(pov, initialFen, none, simul = simul, userTv = userTv, bookmarked = bookmarked)
  
+diff --git a/app/views/base/notFound.scala b/app/views/base/notFound.scala
+index bf1caff..5deef21 100644
+--- a/app/views/base/notFound.scala
++++ b/app/views/base/notFound.scala
+@@ -1,8 +1,25 @@
+ package views.base
+ 
+ import lila.app.UiEnv.{ *, given }
++import lila.core.i18n.I18nKey
+ 
+-def notFound(msg: Option[String]) =
++def notFound(msg: Option[String])(using Context) =
++  if env.noSweat.enabled then
++    val title = I18nKey("mutePageNotFound").txt()
++    Page(msg | title).css("bits.not-found"):
++      main(cls := "not-found page-small box box-pad")(
++        header(
++          h1("404"),
++          div(
++            strong(title),
++            msg.map(em(_)),
++            p(a(href := routes.Lobby.home)(I18nKey("muteReturnToHomepage")()))
++          )
++        )
++      )
++  else upstreamNotFound(msg)
++
++private def upstreamNotFound(msg: Option[String]) =
+   Page(msg | "Page not found").css("bits.not-found"):
+     main(cls := "not-found page-small box box-pad")(
+       header(
 diff --git a/app/views/base/page.scala b/app/views/base/page.scala
 index b408a91..e1c909a 100644
 --- a/app/views/base/page.scala
@@ -5560,7 +5591,7 @@ index 90a91f3..272f2f4 100644
        )
      )
 diff --git a/modules/user/src/main/ui/UserShowSide.scala b/modules/user/src/main/ui/UserShowSide.scala
-index 2c470e6..4bb6eaa 100644
+index 2c470e6..078d5b5 100644
 --- a/modules/user/src/main/ui/UserShowSide.scala
 +++ b/modules/user/src/main/ui/UserShowSide.scala
 @@ -8,7 +8,7 @@ import lila.rating.UserWithPerfs.hasVariantRating
@@ -5572,7 +5603,13 @@ index 2c470e6..4bb6eaa 100644
    import helpers.{ *, given }
  
    def apply(
-@@ -79,7 +79,7 @@ final class UserShowSide(helpers: Helpers):
+@@ -74,12 +74,12 @@ final class UserShowSide(helpers: Helpers):
+     div(cls := "side sub-ratings")(
+       (!u.lame || ctx.is(u) || Granter.opt(_.AccountInfo)).option(
+         frag(
+-          showNonEmptyPerf(u.perfs.ultraBullet, PerfKey.ultraBullet),
++          (!focused || u.noBot).option(showNonEmptyPerf(u.perfs.ultraBullet, PerfKey.ultraBullet)),
+           showPerf(u.perfs.bullet, PerfKey.bullet),
            showPerf(u.perfs.blitz, PerfKey.blitz),
            showPerf(u.perfs.rapid, PerfKey.rapid),
            showPerf(u.perfs.classical, PerfKey.classical),
@@ -6693,10 +6730,10 @@ index 58403d3..bdb1c27 100644
 +  <string name="allowBotAccounts">允许机器人账号参赛</string>
  </resources>
 diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
-index 88adade..b890f5b 100644
+index 88adade..f88130b 100644
 --- a/translation/dest/site/de-DE.xml
 +++ b/translation/dest/site/de-DE.xml
-@@ -1064,4 +1064,178 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
+@@ -1064,4 +1064,180 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
    <string name="write">Schreiben</string>
    <string name="preview">Vorschau</string>
    <string name="done">Erledigt</string>
@@ -6874,12 +6911,14 @@ index 88adade..b890f5b 100644
 +  <string name="muteArenaBotNoticeIntro">Bots mit einer Wertung von %1$s–%2$s füllen freie Plätze, bis die Zahl der aktiven Teilnehmer %3$s erreicht.</string>
 +  <string name="muteArenaBotNoticeFill">Wenn Menschen beitreten, treten Bots zurück. Sobald die Zahl der aktiven Menschen %s erreicht, erhalten Bots keine neuen Paarungen. Laufende Partien werden regulär beendet.</string>
 +  <string name="muteArenaRefresh">Aktualisieren</string>
++  <string name="mutePageNotFound">Seite nicht gefunden</string>
++  <string name="muteReturnToHomepage">Zurück zur Startseite</string>
  </resources>
 diff --git a/translation/dest/site/es-ES.xml b/translation/dest/site/es-ES.xml
-index 76004f5..c0906c4 100644
+index 76004f5..776430b 100644
 --- a/translation/dest/site/es-ES.xml
 +++ b/translation/dest/site/es-ES.xml
-@@ -1064,4 +1064,178 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
+@@ -1064,4 +1064,180 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
    <string name="write">Escribir</string>
    <string name="preview">Vista previa</string>
    <string name="done">Listo</string>
@@ -7057,12 +7096,14 @@ index 76004f5..c0906c4 100644
 +  <string name="muteArenaBotNoticeIntro">Los bots con una puntuación de %1$s–%2$s cubren plazas libres hasta alcanzar %3$s participantes activos.</string>
 +  <string name="muteArenaBotNoticeFill">A medida que se unen personas, los bots dejan su lugar. Cuando hay %s personas activas, los bots dejan de recibir nuevos emparejamientos. Las partidas en curso terminan con normalidad.</string>
 +  <string name="muteArenaRefresh">Actualizar</string>
++  <string name="mutePageNotFound">Página no encontrada</string>
++  <string name="muteReturnToHomepage">Volver a la página de inicio</string>
  </resources>
 diff --git a/translation/dest/site/fr-FR.xml b/translation/dest/site/fr-FR.xml
-index 7dfd5f7..7444686 100644
+index 7dfd5f7..7d59b36 100644
 --- a/translation/dest/site/fr-FR.xml
 +++ b/translation/dest/site/fr-FR.xml
-@@ -1063,4 +1063,178 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
+@@ -1063,4 +1063,180 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
    <string name="write">Écrire</string>
    <string name="preview">Aperçu</string>
    <string name="done">Terminé</string>
@@ -7240,12 +7281,14 @@ index 7dfd5f7..7444686 100644
 +  <string name="muteArenaBotNoticeIntro">Les bots classés entre %1$s et %2$s occupent les places libres jusqu’à atteindre %3$s participants actifs.</string>
 +  <string name="muteArenaBotNoticeFill">À mesure que des humains rejoignent le tournoi, les bots leur cèdent la place. Lorsque le nombre d’humains actifs atteint %s, les bots ne reçoivent plus de nouveaux appariements. Les parties en cours se terminent normalement.</string>
 +  <string name="muteArenaRefresh">Actualiser</string>
++  <string name="mutePageNotFound">Page introuvable</string>
++  <string name="muteReturnToHomepage">Retour à la page d’accueil</string>
  </resources>
 diff --git a/translation/dest/site/hi-IN.xml b/translation/dest/site/hi-IN.xml
-index bbf1703..bc2e699 100644
+index bbf1703..7405875 100644
 --- a/translation/dest/site/hi-IN.xml
 +++ b/translation/dest/site/hi-IN.xml
-@@ -893,4 +893,178 @@
+@@ -893,4 +893,180 @@
    <string name="closingAccountWithdrawAppeal">आपका खाता बंद करने से आपकी अपील वापस ले ली जाएगी</string>
    <string name="ourEventTips">कार्यक्रम आयोजित करने कि सलाह</string>
    <string name="nothingToSeeHere">इस समय यहां देखने को कुछ भी नहीं है।</string>
@@ -7423,12 +7466,14 @@ index bbf1703..bc2e699 100644
 +  <string name="muteArenaBotNoticeIntro">%1$s–%2$s रेटिंग वाले बॉट तब तक खाली स्थान भरते हैं जब तक सक्रिय प्रतिभागियों की संख्या %3$s नहीं हो जाती।</string>
 +  <string name="muteArenaBotNoticeFill">जैसे-जैसे मानव खिलाड़ी जुड़ते हैं, बॉट उनके लिए जगह छोड़ते हैं। सक्रिय मानव खिलाड़ियों की संख्या %s होने पर बॉट को नए मुकाबले नहीं दिए जाते। चल रही बाज़ियाँ सामान्य रूप से पूरी होती हैं।</string>
 +  <string name="muteArenaRefresh">रीफ़्रेश करें</string>
++  <string name="mutePageNotFound">पृष्ठ नहीं मिला</string>
++  <string name="muteReturnToHomepage">मुखपृष्ठ पर लौटें</string>
  </resources>
 diff --git a/translation/dest/site/ja-JP.xml b/translation/dest/site/ja-JP.xml
-index e628bdb..bb464e0 100644
+index e628bdb..50a8335 100644
 --- a/translation/dest/site/ja-JP.xml
 +++ b/translation/dest/site/ja-JP.xml
-@@ -1023,4 +1023,178 @@
+@@ -1023,4 +1023,180 @@
    <string name="write">書く</string>
    <string name="preview">プレビュー</string>
    <string name="done">完了</string>
@@ -7606,12 +7651,14 @@ index e628bdb..bb464e0 100644
 +  <string name="muteArenaBotNoticeIntro">レーティング%1$s～%2$sのボットが、活動中の参加者数が%3$s人になるまで空きを補います。</string>
 +  <string name="muteArenaBotNoticeFill">人間が参加すると、ボットは枠を譲ります。活動中の人間が%s人に達すると、ボットに新しい対局は割り当てられません。進行中の対局は通常どおり終了まで続きます。</string>
 +  <string name="muteArenaRefresh">更新</string>
++  <string name="mutePageNotFound">ページが見つかりません</string>
++  <string name="muteReturnToHomepage">ホームページに戻る</string>
  </resources>
 diff --git a/translation/dest/site/ko-KR.xml b/translation/dest/site/ko-KR.xml
-index 9341bf0..ba40288 100644
+index 9341bf0..6bf5337 100644
 --- a/translation/dest/site/ko-KR.xml
 +++ b/translation/dest/site/ko-KR.xml
-@@ -1022,4 +1022,178 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
+@@ -1022,4 +1022,180 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
    <string name="write">작성</string>
    <string name="preview">미리보기</string>
    <string name="done">완료</string>
@@ -7789,12 +7836,14 @@ index 9341bf0..ba40288 100644
 +  <string name="muteArenaBotNoticeIntro">레이팅이 %1$s~%2$s인 봇이 활동 중인 참가자가 %3$s명에 이를 때까지 빈자리를 채웁니다.</string>
 +  <string name="muteArenaBotNoticeFill">사람이 참가하면 봇이 자리를 내줍니다. 활동 중인 사람이 %s명에 이르면 봇은 새로운 대국에 배정되지 않습니다. 진행 중인 대국은 정상적으로 끝까지 계속됩니다.</string>
 +  <string name="muteArenaRefresh">새로고침</string>
++  <string name="mutePageNotFound">페이지를 찾을 수 없습니다</string>
++  <string name="muteReturnToHomepage">홈페이지로 돌아가기</string>
  </resources>
 diff --git a/translation/dest/site/pt-BR.xml b/translation/dest/site/pt-BR.xml
-index 569e752..66e9b1e 100644
+index 569e752..1a98dc6 100644
 --- a/translation/dest/site/pt-BR.xml
 +++ b/translation/dest/site/pt-BR.xml
-@@ -1063,4 +1063,178 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
+@@ -1063,4 +1063,180 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
    <string name="write">Escrever</string>
    <string name="preview">Pré-visualizar</string>
    <string name="done">Feito</string>
@@ -7972,12 +8021,14 @@ index 569e752..66e9b1e 100644
 +  <string name="muteArenaBotNoticeIntro">Bots com rating de %1$s–%2$s preenchem as vagas até que o número de participantes ativos chegue a %3$s.</string>
 +  <string name="muteArenaBotNoticeFill">Conforme humanos entram, os bots cedem lugar. Quando o número de humanos ativos chega a %s, os bots deixam de receber novos emparceiramentos. As partidas em andamento terminam normalmente.</string>
 +  <string name="muteArenaRefresh">Atualizar</string>
++  <string name="mutePageNotFound">Página não encontrada</string>
++  <string name="muteReturnToHomepage">Voltar à página inicial</string>
  </resources>
 diff --git a/translation/dest/site/ru-RU.xml b/translation/dest/site/ru-RU.xml
-index 6384657..60f1b2e 100644
+index 6384657..c70b3c2 100644
 --- a/translation/dest/site/ru-RU.xml
 +++ b/translation/dest/site/ru-RU.xml
-@@ -1146,4 +1146,178 @@
+@@ -1146,4 +1146,180 @@
    <string name="write">Написать</string>
    <string name="preview">Предпросмотр</string>
    <string name="done">Готово</string>
@@ -8155,12 +8206,14 @@ index 6384657..60f1b2e 100644
 +  <string name="muteArenaBotNoticeIntro">Боты с рейтингом %1$s–%2$s занимают свободные места, пока число активных участников не достигнет %3$s.</string>
 +  <string name="muteArenaBotNoticeFill">По мере присоединения людей боты уступают им места. Когда число активных людей достигает %s, боты больше не получают новых соперников. Уже начатые партии завершаются в обычном порядке.</string>
 +  <string name="muteArenaRefresh">Обновить</string>
++  <string name="mutePageNotFound">Страница не найдена</string>
++  <string name="muteReturnToHomepage">Вернуться на главную страницу</string>
  </resources>
 diff --git a/translation/dest/site/zh-CN.xml b/translation/dest/site/zh-CN.xml
-index 176f4d1..ca1f3bd 100644
+index 176f4d1..89844d8 100644
 --- a/translation/dest/site/zh-CN.xml
 +++ b/translation/dest/site/zh-CN.xml
-@@ -1022,4 +1022,178 @@
+@@ -1022,4 +1022,180 @@
    <string name="write">撰写</string>
    <string name="preview">预览</string>
    <string name="done">完成</string>
@@ -8338,12 +8391,14 @@ index 176f4d1..ca1f3bd 100644
 +  <string name="muteArenaBotNoticeIntro">评分为%1$s至%2$s的机器人会补充空位，直到活跃参赛人数达到%3$s。</string>
 +  <string name="muteArenaBotNoticeFill">随着人类棋手加入，机器人会让出位置。当活跃的人类棋手人数达到%s时，机器人将不再获得新的对局配对。已经开始的对局会正常进行至结束。</string>
 +  <string name="muteArenaRefresh">刷新</string>
++  <string name="mutePageNotFound">找不到页面</string>
++  <string name="muteReturnToHomepage">返回首页</string>
  </resources>
 diff --git a/translation/source/site.xml b/translation/source/site.xml
-index 8b5a6a1..7087c1b 100644
+index 8b5a6a1..4746142 100644
 --- a/translation/source/site.xml
 +++ b/translation/source/site.xml
-@@ -1066,4 +1066,178 @@ Leave empty to start games from the normal initial position.</string>
+@@ -1066,4 +1066,180 @@ Leave empty to start games from the normal initial position.</string>
    <string name="write">Write</string>
    <string name="preview">Preview</string>
    <string name="done">Done</string>
@@ -8521,6 +8576,8 @@ index 8b5a6a1..7087c1b 100644
 +  <string name="muteArenaBotNoticeIntro">Bots rated %1$s–%2$s fill empty seats until the active participant count reaches %3$s.</string>
 +  <string name="muteArenaBotNoticeFill">As humans join, bots step aside. Once the number of active humans reaches %s, bots receive no new pairings. Games already underway finish normally.</string>
 +  <string name="muteArenaRefresh">Refresh</string>
++  <string name="mutePageNotFound">Page not found</string>
++  <string name="muteReturnToHomepage">Return to the homepage</string>
  </resources>
 diff --git a/ui/.build/src/build.ts b/ui/.build/src/build.ts
 index 7d6adeb..b433f0c 100644
