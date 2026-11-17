@@ -11,3 +11,25 @@ Public Import game navigation and its GET/POST endpoints are disabled. Its Reque
 Trade-off: users can no longer create a new public, saved game URL through the old importer; the analysis board and studies remain the supported import destinations. Existing correspondence/unlimited history stays readable, but new games and rematches in those modes are rejected. No accounts, ratings, scores or histories are deleted.
 
 Validation: 13 native UI regressions cover setup normalization plus the existing real lobby/bootstrap/game-start-sound flow. Existing gateway boundary tests exercise the actual handler and deny import/Racer/correspondence routes while retaining analysis/study/learn/practice routes. Native formatting and exact patch/departure coverage are checked; new messages and reused Learn labels are verified in all ten supported catalogs. This is PR preparation only: no merge or deployment.
+
+## Bot profile UltraBullet and 404 recovery
+
+Focused bot profiles omit UltraBullet: Lila's native `PerfStatApi.data` rejects
+UltraBullet statistics for BOT accounts, so exposing the link leads to a 404.
+Seeded ratings and all game/history data remain intact. Human UltraBullet links
+and non-focused upstream profile rendering are unchanged.
+
+Focused 404 pages show a translated title and a home link, retaining native HTTP
+404 status and optional diagnostic text. They omit the inherited ChessPursuit
+mini-game iframe: the asset gateway serves its `index.html` as
+`application/octet-stream`, causing Chrome to download the file even when the
+iframe is not visible. Removing the embed avoids downloads on every focused 404
+without broadening the gateway's MIME policy or weakening `nosniff`. Non-focused
+upstream 404 pages and the embedded/snippet error view remain unchanged.
+
+Reproduction: open `/@/PearlDrifter`, then UltraBullet. Before this fix Chrome
+shows `/@/PearlDrifter/perf/ultraBullet` as a 404 and downloads `index.html` from
+`/assets/vendor/ChessPursuit/bin-release/index.html`. After the fix the bot profile
+has no UltraBullet link, and direct visits to unsupported URLs retain a plain
+404 with a working home link and no mini-game request. Verify the title and link
+in en-GB, de-DE, es-ES, fr-FR, hi-IN, ja-JP, ko-KR, pt-BR, ru-RU and zh-CN.

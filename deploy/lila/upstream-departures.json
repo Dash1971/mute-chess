@@ -550,7 +550,7 @@
         },
         {
           "id": "supported-localization",
-          "rationale": "Issue #110 exposes exactly Mobile Maia\u2019s ten languages through the native language picker, preference/session storage and server/browser translation catalogs. A namespaced resolver normalizes supported regional variants, rejects unsupported choices and avoids mapping Traditional Chinese to Simplified Chinese. Mute-specific login actions, engine controls and analysis labels use native messages, with English fallback for technical help and unknown messages. Native translation generation, escaping and account ownership are retained. Issue #242 requires all newly added or changed user-facing copy in every supported locale and translates Nostr profile help, login introduction, forum/contact guidance and clipboard feedback through existing native catalogs. Whole-sentence link placeholders, escaping and native locale selection are retained; no translation framework is added. Issues #281/#282 restore bounded native non-engine Insights and provide translated notices for unsupported feature navigation, retaining native identity, privacy and gateway protections.",
+          "rationale": "Issue #110 exposes exactly Mobile Maia\u2019s ten languages through the native language picker, preference/session storage and server/browser translation catalogs. A namespaced resolver normalizes supported regional variants, rejects unsupported choices and avoids mapping Traditional Chinese to Simplified Chinese. Mute-specific login actions, engine controls and analysis labels use native messages, with English fallback for technical help and unknown messages. Native translation generation, escaping and account ownership are retained. Issue #242 requires all newly added or changed user-facing copy in every supported locale and translates Nostr profile help, login introduction, forum/contact guidance and clipboard feedback through existing native catalogs. Whole-sentence link placeholders, escaping and native locale selection are retained; no translation framework is added. Issues #281/#282 restore bounded native non-engine Insights and provide translated notices for unsupported feature navigation, retaining native identity, privacy and gateway protections. Focused 404 titles and return-home links use two native catalog messages in all ten supported locales.",
           "verification": [
             "Native NoSweatLanguagesTest checks exact ten-choice set, regional fallback and Chinese script boundary; Scala compile and native UI build; inspect selection route through public gateway and signed/anonymous persistence.",
             "Native compilation and NoSweatInsightsTest; Insights UI build; native catalog key/placeholder parity in ten locales; actual gateway method/private-path and fixed-notice-target regressions (#281/#282)."
@@ -621,15 +621,17 @@
         },
         {
           "id": "focused-feature-surface",
-          "rationale": "Issues #267/#269\u2013272 hide correspondence and Puzzle Racer from focused profile navigation and verify real-time setup normalization. Existing data and non-focused upstream rendering remain unchanged.",
+          "rationale": "Issues #267/#269\u2013272 hide correspondence and Puzzle Racer from focused profile navigation and verify real-time setup normalization. Existing data and non-focused upstream rendering remain unchanged. Focused BOT profiles also omit UltraBullet because native PerfStatApi intentionally rejects UltraBullet statistics for bots; retain seeded perfs and human/non-focused navigation. Focused 404 pages omit the ChessPursuit iframe, whose HTML is served as an octet-stream by the asset gateway and triggers an automatic download; keep native 404 status, optional diagnostic text and home navigation, without changing MIME/security policy or non-focused pages.",
           "verification": [
-            "Run native noSweatTimeControls and maiaPoolBootstrap regressions, compile profile views and inspect both focused/upstream guards."
+            "Run native noSweatTimeControls and maiaPoolBootstrap regressions, compile profile views and inspect both focused/upstream guards.",
+            "Reproduce PearlDrifter UltraBullet 404 and index.html download in Chrome; verify focused bot/human and non-focused profile guards, focused 404 without iframe, translated copy in all ten locales, native compile and exact patch reconstruction."
           ],
           "files": [
             "modules/user/src/main/ui/UserShowSide.scala",
             "ui/lobby/tests/noSweatTimeControls.test.ts",
             "app/controllers/Challenge.scala",
-            "app/views/game/side.scala"
+            "app/views/game/side.scala",
+            "app/views/base/notFound.scala"
           ]
         },
         {
