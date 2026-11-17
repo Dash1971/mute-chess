@@ -1,9 +1,10 @@
-# Weekly community Arenas — draft implementation
+# Weekly community Arenas
 
-**Status:** draft implementation for [#311](https://github.com/Dash1971/mute-chess/issues/311).
-The implementation is on draft PR #313 and is not merged or deployed. It does
-not start a live event or change the live bot pool. It supersedes the one-human-per-Arena idea in
-[#84](https://github.com/Dash1971/mute-chess/issues/84).
+**Status:** owner-hosted Arenas (#313/#320) and native discovery (#325) are deployed.
+The compact sidebar follow-up in #326 is draft only and is being held for a later
+batch release. Original draft implementation/validation notes below are historical;
+this follow-up starts no event and changes no live service or bot pool.
+The Arena feature supersedes the one-human-per-Arena proposal in #84.
 
 ## Event setup
 
@@ -66,6 +67,30 @@ The host sidebar omits the repeated explanatory paragraph beneath chat.
 
 All added labels, help, validation, and participant notices use the ten native
 translation catalogs. This follow-up remains draft and is not a deployment.
+
+## Compact event sidebar (#326, draft)
+
+The tournament details card replaces the large Maia warning with a collapsed
+**Maia bots fill empty seats** row. Click or keyboard-activate the row to expand
+its explanation; activate it again to collapse. The text uses this event's saved
+bot rating range and active-participant target, and explains that humans replace
+bots for new pairings while ongoing games finish normally. Human-only events do
+not show this disclosure. Individual BOT tags stay visible.
+
+Only the redundant accepted bots-allowed entry condition is omitted. Other entry
+requirements and refusal reasons retain the native eligibility display and checks.
+Event descriptions/date use natural height and normal page scrolling instead of
+a short internal scroll area. The focused layout retires its old whole-description
+collapse control/preference, without changing upstream non-Mute views. Native
+chat uses the freed space with a usable minimum height. Host preparation feedback
+sits above chat; the small translated Refresh link reloads the event to check
+readiness and does not prepare, start or reconfigure it.
+
+All changed text, including the disclosure, draining status and Refresh link,
+uses the existing native catalogs in all ten supported locales. This is presentation
+only: native chat permissions, owner/CSRF checks, bot settings, game admission,
+clocks, ratings, pairings and event lifecycle are unchanged. No merge or deployment
+is authorized until a later batch is explicitly approved.
 
 ## Participation rule
 
