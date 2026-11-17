@@ -3838,10 +3838,10 @@ index 8fd4ed3..687a138 100644
            messenger.owner(_, color, msg)
      case Protocol.In.PlayerChatSay(id, Left(userId), msg) =>
 diff --git a/modules/round/src/test/RematcherTest.scala b/modules/round/src/test/RematcherTest.scala
-index b2305a1..afaa617 100644
+index b2305a1..354cf04 100644
 --- a/modules/round/src/test/RematcherTest.scala
 +++ b/modules/round/src/test/RematcherTest.scala
-@@ -30,3 +30,79 @@ class RematcherTest extends munit.FunSuite:
+@@ -30,3 +30,85 @@ class RematcherTest extends munit.FunSuite:
        .foreach: variant =>
          val x = returnChessGame(variant, none, none, false)
          assertEquals(x.position, variant.initialPosition)
@@ -3884,9 +3884,15 @@ index b2305a1..afaa617 100644
 +      val game = finishedClockGame(seconds, increment)
 +      // A refused insertion used to leave this accepted marker behind.
 +      state.accept(game.id, GameId("notmade1"))
-+      // The native database/start collaborators are deliberately absent: rejection must not touch them.
-+      val rematcher =
-+        new Rematcher(null, null, null, null, state, play.api.Configuration("nosweat.enabled" -> true))
++      // Rejection must not touch the absent database collaborators or the explicit start trap.
++      val rematcher = new Rematcher(
++        null,
++        null,
++        null,
++        lila.core.game.OnStart(_ => fail("a rejected rematch must not start a game")),
++        state,
++        play.api.Configuration("nosweat.enabled" -> true)
++      )
 +      rematcher
 +        .yes(lila.core.game.Pov(game, color))
 +        .map: events =>
