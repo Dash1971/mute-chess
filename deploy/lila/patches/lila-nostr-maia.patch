@@ -156,10 +156,10 @@ index efdcfe5..1639aed 100644
  
    private def serveLogin(using ctx: Context, referrer: Option[ValidReferrer]) = NoBot:
 diff --git a/app/controllers/Challenge.scala b/app/controllers/Challenge.scala
-index cfd1602..9682383 100644
+index cfd1602..2449fcc 100644
 --- a/app/controllers/Challenge.scala
 +++ b/app/controllers/Challenge.scala
-@@ -97,21 +97,24 @@ final class Challenge(env: Env) extends LilaController(env):
+@@ -97,21 +97,26 @@ final class Challenge(env: Env) extends LilaController(env):
    def accept(id: ChallengeId, color: Option[Color]) = Open:
      Found(api.byId(id)): c =>
        isForMe(c).so:
@@ -180,6 +180,8 @@ index cfd1602..9682383 100644
 -          )
 +        if env.noSweat.enabled && (c.unlimited || c.daysPerTurn.isDefined) then
 +          fuccess(JsonBadRequest(lila.core.i18n.I18nKey("muteRealTimeOnly").txt()))
++        else if env.noSweat.enabled && !lila.game.NoSweatGameAdmission.hasMinimumClock(c.clock.map(_.config)) then
++          fuccess(JsonBadRequest(lila.core.i18n.I18nKey("muteMinimumClock").txt()))
 +        else
 +          allow:
 +            api
@@ -645,10 +647,10 @@ index af2f389..0519934 100644
  
    def sides(gameId: GameId, color: Color) = Open:
 diff --git a/app/controllers/Setup.scala b/app/controllers/Setup.scala
-index 7d5ec39..6c26c95 100644
+index 7d5ec39..23e165f 100644
 --- a/app/controllers/Setup.scala
 +++ b/app/controllers/Setup.scala
-@@ -44,47 +44,57 @@ final class Setup(
+@@ -44,47 +44,59 @@ final class Setup(
                origUser <- ctx.user.traverse(env.user.perfsRepo.withPerf(_, config.perfType))
                destUser <- userId.so(env.user.api.enabledWithPerf(_, config.perfType))
                denied <- destUser.so(u => env.challenge.granter.isDenied(u.user, config.perfKey.some))
@@ -662,6 +664,8 @@ index 7d5ec39..6c26c95 100644
 +              result <-
 +                if env.noSweat.enabled && config.makeClock.isEmpty then
 +                  fuccess(JsonBadRequest(lila.core.i18n.I18nKey("muteRealTimeOnly").txt()))
++                else if env.noSweat.enabled && !lila.game.NoSweatGameAdmission.hasMinimumClock(config.makeClock) then
++                  fuccess(JsonBadRequest(lila.core.i18n.I18nKey("muteMinimumClock").txt()))
 +                else if env.noSweat.enabled && (
 +                    origUser.isEmpty || destUser.isEmpty || origUser.exists(_.user.isBot) ||
 +                      destUser.exists(_.user.isBot) || destUser.exists(u => ctx.is(u.user)) ||
@@ -765,7 +769,7 @@ index 638f3c9..f7351b6 100644
    private[controllers] def chatOf(study: lila.study.Study)(using ctx: Context) = {
      ctx.kid.no && ctx.noBot // no public chats for kids and bots
 diff --git a/app/controllers/Tournament.scala b/app/controllers/Tournament.scala
-index 383bbdb..6d54e42 100644
+index 383bbdb..fced586 100644
 --- a/app/controllers/Tournament.scala
 +++ b/app/controllers/Tournament.scala
 @@ -25,7 +25,31 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
@@ -825,7 +829,7 @@ index 383bbdb..6d54e42 100644
              yield
                env.tournament.lilaHttp.hit(tour)
                Ok(page).noCache
-@@ -220,10 +250,23 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
+@@ -220,10 +250,25 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
    }
  
    def form = Auth { ctx ?=> me ?=>
@@ -844,6 +848,8 @@ index 383bbdb..6d54e42 100644
 +  def prepare(id: TourId) = Auth { ctx ?=> me ?=>
 +    WithEditableTournament(id): tour =>
 +      if !env.noSweat.enabled then fuccess(NotFound)
++      else if tour.clock.limitSeconds.value < 60 then
++        fuccess(BadRequest(lila.core.i18n.I18nKey("muteMinimumClock").txt()))
 +      else
 +        env.noSweat
 +          .prepareArena(tour)
@@ -853,7 +859,7 @@ index 383bbdb..6d54e42 100644
    }
  
    def teamBattleForm(teamId: TeamId) = Auth { _ ?=> me ?=>
-@@ -246,7 +289,11 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
+@@ -246,7 +291,11 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
    def webCreate = AuthBody(_ ?=> _ ?=> create)
    def apiCreate = ScopedBody(_.Tournament.Write)(_ ?=> _ ?=> create)
  
@@ -866,7 +872,7 @@ index 383bbdb..6d54e42 100644
      env.team.api
        .lightsByTourLeader(me)
        .flatMap: teams =>
-@@ -286,26 +333,27 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
+@@ -286,26 +335,27 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
    def apiUpdate(id: TourId) = ScopedBody(_.Tournament.Write) { ctx ?=> me ?=>
      WithEditableTournament(id): tour =>
        env.team.api.lightsByTourLeader(me).flatMap { teams =>
@@ -914,7 +920,7 @@ index 383bbdb..6d54e42 100644
        }
    }
  
-@@ -383,33 +431,48 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
+@@ -383,33 +433,48 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
          .inject(views.tournament.list.shields.byCateg(categ, awards))
  
    def calendar = Open:
@@ -977,7 +983,7 @@ index 383bbdb..6d54e42 100644
        }
    }
  
-@@ -449,12 +512,41 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
+@@ -449,12 +514,41 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
            Ok.page(views.tournament.moderation.page(tour, view, players))
    }
  
@@ -1021,7 +1027,7 @@ index 383bbdb..6d54e42 100644
        else Redirect(routes.Tournament.show(t.id))
  
    private def WithVisibleTournament(id: TourId)(
-@@ -463,6 +555,7 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
+@@ -463,6 +557,7 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
      def nope = negotiate(tournamentNotFound, notFoundJson("No such tournament"))
      cachedTour(id).flatMap:
        case None => nope
@@ -2796,10 +2802,10 @@ index 6fa1cc3..bdf092f 100644
    def authorLink(post: ForumPost, cssClass: Option[String] = None, withOnline: Boolean = true)(using
        Context
 diff --git a/modules/game/src/main/Env.scala b/modules/game/src/main/Env.scala
-index 43d76ae..ea24552 100644
+index 43d76ae..38538de 100644
 --- a/modules/game/src/main/Env.scala
 +++ b/modules/game/src/main/Env.scala
-@@ -34,7 +34,120 @@ final class Env(
+@@ -34,7 +34,122 @@ final class Env(
  )(using scheduler: Scheduler)(using Executor, Materializer):
    private val config = appConfig.get[GameConfig]("game")(using AutoConfig.loader)
  
@@ -2821,6 +2827,8 @@ index 43d76ae..ea24552 100644
 +    if !noSweatOnly || !game.playable then funit
 +    else if game.clock.isEmpty || game.daysPerTurn.isDefined then
 +      fufail(NoSweatGameAdmission.RealTimeRequired)
++    else if !NoSweatGameAdmission.hasMinimumClock(game.clockConfig) then
++      fufail(NoSweatGameAdmission.MinimumClockRequired)
 +    else if game.sourceIs(_.Arena) then
 +      for
 +        scope <- db(CollName("nosweat_arena")).byId[Bdoc]("current")
@@ -4271,7 +4279,7 @@ index b1d3975..a65db20 100644
    private def visibleForTeams(
        teamIds: List[TeamId],
 diff --git a/modules/tournament/src/main/TournamentForm.scala b/modules/tournament/src/main/TournamentForm.scala
-index 9161f5d..60193ff 100644
+index 9161f5d..ae2f988 100644
 --- a/modules/tournament/src/main/TournamentForm.scala
 +++ b/modules/tournament/src/main/TournamentForm.scala
 @@ -13,7 +13,9 @@ import lila.core.perm.Granter
@@ -4353,6 +4361,15 @@ index 9161f5d..60193ff 100644
            .verifying(
              "Can't change variant after players have joined",
              _.realVariant == tour.variant || tour.nbPlayers == 0
+@@ -100,7 +117,7 @@ final class TournamentForm:
+     val nameMaxLength = if me.isVerified || manager then 35 else 30
+     mapping(
+       "name" -> optional(eventName(2, nameMaxLength, manager || me.isVerified)),
+-      "clockTime" -> numberInDouble(timeChoices),
++      "clockTime" -> numberInDouble(timeChoices).verifying("muteMinimumClock", t => !focused || t >= 1d),
+       "clockIncrement" -> numberIn(incrementChoices).into[IncrementSeconds],
+       "minutes" -> {
+         if manager then number
 @@ -118,8 +135,15 @@ final class TournamentForm:
        "streakable" -> optional(boolean),
        "description" -> optional(cleanNonEmptyText),
@@ -4415,7 +4432,7 @@ index b7d1476..922e004 100644
        )
      )
 diff --git a/modules/tournament/src/main/ui/TournamentForm.scala b/modules/tournament/src/main/ui/TournamentForm.scala
-index edd2d36..6a8a283 100644
+index edd2d36..1cb64bc 100644
 --- a/modules/tournament/src/main/ui/TournamentForm.scala
 +++ b/modules/tournament/src/main/ui/TournamentForm.scala
 @@ -24,7 +24,8 @@ extension (f: Form[?])
@@ -4424,7 +4441,7 @@ index edd2d36..6a8a283 100644
      modMenu: Context ?=> Frag,
 -    val translatedVariantChoicesWithVariants: Translate ?=> List[(String, String, Option[String])]
 +    val translatedVariantChoicesWithVariants: Translate ?=> List[(String, String, Option[String])],
-+    focused: Boolean = false
++    val focused: Boolean = false
  ):
    import helpers.{ *, given }
  
@@ -4502,7 +4519,20 @@ index edd2d36..6a8a283 100644
        )
      )
  
-@@ -401,11 +443,11 @@ final class TourFields(tourForm: TournamentForm)(form: Form[?], tour: Option[Tou
+@@ -393,7 +435,11 @@ final class TourFields(tourForm: TournamentForm)(form: Form[?], tour: Option[Tou
+   def clock =
+     form3.split(
+       form3.group(form.prefix("clockTime"), trans.site.clockInitialTime(), half = true):
+-        form3.select(_, GatheringClock.timeChoices, disabled = disabledAfterStart)
++        form3.select(
++          _,
++          GatheringClock.timeChoices.filter((value, _) => !focused || value.toDouble >= 1d),
++          disabled = disabledAfterStart
++        )
+       ,
+       form3.group(form.prefix("clockIncrement"), trans.site.clockIncrement(), half = true):
+         form3.select(_, GatheringClock.incrementChoices, disabled = disabledAfterStart)
+@@ -401,11 +447,11 @@ final class TourFields(tourForm: TournamentForm)(form: Form[?], tour: Option[Tou
    def minutes =
      form3.group(form.prefix("minutes"), trans.site.duration(), half = true):
        if tour.forall(t => lila.tournament.TournamentForm.minutes contains t.minutes)
@@ -6730,10 +6760,10 @@ index 58403d3..bdb1c27 100644
 +  <string name="allowBotAccounts">允许机器人账号参赛</string>
  </resources>
 diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
-index 88adade..f88130b 100644
+index 88adade..287b001 100644
 --- a/translation/dest/site/de-DE.xml
 +++ b/translation/dest/site/de-DE.xml
-@@ -1064,4 +1064,180 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
+@@ -1064,4 +1064,181 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
    <string name="write">Schreiben</string>
    <string name="preview">Vorschau</string>
    <string name="done">Erledigt</string>
@@ -6913,12 +6943,13 @@ index 88adade..f88130b 100644
 +  <string name="muteArenaRefresh">Aktualisieren</string>
 +  <string name="mutePageNotFound">Seite nicht gefunden</string>
 +  <string name="muteReturnToHomepage">Zurück zur Startseite</string>
++  <string name="muteMinimumClock">Die Anfangsbedenkzeit muss mindestens 1 Minute pro Seite betragen.</string>
  </resources>
 diff --git a/translation/dest/site/es-ES.xml b/translation/dest/site/es-ES.xml
-index 76004f5..776430b 100644
+index 76004f5..bb03131 100644
 --- a/translation/dest/site/es-ES.xml
 +++ b/translation/dest/site/es-ES.xml
-@@ -1064,4 +1064,180 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
+@@ -1064,4 +1064,181 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
    <string name="write">Escribir</string>
    <string name="preview">Vista previa</string>
    <string name="done">Listo</string>
@@ -7098,12 +7129,13 @@ index 76004f5..776430b 100644
 +  <string name="muteArenaRefresh">Actualizar</string>
 +  <string name="mutePageNotFound">Página no encontrada</string>
 +  <string name="muteReturnToHomepage">Volver a la página de inicio</string>
++  <string name="muteMinimumClock">El tiempo inicial debe ser de al menos 1 minuto por jugador.</string>
  </resources>
 diff --git a/translation/dest/site/fr-FR.xml b/translation/dest/site/fr-FR.xml
-index 7dfd5f7..7d59b36 100644
+index 7dfd5f7..409e420 100644
 --- a/translation/dest/site/fr-FR.xml
 +++ b/translation/dest/site/fr-FR.xml
-@@ -1063,4 +1063,180 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
+@@ -1063,4 +1063,181 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
    <string name="write">Écrire</string>
    <string name="preview">Aperçu</string>
    <string name="done">Terminé</string>
@@ -7283,12 +7315,13 @@ index 7dfd5f7..7d59b36 100644
 +  <string name="muteArenaRefresh">Actualiser</string>
 +  <string name="mutePageNotFound">Page introuvable</string>
 +  <string name="muteReturnToHomepage">Retour à la page d’accueil</string>
++  <string name="muteMinimumClock">Le temps initial doit être d’au moins 1 minute par joueur.</string>
  </resources>
 diff --git a/translation/dest/site/hi-IN.xml b/translation/dest/site/hi-IN.xml
-index bbf1703..7405875 100644
+index bbf1703..2859b46 100644
 --- a/translation/dest/site/hi-IN.xml
 +++ b/translation/dest/site/hi-IN.xml
-@@ -893,4 +893,180 @@
+@@ -893,4 +893,181 @@
    <string name="closingAccountWithdrawAppeal">आपका खाता बंद करने से आपकी अपील वापस ले ली जाएगी</string>
    <string name="ourEventTips">कार्यक्रम आयोजित करने कि सलाह</string>
    <string name="nothingToSeeHere">इस समय यहां देखने को कुछ भी नहीं है।</string>
@@ -7468,12 +7501,13 @@ index bbf1703..7405875 100644
 +  <string name="muteArenaRefresh">रीफ़्रेश करें</string>
 +  <string name="mutePageNotFound">पृष्ठ नहीं मिला</string>
 +  <string name="muteReturnToHomepage">मुखपृष्ठ पर लौटें</string>
++  <string name="muteMinimumClock">हर खिलाड़ी के लिए शुरुआती समय कम से कम 1 मिनट होना चाहिए।</string>
  </resources>
 diff --git a/translation/dest/site/ja-JP.xml b/translation/dest/site/ja-JP.xml
-index e628bdb..50a8335 100644
+index e628bdb..17c6ea8 100644
 --- a/translation/dest/site/ja-JP.xml
 +++ b/translation/dest/site/ja-JP.xml
-@@ -1023,4 +1023,180 @@
+@@ -1023,4 +1023,181 @@
    <string name="write">書く</string>
    <string name="preview">プレビュー</string>
    <string name="done">完了</string>
@@ -7653,12 +7687,13 @@ index e628bdb..50a8335 100644
 +  <string name="muteArenaRefresh">更新</string>
 +  <string name="mutePageNotFound">ページが見つかりません</string>
 +  <string name="muteReturnToHomepage">ホームページに戻る</string>
++  <string name="muteMinimumClock">各プレイヤーの開始時の持ち時間は1分以上にしてください。</string>
  </resources>
 diff --git a/translation/dest/site/ko-KR.xml b/translation/dest/site/ko-KR.xml
-index 9341bf0..6bf5337 100644
+index 9341bf0..d77fc04 100644
 --- a/translation/dest/site/ko-KR.xml
 +++ b/translation/dest/site/ko-KR.xml
-@@ -1022,4 +1022,180 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
+@@ -1022,4 +1022,181 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
    <string name="write">작성</string>
    <string name="preview">미리보기</string>
    <string name="done">완료</string>
@@ -7838,12 +7873,13 @@ index 9341bf0..6bf5337 100644
 +  <string name="muteArenaRefresh">새로고침</string>
 +  <string name="mutePageNotFound">페이지를 찾을 수 없습니다</string>
 +  <string name="muteReturnToHomepage">홈페이지로 돌아가기</string>
++  <string name="muteMinimumClock">각 플레이어의 시작 제한 시간은 최소 1분이어야 합니다.</string>
  </resources>
 diff --git a/translation/dest/site/pt-BR.xml b/translation/dest/site/pt-BR.xml
-index 569e752..1a98dc6 100644
+index 569e752..a7ffdb4 100644
 --- a/translation/dest/site/pt-BR.xml
 +++ b/translation/dest/site/pt-BR.xml
-@@ -1063,4 +1063,180 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
+@@ -1063,4 +1063,181 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
    <string name="write">Escrever</string>
    <string name="preview">Pré-visualizar</string>
    <string name="done">Feito</string>
@@ -8023,12 +8059,13 @@ index 569e752..1a98dc6 100644
 +  <string name="muteArenaRefresh">Atualizar</string>
 +  <string name="mutePageNotFound">Página não encontrada</string>
 +  <string name="muteReturnToHomepage">Voltar à página inicial</string>
++  <string name="muteMinimumClock">O tempo inicial deve ser de pelo menos 1 minuto por jogador.</string>
  </resources>
 diff --git a/translation/dest/site/ru-RU.xml b/translation/dest/site/ru-RU.xml
-index 6384657..c70b3c2 100644
+index 6384657..964ac11 100644
 --- a/translation/dest/site/ru-RU.xml
 +++ b/translation/dest/site/ru-RU.xml
-@@ -1146,4 +1146,180 @@
+@@ -1146,4 +1146,181 @@
    <string name="write">Написать</string>
    <string name="preview">Предпросмотр</string>
    <string name="done">Готово</string>
@@ -8208,12 +8245,13 @@ index 6384657..c70b3c2 100644
 +  <string name="muteArenaRefresh">Обновить</string>
 +  <string name="mutePageNotFound">Страница не найдена</string>
 +  <string name="muteReturnToHomepage">Вернуться на главную страницу</string>
++  <string name="muteMinimumClock">Начальное время должно составлять не менее 1 минуты на игрока.</string>
  </resources>
 diff --git a/translation/dest/site/zh-CN.xml b/translation/dest/site/zh-CN.xml
-index 176f4d1..89844d8 100644
+index 176f4d1..43b194d 100644
 --- a/translation/dest/site/zh-CN.xml
 +++ b/translation/dest/site/zh-CN.xml
-@@ -1022,4 +1022,180 @@
+@@ -1022,4 +1022,181 @@
    <string name="write">撰写</string>
    <string name="preview">预览</string>
    <string name="done">完成</string>
@@ -8393,12 +8431,13 @@ index 176f4d1..89844d8 100644
 +  <string name="muteArenaRefresh">刷新</string>
 +  <string name="mutePageNotFound">找不到页面</string>
 +  <string name="muteReturnToHomepage">返回首页</string>
++  <string name="muteMinimumClock">每方的初始时间必须至少为1分钟。</string>
  </resources>
 diff --git a/translation/source/site.xml b/translation/source/site.xml
-index 8b5a6a1..4746142 100644
+index 8b5a6a1..e7b0f47 100644
 --- a/translation/source/site.xml
 +++ b/translation/source/site.xml
-@@ -1066,4 +1066,180 @@ Leave empty to start games from the normal initial position.</string>
+@@ -1066,4 +1066,181 @@ Leave empty to start games from the normal initial position.</string>
    <string name="write">Write</string>
    <string name="preview">Preview</string>
    <string name="done">Done</string>
@@ -8578,6 +8617,7 @@ index 8b5a6a1..4746142 100644
 +  <string name="muteArenaRefresh">Refresh</string>
 +  <string name="mutePageNotFound">Page not found</string>
 +  <string name="muteReturnToHomepage">Return to the homepage</string>
++  <string name="muteMinimumClock">Starting time must be at least 1 minute per side.</string>
  </resources>
 diff --git a/ui/.build/src/build.ts b/ui/.build/src/build.ts
 index 7d6adeb..b433f0c 100644
@@ -12503,6 +12543,96 @@ index 34bdedc..b2d6e1f 100644
    ) => void;
    'socket.in.following_playing': (titleName: string) => void;
    'socket.in.following_stopped_playing': (titleName: string) => void;
+diff --git a/ui/lib/src/setup/view/timeControl.ts b/ui/lib/src/setup/view/timeControl.ts
+index 4a8b9d1..e1bfc21 100644
+--- a/ui/lib/src/setup/view/timeControl.ts
++++ b/ui/lib/src/setup/view/timeControl.ts
+@@ -21,7 +21,7 @@ const showTime = (v: number) => {
+   return v.toString();
+ };
+ 
+-const blindModeTimePickers = (tc: TimeControl) => {
++const blindModeTimePickers = (tc: TimeControl, minimumSelectableTime = 0) => {
+   return [
+     renderTimeModePicker(tc),
+     tc.mode() === 'realTime' &&
+@@ -32,8 +32,10 @@ const blindModeTimePickers = (tc: TimeControl) => {
+           {
+             on: { change: (e: Event) => tc.timeV(parseFloat((e.target as HTMLSelectElement).value)) },
+           },
+-          sliderTimes.map((sliderTime, timeV) =>
+-            option({ key: timeV.toString(), name: showTime(sliderTime) }, tc.timeV().toString()),
++          sliderTimes.flatMap((sliderTime, timeV) =>
++            sliderTime >= minimumSelectableTime
++              ? [option({ key: timeV.toString(), name: showTime(sliderTime) }, tc.timeV().toString())]
++              : [],
+           ),
+         ),
+       ]),
+@@ -109,8 +111,12 @@ const inputRange = (min: number, max: number, prop: Prop<InputValue>, classes?:
+     on: { input: (e: Event) => prop(parseFloat((e.target as HTMLInputElement).value)) },
+   });
+ 
+-export const timePickerAndSliders = (tc: TimeControl, minimumTimeRequiredIfReal = 0): VNode => {
+-  if (site.blindMode) return hl('div.config-group', blindModeTimePickers(tc));
++export const timePickerAndSliders = (
++  tc: TimeControl,
++  minimumTimeRequiredIfReal = 0,
++  minimumSelectableTime = 0,
++): VNode => {
++  if (site.blindMode) return hl('div.config-group', blindModeTimePickers(tc, minimumSelectableTime));
+ 
+   const activeMode = tc.mode();
+   const showTabs = tc.canSelectMode();
+@@ -149,7 +155,7 @@ export const timePickerAndSliders = (tc: TimeControl, minimumTimeRequiredIfReal
+       hl('div.sliders-grid', [
+         hl('div.slider-container', [
+           hl('div.label-row', [hl('label', i18n.site.minutesPerSide), hl('span.val-box', showTime(tcTime))]),
+-          inputRange(0, 38, tc.timeV, {
++          inputRange(sliderInitVal(minimumSelectableTime, timeVToTime, 100, 0), 38, tc.timeV, {
+             failure: !tc.realTimeValid(minimumTimeRequiredIfReal),
+           }),
+         ]),
+@@ -164,23 +170,25 @@ export const timePickerAndSliders = (tc: TimeControl, minimumTimeRequiredIfReal
+       ]),
+       hl(
+         'div.presets',
+-        tc.presets.map(p =>
+-          hl(
+-            'button.preset-btn',
+-            {
+-              class: {
+-                active: tcTime === p.lim && tcIncrement === p.inc,
+-              },
+-              on: {
+-                click: () => {
+-                  tc.timeV(sliderInitVal(p.lim, timeVToTime, 100, 9));
+-                  tc.incrementV(sliderInitVal(p.inc, incrementVToIncrement, 100, 0));
++        tc.presets
++          .filter(p => p.lim >= minimumSelectableTime)
++          .map(p =>
++            hl(
++              'button.preset-btn',
++              {
++                class: {
++                  active: tcTime === p.lim && tcIncrement === p.inc,
++                },
++                on: {
++                  click: () => {
++                    tc.timeV(sliderInitVal(p.lim, timeVToTime, 100, 9));
++                    tc.incrementV(sliderInitVal(p.inc, incrementVToIncrement, 100, 0));
++                  },
+                 },
+               },
+-            },
+-            `${showTime(p.lim)}+${p.inc}`,
++              `${showTime(p.lim)}+${p.inc}`,
++            ),
+           ),
+-        ),
+       ),
+     ]);
+   } else if (activeMode === 'correspondence') {
 diff --git a/ui/lib/src/socket.ts b/ui/lib/src/socket.ts
 index 0efdc62..799834d 100644
 --- a/ui/lib/src/socket.ts
@@ -12825,7 +12955,7 @@ index 610f89d..d248296 100644
      xhr.text(
        xhr.url(`/setup/hook/${site.sri}/like/${gameId}`, { deltaMin: ratingMin, deltaMax: ratingMax }),
 diff --git a/ui/lobby/src/setupCtrl.ts b/ui/lobby/src/setupCtrl.ts
-index 42d03af..7b4e140 100644
+index 42d03af..0a741f2 100644
 --- a/ui/lobby/src/setupCtrl.ts
 +++ b/ui/lobby/src/setupCtrl.ts
 @@ -57,7 +57,7 @@ export default class SetupController {
@@ -12837,7 +12967,7 @@ index 42d03af..7b4e140 100644
        time: 5,
        increment: 3,
        days: 2,
-@@ -73,10 +73,13 @@ export default class SetupController {
+@@ -73,11 +73,16 @@ export default class SetupController {
      // Load props from the store, but override any store values with values found in forceOptions
      this.variant = propWithEffect(forceOptions?.variant || storeProps.variant, this.onDropdownChange);
      this.fen = this.propWithApply(forceOptions?.fen || storeProps.fen);
@@ -12846,15 +12976,19 @@ index 42d03af..7b4e140 100644
      this.timeControl = timeControlFromStoredValues(
 -      propWithEffect(forceOptions?.timeMode || storeProps.timeMode, this.onDropdownChange),
 -      canChangeTimeMode ? timeModes : ['realTime'],
+-      forceOptions?.time ?? storeProps.time,
 +      propWithEffect(
 +        this.root.opts.noSweat ? 'realTime' : forceOptions?.timeMode || storeProps.timeMode,
 +        this.onDropdownChange,
 +      ),
 +      !this.root.opts.noSweat && canChangeTimeMode ? timeModes : ['realTime'],
-       forceOptions?.time ?? storeProps.time,
++      this.root.opts.noSweat
++        ? Math.max(1, forceOptions?.time ?? storeProps.time)
++        : (forceOptions?.time ?? storeProps.time),
        forceOptions?.increment ?? storeProps.increment,
        forceOptions?.days ?? storeProps.days,
-@@ -89,6 +92,7 @@ export default class SetupController {
+       this.onPropChange,
+@@ -89,6 +94,7 @@ export default class SetupController {
      this.aiLevel = this.propWithApply(storeProps.aiLevel);
      this.color(forceOptions?.color || storeProps.color || 'random');
  
@@ -12862,7 +12996,7 @@ index 42d03af..7b4e140 100644
      this.enforcePropRules();
      // Upon loading the props from the store, overriding with forced options, and enforcing rules,
      // immediately save them to the store. This way, the user can know that whatever they saw last
-@@ -176,7 +180,7 @@ export default class SetupController {
+@@ -176,7 +182,7 @@ export default class SetupController {
      friendUser?: string,
    ) => {
      this.root.leavePool();
@@ -12871,8 +13005,13 @@ index 42d03af..7b4e140 100644
      this.loading = false;
      this.fenError = false;
      this.lastValidFen = '';
-@@ -292,6 +296,21 @@ export default class SetupController {
-   minimumTimeIfReal = () => (this.gameType === 'ai' && this.variant() === 'fromPosition' ? 1 : 0);
+@@ -289,9 +295,25 @@ export default class SetupController {
+     return true;
+   };
+ 
+-  minimumTimeIfReal = () => (this.gameType === 'ai' && this.variant() === 'fromPosition' ? 1 : 0);
++  minimumTimeIfReal = () =>
++    this.root.opts.noSweat || (this.gameType === 'ai' && this.variant() === 'fromPosition') ? 1 : 0;
  
    submit = async () => {
 +    if (this.root.opts.noSweat && this.gameType !== 'friend') {
@@ -12894,7 +13033,7 @@ index 42d03af..7b4e140 100644
      const poolMember = this.hookToPoolMember(color);
      if (poolMember) {
 diff --git a/ui/lobby/src/view/setup/modal.ts b/ui/lobby/src/view/setup/modal.ts
-index 3e5ae86..cef13a6 100644
+index 3e5ae86..86f42ba 100644
 --- a/ui/lobby/src/view/setup/modal.ts
 +++ b/ui/lobby/src/view/setup/modal.ts
 @@ -15,7 +15,7 @@ export default function setupModal(ctrl: LobbyController): VNode[] | null {
@@ -12906,13 +13045,18 @@ index 3e5ae86..cef13a6 100644
      friend: setupCtrl.friendUser ? i18n.site.challengeX(setupCtrl.friendUser) : i18n.site.challengeAFriend,
      ai: i18n.site.playAgainstComputer,
    }[setupCtrl.gameType];
-@@ -58,16 +58,16 @@ export default function setupModal(ctrl: LobbyController): VNode[] | null {
+@@ -58,24 +58,36 @@ export default function setupModal(ctrl: LobbyController): VNode[] | null {
  
  const views = {
    hook: (ctrl: LobbyController): LooseVNodes => [
 -    variantPicker(ctrl.setupCtrl),
+-    timePickerAndSliders(ctrl.setupCtrl.timeControl, 0),
 +    !ctrl.opts.noSweat && variantPicker(ctrl.setupCtrl),
-     timePickerAndSliders(ctrl.setupCtrl.timeControl, 0),
++    timePickerAndSliders(
++      ctrl.setupCtrl.timeControl,
++      ctrl.setupCtrl.minimumTimeIfReal(),
++      ctrl.opts.noSweat ? 1 : 0,
++    ),
      gameModeButtons(ctrl),
      ratingView(ctrl),
 -    ratingDifferenceSliders(ctrl),
@@ -12922,11 +13066,29 @@ index 3e5ae86..cef13a6 100644
    friend: (ctrl: LobbyController): LooseVNodes => [
 -    variantPicker(ctrl.setupCtrl),
 -    fenInput(ctrl.setupCtrl),
+-    timePickerAndSliders(ctrl.setupCtrl.timeControl, 0),
 +    !ctrl.opts.noSweat && variantPicker(ctrl.setupCtrl),
 +    !ctrl.opts.noSweat && fenInput(ctrl.setupCtrl),
-     timePickerAndSliders(ctrl.setupCtrl.timeControl, 0),
++    timePickerAndSliders(
++      ctrl.setupCtrl.timeControl,
++      ctrl.setupCtrl.minimumTimeIfReal(),
++      ctrl.opts.noSweat ? 1 : 0,
++    ),
      gameModeButtons(ctrl),
      colorButtons(ctrl.setupCtrl),
+   ],
+   ai: ({ setupCtrl }: LobbyController): LooseVNodes => [
+     variantPicker(setupCtrl),
+     fenInput(setupCtrl),
+-    timePickerAndSliders(setupCtrl.timeControl, setupCtrl.minimumTimeIfReal()),
++    timePickerAndSliders(
++      setupCtrl.timeControl,
++      setupCtrl.minimumTimeIfReal(),
++      setupCtrl.root.opts.noSweat ? 1 : 0,
++    ),
+     levelButtons(setupCtrl),
+     colorButtons(setupCtrl),
+   ],
 diff --git a/ui/lobby/src/view/table.ts b/ui/lobby/src/view/table.ts
 index 9053e1a..a4d12dc 100644
 --- a/ui/lobby/src/view/table.ts
@@ -16316,10 +16478,10 @@ index 0000000..703a031
 +  def find(key: String): Option[NoSweatStudyPlan] = plans.find(_.key == key)
 diff --git a/app/controllers/NoSweat.scala b/app/controllers/NoSweat.scala
 new file mode 100644
-index 0000000..a54b1de
+index 0000000..ddfe464
 --- /dev/null
 +++ b/app/controllers/NoSweat.scala
-@@ -0,0 +1,288 @@
+@@ -0,0 +1,290 @@
 +package controllers
 +
 +import play.api.libs.json.*
@@ -16528,6 +16690,8 @@ index 0000000..a54b1de
 +      setup.flatMap: data =>
 +        if (data \ "timeMode").asOpt[String].exists(_ != "realTime") then
 +          fuccess(BadRequest(Json.obj("error" -> lila.core.i18n.I18nKey("muteRealTimeOnly").txt())))
++        else if (data \ "minutes").asOpt[Double].exists(_ < 1d) then
++          fuccess(BadRequest(Json.obj("error" -> lila.core.i18n.I18nKey("muteMinimumClock").txt())))
 +        else
 +          env.security.lilaCookie.ensureAndGet: sid =>
 +            club
@@ -18007,10 +18171,10 @@ index 0000000..5ce48e2
 +    ))
 diff --git a/modules/game/src/main/NoSweatGameAdmission.scala b/modules/game/src/main/NoSweatGameAdmission.scala
 new file mode 100644
-index 0000000..4860bf0
+index 0000000..059a901
 --- /dev/null
 +++ b/modules/game/src/main/NoSweatGameAdmission.scala
-@@ -0,0 +1,27 @@
+@@ -0,0 +1,31 @@
 +package lila.game
 +
 +/** Serialize maintenance changes with native insertion, never with moves or finishing games. */
@@ -18036,6 +18200,10 @@ index 0000000..4860bf0
 +  def pause(value: Boolean): Funit = serial(writePaused(value))
 +
 +object NoSweatGameAdmission:
++  def hasMinimumClock(clock: Option[chess.Clock.Config]): Boolean =
++    clock.exists(_.limitSeconds.value >= 60)
++
++  case object MinimumClockRequired extends RuntimeException
 +  case object RealTimeRequired extends RuntimeException
 +  case object Paused extends RuntimeException("Server maintenance: new games are temporarily paused")
 diff --git a/modules/game/src/main/NoSweatStudyScope.scala b/modules/game/src/main/NoSweatStudyScope.scala
@@ -18183,10 +18351,10 @@ index 0000000..9073fce
 +    assertEquals(NoSweatArenaAdmission.hosts(play.api.Configuration.empty), Set.empty[UserId])
 diff --git a/modules/game/src/test/NoSweatGameAdmissionTest.scala b/modules/game/src/test/NoSweatGameAdmissionTest.scala
 new file mode 100644
-index 0000000..b5a866e
+index 0000000..c0fb42f
 --- /dev/null
 +++ b/modules/game/src/test/NoSweatGameAdmissionTest.scala
-@@ -0,0 +1,86 @@
+@@ -0,0 +1,96 @@
 +package lila.game
 +
 +import java.util.concurrent.atomic.AtomicBoolean
@@ -18199,6 +18367,16 @@ index 0000000..b5a866e
 +    () => Future.successful(state.get()),
 +    paused => Future.successful(state.set(paused))
 +  )
++
++  test("the minimum is initial time, not estimated duration with increment"):
++    def clock(seconds: Int, increment: Int) = Some(
++      chess.Clock.Config(chess.Clock.LimitSeconds(seconds), chess.Clock.IncrementSeconds(increment))
++    )
++    assert(!NoSweatGameAdmission.hasMinimumClock(None))
++    for seconds <- List(0, 15, 30, 45, 59); increment <- List(0, 1, 5, 180) do
++      assert(!NoSweatGameAdmission.hasMinimumClock(clock(seconds, increment)))
++    for seconds <- List(60, 90, 300); increment <- List(0, 1, 5, 180) do
++      assert(NoSweatGameAdmission.hasMinimumClock(clock(seconds, increment)))
 +
 +  test("pausing rejects insertion without running its side effects, and reopening restores it"):
 +    val state = new AtomicBoolean(false)
@@ -18960,7 +19138,7 @@ index 0000000..80788ee
 +    assertEquals(filter(play.api.Mode.Prod, true, accountRoles = Nil).me.roles, Nil)
 diff --git a/modules/tournament/src/main/NoSweatArena.scala b/modules/tournament/src/main/NoSweatArena.scala
 new file mode 100644
-index 0000000..b4a595b
+index 0000000..a967842
 --- /dev/null
 +++ b/modules/tournament/src/main/NoSweatArena.scala
 @@ -0,0 +1,186 @@
@@ -19021,7 +19199,7 @@ index 0000000..b4a595b
 +    val settings = t.arenaSettings
 +    val count = if t.conditions.allowsBots then settings.target else 0
 +    require(
-+      ownerEvent(t) && t.isCreated && settings.valid && bots.size == count && bots
++      ownerEvent(t) && t.isCreated && t.clock.limitSeconds.value >= 60 && settings.valid && bots.size == count && bots
 +        .map(_.id)
 +        .distinct
 +        .size == count
@@ -32286,10 +32464,10 @@ index 0000000..87bf6b4
 +}
 diff --git a/src/test/scala/NoSweatArenaLocaleTest.scala b/src/test/scala/NoSweatArenaLocaleTest.scala
 new file mode 100644
-index 0000000..a826222
+index 0000000..fbfe3be
 --- /dev/null
 +++ b/src/test/scala/NoSweatArenaLocaleTest.scala
-@@ -0,0 +1,58 @@
+@@ -0,0 +1,59 @@
 +package lila.i18n
 +
 +import play.api.i18n.Lang
@@ -32321,6 +32499,7 @@ index 0000000..a826222
 +      "BotNoticeIntro",
 +      "BotNoticeFill"
 +    ).map("muteArena" + _) ++ List(
++      "muteMinimumClock",
 +      "arena:allowBotAccounts",
 +      "arena:history",
 +      "arena:arenaTournaments",
@@ -102782,16 +102961,28 @@ index 0000000..f5e4c01
 +  });
 diff --git a/ui/lobby/tests/noSweatTimeControls.test.ts b/ui/lobby/tests/noSweatTimeControls.test.ts
 new file mode 100644
-index 0000000..079924f
+index 0000000..2aa54b1
 --- /dev/null
 +++ b/ui/lobby/tests/noSweatTimeControls.test.ts
-@@ -0,0 +1,45 @@
+@@ -0,0 +1,115 @@
 +import assert from 'node:assert/strict';
-+import { test } from 'node:test';
++import { mock, test } from 'node:test';
++
++import type { VNode } from 'lib/view';
 +
 +import type LobbyController from '../src/ctrl';
 +import type { GameType } from '../src/interfaces';
 +import SetupController from '../src/setupCtrl';
++// Isolate clock rendering from unrelated native controls using package-self aliases.
++for (const name of ['colorButtons', 'gameModeButtons', 'variantPicker'])
++  mock.module(`../src/view/setup/components/${name}`, { namedExports: { [name]: () => null } });
++const { default: setupModal } = await import('../src/view/setup/modal');
++window.matchMedia = matchMedia;
++
++const nodes = (node: VNode): VNode[] => [
++  node,
++  ...(node.children ?? []).flatMap(child => (child && typeof child === 'object' ? nodes(child) : [])),
++];
 +
 +const makeRoot = (focused: boolean, signedIn: boolean) =>
 +  ({
@@ -102831,6 +103022,64 @@ index 0000000..079924f
 +  assert.deepEqual(ctrl.timeControl.modes, ['unlimited', 'realTime', 'correspondence']);
 +  assert.equal(ctrl.timeControl.canSelectMode(), true);
 +});
++
++for (const gameType of ['hook', 'friend'] as GameType[])
++  for (const time of [0, 0.25, 0.5, 0.75])
++    for (const forced of [false, true])
++      test(`focused ${gameType} normalizes ${forced ? 'forced' : 'stored'} ${time}+5 to 1+5`, () => {
++        localStorage.clear();
++        const ctrl = new SetupController(makeRoot(true, true));
++        ctrl.store[gameType]({ ...ctrl.store[gameType](), time: forced ? 3 : time, increment: 5 });
++        ctrl.openModal(gameType, forced ? { time } : undefined, gameType === 'friend' ? 'Friend' : undefined);
++        assert.equal(ctrl.timeControl.time(), 1);
++        assert.equal(ctrl.timeControl.increment(), 5);
++        assert.equal(ctrl.store[gameType]().time, 1);
++      });
++
++test('focused setup rejects a tampered short clock even with a large increment', () => {
++  localStorage.clear();
++  const ctrl = new SetupController(makeRoot(true, true));
++  ctrl.openModal('hook', { time: 1, increment: 0 });
++  assert.equal(ctrl.valid(), true);
++  ctrl.timeControl.timeV(1); // 15 seconds
++  ctrl.timeControl.incrementV(30); // 180 seconds increment
++  assert.equal(ctrl.valid(), false);
++});
++
++test('non-focused setup retains fractional-minute clocks', () => {
++  localStorage.clear();
++  const ctrl = new SetupController(makeRoot(false, true));
++  ctrl.openModal('friend', { timeMode: 'realTime', time: 0.25, increment: 0 }, 'Friend');
++  assert.equal(ctrl.timeControl.time(), 0.25);
++  assert.equal(ctrl.minimumTimeIfReal(), 0);
++});
++
++for (const gameType of ['hook', 'friend'] as GameType[])
++  test(`the focused ${gameType} modal removes sub-minute sliders, presets and accessible options`, () => {
++    localStorage.clear();
++    const root = makeRoot(true, true);
++    const ctrl = new SetupController(root);
++    root.setupCtrl = ctrl;
++    ctrl.openModal(gameType, { time: 1, increment: 0 }, gameType === 'friend' ? 'Friend' : undefined);
++    ctrl.timeControl.presets.push({ lim: 0.25, inc: 5 }, { lim: 1, inc: 0 });
++    const before = site.blindMode;
++    try {
++      site.blindMode = false;
++      const view = setupModal(root)!.flatMap(nodes);
++      assert.equal(view.find(n => n.sel === 'input.range')?.data?.attrs?.min, 4);
++      assert.equal(view.filter(n => n.sel === 'button.preset-btn').length, 1);
++      site.blindMode = true;
++      const select = setupModal(root)!
++        .flatMap(nodes)
++        .find(n => n.sel === 'select#sf_time');
++      assert.ok(select);
++      const options = nodes(select).filter(n => n.sel === 'option');
++      assert.ok(options.length > 0);
++      assert.ok(options.every(n => Number(n.data?.attrs?.value) >= 4));
++    } finally {
++      site.blindMode = before;
++    }
++  });
 diff --git a/ui/puzzle/src/noSweatMaia.ts b/ui/puzzle/src/noSweatMaia.ts
 new file mode 100644
 index 0000000..141c08f

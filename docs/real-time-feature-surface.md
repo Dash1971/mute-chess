@@ -33,3 +33,22 @@ shows `/@/PearlDrifter/perf/ultraBullet` as a 404 and downloads `index.html` fro
 has no UltraBullet link, and direct visits to unsupported URLs retain a plain
 404 with a working home link and no mini-game request. Verify the title and link
 in en-GB, de-DE, es-ES, fr-FR, hi-IN, ja-JP, ko-KR, pt-BR, ru-RU and zh-CN.
+
+## Minimum starting time
+
+New games require at least **one minute of initial time per side**, regardless
+of increment. `1+0` and `1+5` remain available; `0+5`, `¼+0`, `½+5` and `¾+0` do
+not. This applies to custom Maia games, human friend challenges, rematches and
+new Arenas, with the shared native insertion check covering direct requests too.
+A native Arena berserk action can still reduce a clock after the game starts.
+
+Custom setup sliders, presets and accessible time dropdowns exclude sub-minute
+choices. Old saved or URL-forced choices normalize to one minute while keeping
+the increment. Maia requests, friend creation/acceptance (including old pending
+invitations), and Arena forms/preparation reject unsupported clocks with a native
+translated validation message in all ten supported locales.
+
+Existing games can finish and historical UltraBullet ratings, statistics and
+replays remain stored. Old short Arenas cannot be prepared for new play. The
+policy is scoped to Mute's focused mode; the upstream time controls retain their
+native choices outside that flag.

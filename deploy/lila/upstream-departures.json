@@ -621,17 +621,19 @@
         },
         {
           "id": "focused-feature-surface",
-          "rationale": "Issues #267/#269\u2013272 hide correspondence and Puzzle Racer from focused profile navigation and verify real-time setup normalization. Existing data and non-focused upstream rendering remain unchanged. Focused BOT profiles also omit UltraBullet because native PerfStatApi intentionally rejects UltraBullet statistics for bots; retain seeded perfs and human/non-focused navigation. Focused 404 pages omit the ChessPursuit iframe, whose HTML is served as an octet-stream by the asset gateway and triggers an automatic download; keep native 404 status, optional diagnostic text and home navigation, without changing MIME/security policy or non-focused pages.",
+          "rationale": "Issues #267/#269\u2013272 hide correspondence and Puzzle Racer from focused profile navigation and verify real-time setup normalization. Existing data and non-focused upstream rendering remain unchanged. Focused BOT profiles also omit UltraBullet because native PerfStatApi intentionally rejects UltraBullet statistics for bots; retain seeded perfs and human/non-focused navigation. Focused 404 pages omit the ChessPursuit iframe, whose HTML is served as an octet-stream by the asset gateway and triggers an automatic download; keep native 404 status, optional diagnostic text and home navigation, without changing MIME/security policy or non-focused pages. New focused game setup requires at least one minute of initial time per side, regardless of increment. Saved and URL-forced sub-minute choices normalize to one minute; sliders, presets and accessible dropdowns exclude them. Translated early validation covers Maia play and friend creation/acceptance; the existing shared insertion guard covers rematches and direct bypasses. Arena forms and preparation enforce the same minimum. Existing games/history and non-focused native clocks remain intact.",
           "verification": [
             "Run native noSweatTimeControls and maiaPoolBootstrap regressions, compile profile views and inspect both focused/upstream guards.",
-            "Reproduce PearlDrifter UltraBullet 404 and index.html download in Chrome; verify focused bot/human and non-focused profile guards, focused 404 without iframe, translated copy in all ten locales, native compile and exact patch reconstruction."
+            "Reproduce PearlDrifter UltraBullet 404 and index.html download in Chrome; verify focused bot/human and non-focused profile guards, focused 404 without iframe, translated copy in all ten locales, native compile and exact patch reconstruction.",
+            "Focused setup tests cover stored/forced fractional and zero-base clocks, tampered input, preserved increment, slider/preset/accessibility limits and unchanged upstream choices. NoSweatGameAdmissionTest checks 0\u201359 seconds against the inclusive 60-second boundary with varied increment; NoSweatArenaLocaleTest renders the minimum-clock error in all ten locales."
           ],
           "files": [
             "modules/user/src/main/ui/UserShowSide.scala",
             "ui/lobby/tests/noSweatTimeControls.test.ts",
             "app/controllers/Challenge.scala",
             "app/views/game/side.scala",
-            "app/views/base/notFound.scala"
+            "app/views/base/notFound.scala",
+            "ui/lib/src/setup/view/timeControl.ts"
           ]
         },
         {
