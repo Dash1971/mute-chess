@@ -621,12 +621,12 @@
         },
         {
           "id": "focused-feature-surface",
-          "rationale": "Issues #267/#269\u2013272 hide correspondence and Puzzle Racer from focused profile navigation and verify real-time setup normalization. Existing data and non-focused upstream rendering remain unchanged. Focused BOT profiles also omit UltraBullet because native PerfStatApi intentionally rejects UltraBullet statistics for bots; retain seeded perfs and human/non-focused navigation. Focused 404 pages omit the ChessPursuit iframe, whose HTML is served as an octet-stream by the asset gateway and triggers an automatic download; keep native 404 status, optional diagnostic text and home navigation, without changing MIME/security policy or non-focused pages. New focused game setup requires at least one minute of initial time per side, regardless of increment. Saved and URL-forced sub-minute choices normalize to one minute; sliders, presets and accessible dropdowns exclude them. Translated early validation covers Maia play and friend creation/acceptance; the existing shared insertion guard covers rematches and direct bypasses. Arena forms and preparation enforce the same minimum. Existing games/history and non-focused native clocks remain intact. PR #335 follow-up normalizes the forced clock constraint together with the displayed value, retaining other URL constraints without mutating caller options. Focused native rematches reject old short clocks before creating/reserving a new game, clear stale offer state and use the existing owner-only rematch reload event with an optional minimum-clock flag. The browser clears loading/offers and renders the existing native translated message. Ordinary event payloads, non-focused rematches, game data and rating attribution remain native.",
+          "rationale": "Issues #267/#269\u2013272 hide correspondence and Puzzle Racer from focused profile navigation and verify real-time setup normalization. Existing data and non-focused upstream rendering remain unchanged. Focused BOT profiles also omit UltraBullet because native PerfStatApi intentionally rejects UltraBullet statistics for bots; retain seeded perfs and human/non-focused navigation. Focused 404 pages omit the ChessPursuit iframe, whose HTML is served as an octet-stream by the asset gateway and triggers an automatic download; keep native 404 status, optional diagnostic text and home navigation, without changing MIME/security policy or non-focused pages. New focused game setup requires at least one minute of initial time per side, regardless of increment. Saved and URL-forced sub-minute choices normalize to one minute; sliders, presets and accessible dropdowns exclude them. Translated early validation covers Maia play and friend creation/acceptance; the existing shared insertion guard covers rematches and direct bypasses. Arena forms and preparation enforce the same minimum. Existing games/history and non-focused native clocks remain intact. Forced clock constraints normalize with the displayed value, preserving other URL constraints without mutating caller options. Old sub-minute games show a disabled native Rematch button with the existing translated minimum-clock explanation. The shared insertion guard remains the server backstop; native rematch services, events and socket handling are unchanged. Existing rematch links and non-focused views keep native behavior.",
           "verification": [
             "Run native noSweatTimeControls and maiaPoolBootstrap regressions, compile profile views and inspect both focused/upstream guards.",
             "Reproduce PearlDrifter UltraBullet 404 and index.html download in Chrome; verify focused bot/human and non-focused profile guards, focused 404 without iframe, translated copy in all ten locales, native compile and exact patch reconstruction.",
             "Focused setup tests cover stored/forced fractional and zero-base clocks, tampered input, preserved increment, slider/preset/accessibility limits and unchanged upstream choices. NoSweatGameAdmissionTest checks 0\u201359 seconds against the inclusive 60-second boundary with varied increment; NoSweatArenaLocaleTest renders the minimum-clock error in all ten locales.",
-            "Setup tests assert Play is enabled after stored/forced normalization and other forced constraints still apply. RematcherTest exercises the actual native rejection path with missing start collaborators, stale rematch-cache cleanup and owner-only reload payloads, preserves ordinary payloads, and confirms a berserked 1+0 Arena game retains Bullet speed/perf. Native socket tests replay rejection/cancellation payloads and check spinner/offer cleanup and catalog feedback in all ten locales."
+            "Setup tests assert Play remains enabled after normalization and other forced constraints still apply. Actual rematch DOM tests cover disabled sub-minute buttons without outgoing requests, the inclusive one-minute boundary, low remaining time, existing links, upstream views and explanation rendering in all ten locales. The existing NoSweatGameAdmissionTest also confirms Arena berserk retains its original supported clock and Bullet rating category."
           ],
           "files": [
             "modules/user/src/main/ui/UserShowSide.scala",
@@ -635,12 +635,8 @@
             "app/views/game/side.scala",
             "app/views/base/notFound.scala",
             "ui/lib/src/setup/view/timeControl.ts",
-            "modules/game/src/main/Event.scala",
-            "modules/round/src/main/Rematcher.scala",
-            "modules/round/src/test/RematcherTest.scala",
-            "ui/round/src/interfaces.ts",
-            "ui/round/src/socket.ts",
-            "ui/round/tests/noSweatRematch.test.ts"
+            "ui/round/tests/noSweatRematch.test.ts",
+            "ui/round/src/view/button.ts"
           ]
         },
         {

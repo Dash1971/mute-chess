@@ -2930,22 +2930,6 @@ index 43d76ae..38538de 100644
  
    given idGenerator: IdGenerator = wire[IdGenerator]
  
-diff --git a/modules/game/src/main/Event.scala b/modules/game/src/main/Event.scala
-index dc8b2c8..024226b 100644
---- a/modules/game/src/main/Event.scala
-+++ b/modules/game/src/main/Event.scala
-@@ -278,9 +278,9 @@ object Event:
- 
-   // use t:reload for mobile app BC,
-   // but send extra data for the web to avoid reloading
--  case class RematchOffer(by: Option[Color]) extends Event:
-+  case class RematchOffer(by: Option[Color], minimumClockRequired: Boolean = false) extends Event:
-     def typ = "reload"
--    def data = reloadOr("rematchOffer", by)
-+    def data = reloadOr("rematchOffer", by).add("minimumClockRequired" -> minimumClockRequired)
-     override def owner = true
- 
-   case class RematchTaken(nextId: GameId) extends Event:
 diff --git a/modules/game/src/main/GameRepo.scala b/modules/game/src/main/GameRepo.scala
 index 45a3103..a927c10 100644
 --- a/modules/game/src/main/GameRepo.scala
@@ -3767,39 +3751,6 @@ index c67559c..a20eec6 100644
  
    def timeout(chatId: ChatId, suspect: UserId, reason: String, text: String)(using mod: MyId): Funit =
      ChatTimeout
-diff --git a/modules/round/src/main/Rematcher.scala b/modules/round/src/main/Rematcher.scala
-index 5db7c51..932ff12 100644
---- a/modules/round/src/main/Rematcher.scala
-+++ b/modules/round/src/main/Rematcher.scala
-@@ -18,11 +18,14 @@ final private class Rematcher(
-     userApi: UserApi,
-     messenger: Messenger,
-     onStart: lila.core.game.OnStart,
--    rematches: Rematches
-+    rematches: Rematches,
-+    appConfig: play.api.Configuration
- )(using Executor, Translator, lila.core.config.RateLimit)(using idGenerator: IdGenerator):
- 
-   private given play.api.i18n.Lang = defaultLang
- 
-+  private val noSweatOnly = appConfig.getOptional[Boolean]("nosweat.enabled").getOrElse(false)
-+
-   private val declined = ExpireSetMemo[GameFullId](1.minute)
- 
-   private val rateLimit = lila.memo.RateLimit[GameFullId](
-@@ -49,7 +52,11 @@ final private class Rematcher(
-   def yes(pov: Pov): Fu[Events] =
-     pov match
-       case Pov(game, color) if couldRematch(game) =>
--        if isOffering(!pov.ref) || game.opponent(color).isAi
-+        if noSweatOnly && game.hasClock && !lila.game.NoSweatGameAdmission.hasMinimumClock(game.clockConfig)
-+        then
-+          rematches.drop(pov.gameId)
-+          fuccess(List(Event.RematchOffer(by = none, minimumClockRequired = true)))
-+        else if isOffering(!pov.ref) || game.opponent(color).isAi
-         then rematches.getAcceptedId(game.id).fold(rematchJoin(pov))(rematchExists(pov))
-         else if !declined.get(pov.flip.fullId) && rateLimit.zero(pov.fullId)(true)
-         then rematchCreate(pov)
 diff --git a/modules/round/src/main/RoundMobile.scala b/modules/round/src/main/RoundMobile.scala
 index 08594ca..63045a9 100644
 --- a/modules/round/src/main/RoundMobile.scala
@@ -3837,96 +3788,6 @@ index 8fd4ed3..687a138 100644
          _.foreach:
            messenger.owner(_, color, msg)
      case Protocol.In.PlayerChatSay(id, Left(userId), msg) =>
-diff --git a/modules/round/src/test/RematcherTest.scala b/modules/round/src/test/RematcherTest.scala
-index b2305a1..354cf04 100644
---- a/modules/round/src/test/RematcherTest.scala
-+++ b/modules/round/src/test/RematcherTest.scala
-@@ -30,3 +30,85 @@ class RematcherTest extends munit.FunSuite:
-       .foreach: variant =>
-         val x = returnChessGame(variant, none, none, false)
-         assertEquals(x.position, variant.initialPosition)
-+
-+  private given Executor = scala.concurrent.ExecutionContext.global
-+  private given lila.core.i18n.Translator = null
-+  private given lila.core.config.RateLimit = lila.core.config.RateLimit(false)
-+  private given lila.core.game.IdGenerator = null
-+
-+  private def finishedClockGame(seconds: Int, increment: Int = 0): lila.core.game.Game =
-+    lila.core.game
-+      .newGame(
-+        chess = chess
-+          .Game(Standard)
-+          .copy(clock =
-+            Some(
-+              Clock
-+                .Config(
-+                  Clock.LimitSeconds(seconds),
-+                  Clock.IncrementSeconds(increment)
-+                )
-+                .toClock
-+            )
-+          ),
-+        players = ByColor(color => lila.game.Player.makeAnon(color)),
-+        rated = Rated.No,
-+        source = lila.core.game.Source.Friend,
-+        pgnImport = None
-+      )
-+      .withId(GameId("clockold"))
-+      .copy(status = Status.Resign)
-+
-+  test("focused native rematches reject old short clocks before native start side effects"):
-+    scala.concurrent.Future.traverse(for
-+      seconds <- List(0, 15, 30, 45, 59)
-+      increment <- List(0, 5, 180)
-+      color <- Color.all
-+    yield (seconds, increment, color)): (seconds, increment, color) =>
-+      val state = new lila.game.Rematches(null)
-+      val game = finishedClockGame(seconds, increment)
-+      // A refused insertion used to leave this accepted marker behind.
-+      state.accept(game.id, GameId("notmade1"))
-+      // Rejection must not touch the absent database collaborators or the explicit start trap.
-+      val rematcher = new Rematcher(
-+        null,
-+        null,
-+        null,
-+        lila.core.game.OnStart(_ => fail("a rejected rematch must not start a game")),
-+        state,
-+        play.api.Configuration("nosweat.enabled" -> true)
-+      )
-+      rematcher
-+        .yes(lila.core.game.Pov(game, color))
-+        .map: events =>
-+          assertEquals(state.get(game.id), None)
-+          assertEquals(events, List(lila.game.Event.RematchOffer(None, minimumClockRequired = true)))
-+          val event = events.head
-+          assertEquals(event.typ, "reload")
-+          assert(event.owner)
-+          assert(!event.watcher)
-+          assertEquals((event.data \ "t").as[String], "rematchOffer")
-+          assertEquals((event.data \ "minimumClockRequired").as[Boolean], true)
-+          assertEquals(event.data \ "d", play.api.libs.json.JsDefined(play.api.libs.json.JsNull))
-+
-+  test("ordinary native rematch events retain their existing wire payload"):
-+    assertEquals(
-+      lila.game.Event.RematchOffer(Some(Color.White)).data,
-+      play.api.libs.json.Json.obj("t" -> "rematchOffer", "d" -> "white")
-+    )
-+
-+  test("a berserked one-minute Arena game retains its original Bullet rating category"):
-+    import lila.game.GameExt.*
-+    val original = finishedClockGame(60).copy(status = Status.Started)
-+    val arena = original.copy(metadata =
-+      original.metadata.copy(
-+        source = Some(lila.core.game.Source.Arena),
-+        tournamentId = Some(TourId("arenamin"))
-+      )
-+    )
-+    val berserked = arena.goBerserk(Color.White).get.game
-+    assert(berserked.whitePlayer.berserk)
-+    assert(berserked.clock.get.remainingTime(Color.White) < arena.clock.get.remainingTime(Color.White))
-+    assertEquals(berserked.clockConfig, arena.clockConfig)
-+    assertEquals(berserked.speed, Speed.Bullet)
-+    assertEquals(berserked.perfKey, lila.core.perf.PerfKey.bullet)
 diff --git a/modules/security/src/main/SecurityApi.scala b/modules/security/src/main/SecurityApi.scala
 index 8fdc0f4..5d7e445 100644
 --- a/modules/security/src/main/SecurityApi.scala
@@ -14149,18 +14010,6 @@ index fef59d7..384f648 100644
    });
  
  export const endgameShapesForStep = (ctrl: RoundController, step: Step): DrawShape[] =>
-diff --git a/ui/round/src/interfaces.ts b/ui/round/src/interfaces.ts
-index a83a17a..5f6f486 100644
---- a/ui/round/src/interfaces.ts
-+++ b/ui/round/src/interfaces.ts
-@@ -85,6 +85,7 @@ export interface Reloads {
- export interface ReloadEvent<T extends keyof Reloads> {
-   t: T;
-   d: Parameters<Reloads[T]>;
-+  minimumClockRequired?: boolean;
- }
- 
- export interface SocketInEvents {
 diff --git a/ui/round/src/keyboard.ts b/ui/round/src/keyboard.ts
 index 27f11a6..45b869b 100644
 --- a/ui/round/src/keyboard.ts
@@ -14176,31 +14025,6 @@ index 27f11a6..45b869b 100644
      .bind('f', ctrl.flipNow)
      .bind('z', () => pubsub.emit('zen'))
      .bind('F', ctrl.yeet)
-diff --git a/ui/round/src/socket.ts b/ui/round/src/socket.ts
-index db2fc26..2714b7e 100644
---- a/ui/round/src/socket.ts
-+++ b/ui/round/src/socket.ts
-@@ -2,9 +2,10 @@ import { COLORS } from 'chessops';
- 
- import { throttle } from 'lib/async';
- import { type Simul, setOnGame, isPlayerTurn, plyColor } from 'lib/game';
-+import { muteText } from 'lib/nosweat/i18n';
- import { pubsub } from 'lib/pubsub';
- import { wsSign, wsVersion } from 'lib/socket';
--import { domDialog } from 'lib/view';
-+import { alert, domDialog } from 'lib/view';
- 
- import type RoundController from './ctrl';
- import type {
-@@ -62,6 +63,8 @@ export function make(send: RoundSocketSend, ctrl: RoundController): RoundSocket
-       ctrl.setLoading(false);
-       const handler = handlers[o.t] as unknown as (cb: Parameters<Reloads[K]>) => void;
-       handler(o.d);
-+      if (o.t === 'rematchOffer' && o.minimumClockRequired)
-+        void alert(muteText('MinimumClock', 'Starting time must be at least 1 minute per side.'));
-     } else
-       xhrReload(ctrl.data).then(data => {
-         const version = wsVersion();
 diff --git a/ui/round/src/title.ts b/ui/round/src/title.ts
 index 929a8fc..f336f16 100644
 --- a/ui/round/src/title.ts
@@ -14255,6 +14079,48 @@ index 4c080b7..cf92d1b 100644
          menu.voiceInput(boolPrefXhrToggle('voice', !!ctrl.voiceMove), !spectator),
          !portraitMobile &&
            menu.keyboardInput(boolPrefXhrToggle('keyboardMove', !!ctrl.keyboardMove), !spectator),
+diff --git a/ui/round/src/view/button.ts b/ui/round/src/view/button.ts
+index 79b7350..2fee648 100644
+--- a/ui/round/src/view/button.ts
++++ b/ui/round/src/view/button.ts
+@@ -4,6 +4,7 @@ import { finished, aborted, replayable, rematchable, moretimeable, type PlayerUs
+ import type { ClockData } from 'lib/game/clock/clockCtrl';
+ import { game as gameRoute } from 'lib/game/router';
+ import { licon, type LiconValue } from 'lib/licon';
++import { muteText } from 'lib/nosweat/i18n';
+ import { pubsub } from 'lib/pubsub';
+ import {
+   spinnerVdom as spinner,
+@@ -66,6 +67,29 @@ function rematchButtons(ctrl: RoundController): LooseVNodes {
+   const disabled = !me && !d.opponent.onGame && (!!d.clock || !d.player.user || !d.opponent.user);
+   const them = !!d.opponent.offeringRematch && !disabled;
+   if (!rematchable(d)) return [];
++  if (
++    !d.game.rematch &&
++    document.documentElement.dataset.brand === 'mutechess' &&
++    d.clock &&
++    d.clock.initial < 60
++  ) {
++    const explanation = muteText('MinimumClock', 'Starting time must be at least 1 minute per side.');
++    return [
++      hl(
++        'button.fbt.rematch.white',
++        {
++          attrs: {
++            type: 'button',
++            disabled: true,
++            title: explanation,
++            'aria-describedby': 'rematch-minimum-clock',
++          },
++        },
++        i18n.site.rematch,
++      ),
++      hl('p#rematch-minimum-clock.weak', explanation),
++    ];
++  }
+   return [
+     them &&
+       hl(
 diff --git a/ui/round/src/view/user.ts b/ui/round/src/view/user.ts
 index f91c71d..665cbe5 100644
 --- a/ui/round/src/view/user.ts
@@ -18540,10 +18406,10 @@ index 0000000..9073fce
 +    assertEquals(NoSweatArenaAdmission.hosts(play.api.Configuration.empty), Set.empty[UserId])
 diff --git a/modules/game/src/test/NoSweatGameAdmissionTest.scala b/modules/game/src/test/NoSweatGameAdmissionTest.scala
 new file mode 100644
-index 0000000..c0fb42f
+index 0000000..95ea65f
 --- /dev/null
 +++ b/modules/game/src/test/NoSweatGameAdmissionTest.scala
-@@ -0,0 +1,96 @@
+@@ -0,0 +1,125 @@
 +package lila.game
 +
 +import java.util.concurrent.atomic.AtomicBoolean
@@ -18566,6 +18432,35 @@ index 0000000..c0fb42f
 +      assert(!NoSweatGameAdmission.hasMinimumClock(clock(seconds, increment)))
 +    for seconds <- List(60, 90, 300); increment <- List(0, 1, 5, 180) do
 +      assert(NoSweatGameAdmission.hasMinimumClock(clock(seconds, increment)))
++
++  test("Arena berserk retains the original supported clock and Bullet rating category"):
++    import lila.game.GameExt.*
++    val arena = lila.core.game
++      .newGame(
++        chess = chess
++          .Game(chess.variant.Standard)
++          .copy(clock =
++            Some(
++              chess.Clock.Config(chess.Clock.LimitSeconds(60), chess.Clock.IncrementSeconds(0)).toClock
++            )
++          ),
++        players = chess.ByColor(color => lila.game.Player.makeAnon(color)),
++        rated = chess.Rated.No,
++        source = lila.core.game.Source.Arena,
++        pgnImport = None
++      )
++      .withId(GameId("arenamin"))
++      .start
++    val game = arena.copy(metadata = arena.metadata.copy(tournamentId = Some(TourId("arenamin"))))
++    val berserked = game.goBerserk(chess.Color.White).get.game
++    assert(berserked.whitePlayer.berserk)
++    assert(
++      berserked.clock.get.remainingTime(chess.Color.White) < game.clock.get.remainingTime(chess.Color.White)
++    )
++    assertEquals(berserked.clockConfig, game.clockConfig)
++    assert(NoSweatGameAdmission.hasMinimumClock(berserked.clockConfig))
++    assertEquals(berserked.speed, chess.Speed.Bullet)
++    assertEquals(berserked.perfKey, lila.core.perf.PerfKey.bullet)
 +
 +  test("pausing rejects insertion without running its side effects, and reopening restores it"):
 +    val state = new AtomicBoolean(false)
@@ -103931,93 +103826,104 @@ index 0000000..249bf9a
 +}
 diff --git a/ui/round/tests/noSweatRematch.test.ts b/ui/round/tests/noSweatRematch.test.ts
 new file mode 100644
-index 0000000..a89a0b9
+index 0000000..edb3356
 --- /dev/null
 +++ b/ui/round/tests/noSweatRematch.test.ts
-@@ -0,0 +1,84 @@
+@@ -0,0 +1,95 @@
 +import assert from 'node:assert/strict';
 +import { readFileSync } from 'node:fs';
-+import { mock, test } from 'node:test';
++import { test } from 'node:test';
++import { attributesModule, init } from 'snabbdom';
 +
 +import type RoundController from '../src/ctrl';
-+import type { ReloadEvent } from '../src/interfaces';
++import { followUp } from '../src/view/button';
 +
-+const notices: string[] = [];
-+mock.module('lib/view', {
-+  namedExports: {
-+    ...(await import('lib/view')),
-+    alert: async (message: string) => {
-+      notices.push(message);
-+    },
-+  },
-+});
-+const { make } = await import('../src/socket');
-+
-+function fixture() {
-+  notices.length = 0;
-+  let loading = true;
-+  let redraws = 0;
-+  const data = {
-+    player: { color: 'white', offeringRematch: true },
-+    opponent: { color: 'black', offeringRematch: true },
-+  };
++const patch = init([attributesModule]);
++function render(seconds: number | undefined, branded = true, rematch?: string, increment = 0) {
++  document.documentElement.dataset.brand = branded ? 'mutechess' : 'lichess';
++  document.body.innerHTML = '<div id="fixture"></div>';
++  const sent: string[] = [];
 +  const ctrl = {
-+    sign: 'test',
-+    data,
-+    setLoading(value: boolean) {
-+      loading = value;
++    ply: 0,
++    data: {
++      game: { id: 'clockold', source: 'friend', status: { id: 31 }, variant: { key: 'standard' }, rematch },
++      player: { color: 'white', id: 'aaaa', user: { id: 'white' } },
++      opponent: { color: 'black', onGame: true, user: { id: 'black' } },
++      clock: seconds === undefined ? undefined : { initial: seconds, increment, white: 15, black: 15 },
 +    },
-+    redraw() {
-+      redraws++;
++    socket: {
++      send(type: string) {
++        sent.push(type);
++      },
 +    },
-+    opponentRequest() {
-+      assert.fail('must not offer a rejected rematch');
++    challengeRematch() {
++      sent.push('challenge');
 +    },
++    redraw() {},
 +  } as unknown as RoundController;
-+  const socket = make(() => assert.fail('rejection must not send a new request'), ctrl);
-+  return { socket, data, loading: () => loading, redraws: () => redraws };
++  patch(document.getElementById('fixture')!, followUp(ctrl));
++  const button = document.querySelector<HTMLButtonElement>('button.rematch')!;
++  assert.ok(button);
++  return { button, sent, explanation: document.getElementById('rematch-minimum-clock'), ctrl };
 +}
 +
-+for (const locale of [
-+  'en-GB',
-+  'de-DE',
-+  'es-ES',
-+  'fr-FR',
-+  'hi-IN',
-+  'ja-JP',
-+  'ko-KR',
-+  'pt-BR',
-+  'ru-RU',
-+  'zh-CN',
-+])
-+  test(`a native minimum-clock rematch rejection clears the spinner and both offers in ${locale}`, () => {
-+    const path = locale === 'en-GB' ? 'source/site.xml' : `dest/site/${locale}.xml`;
-+    const catalog = readFileSync(new URL(`../../../translation/${path}`, import.meta.url), 'utf8');
-+    const message = catalog.match(/<string name="muteMinimumClock">([^<]+)<\/string>/)?.[1];
-+    assert.ok(message);
-+    const original = i18n;
-+    Object.assign(globalThis, { i18n: { site: { muteMinimumClock: message } } });
-+    try {
-+      const f = fixture();
-+      const event = { t: 'rematchOffer', d: null, minimumClockRequired: true };
-+      assert.equal(f.socket.receive('reload', event as unknown as ReloadEvent<'rematchOffer'>), true);
-+      assert.equal(f.loading(), false);
-+      assert.equal(f.data.player.offeringRematch, false);
-+      assert.equal(f.data.opponent.offeringRematch, false);
-+      assert.equal(f.redraws(), 1);
-+      assert.deepEqual(notices, [message]);
-+    } finally {
-+      Object.assign(globalThis, { i18n: original });
++test('legacy sub-minute rematches have a disabled button and send no request, regardless of increment', () => {
++  for (const seconds of [0, 15, 30, 45, 59])
++    for (const increment of [0, 180]) {
++      const f = render(seconds, true, undefined, increment);
++      assert.equal(f.button.disabled, true);
++      assert.ok(f.explanation?.textContent);
++      assert.equal(f.button.getAttribute('aria-describedby'), f.explanation.id);
++      f.button.click();
++      assert.deepEqual(f.sent, []);
++      assert.equal(f.ctrl.data.player.offeringRematch, undefined);
 +    }
-+  });
++});
 +
-+test('an ordinary native rematch cancellation clears its state without an error notice', () => {
-+  const f = fixture();
-+  f.socket.receive('reload', { t: 'rematchOffer', d: null } as unknown as ReloadEvent<'rematchOffer'>);
-+  assert.equal(f.loading(), false);
-+  assert.equal(f.data.player.offeringRematch, false);
-+  assert.equal(f.data.opponent.offeringRematch, false);
-+  assert.deepEqual(notices, []);
++test('supported clocks, upstream views and existing rematch links retain native controls', () => {
++  for (const seconds of [60, 90, 300]) {
++    const f = render(seconds); // A low remaining clock does not change its original starting time.
++    assert.equal(f.button.disabled, false);
++    assert.equal(f.explanation, null);
++    f.button.click();
++    assert.deepEqual(f.sent, ['rematch-yes']);
++  }
++  for (const f of [render(15, false), render(15, true, 'existing'), render(undefined)]) {
++    assert.equal(f.button.disabled, false);
++    assert.equal(f.explanation, null);
++  }
++});
++
++test('the disabled rematch explanation renders from all ten native catalogs', () => {
++  const original = i18n;
++  try {
++    for (const locale of [
++      'en-GB',
++      'de-DE',
++      'es-ES',
++      'fr-FR',
++      'hi-IN',
++      'ja-JP',
++      'ko-KR',
++      'pt-BR',
++      'ru-RU',
++      'zh-CN',
++    ]) {
++      const path = locale === 'en-GB' ? 'source/site.xml' : `dest/site/${locale}.xml`;
++      const catalog = readFileSync(new URL(`../../../translation/${path}`, import.meta.url), 'utf8');
++      const message = catalog.match(/<string name="muteMinimumClock">([^<]+)<\/string>/)?.[1];
++      assert.ok(message);
++      Object.assign(globalThis, {
++        i18n: { site: { muteMinimumClock: message, rematch: 'Rematch', analysis: 'Analysis' } },
++      });
++      const f = render(15);
++      assert.equal(f.explanation?.textContent, message);
++      assert.equal(f.button.title, message);
++      assert.equal(f.button.disabled, true);
++    }
++  } finally {
++    Object.assign(globalThis, { i18n: original });
++  }
 +});
 diff --git a/ui/round/tests/premoveContinuity.test.ts b/ui/round/tests/premoveContinuity.test.ts
 new file mode 100644
