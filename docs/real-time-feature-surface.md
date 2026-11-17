@@ -52,3 +52,15 @@ Existing games can finish and historical UltraBullet ratings, statistics and
 replays remain stored. Old short Arenas cannot be prepared for new play. The
 policy is scoped to Mute's focused mode; the upstream time controls retain their
 native choices outside that flag.
+
+Legacy setup links normalize their forced time constraint as well as the visible
+clock, so Play stays enabled after a sub-minute value becomes one minute. Other
+forced options remain enforced, and the caller's options object is not mutated.
+Native rematches of old short games are rejected before new-game side effects;
+stale offer state is cleared and both owners receive the existing translated
+minimum-clock message through the native rematch reload path. The browser clears
+its loading/offer indicators, and ordinary rematch payloads are unchanged.
+
+Arena berserk reduces a player's available time but retains the original game
+clock configuration. A berserked `1+0` game therefore still uses the **Bullet**
+rating, never UltraBullet. Native clock/speed/performance-key tests cover this.

@@ -2930,6 +2930,22 @@ index 43d76ae..38538de 100644
  
    given idGenerator: IdGenerator = wire[IdGenerator]
  
+diff --git a/modules/game/src/main/Event.scala b/modules/game/src/main/Event.scala
+index dc8b2c8..024226b 100644
+--- a/modules/game/src/main/Event.scala
++++ b/modules/game/src/main/Event.scala
+@@ -278,9 +278,9 @@ object Event:
+ 
+   // use t:reload for mobile app BC,
+   // but send extra data for the web to avoid reloading
+-  case class RematchOffer(by: Option[Color]) extends Event:
++  case class RematchOffer(by: Option[Color], minimumClockRequired: Boolean = false) extends Event:
+     def typ = "reload"
+-    def data = reloadOr("rematchOffer", by)
++    def data = reloadOr("rematchOffer", by).add("minimumClockRequired" -> minimumClockRequired)
+     override def owner = true
+ 
+   case class RematchTaken(nextId: GameId) extends Event:
 diff --git a/modules/game/src/main/GameRepo.scala b/modules/game/src/main/GameRepo.scala
 index 45a3103..a927c10 100644
 --- a/modules/game/src/main/GameRepo.scala
@@ -3751,6 +3767,39 @@ index c67559c..a20eec6 100644
  
    def timeout(chatId: ChatId, suspect: UserId, reason: String, text: String)(using mod: MyId): Funit =
      ChatTimeout
+diff --git a/modules/round/src/main/Rematcher.scala b/modules/round/src/main/Rematcher.scala
+index 5db7c51..932ff12 100644
+--- a/modules/round/src/main/Rematcher.scala
++++ b/modules/round/src/main/Rematcher.scala
+@@ -18,11 +18,14 @@ final private class Rematcher(
+     userApi: UserApi,
+     messenger: Messenger,
+     onStart: lila.core.game.OnStart,
+-    rematches: Rematches
++    rematches: Rematches,
++    appConfig: play.api.Configuration
+ )(using Executor, Translator, lila.core.config.RateLimit)(using idGenerator: IdGenerator):
+ 
+   private given play.api.i18n.Lang = defaultLang
+ 
++  private val noSweatOnly = appConfig.getOptional[Boolean]("nosweat.enabled").getOrElse(false)
++
+   private val declined = ExpireSetMemo[GameFullId](1.minute)
+ 
+   private val rateLimit = lila.memo.RateLimit[GameFullId](
+@@ -49,7 +52,11 @@ final private class Rematcher(
+   def yes(pov: Pov): Fu[Events] =
+     pov match
+       case Pov(game, color) if couldRematch(game) =>
+-        if isOffering(!pov.ref) || game.opponent(color).isAi
++        if noSweatOnly && game.hasClock && !lila.game.NoSweatGameAdmission.hasMinimumClock(game.clockConfig)
++        then
++          rematches.drop(pov.gameId)
++          fuccess(List(Event.RematchOffer(by = none, minimumClockRequired = true)))
++        else if isOffering(!pov.ref) || game.opponent(color).isAi
+         then rematches.getAcceptedId(game.id).fold(rematchJoin(pov))(rematchExists(pov))
+         else if !declined.get(pov.flip.fullId) && rateLimit.zero(pov.fullId)(true)
+         then rematchCreate(pov)
 diff --git a/modules/round/src/main/RoundMobile.scala b/modules/round/src/main/RoundMobile.scala
 index 08594ca..63045a9 100644
 --- a/modules/round/src/main/RoundMobile.scala
@@ -3788,6 +3837,90 @@ index 8fd4ed3..687a138 100644
          _.foreach:
            messenger.owner(_, color, msg)
      case Protocol.In.PlayerChatSay(id, Left(userId), msg) =>
+diff --git a/modules/round/src/test/RematcherTest.scala b/modules/round/src/test/RematcherTest.scala
+index b2305a1..afaa617 100644
+--- a/modules/round/src/test/RematcherTest.scala
++++ b/modules/round/src/test/RematcherTest.scala
+@@ -30,3 +30,79 @@ class RematcherTest extends munit.FunSuite:
+       .foreach: variant =>
+         val x = returnChessGame(variant, none, none, false)
+         assertEquals(x.position, variant.initialPosition)
++
++  private given Executor = scala.concurrent.ExecutionContext.global
++  private given lila.core.i18n.Translator = null
++  private given lila.core.config.RateLimit = lila.core.config.RateLimit(false)
++  private given lila.core.game.IdGenerator = null
++
++  private def finishedClockGame(seconds: Int, increment: Int = 0): lila.core.game.Game =
++    lila.core.game
++      .newGame(
++        chess = chess
++          .Game(Standard)
++          .copy(clock =
++            Some(
++              Clock
++                .Config(
++                  Clock.LimitSeconds(seconds),
++                  Clock.IncrementSeconds(increment)
++                )
++                .toClock
++            )
++          ),
++        players = ByColor(color => lila.game.Player.makeAnon(color)),
++        rated = Rated.No,
++        source = lila.core.game.Source.Friend,
++        pgnImport = None
++      )
++      .withId(GameId("clockold"))
++      .copy(status = Status.Resign)
++
++  test("focused native rematches reject old short clocks before native start side effects"):
++    scala.concurrent.Future.traverse(for
++      seconds <- List(0, 15, 30, 45, 59)
++      increment <- List(0, 5, 180)
++      color <- Color.all
++    yield (seconds, increment, color)): (seconds, increment, color) =>
++      val state = new lila.game.Rematches(null)
++      val game = finishedClockGame(seconds, increment)
++      // A refused insertion used to leave this accepted marker behind.
++      state.accept(game.id, GameId("notmade1"))
++      // The native database/start collaborators are deliberately absent: rejection must not touch them.
++      val rematcher =
++        new Rematcher(null, null, null, null, state, play.api.Configuration("nosweat.enabled" -> true))
++      rematcher
++        .yes(lila.core.game.Pov(game, color))
++        .map: events =>
++          assertEquals(state.get(game.id), None)
++          assertEquals(events, List(lila.game.Event.RematchOffer(None, minimumClockRequired = true)))
++          val event = events.head
++          assertEquals(event.typ, "reload")
++          assert(event.owner)
++          assert(!event.watcher)
++          assertEquals((event.data \ "t").as[String], "rematchOffer")
++          assertEquals((event.data \ "minimumClockRequired").as[Boolean], true)
++          assertEquals(event.data \ "d", play.api.libs.json.JsDefined(play.api.libs.json.JsNull))
++
++  test("ordinary native rematch events retain their existing wire payload"):
++    assertEquals(
++      lila.game.Event.RematchOffer(Some(Color.White)).data,
++      play.api.libs.json.Json.obj("t" -> "rematchOffer", "d" -> "white")
++    )
++
++  test("a berserked one-minute Arena game retains its original Bullet rating category"):
++    import lila.game.GameExt.*
++    val original = finishedClockGame(60).copy(status = Status.Started)
++    val arena = original.copy(metadata =
++      original.metadata.copy(
++        source = Some(lila.core.game.Source.Arena),
++        tournamentId = Some(TourId("arenamin"))
++      )
++    )
++    val berserked = arena.goBerserk(Color.White).get.game
++    assert(berserked.whitePlayer.berserk)
++    assert(berserked.clock.get.remainingTime(Color.White) < arena.clock.get.remainingTime(Color.White))
++    assertEquals(berserked.clockConfig, arena.clockConfig)
++    assertEquals(berserked.speed, Speed.Bullet)
++    assertEquals(berserked.perfKey, lila.core.perf.PerfKey.bullet)
 diff --git a/modules/security/src/main/SecurityApi.scala b/modules/security/src/main/SecurityApi.scala
 index 8fdc0f4..5d7e445 100644
 --- a/modules/security/src/main/SecurityApi.scala
@@ -12956,7 +13089,7 @@ index 610f89d..d248296 100644
      xhr.text(
        xhr.url(`/setup/hook/${site.sri}/like/${gameId}`, { deltaMin: ratingMin, deltaMax: ratingMax }),
 diff --git a/ui/lobby/src/setupCtrl.ts b/ui/lobby/src/setupCtrl.ts
-index 42d03af..0a741f2 100644
+index 42d03af..932534a 100644
 --- a/ui/lobby/src/setupCtrl.ts
 +++ b/ui/lobby/src/setupCtrl.ts
 @@ -57,7 +57,7 @@ export default class SetupController {
@@ -12997,7 +13130,7 @@ index 42d03af..0a741f2 100644
      this.enforcePropRules();
      // Upon loading the props from the store, overriding with forced options, and enforcing rules,
      // immediately save them to the store. This way, the user can know that whatever they saw last
-@@ -176,7 +182,7 @@ export default class SetupController {
+@@ -176,14 +182,17 @@ export default class SetupController {
      friendUser?: string,
    ) => {
      this.root.leavePool();
@@ -13006,7 +13139,19 @@ index 42d03af..0a741f2 100644
      this.loading = false;
      this.fenError = false;
      this.lastValidFen = '';
-@@ -289,9 +295,25 @@ export default class SetupController {
+     this.friendUser = friendUser || '';
+     this.variantMenuOpen(false);
+-    this.forced = forceOptions;
+-    this.loadPropsFromStore(forceOptions);
++    this.forced =
++      this.root.opts.noSweat && forceOptions?.time !== undefined && forceOptions.time < 1
++        ? { ...forceOptions, time: 1 }
++        : forceOptions;
++    this.loadPropsFromStore(this.forced);
+   };
+ 
+   closeModal?: () => void; // managed by view/setup/modal.ts
+@@ -289,9 +298,25 @@ export default class SetupController {
      return true;
    };
  
@@ -13998,6 +14143,18 @@ index fef59d7..384f648 100644
    });
  
  export const endgameShapesForStep = (ctrl: RoundController, step: Step): DrawShape[] =>
+diff --git a/ui/round/src/interfaces.ts b/ui/round/src/interfaces.ts
+index a83a17a..5f6f486 100644
+--- a/ui/round/src/interfaces.ts
++++ b/ui/round/src/interfaces.ts
+@@ -85,6 +85,7 @@ export interface Reloads {
+ export interface ReloadEvent<T extends keyof Reloads> {
+   t: T;
+   d: Parameters<Reloads[T]>;
++  minimumClockRequired?: boolean;
+ }
+ 
+ export interface SocketInEvents {
 diff --git a/ui/round/src/keyboard.ts b/ui/round/src/keyboard.ts
 index 27f11a6..45b869b 100644
 --- a/ui/round/src/keyboard.ts
@@ -14013,6 +14170,31 @@ index 27f11a6..45b869b 100644
      .bind('f', ctrl.flipNow)
      .bind('z', () => pubsub.emit('zen'))
      .bind('F', ctrl.yeet)
+diff --git a/ui/round/src/socket.ts b/ui/round/src/socket.ts
+index db2fc26..2714b7e 100644
+--- a/ui/round/src/socket.ts
++++ b/ui/round/src/socket.ts
+@@ -2,9 +2,10 @@ import { COLORS } from 'chessops';
+ 
+ import { throttle } from 'lib/async';
+ import { type Simul, setOnGame, isPlayerTurn, plyColor } from 'lib/game';
++import { muteText } from 'lib/nosweat/i18n';
+ import { pubsub } from 'lib/pubsub';
+ import { wsSign, wsVersion } from 'lib/socket';
+-import { domDialog } from 'lib/view';
++import { alert, domDialog } from 'lib/view';
+ 
+ import type RoundController from './ctrl';
+ import type {
+@@ -62,6 +63,8 @@ export function make(send: RoundSocketSend, ctrl: RoundController): RoundSocket
+       ctrl.setLoading(false);
+       const handler = handlers[o.t] as unknown as (cb: Parameters<Reloads[K]>) => void;
+       handler(o.d);
++      if (o.t === 'rematchOffer' && o.minimumClockRequired)
++        void alert(muteText('MinimumClock', 'Starting time must be at least 1 minute per side.'));
+     } else
+       xhrReload(ctrl.data).then(data => {
+         const version = wsVersion();
 diff --git a/ui/round/src/title.ts b/ui/round/src/title.ts
 index 929a8fc..f336f16 100644
 --- a/ui/round/src/title.ts
@@ -102964,10 +103146,10 @@ index 0000000..f5e4c01
 +  });
 diff --git a/ui/lobby/tests/noSweatTimeControls.test.ts b/ui/lobby/tests/noSweatTimeControls.test.ts
 new file mode 100644
-index 0000000..2aa54b1
+index 0000000..2ad1c04
 --- /dev/null
 +++ b/ui/lobby/tests/noSweatTimeControls.test.ts
-@@ -0,0 +1,115 @@
+@@ -0,0 +1,140 @@
 +import assert from 'node:assert/strict';
 +import { mock, test } from 'node:test';
 +
@@ -103037,6 +103219,14 @@ index 0000000..2aa54b1
 +        assert.equal(ctrl.timeControl.time(), 1);
 +        assert.equal(ctrl.timeControl.increment(), 5);
 +        assert.equal(ctrl.store[gameType]().time, 1);
++        assert.equal(ctrl.valid(), true);
++        const root = ctrl.root;
++        root.setupCtrl = ctrl;
++        const play = setupModal(root)!
++          .flatMap(nodes)
++          .find(n => n.sel?.includes('lobby__start__button'));
++        assert.ok(play);
++        assert.equal(play.data?.attrs?.disabled, false);
 +      });
 +
 +test('focused setup rejects a tampered short clock even with a large increment', () => {
@@ -103082,6 +103272,23 @@ index 0000000..2aa54b1
 +    } finally {
 +      site.blindMode = before;
 +    }
++  });
++
++for (const gameType of ['hook', 'friend'] as GameType[])
++  test(`normalizing a short ${gameType} link retains its other enforced constraints`, () => {
++    localStorage.clear();
++    const ctrl = new SetupController(makeRoot(true, true));
++    const forced = { time: 0.25, increment: 5, mode: 'casual' as const, color: 'white' as const };
++    ctrl.openModal(gameType, forced, gameType === 'friend' ? 'Friend' : undefined);
++    assert.equal(ctrl.valid(), true);
++    assert.equal(ctrl.forced?.time, 1);
++    assert.equal(forced.time, 0.25); // Do not mutate the URL/options object supplied by the caller.
++    ctrl.timeControl.incrementV(0);
++    assert.equal(ctrl.valid(), false);
++    ctrl.timeControl.incrementV(5);
++    assert.equal(ctrl.valid(), true);
++    ctrl.timeControl.timeV(5); // 1.5 minutes differs from the normalized one-minute constraint.
++    assert.equal(ctrl.valid(), false);
 +  });
 diff --git a/ui/puzzle/src/noSweatMaia.ts b/ui/puzzle/src/noSweatMaia.ts
 new file mode 100644
@@ -103716,6 +103923,96 @@ index 0000000..249bf9a
 +    return move;
 +  }
 +}
+diff --git a/ui/round/tests/noSweatRematch.test.ts b/ui/round/tests/noSweatRematch.test.ts
+new file mode 100644
+index 0000000..a89a0b9
+--- /dev/null
++++ b/ui/round/tests/noSweatRematch.test.ts
+@@ -0,0 +1,84 @@
++import assert from 'node:assert/strict';
++import { readFileSync } from 'node:fs';
++import { mock, test } from 'node:test';
++
++import type RoundController from '../src/ctrl';
++import type { ReloadEvent } from '../src/interfaces';
++
++const notices: string[] = [];
++mock.module('lib/view', {
++  namedExports: {
++    ...(await import('lib/view')),
++    alert: async (message: string) => {
++      notices.push(message);
++    },
++  },
++});
++const { make } = await import('../src/socket');
++
++function fixture() {
++  notices.length = 0;
++  let loading = true;
++  let redraws = 0;
++  const data = {
++    player: { color: 'white', offeringRematch: true },
++    opponent: { color: 'black', offeringRematch: true },
++  };
++  const ctrl = {
++    sign: 'test',
++    data,
++    setLoading(value: boolean) {
++      loading = value;
++    },
++    redraw() {
++      redraws++;
++    },
++    opponentRequest() {
++      assert.fail('must not offer a rejected rematch');
++    },
++  } as unknown as RoundController;
++  const socket = make(() => assert.fail('rejection must not send a new request'), ctrl);
++  return { socket, data, loading: () => loading, redraws: () => redraws };
++}
++
++for (const locale of [
++  'en-GB',
++  'de-DE',
++  'es-ES',
++  'fr-FR',
++  'hi-IN',
++  'ja-JP',
++  'ko-KR',
++  'pt-BR',
++  'ru-RU',
++  'zh-CN',
++])
++  test(`a native minimum-clock rematch rejection clears the spinner and both offers in ${locale}`, () => {
++    const path = locale === 'en-GB' ? 'source/site.xml' : `dest/site/${locale}.xml`;
++    const catalog = readFileSync(new URL(`../../../translation/${path}`, import.meta.url), 'utf8');
++    const message = catalog.match(/<string name="muteMinimumClock">([^<]+)<\/string>/)?.[1];
++    assert.ok(message);
++    const original = i18n;
++    Object.assign(globalThis, { i18n: { site: { muteMinimumClock: message } } });
++    try {
++      const f = fixture();
++      const event = { t: 'rematchOffer', d: null, minimumClockRequired: true };
++      assert.equal(f.socket.receive('reload', event as unknown as ReloadEvent<'rematchOffer'>), true);
++      assert.equal(f.loading(), false);
++      assert.equal(f.data.player.offeringRematch, false);
++      assert.equal(f.data.opponent.offeringRematch, false);
++      assert.equal(f.redraws(), 1);
++      assert.deepEqual(notices, [message]);
++    } finally {
++      Object.assign(globalThis, { i18n: original });
++    }
++  });
++
++test('an ordinary native rematch cancellation clears its state without an error notice', () => {
++  const f = fixture();
++  f.socket.receive('reload', { t: 'rematchOffer', d: null } as unknown as ReloadEvent<'rematchOffer'>);
++  assert.equal(f.loading(), false);
++  assert.equal(f.data.player.offeringRematch, false);
++  assert.equal(f.data.opponent.offeringRematch, false);
++  assert.deepEqual(notices, []);
++});
 diff --git a/ui/round/tests/premoveContinuity.test.ts b/ui/round/tests/premoveContinuity.test.ts
 new file mode 100644
 index 0000000..64962ad
