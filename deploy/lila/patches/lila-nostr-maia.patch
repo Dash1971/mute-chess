@@ -156,7 +156,7 @@ index efdcfe5..1639aed 100644
  
    private def serveLogin(using ctx: Context, referrer: Option[ValidReferrer]) = NoBot:
 diff --git a/app/controllers/Challenge.scala b/app/controllers/Challenge.scala
-index cfd1602..2449fcc 100644
+index cfd1602..c4c096a 100644
 --- a/app/controllers/Challenge.scala
 +++ b/app/controllers/Challenge.scala
 @@ -97,21 +97,26 @@ final class Challenge(env: Env) extends LilaController(env):
@@ -180,8 +180,8 @@ index cfd1602..2449fcc 100644
 -          )
 +        if env.noSweat.enabled && (c.unlimited || c.daysPerTurn.isDefined) then
 +          fuccess(JsonBadRequest(lila.core.i18n.I18nKey("muteRealTimeOnly").txt()))
-+        else if env.noSweat.enabled && !lila.game.NoSweatGameAdmission.hasMinimumClock(c.clock.map(_.config)) then
-+          fuccess(JsonBadRequest(lila.core.i18n.I18nKey("muteMinimumClock").txt()))
++        else if env.noSweat.enabled && !lila.game.NoSweatGameAdmission.hasMinimumClock(c.clock.map(_.config))
++        then fuccess(JsonBadRequest(lila.core.i18n.I18nKey("muteMinimumClock").txt()))
 +        else
 +          allow:
 +            api
@@ -647,10 +647,10 @@ index af2f389..0519934 100644
  
    def sides(gameId: GameId, color: Color) = Open:
 diff --git a/app/controllers/Setup.scala b/app/controllers/Setup.scala
-index 7d5ec39..23e165f 100644
+index 7d5ec39..bf3636a 100644
 --- a/app/controllers/Setup.scala
 +++ b/app/controllers/Setup.scala
-@@ -44,47 +44,59 @@ final class Setup(
+@@ -44,47 +44,60 @@ final class Setup(
                origUser <- ctx.user.traverse(env.user.perfsRepo.withPerf(_, config.perfType))
                destUser <- userId.so(env.user.api.enabledWithPerf(_, config.perfType))
                denied <- destUser.so(u => env.challenge.granter.isDenied(u.user, config.perfKey.some))
@@ -664,8 +664,9 @@ index 7d5ec39..23e165f 100644
 +              result <-
 +                if env.noSweat.enabled && config.makeClock.isEmpty then
 +                  fuccess(JsonBadRequest(lila.core.i18n.I18nKey("muteRealTimeOnly").txt()))
-+                else if env.noSweat.enabled && !lila.game.NoSweatGameAdmission.hasMinimumClock(config.makeClock) then
-+                  fuccess(JsonBadRequest(lila.core.i18n.I18nKey("muteMinimumClock").txt()))
++                else if env.noSweat.enabled && !lila.game.NoSweatGameAdmission
++                    .hasMinimumClock(config.makeClock)
++                then fuccess(JsonBadRequest(lila.core.i18n.I18nKey("muteMinimumClock").txt()))
 +                else if env.noSweat.enabled && (
 +                    origUser.isEmpty || destUser.isEmpty || origUser.exists(_.user.isBot) ||
 +                      destUser.exists(_.user.isBot) || destUser.exists(u => ctx.is(u.user)) ||
@@ -19138,10 +19139,10 @@ index 0000000..80788ee
 +    assertEquals(filter(play.api.Mode.Prod, true, accountRoles = Nil).me.roles, Nil)
 diff --git a/modules/tournament/src/main/NoSweatArena.scala b/modules/tournament/src/main/NoSweatArena.scala
 new file mode 100644
-index 0000000..a967842
+index 0000000..b18c3f1
 --- /dev/null
 +++ b/modules/tournament/src/main/NoSweatArena.scala
-@@ -0,0 +1,186 @@
+@@ -0,0 +1,188 @@
 +package lila.tournament
 +
 +import play.api.Configuration
@@ -19199,7 +19200,9 @@ index 0000000..a967842
 +    val settings = t.arenaSettings
 +    val count = if t.conditions.allowsBots then settings.target else 0
 +    require(
-+      ownerEvent(t) && t.isCreated && t.clock.limitSeconds.value >= 60 && settings.valid && bots.size == count && bots
++      ownerEvent(
++        t
++      ) && t.isCreated && t.clock.limitSeconds.value >= 60 && settings.valid && bots.size == count && bots
 +        .map(_.id)
 +        .distinct
 +        .size == count
