@@ -621,17 +621,20 @@
         },
         {
           "id": "focused-feature-surface",
-          "rationale": "Issues #267/#269\u2013272 hide correspondence and Puzzle Racer from focused profile navigation and verify real-time setup normalization. Existing data and non-focused upstream rendering remain unchanged. Focused BOT profiles also omit UltraBullet because native PerfStatApi intentionally rejects UltraBullet statistics for bots; retain seeded perfs and human/non-focused navigation. Focused 404 pages omit the ChessPursuit iframe, whose HTML is served as an octet-stream by the asset gateway and triggers an automatic download; keep native 404 status, optional diagnostic text and home navigation, without changing MIME/security policy or non-focused pages.",
+          "rationale": "Issues #267/#269\u2013272 hide correspondence and Puzzle Racer from focused profile navigation and verify real-time setup normalization. Existing data and non-focused upstream rendering remain unchanged. Focused BOT profiles also omit UltraBullet because native PerfStatApi intentionally rejects UltraBullet statistics for bots; retain seeded perfs and human/non-focused navigation. Focused 404 pages omit the ChessPursuit iframe, whose HTML is served as an octet-stream by the asset gateway and triggers an automatic download; keep native 404 status, optional diagnostic text and home navigation, without changing MIME/security policy or non-focused pages. Temporarily hide Study creation links in Mute puzzle review, ordinary/post-game analysis and the board editor, plus the profile Study-count navigation. Small view guards preserve the native forms, catalogs, routes and stored content for restoration tracked in #123. Historical activity/timeline links and direct Study URLs remain accessible; Practice remains intact. No new user-facing wording or backend service changes.",
           "verification": [
             "Run native noSweatTimeControls and maiaPoolBootstrap regressions, compile profile views and inspect both focused/upstream guards.",
-            "Reproduce PearlDrifter UltraBullet 404 and index.html download in Chrome; verify focused bot/human and non-focused profile guards, focused 404 without iframe, translated copy in all ten locales, native compile and exact patch reconstruction."
+            "Reproduce PearlDrifter UltraBullet 404 and index.html download in Chrome; verify focused bot/human and non-focused profile guards, focused 404 without iframe, translated copy in all ten locales, native compile and exact patch reconstruction.",
+            "Native studyEntryPoint menu regressions cover puzzle play/review under branded and upstream views, preserving display controls; native puzzle/analyse/editor build and Scala profile compilation. Source audit covers ordinary/post-game analysis, editor and profile guards. Restoration inventory lives in docs/real-time-feature-surface.md and issue #123."
           ],
           "files": [
             "modules/user/src/main/ui/UserShowSide.scala",
             "ui/lobby/tests/noSweatTimeControls.test.ts",
             "app/controllers/Challenge.scala",
             "app/views/game/side.scala",
-            "app/views/base/notFound.scala"
+            "app/views/base/notFound.scala",
+            "ui/puzzle/src/view/boardMenu.ts",
+            "ui/puzzle/tests/studyEntryPoint.test.ts"
           ]
         },
         {
