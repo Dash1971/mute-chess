@@ -6730,7 +6730,7 @@ index 58403d3..bdb1c27 100644
 +  <string name="allowBotAccounts">允许机器人账号参赛</string>
  </resources>
 diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
-index 88adade..5434432 100644
+index 88adade..031c955 100644
 --- a/translation/dest/site/de-DE.xml
 +++ b/translation/dest/site/de-DE.xml
 @@ -1064,4 +1064,232 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
@@ -6914,7 +6914,7 @@ index 88adade..5434432 100644
 +  <string name="mutePageNotFound">Seite nicht gefunden</string>
 +  <string name="muteReturnToHomepage">Zurück zur Startseite</string>
 +    <string name="muteLabTitle">Maia-Labor</string>
-+    <string name="muteLabOpen">Züge nach Wertung · Maia-Labor öffnen</string>
++    <string name="muteLabOpen">Maia-Labor</string>
 +    <string name="muteLabClose">Maia-Labor schließen</string>
 +    <string name="muteLabRating">Maia-Wertung</string>
 +    <string name="muteLabRatingChart">Züge nach Wertung</string>
@@ -6967,7 +6967,7 @@ index 88adade..5434432 100644
 +    <string name="muteLabTriple">%1$s, %2$s und %3$s</string>
  </resources>
 diff --git a/translation/dest/site/es-ES.xml b/translation/dest/site/es-ES.xml
-index 76004f5..e6639dd 100644
+index 76004f5..7380e57 100644
 --- a/translation/dest/site/es-ES.xml
 +++ b/translation/dest/site/es-ES.xml
 @@ -1064,4 +1064,232 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
@@ -7151,7 +7151,7 @@ index 76004f5..e6639dd 100644
 +  <string name="mutePageNotFound">Página no encontrada</string>
 +  <string name="muteReturnToHomepage">Volver a la página de inicio</string>
 +    <string name="muteLabTitle">Laboratorio Maia</string>
-+    <string name="muteLabOpen">Jugadas por nivel · Abrir laboratorio Maia</string>
++    <string name="muteLabOpen">Laboratorio Maia</string>
 +    <string name="muteLabClose">Cerrar laboratorio Maia</string>
 +    <string name="muteLabRating">Nivel de Maia</string>
 +    <string name="muteLabRatingChart">Jugadas por nivel</string>
@@ -7204,7 +7204,7 @@ index 76004f5..e6639dd 100644
 +    <string name="muteLabTriple">%1$s, %2$s y %3$s</string>
  </resources>
 diff --git a/translation/dest/site/fr-FR.xml b/translation/dest/site/fr-FR.xml
-index 7dfd5f7..ac43502 100644
+index 7dfd5f7..73db176 100644
 --- a/translation/dest/site/fr-FR.xml
 +++ b/translation/dest/site/fr-FR.xml
 @@ -1063,4 +1063,232 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
@@ -7388,7 +7388,7 @@ index 7dfd5f7..ac43502 100644
 +  <string name="mutePageNotFound">Page introuvable</string>
 +  <string name="muteReturnToHomepage">Retour à la page d’accueil</string>
 +    <string name="muteLabTitle">Laboratoire Maia</string>
-+    <string name="muteLabOpen">Coups par niveau · Ouvrir le laboratoire Maia</string>
++    <string name="muteLabOpen">Laboratoire Maia</string>
 +    <string name="muteLabClose">Fermer le laboratoire Maia</string>
 +    <string name="muteLabRating">Niveau de Maia</string>
 +    <string name="muteLabRatingChart">Coups par niveau</string>
@@ -7441,7 +7441,7 @@ index 7dfd5f7..ac43502 100644
 +    <string name="muteLabTriple">%1$s, %2$s et %3$s</string>
  </resources>
 diff --git a/translation/dest/site/hi-IN.xml b/translation/dest/site/hi-IN.xml
-index bbf1703..4d2b443 100644
+index bbf1703..9a032e9 100644
 --- a/translation/dest/site/hi-IN.xml
 +++ b/translation/dest/site/hi-IN.xml
 @@ -893,4 +893,232 @@
@@ -7625,7 +7625,7 @@ index bbf1703..4d2b443 100644
 +  <string name="mutePageNotFound">पृष्ठ नहीं मिला</string>
 +  <string name="muteReturnToHomepage">मुखपृष्ठ पर लौटें</string>
 +    <string name="muteLabTitle">Maia प्रयोगशाला</string>
-+    <string name="muteLabOpen">रेटिंग के अनुसार चालें · Maia प्रयोगशाला खोलें</string>
++    <string name="muteLabOpen">Maia प्रयोगशाला</string>
 +    <string name="muteLabClose">Maia प्रयोगशाला बंद करें</string>
 +    <string name="muteLabRating">Maia रेटिंग</string>
 +    <string name="muteLabRatingChart">रेटिंग के अनुसार चालें</string>
@@ -7678,7 +7678,7 @@ index bbf1703..4d2b443 100644
 +    <string name="muteLabTriple">%1$s, %2$s और %3$s</string>
  </resources>
 diff --git a/translation/dest/site/ja-JP.xml b/translation/dest/site/ja-JP.xml
-index e628bdb..11b398f 100644
+index e628bdb..7af2f41 100644
 --- a/translation/dest/site/ja-JP.xml
 +++ b/translation/dest/site/ja-JP.xml
 @@ -1023,4 +1023,232 @@
@@ -7862,7 +7862,7 @@ index e628bdb..11b398f 100644
 +  <string name="mutePageNotFound">ページが見つかりません</string>
 +  <string name="muteReturnToHomepage">ホームページに戻る</string>
 +    <string name="muteLabTitle">Maiaラボ</string>
-+    <string name="muteLabOpen">レーティング別の指し手 · Maiaラボを開く</string>
++    <string name="muteLabOpen">Maiaラボ</string>
 +    <string name="muteLabClose">Maiaラボを閉じる</string>
 +    <string name="muteLabRating">Maiaレーティング</string>
 +    <string name="muteLabRatingChart">レーティング別の指し手</string>
@@ -7915,7 +7915,7 @@ index e628bdb..11b398f 100644
 +    <string name="muteLabTriple">%1$s、%2$s、%3$s</string>
  </resources>
 diff --git a/translation/dest/site/ko-KR.xml b/translation/dest/site/ko-KR.xml
-index 9341bf0..756cbe8 100644
+index 9341bf0..aa6d741 100644
 --- a/translation/dest/site/ko-KR.xml
 +++ b/translation/dest/site/ko-KR.xml
 @@ -1022,4 +1022,232 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
@@ -8099,7 +8099,7 @@ index 9341bf0..756cbe8 100644
 +  <string name="mutePageNotFound">페이지를 찾을 수 없습니다</string>
 +  <string name="muteReturnToHomepage">홈페이지로 돌아가기</string>
 +    <string name="muteLabTitle">Maia 연구실</string>
-+    <string name="muteLabOpen">레이팅별 수 · Maia 연구실 열기</string>
++    <string name="muteLabOpen">Maia 연구실</string>
 +    <string name="muteLabClose">Maia 연구실 닫기</string>
 +    <string name="muteLabRating">Maia 레이팅</string>
 +    <string name="muteLabRatingChart">레이팅별 수</string>
@@ -8152,7 +8152,7 @@ index 9341bf0..756cbe8 100644
 +    <string name="muteLabTriple">%1$s, %2$s 및 %3$s</string>
  </resources>
 diff --git a/translation/dest/site/pt-BR.xml b/translation/dest/site/pt-BR.xml
-index 569e752..e2f5078 100644
+index 569e752..601c7e6 100644
 --- a/translation/dest/site/pt-BR.xml
 +++ b/translation/dest/site/pt-BR.xml
 @@ -1063,4 +1063,232 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
@@ -8336,7 +8336,7 @@ index 569e752..e2f5078 100644
 +  <string name="mutePageNotFound">Página não encontrada</string>
 +  <string name="muteReturnToHomepage">Voltar à página inicial</string>
 +    <string name="muteLabTitle">Laboratório Maia</string>
-+    <string name="muteLabOpen">Lances por rating · Abrir laboratório Maia</string>
++    <string name="muteLabOpen">Laboratório Maia</string>
 +    <string name="muteLabClose">Fechar laboratório Maia</string>
 +    <string name="muteLabRating">Rating da Maia</string>
 +    <string name="muteLabRatingChart">Lances por rating</string>
@@ -8389,7 +8389,7 @@ index 569e752..e2f5078 100644
 +    <string name="muteLabTriple">%1$s, %2$s e %3$s</string>
  </resources>
 diff --git a/translation/dest/site/ru-RU.xml b/translation/dest/site/ru-RU.xml
-index 6384657..aef6fc1 100644
+index 6384657..454985e 100644
 --- a/translation/dest/site/ru-RU.xml
 +++ b/translation/dest/site/ru-RU.xml
 @@ -1146,4 +1146,232 @@
@@ -8573,7 +8573,7 @@ index 6384657..aef6fc1 100644
 +  <string name="mutePageNotFound">Страница не найдена</string>
 +  <string name="muteReturnToHomepage">Вернуться на главную страницу</string>
 +    <string name="muteLabTitle">Лаборатория Maia</string>
-+    <string name="muteLabOpen">Ходы по рейтингу · Открыть лабораторию Maia</string>
++    <string name="muteLabOpen">Лаборатория Maia</string>
 +    <string name="muteLabClose">Закрыть лабораторию Maia</string>
 +    <string name="muteLabRating">Рейтинг Maia</string>
 +    <string name="muteLabRatingChart">Ходы по рейтингу</string>
@@ -8626,7 +8626,7 @@ index 6384657..aef6fc1 100644
 +    <string name="muteLabTriple">%1$s, %2$s и %3$s</string>
  </resources>
 diff --git a/translation/dest/site/zh-CN.xml b/translation/dest/site/zh-CN.xml
-index 176f4d1..7bd2795 100644
+index 176f4d1..316ee30 100644
 --- a/translation/dest/site/zh-CN.xml
 +++ b/translation/dest/site/zh-CN.xml
 @@ -1022,4 +1022,232 @@
@@ -8810,7 +8810,7 @@ index 176f4d1..7bd2795 100644
 +  <string name="mutePageNotFound">找不到页面</string>
 +  <string name="muteReturnToHomepage">返回首页</string>
 +    <string name="muteLabTitle">Maia 实验室</string>
-+    <string name="muteLabOpen">各等级分着法 · 打开 Maia 实验室</string>
++    <string name="muteLabOpen">Maia 实验室</string>
 +    <string name="muteLabClose">关闭 Maia 实验室</string>
 +    <string name="muteLabRating">Maia 等级分</string>
 +    <string name="muteLabRatingChart">各等级分着法</string>
@@ -8863,7 +8863,7 @@ index 176f4d1..7bd2795 100644
 +    <string name="muteLabTriple">%1$s、%2$s 和 %3$s</string>
  </resources>
 diff --git a/translation/source/site.xml b/translation/source/site.xml
-index 8b5a6a1..53de156 100644
+index 8b5a6a1..80c2252 100644
 --- a/translation/source/site.xml
 +++ b/translation/source/site.xml
 @@ -1066,4 +1066,232 @@ Leave empty to start games from the normal initial position.</string>
@@ -9047,7 +9047,7 @@ index 8b5a6a1..53de156 100644
 +  <string name="mutePageNotFound">Page not found</string>
 +  <string name="muteReturnToHomepage">Return to the homepage</string>
 +    <string name="muteLabTitle">Maia Lab</string>
-+    <string name="muteLabOpen">Moves by rating · Open Maia Lab</string>
++    <string name="muteLabOpen">Maia Lab</string>
 +    <string name="muteLabClose">Close Maia Lab</string>
 +    <string name="muteLabRating">Maia rating</string>
 +    <string name="muteLabRatingChart">Moves by rating</string>
@@ -13516,10 +13516,10 @@ index fa543c5..b641a8d 100644
  @import 'side';
  @import 'tools';
 diff --git a/ui/puzzle/css/_tools.scss b/ui/puzzle/css/_tools.scss
-index ca31d49..5bfb50d 100644
+index ca31d49..0beb058 100644
 --- a/ui/puzzle/css/_tools.scss
 +++ b/ui/puzzle/css/_tools.scss
-@@ -164,3 +164,140 @@
+@@ -164,3 +164,137 @@
      color: $c-font-clearer;
    }
  }
@@ -13657,9 +13657,6 @@ index ca31d49..5bfb50d 100644
 +  }
 +}
 +
-+.nosweat-puzzle-maia-heading .nosweat-lab-open {
-+  font-size: 0.9em;
-+}
 diff --git a/ui/puzzle/src/autoShape.ts b/ui/puzzle/src/autoShape.ts
 index 8097367..0eb4f00 100644
 --- a/ui/puzzle/src/autoShape.ts
@@ -31622,7 +31619,7 @@ HcmV?d00001
 
 diff --git a/public/nosweat/brand.css b/public/nosweat/brand.css
 new file mode 100644
-index 0000000..503d1ae
+index 0000000..b7720f6
 --- /dev/null
 +++ b/public/nosweat/brand.css
 @@ -0,0 +1,200 @@
@@ -31719,8 +31716,8 @@ index 0000000..503d1ae
 +.nosweat-others { display:flex; align-items:center; justify-content:space-between; gap:3px; padding:0 9px; font-size:11px; width:100%; border-top:1px solid var(--c-border); color:var(--c-font-dim); }
 +.nosweat-others:hover:not(:disabled) { background:var(--c-bg-low); }
 +.nosweat-others:disabled { opacity:1; cursor:default; }
-+.nosweat-rating-explorer { background:var(--c-bg-box); padding:8px 10px; border-radius:5px; margin-top:8px; height:190px; display:grid; grid-template-rows:25px minmax(0,1fr); }
-+.nosweat-rating-heading { display:flex; align-items:baseline; gap:10px; min-width:0; }
++.nosweat-rating-explorer { background:var(--c-bg-box); padding:8px 10px; border-radius:5px; margin-top:8px; height:190px; display:grid; grid-template-rows:auto minmax(0,1fr); }
++.nosweat-rating-heading { display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 10px; min-width:0; }
 +.nosweat-rating-heading h3 { margin:0; font-size:13px; white-space:nowrap; }
 +.nosweat-chart-legend { display:flex; align-items:center; justify-content:start; gap:7px; min-width:0; flex:1; overflow-x:auto; overflow-y:hidden; padding:2px; scrollbar-width:thin; }
 +.nosweat-chart-legend .fbt { flex:0 0 auto; padding:0; font-size:12px; text-transform:none; }
@@ -100697,10 +100694,10 @@ index 0000000..d607d68
 +}
 diff --git a/ui/lib/css/component/_maia-lab.scss b/ui/lib/css/component/_maia-lab.scss
 new file mode 100644
-index 0000000..4941fa2
+index 0000000..f2d10dd
 --- /dev/null
 +++ b/ui/lib/css/component/_maia-lab.scss
-@@ -0,0 +1,291 @@
+@@ -0,0 +1,327 @@
 +.dialog-content.nosweat-maia-lab {
 +  width: min(1100px, 94vw);
 +  text-align: left;
@@ -100732,6 +100729,7 @@ index 0000000..4941fa2
 +
 +  button {
 +    overflow-wrap: anywhere;
++    text-transform: none;
 +  }
 +
 +  .maia-lab-heading {
@@ -100756,8 +100754,7 @@ index 0000000..4941fa2
 +  .maia-lab-description {
 +    padding: 1em;
 +    background: $c-bg-zebra;
-+    line-height: 1.7;
-+    min-height: 5em;
++    line-height: 1.55;
 +  }
 +
 +  .maia-lab-description button {
@@ -100783,44 +100780,60 @@ index 0000000..4941fa2
 +    min-width: 0;
 +  }
 +
++  .maia-lab-toolbar {
++    display: flex;
++    align-items: center;
++    justify-content: space-between;
++    gap: 0.75em;
++    flex-wrap: wrap;
++  }
++
 +  .maia-lab-tabs {
 +    display: flex;
 +    gap: 0.7em;
-+    margin-bottom: 1em;
 +  }
 +
-+  [aria-pressed='true'] {
++  .maia-lab-count {
++    display: flex;
++    align-items: center;
++    gap: 0.5em;
++    color: $c-font-dim;
++    font-size: 0.85em;
++
++    select {
++      padding: 0.3em 0.5em;
++    }
++  }
++
++  .maia-lab-tabs [aria-pressed='true'] {
 +    background: $c-bg-zebra;
 +    box-shadow: inset 0 -2px $c-primary;
 +  }
 +
-+  .maia-lab-controls {
++  .maia-lab-slider {
 +    display: flex;
-+    gap: 1em;
-+    align-items: center;
-+  }
-+
-+  .maia-lab-controls label:first-child {
-+    flex: 1;
-+    min-width: 0;
-+  }
-+
-+  .maia-lab-controls label {
-+    display: flex;
-+    gap: 0.6em;
-+    align-items: center;
 +    flex-wrap: wrap;
-+  }
++    align-items: center;
++    gap: 0.4em;
++    margin: 0.5em 0 1em;
++    color: $c-font-dim;
++    font-size: 0.9em;
 +
-+  .maia-lab-controls input {
-+    flex-basis: 100%;
-+    width: 100%;
-+    accent-color: $c-primary;
-+  }
++    output {
++      margin-inline-start: auto;
++      color: $c-primary;
++      font-variant-numeric: tabular-nums;
++    }
 +
-+  output {
-+    margin-inline-start: auto;
-+    font-variant-numeric: tabular-nums;
++    input {
++      flex-basis: 100%;
++      width: 100%;
++      margin: 0;
++      padding: 0;
++      border: 0;
++      background: transparent;
++      accent-color: $c-primary;
++    }
 +  }
 +
 +  .maia-lab-chart {
@@ -100871,12 +100884,13 @@ index 0000000..4941fa2
 +  table {
 +    width: 100%;
 +    border-collapse: collapse;
++    font-size: 0.9em;
 +    font-variant-numeric: tabular-nums;
 +  }
 +
 +  th,
 +  td {
-+    padding: 0.5em;
++    padding: 0.4em 0.5em;
 +    text-align: right;
 +    border-bottom: $border;
 +  }
@@ -100891,8 +100905,19 @@ index 0000000..4941fa2
 +    color: $c-font-dim;
 +  }
 +
++  [data-lab-move] {
++    white-space: nowrap;
++    overflow-wrap: normal;
++    text-transform: none;
++
++    &:hover {
++      background: transparent;
++      text-decoration: underline;
++    }
++  }
++
 +  td button {
-+    padding: 0.25em 0.5em;
++    padding: 0;
 +  }
 +
 +  tr.selected {
@@ -100965,11 +100990,6 @@ index 0000000..4941fa2
 +  }
 +
 +  @media (max-width: 450px) {
-+    .maia-lab-controls {
-+      align-items: stretch;
-+      flex-direction: column;
-+    }
-+
 +    aside {
 +      display: block;
 +    }
@@ -100987,10 +101007,23 @@ index 0000000..4941fa2
 +  }
 +}
 +
-+.nosweat-lab-open {
-+  font-size: 0.85em;
-+  text-decoration: underline;
-+  white-space: normal;
++.nosweat-rating-heading .nosweat-lab-open.fbt,
++.nosweat-puzzle-maia-heading .nosweat-lab-open.fbt {
++  flex: 0 0 auto;
++  padding: 0;
++  font-size: 12px;
++  line-height: 1.5;
++  color: $c-font-dim;
++  text-transform: none;
++  white-space: nowrap;
++  background: transparent;
++
++  &:hover,
++  &:focus-visible {
++    color: $c-primary;
++    text-decoration: underline;
++    text-underline-offset: 0.2em;
++  }
 +}
 diff --git a/ui/lib/src/nosweat/arrows.ts b/ui/lib/src/nosweat/arrows.ts
 new file mode 100644
@@ -101723,10 +101756,10 @@ index 0000000..900a6ad
 +}
 diff --git a/ui/lib/src/nosweat/maiaLab.ts b/ui/lib/src/nosweat/maiaLab.ts
 new file mode 100644
-index 0000000..309cb41
+index 0000000..ea5ab45
 --- /dev/null
 +++ b/ui/lib/src/nosweat/maiaLab.ts
-@@ -0,0 +1,382 @@
+@@ -0,0 +1,383 @@
 +import { Chessground } from '@lichess-org/chessground';
 +import { uciToMove } from '@lichess-org/chessground/util';
 +import { attributesModule, classModule, init } from 'snabbdom';
@@ -101781,9 +101814,8 @@ index 0000000..309cb41
 +        attrs: { dialog: { 'aria-label': labText('LabTitle') } },
 +        htmlText: `<header class="maia-lab-heading"><div><h2>${t('LabTitle')}</h2><span data-lab-context></span></div><button type="button" class="fbt" data-lab-close aria-label="${t('LabClose')}">×</button></header>
 +          <p class="maia-lab-description" data-lab-description aria-live="polite"></p>
-+          <div class="maia-lab-layout"><div class="maia-lab-main"><nav class="maia-lab-tabs" aria-label="${t('LabTitle')}"><button type="button" class="fbt" data-lab-tab="rating">${t('LabRatingChart')}</button><button type="button" class="fbt" data-lab-tab="map">${t('LabMoveMap')}</button></nav>
-+          <div class="maia-lab-controls"><label>${t('LabRating')} <output data-lab-rating-value></output><input type="range" min="600" max="2600" step="100" data-lab-rating></label><label>${t('LabShow')}<select data-lab-count><option value="6">${escapeHtml(labText('LabMoveCount', 6))}</option><option value="8">${escapeHtml(labText('LabMoveCount', 8))}</option></select></label></div>
-+          <div class="maia-lab-chart"><div data-lab-plot><div></div></div><div data-lab-map hidden></div></div><p data-lab-map-help class="maia-lab-help" hidden>${t('LabMapHelp')}</p><p data-lab-progress role="status"></p><h3>${t('LabCandidates')}</h3><div class="maia-lab-table"><table><thead><tr><th>${t('LabMove')}</th><th>${t('LabProbability')}</th><th>${t('LabEvaluation')}</th></tr></thead><tbody></tbody></table></div></div>
++          <div class="maia-lab-layout"><div class="maia-lab-main"><div class="maia-lab-toolbar"><nav class="maia-lab-tabs" aria-label="${t('LabTitle')}"><button type="button" class="fbt" data-lab-tab="rating">${t('LabRatingChart')}</button><button type="button" class="fbt" data-lab-tab="map">${t('LabMoveMap')}</button></nav><label class="maia-lab-count">${t('LabShow')}<select data-lab-count><option value="6">${escapeHtml(labText('LabMoveCount', 6))}</option><option value="8">${escapeHtml(labText('LabMoveCount', 8))}</option></select></label></div>
++          <div class="maia-lab-chart"><div data-lab-plot><div></div></div><div data-lab-map hidden></div></div><div class="maia-lab-slider"><label for="maia-lab-rating">${t('LabRating')}</label><output for="maia-lab-rating" data-lab-rating-value></output><input id="maia-lab-rating" type="range" min="600" max="2600" step="100" data-lab-rating></div><p data-lab-map-help class="maia-lab-help" hidden>${t('LabMapHelp')}</p><p data-lab-progress role="status"></p><h3>${t('LabCandidates')}</h3><div class="maia-lab-table"><table><thead><tr><th>${t('LabMove')}</th><th>${t('LabProbability')}</th><th>${t('LabEvaluation')}</th></tr></thead><tbody></tbody></table></div></div>
 +          <aside><div class="cg-wrap is2d" data-lab-board role="img" aria-label="${t('LabBoard')}"></div><p data-lab-model class="maia-lab-help"></p><section class="maia-lab-detail" aria-live="polite"><h3 data-lab-selected></h3><dl data-lab-details></dl><button type="button" class="button button-empty" data-lab-explore>${t('LabExplore')}</button></section></aside></div><p class="maia-lab-help maia-lab-explanation">${t('LabExplain')}</p>`,
 +        onClose: () => this.cleanup(),
 +      });
@@ -101941,6 +101973,8 @@ index 0000000..309cb41
 +    view
 +      .querySelectorAll<HTMLButtonElement>('[data-lab-tab]')
 +      .forEach(button => button.setAttribute('aria-pressed', String(button.dataset.labTab === this.tab)));
++    view.querySelector<HTMLElement>('[data-lab-progress]')!.hidden =
++      !data.failed && data.byRating.size === ratingSamples.length;
 +    const tbody = view.querySelector('tbody')!;
 +    tbody.replaceChildren();
 +    for (const uci of moves) {
@@ -102111,7 +102145,7 @@ index 0000000..309cb41
 +}
 diff --git a/ui/lib/src/nosweat/maiaLabI18n.ts b/ui/lib/src/nosweat/maiaLabI18n.ts
 new file mode 100644
-index 0000000..58a0d0b
+index 0000000..f5bb663
 --- /dev/null
 +++ b/ui/lib/src/nosweat/maiaLabI18n.ts
 @@ -0,0 +1,70 @@
@@ -102119,7 +102153,7 @@ index 0000000..58a0d0b
 +// are for embedded/test views; every key ships in all ten supported locales.
 +export const labEnglish = {
 +  LabTitle: 'Maia Lab',
-+  LabOpen: 'Moves by rating · Open Maia Lab',
++  LabOpen: 'Maia Lab',
 +  LabClose: 'Close Maia Lab',
 +  LabRating: 'Maia rating',
 +  LabRatingChart: 'Moves by rating',
@@ -103895,10 +103929,10 @@ index 0000000..b041dbc
 +});
 diff --git a/ui/lib/tests/maiaLabDialog.test.ts b/ui/lib/tests/maiaLabDialog.test.ts
 new file mode 100644
-index 0000000..7e85315
+index 0000000..05be0d0
 --- /dev/null
 +++ b/ui/lib/tests/maiaLabDialog.test.ts
-@@ -0,0 +1,151 @@
+@@ -0,0 +1,157 @@
 +import assert from 'node:assert/strict';
 +import { mock, test } from 'node:test';
 +
@@ -103996,6 +104030,12 @@ index 0000000..7e85315
 +    'forced mates do not invent pawn losses',
 +  );
 +  const view = document.body;
++  const plot = view.querySelector('.maia-lab-chart')!;
++  const range = view.querySelector<HTMLInputElement>('[data-lab-rating]')!;
++  assert.ok(plot.compareDocumentPosition(range) & window.Node.DOCUMENT_POSITION_FOLLOWING);
++  assert.equal(range.min, '600');
++  assert.equal(range.max, '2600');
++  assert.equal(range.labels?.[0].textContent, 'Maia rating');
 +  assert.ok(view.textContent?.includes('54.4%'));
 +  assert.ok(view.textContent?.includes('full rating sweep'));
 +  const move = view.querySelector<HTMLButtonElement>('tbody [data-lab-move="c4e2"]')!;

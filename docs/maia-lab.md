@@ -102,3 +102,30 @@ The dialog regression checks this with an unthemed body, and the corrected
 [browser fixture](maia-lab/native-preview-theme.jpg) uses the actual native theme
 stylesheet and variables: all 14 pieces and the board background resolve without
 an inherited page theme class. The fixture still uses deterministic engine inputs.
+
+
+### November 19 presentation correction (#340)
+
+The entry is a small localized **Maia Lab** action. The dialog keeps SAN casing
+unchanged (including `a3`, `Rb3+` and `Kc5`), places its local rating slider below
+the chart on both tabs, and removes text-input padding that inset the native
+range thumb. The range has an explicit localized label and retains keyboard
+Home/End navigation over 600–2600. The move-count selector sits beside the view
+tabs. Inline moves no longer inherit tab selection styling; completed sampling
+progress and the fixed narrative-height spacer are omitted. Engine outputs,
+probabilities, classifications and assistance gates are unchanged.
+
+These are screenshots of the actual native rendering functions, shared dialog,
+and compiled native styles/catalogs with deterministic test inputs. Entry
+fixtures omit the analysis card bodies; they are not screenshots of full live
+native pages or fresh engine predictions.
+
+- [Corrected dialog](maia-lab/polish/polished-dialog.jpg)
+- [Analysis, post-game and puzzle entry actions](maia-lab/polish/entry-points.jpg)
+- [SAN and maximum endpoint](maia-lab/polish/notation-2600.jpg)
+- [Minimum endpoint](maia-lab/polish/notation-600.jpg)
+- [German narrow layout](maia-lab/polish/de-DE-narrow.jpg)
+- [All ten locales](maia-lab/polish/locales.json): actual rendered text and
+  computed casing, header bounds, labeled range, zero input padding, plot/slider
+  order, 600/2600 values and no horizontal dialog overflow at 375px. German also
+  checked at 320px. Browser viewport overrides were reset after checks.
