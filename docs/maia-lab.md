@@ -73,3 +73,24 @@ review, classification and native UI regressions run unchanged. The native UI
 build compiles both entry bundles, shared dialog CSS and all locale catalogs.
 Browser/render evidence is recorded with the PR; fixtures are distinguished from
 live engine analysis.
+
+### November 18 browser evidence
+
+These screenshots render the **actual shared component and compiled native locale
+catalogs/styles**, with deterministic legal-position/engine/policy test fixtures.
+They are UI/lifecycle evidence, **not live model predictions or three separate
+full native pages**. Native controller integration tests separately cover puzzle
+review, standalone and post-game providers and assistance gates.
+
+- [Desktop dialog](maia-lab/desktop.jpg)
+- [Move map](maia-lab/move-map.jpg)
+- [German narrow layout](maia-lab/german-narrow.jpg)
+- [All ten compiled locales](maia-lab/locales.json): localized labels, no unresolved
+  placeholders, no horizontal dialog overflow and no overflowing detail labels.
+
+Also exercised eight candidates, linked source/destination highlights, returning
+between chart/map, a 320px map, and native Escape cleanup. Modal control keys
+cannot invoke the underlying board shortcuts. Forced mates retain signed mate
+notation; pawn-loss metrics are withheld when they would compare a CP value
+with a mate proxy. Empirical win-rate lookup percentages are labeled explicitly
+and are not forced-mate probabilities. Native UI suite: 462 passing tests.

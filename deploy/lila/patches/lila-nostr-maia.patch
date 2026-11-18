@@ -6730,7 +6730,7 @@ index 58403d3..bdb1c27 100644
 +  <string name="allowBotAccounts">允许机器人账号参赛</string>
  </resources>
 diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
-index 88adade..8cd8fe5 100644
+index 88adade..5434432 100644
 --- a/translation/dest/site/de-DE.xml
 +++ b/translation/dest/site/de-DE.xml
 @@ -1064,4 +1064,232 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
@@ -6923,7 +6923,7 @@ index 88adade..8cd8fe5 100644
 +    <string name="muteLabShow">Kandidaten anzeigen</string>
 +    <string name="muteLabProbability">Maia-Wahrscheinlichkeit</string>
 +    <string name="muteLabEvaluation">Stockfish-Bewertung</string>
-+    <string name="muteLabWinrate">Stockfish-Gewinnrate (Zugseite)</string>
++    <string name="muteLabWinrate">Empirische Stockfish-Gewinnrate (Zugseite)</string>
 +    <string name="muteLabEvalLoss">Bewertungsverlust (Bauern)</string>
 +    <string name="muteLabDepth">Tiefe %s</string>
 +    <string name="muteLabMove">Zug</string>
@@ -6967,7 +6967,7 @@ index 88adade..8cd8fe5 100644
 +    <string name="muteLabTriple">%1$s, %2$s und %3$s</string>
  </resources>
 diff --git a/translation/dest/site/es-ES.xml b/translation/dest/site/es-ES.xml
-index 76004f5..6f9566c 100644
+index 76004f5..e6639dd 100644
 --- a/translation/dest/site/es-ES.xml
 +++ b/translation/dest/site/es-ES.xml
 @@ -1064,4 +1064,232 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
@@ -7160,7 +7160,7 @@ index 76004f5..6f9566c 100644
 +    <string name="muteLabShow">Mostrar candidatas</string>
 +    <string name="muteLabProbability">Probabilidad de Maia</string>
 +    <string name="muteLabEvaluation">Evaluación de Stockfish</string>
-+    <string name="muteLabWinrate">Tasa de victoria de Stockfish (bando al turno)</string>
++    <string name="muteLabWinrate">Tasa de victoria empírica de Stockfish (bando al turno)</string>
 +    <string name="muteLabEvalLoss">Pérdida de evaluación (peones)</string>
 +    <string name="muteLabDepth">Profundidad %s</string>
 +    <string name="muteLabMove">Jugada</string>
@@ -7204,7 +7204,7 @@ index 76004f5..6f9566c 100644
 +    <string name="muteLabTriple">%1$s, %2$s y %3$s</string>
  </resources>
 diff --git a/translation/dest/site/fr-FR.xml b/translation/dest/site/fr-FR.xml
-index 7dfd5f7..a48db7b 100644
+index 7dfd5f7..ac43502 100644
 --- a/translation/dest/site/fr-FR.xml
 +++ b/translation/dest/site/fr-FR.xml
 @@ -1063,4 +1063,232 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
@@ -7397,7 +7397,7 @@ index 7dfd5f7..a48db7b 100644
 +    <string name="muteLabShow">Afficher les candidats</string>
 +    <string name="muteLabProbability">Probabilité Maia</string>
 +    <string name="muteLabEvaluation">Évaluation Stockfish</string>
-+    <string name="muteLabWinrate">Taux de victoire Stockfish (camp au trait)</string>
++    <string name="muteLabWinrate">Taux de victoire empirique Stockfish (camp au trait)</string>
 +    <string name="muteLabEvalLoss">Perte d’évaluation (pions)</string>
 +    <string name="muteLabDepth">Profondeur %s</string>
 +    <string name="muteLabMove">Coup</string>
@@ -7441,7 +7441,7 @@ index 7dfd5f7..a48db7b 100644
 +    <string name="muteLabTriple">%1$s, %2$s et %3$s</string>
  </resources>
 diff --git a/translation/dest/site/hi-IN.xml b/translation/dest/site/hi-IN.xml
-index bbf1703..34e98b9 100644
+index bbf1703..4d2b443 100644
 --- a/translation/dest/site/hi-IN.xml
 +++ b/translation/dest/site/hi-IN.xml
 @@ -893,4 +893,232 @@
@@ -7634,7 +7634,7 @@ index bbf1703..34e98b9 100644
 +    <string name="muteLabShow">संभावित चालें दिखाएँ</string>
 +    <string name="muteLabProbability">Maia की संभावना</string>
 +    <string name="muteLabEvaluation">Stockfish मूल्यांकन</string>
-+    <string name="muteLabWinrate">Stockfish जीत दर (जिसकी बारी है)</string>
++    <string name="muteLabWinrate">अनुभवजन्य Stockfish जीत दर (जिसकी बारी है)</string>
 +    <string name="muteLabEvalLoss">मूल्यांकन में कमी (प्यादों में)</string>
 +    <string name="muteLabDepth">गहराई %s</string>
 +    <string name="muteLabMove">चाल</string>
@@ -7678,7 +7678,7 @@ index bbf1703..34e98b9 100644
 +    <string name="muteLabTriple">%1$s, %2$s और %3$s</string>
  </resources>
 diff --git a/translation/dest/site/ja-JP.xml b/translation/dest/site/ja-JP.xml
-index e628bdb..8743df2 100644
+index e628bdb..11b398f 100644
 --- a/translation/dest/site/ja-JP.xml
 +++ b/translation/dest/site/ja-JP.xml
 @@ -1023,4 +1023,232 @@
@@ -7871,7 +7871,7 @@ index e628bdb..8743df2 100644
 +    <string name="muteLabShow">候補手を表示</string>
 +    <string name="muteLabProbability">Maiaの選択確率</string>
 +    <string name="muteLabEvaluation">Stockfish評価値</string>
-+    <string name="muteLabWinrate">Stockfish勝率（手番側）</string>
++    <string name="muteLabWinrate">経験的なStockfish勝率（手番側）</string>
 +    <string name="muteLabEvalLoss">評価値の損失（ポーン単位）</string>
 +    <string name="muteLabDepth">深さ%s</string>
 +    <string name="muteLabMove">指し手</string>
@@ -7915,7 +7915,7 @@ index e628bdb..8743df2 100644
 +    <string name="muteLabTriple">%1$s、%2$s、%3$s</string>
  </resources>
 diff --git a/translation/dest/site/ko-KR.xml b/translation/dest/site/ko-KR.xml
-index 9341bf0..6d12f4d 100644
+index 9341bf0..756cbe8 100644
 --- a/translation/dest/site/ko-KR.xml
 +++ b/translation/dest/site/ko-KR.xml
 @@ -1022,4 +1022,232 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
@@ -8108,7 +8108,7 @@ index 9341bf0..6d12f4d 100644
 +    <string name="muteLabShow">후보 수 표시</string>
 +    <string name="muteLabProbability">Maia 선택 확률</string>
 +    <string name="muteLabEvaluation">Stockfish 평가</string>
-+    <string name="muteLabWinrate">Stockfish 승률 (둘 차례인 쪽)</string>
++    <string name="muteLabWinrate">경험적 Stockfish 승률 (둘 차례인 쪽)</string>
 +    <string name="muteLabEvalLoss">평가 손실 (폰 단위)</string>
 +    <string name="muteLabDepth">깊이 %s</string>
 +    <string name="muteLabMove">수</string>
@@ -8152,7 +8152,7 @@ index 9341bf0..6d12f4d 100644
 +    <string name="muteLabTriple">%1$s, %2$s 및 %3$s</string>
  </resources>
 diff --git a/translation/dest/site/pt-BR.xml b/translation/dest/site/pt-BR.xml
-index 569e752..e020f34 100644
+index 569e752..e2f5078 100644
 --- a/translation/dest/site/pt-BR.xml
 +++ b/translation/dest/site/pt-BR.xml
 @@ -1063,4 +1063,232 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
@@ -8345,7 +8345,7 @@ index 569e752..e020f34 100644
 +    <string name="muteLabShow">Mostrar candidatos</string>
 +    <string name="muteLabProbability">Probabilidade da Maia</string>
 +    <string name="muteLabEvaluation">Avaliação do Stockfish</string>
-+    <string name="muteLabWinrate">Taxa de vitória do Stockfish (lado a jogar)</string>
++    <string name="muteLabWinrate">Taxa de vitória empírica do Stockfish (lado a jogar)</string>
 +    <string name="muteLabEvalLoss">Perda de avaliação (peões)</string>
 +    <string name="muteLabDepth">Profundidade %s</string>
 +    <string name="muteLabMove">Lance</string>
@@ -8389,7 +8389,7 @@ index 569e752..e020f34 100644
 +    <string name="muteLabTriple">%1$s, %2$s e %3$s</string>
  </resources>
 diff --git a/translation/dest/site/ru-RU.xml b/translation/dest/site/ru-RU.xml
-index 6384657..a95e633 100644
+index 6384657..aef6fc1 100644
 --- a/translation/dest/site/ru-RU.xml
 +++ b/translation/dest/site/ru-RU.xml
 @@ -1146,4 +1146,232 @@
@@ -8582,7 +8582,7 @@ index 6384657..a95e633 100644
 +    <string name="muteLabShow">Показать кандидатов</string>
 +    <string name="muteLabProbability">Вероятность Maia</string>
 +    <string name="muteLabEvaluation">Оценка Stockfish</string>
-+    <string name="muteLabWinrate">Вероятность победы Stockfish (сторона хода)</string>
++    <string name="muteLabWinrate">Эмпирическая вероятность победы Stockfish (сторона хода)</string>
 +    <string name="muteLabEvalLoss">Потеря оценки (в пешках)</string>
 +    <string name="muteLabDepth">Глубина %s</string>
 +    <string name="muteLabMove">Ход</string>
@@ -8626,7 +8626,7 @@ index 6384657..a95e633 100644
 +    <string name="muteLabTriple">%1$s, %2$s и %3$s</string>
  </resources>
 diff --git a/translation/dest/site/zh-CN.xml b/translation/dest/site/zh-CN.xml
-index 176f4d1..22c0248 100644
+index 176f4d1..7bd2795 100644
 --- a/translation/dest/site/zh-CN.xml
 +++ b/translation/dest/site/zh-CN.xml
 @@ -1022,4 +1022,232 @@
@@ -8819,7 +8819,7 @@ index 176f4d1..22c0248 100644
 +    <string name="muteLabShow">显示候选着法</string>
 +    <string name="muteLabProbability">Maia 选择概率</string>
 +    <string name="muteLabEvaluation">Stockfish 评估</string>
-+    <string name="muteLabWinrate">Stockfish 胜率（行棋方）</string>
++    <string name="muteLabWinrate">Stockfish 经验胜率（行棋方）</string>
 +    <string name="muteLabEvalLoss">评估损失（兵值）</string>
 +    <string name="muteLabDepth">深度 %s</string>
 +    <string name="muteLabMove">着法</string>
@@ -8863,7 +8863,7 @@ index 176f4d1..22c0248 100644
 +    <string name="muteLabTriple">%1$s、%2$s 和 %3$s</string>
  </resources>
 diff --git a/translation/source/site.xml b/translation/source/site.xml
-index 8b5a6a1..a940c85 100644
+index 8b5a6a1..53de156 100644
 --- a/translation/source/site.xml
 +++ b/translation/source/site.xml
 @@ -1066,4 +1066,232 @@ Leave empty to start games from the normal initial position.</string>
@@ -9056,7 +9056,7 @@ index 8b5a6a1..a940c85 100644
 +    <string name="muteLabShow">Show candidates</string>
 +    <string name="muteLabProbability">Maia probability</string>
 +    <string name="muteLabEvaluation">Stockfish evaluation</string>
-+    <string name="muteLabWinrate">Stockfish win rate (side to move)</string>
++    <string name="muteLabWinrate">Empirical Stockfish win rate (side to move)</string>
 +    <string name="muteLabEvalLoss">Evaluation loss (pawns)</string>
 +    <string name="muteLabDepth">Depth %s</string>
 +    <string name="muteLabMove">Move</string>
@@ -100697,10 +100697,10 @@ index 0000000..d607d68
 +}
 diff --git a/ui/lib/css/component/_maia-lab.scss b/ui/lib/css/component/_maia-lab.scss
 new file mode 100644
-index 0000000..0f1b645
+index 0000000..4941fa2
 --- /dev/null
 +++ b/ui/lib/css/component/_maia-lab.scss
-@@ -0,0 +1,290 @@
+@@ -0,0 +1,291 @@
 +.dialog-content.nosweat-maia-lab {
 +  width: min(1100px, 94vw);
 +  text-align: left;
@@ -100922,6 +100922,7 @@ index 0000000..0f1b645
 +  }
 +
 +  dt {
++    overflow-wrap: anywhere;
 +    color: $c-font-dim;
 +  }
 +
@@ -101722,10 +101723,10 @@ index 0000000..900a6ad
 +}
 diff --git a/ui/lib/src/nosweat/maiaLab.ts b/ui/lib/src/nosweat/maiaLab.ts
 new file mode 100644
-index 0000000..7a40ea9
+index 0000000..0b24e78
 --- /dev/null
 +++ b/ui/lib/src/nosweat/maiaLab.ts
-@@ -0,0 +1,355 @@
+@@ -0,0 +1,382 @@
 +import { Chessground } from '@lichess-org/chessground';
 +import { uciToMove } from '@lichess-org/chessground/util';
 +import { attributesModule, classModule, init } from 'snabbdom';
@@ -101734,7 +101735,7 @@ index 0000000..7a40ea9
 +import { domDialog, type Dialog } from '../view/dialog';
 +import { hl, type VNode } from '../view/snabbdom';
 +import { candidateWhiteCp, stockfishWinrate } from './candidateQuality';
-+import { position, san } from './core';
++import { legalUcis, position, san } from './core';
 +import { labText, type LabTextKey } from './maiaLabI18n';
 +import {
 +  describeLabPosition,
@@ -101792,6 +101793,11 @@ index 0000000..7a40ea9
 +      }
 +      this.dialog = dialog;
 +      const view = dialog.view;
++      // Keep range/chart/control keys inside the modal; native Escape and Tab
++      // still reach the dialog's focus/close handler.
++      view.addEventListener('keydown', event => {
++        if (event.key !== 'Escape' && event.key !== 'Tab') event.stopPropagation();
++      });
 +      const boardHost = view.querySelector<HTMLElement>('[data-lab-board]')!;
 +      const data = this.source.snapshot()!;
 +      this.board = Chessground(boardHost, {
@@ -101829,7 +101835,7 @@ index 0000000..7a40ea9
 +      this.key = '';
 +      this.redraw();
 +      void dialog.show();
-+      this.source.start();
++      if (legalUcis(data.fen).length) this.source.start();
 +    } finally {
 +      this.opening = false;
 +    }
@@ -101864,6 +101870,7 @@ index 0000000..7a40ea9
 +    };
 +    const active = document.activeElement instanceof HTMLElement ? document.activeElement : undefined;
 +    const focus = active && view.contains(active) ? active.dataset.labMove : undefined;
++    const descriptionFocused = !!active?.closest('[data-lab-description]');
 +    const moves = labMoves(data, this.rating, this.count);
 +    if (!moves.includes(this.selected)) this.selected = moves[0] ?? '';
 +    const white = position(data.fen).turn === 'white';
@@ -101970,9 +101977,12 @@ index 0000000..7a40ea9
 +    const score = scores.get(this.selected);
 +    if (score) {
 +      metric('LabWinrate', (stockfishWinrate(score, white)! * 100).toFixed(1) + '%');
-+      const moverCp = [...scores.values()].map(s => candidateWhiteCp(s, white)! * (white ? 1 : -1));
-+      const loss = (Math.max(...moverCp) - candidateWhiteCp(score, white)! * (white ? 1 : -1)) / 100;
-+      metric('LabEvalLoss', loss.toFixed(2));
++      // Mate-to-CP proxies belong to quality mapping, never a pawn-loss metric.
++      if ([...scores.values()].every(s => s.mate === undefined)) {
++        const moverCp = [...scores.values()].map(s => candidateWhiteCp(s, white)! * (white ? 1 : -1));
++        const loss = (Math.max(...moverCp) - candidateWhiteCp(score, white)! * (white ? 1 : -1)) / 100;
++        metric('LabEvalLoss', loss.toFixed(2));
++      }
 +    }
 +    view.querySelector<HTMLButtonElement>('[data-lab-explore]')!.disabled = !this.selected;
 +    view.querySelector<HTMLElement>('[data-lab-map-help]')!.hidden = this.tab !== 'map';
@@ -102039,7 +102049,7 @@ index 0000000..7a40ea9
 +          },
 +          String(loss),
 +        );
-+      add('text', { x: width / 2, y: 294, 'text-anchor': 'middle' }, labText('LabMapAxis'));
++
 +      for (const uci of moves) {
 +        const q = qualities.get(uci);
 +        const p = labProbability(data, this.rating, uci);
@@ -102069,21 +102079,39 @@ index 0000000..7a40ea9
 +        });
 +        mark.addEventListener('focus', () => this.source.hover(uci));
 +        mark.addEventListener('blur', () => this.source.hover());
-+        add(
-+          'text',
-+          { x: Math.min(width - 30, Math.max(60, x)), y: Math.max(14, y - 12), 'text-anchor': 'middle' },
-+          name(uci),
-+        );
++        if (uci === this.selected)
++          add(
++            'text',
++            { x: Math.min(width - 30, Math.max(60, x)), y: Math.max(14, y - 12), 'text-anchor': 'middle' },
++            name(uci),
++          );
++        mark.addEventListener('keydown', e => {
++          if (e.key === 'Enter' || e.key === ' ') {
++            e.preventDefault();
++            e.stopPropagation();
++            select(uci);
++          }
++        });
++        mark.addEventListener('mouseenter', () => this.source.hover(uci));
++        mark.addEventListener('mouseleave', () => this.source.hover());
 +      }
-+      host.append(svg);
++      const axis = document.createElement('p');
++      axis.className = 'maia-lab-help';
++      axis.textContent = labText('LabMapAxis');
++      host.append(svg, axis);
 +      view.querySelector('[data-lab-map]')!.replaceChildren(host);
 +    }
-+    if (focus) view.querySelector<HTMLButtonElement>(`tbody [data-lab-move="${focus}"]`)?.focus();
++    if (focus)
++      view
++        .querySelector<HTMLButtonElement>(
++          `${descriptionFocused ? '[data-lab-description]' : 'tbody'} [data-lab-move="${focus}"]`,
++        )
++        ?.focus();
 +  };
 +}
 diff --git a/ui/lib/src/nosweat/maiaLabI18n.ts b/ui/lib/src/nosweat/maiaLabI18n.ts
 new file mode 100644
-index 0000000..284505a
+index 0000000..58a0d0b
 --- /dev/null
 +++ b/ui/lib/src/nosweat/maiaLabI18n.ts
 @@ -0,0 +1,70 @@
@@ -102100,7 +102128,7 @@ index 0000000..284505a
 +  LabShow: 'Show candidates',
 +  LabProbability: 'Maia probability',
 +  LabEvaluation: 'Stockfish evaluation',
-+  LabWinrate: 'Stockfish win rate (side to move)',
++  LabWinrate: 'Empirical Stockfish win rate (side to move)',
 +  LabEvalLoss: 'Evaluation loss (pawns)',
 +  LabDepth: 'Depth %s',
 +  LabMove: 'Move',
@@ -103867,10 +103895,10 @@ index 0000000..b041dbc
 +});
 diff --git a/ui/lib/tests/maiaLabDialog.test.ts b/ui/lib/tests/maiaLabDialog.test.ts
 new file mode 100644
-index 0000000..6b3f75c
+index 0000000..69f45ae
 --- /dev/null
 +++ b/ui/lib/tests/maiaLabDialog.test.ts
-@@ -0,0 +1,136 @@
+@@ -0,0 +1,146 @@
 +import assert from 'node:assert/strict';
 +import { mock, test } from 'node:test';
 +
@@ -103958,6 +103986,10 @@ index 0000000..6b3f75c
 +  await lab.open();
 +  assert.equal(started, 1);
 +  assert.equal(boardConfig.orientation, 'black');
++  assert.ok(
++    !document.querySelector('[data-lab-details]')!.textContent!.includes('Evaluation loss'),
++    'forced mates do not invent pawn losses',
++  );
 +  const view = document.body;
 +  assert.ok(view.textContent?.includes('54.4%'));
 +  assert.ok(view.textContent?.includes('full rating sweep'));
@@ -103965,6 +103997,12 @@ index 0000000..6b3f75c
 +  move.click();
 +  assert.deepEqual(boardConfig.lastMove, ['c4', 'e2']);
 +  const slider = view.querySelector<HTMLInputElement>('[data-lab-rating]')!;
++  let escapedKeys = 0;
++  const boardShortcut = () => escapedKeys++;
++  document.addEventListener('keydown', boardShortcut);
++  slider.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
++  document.removeEventListener('keydown', boardShortcut);
++  assert.equal(escapedKeys, 0, 'dialog controls cannot trigger native board shortcuts');
 +  slider.value = '600';
 +  slider.dispatchEvent(new window.Event('input'));
 +  assert.equal(view.querySelector('[data-lab-rating-value]')!.textContent, '600');
