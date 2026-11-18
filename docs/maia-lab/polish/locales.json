@@ -1,0 +1,532 @@
+[
+  {
+    "lang": "en-GB",
+    "headers": [
+      {
+        "fits": true,
+        "text": "Maia Lab",
+        "transform": "none"
+      },
+      {
+        "fits": true,
+        "text": "Maia Lab",
+        "transform": "none"
+      },
+      {
+        "fits": true,
+        "text": "Maia Lab",
+        "transform": "none"
+      }
+    ],
+    "min": "600",
+    "below": true,
+    "output": "2600",
+    "overflow": false,
+    "padding": "0px",
+    "rangeLabel": "Maia rating",
+    "san": [
+      {
+        "text": "a3",
+        "transform": "none"
+      },
+      {
+        "text": "a4",
+        "transform": "none"
+      },
+      {
+        "text": "Rb2",
+        "transform": "none"
+      },
+      {
+        "text": "Rb3+",
+        "transform": "none"
+      },
+      {
+        "text": "Kc5",
+        "transform": "none"
+      },
+      {
+        "text": "Rb5",
+        "transform": "none"
+      }
+    ],
+    "value": "2600"
+  },
+  {
+    "lang": "de-DE",
+    "headers": [
+      {
+        "fits": true,
+        "text": "Maia-Labor",
+        "transform": "none"
+      },
+      {
+        "fits": true,
+        "text": "Maia-Labor",
+        "transform": "none"
+      },
+      {
+        "fits": true,
+        "text": "Maia-Labor",
+        "transform": "none"
+      }
+    ],
+    "min": "600",
+    "below": true,
+    "output": "2600",
+    "overflow": false,
+    "padding": "0px",
+    "rangeLabel": "Maia-Wertung",
+    "san": [
+      {
+        "text": "a3",
+        "transform": "none"
+      },
+      {
+        "text": "a4",
+        "transform": "none"
+      },
+      {
+        "text": "Rb2",
+        "transform": "none"
+      },
+      {
+        "text": "Rb3+",
+        "transform": "none"
+      },
+      {
+        "text": "Kc5",
+        "transform": "none"
+      },
+      {
+        "text": "Rb5",
+        "transform": "none"
+      }
+    ],
+    "value": "2600"
+  },
+  {
+    "lang": "es-ES",
+    "headers": [
+      {
+        "fits": true,
+        "text": "Laboratorio Maia",
+        "transform": "none"
+      },
+      {
+        "fits": true,
+        "text": "Laboratorio Maia",
+        "transform": "none"
+      },
+      {
+        "fits": true,
+        "text": "Laboratorio Maia",
+        "transform": "none"
+      }
+    ],
+    "min": "600",
+    "below": true,
+    "output": "2600",
+    "overflow": false,
+    "padding": "0px",
+    "rangeLabel": "Nivel de Maia",
+    "san": [
+      {
+        "text": "a3",
+        "transform": "none"
+      },
+      {
+        "text": "a4",
+        "transform": "none"
+      },
+      {
+        "text": "Rb2",
+        "transform": "none"
+      },
+      {
+        "text": "Rb3+",
+        "transform": "none"
+      },
+      {
+        "text": "Kc5",
+        "transform": "none"
+      },
+      {
+        "text": "Rb5",
+        "transform": "none"
+      }
+    ],
+    "value": "2600"
+  },
+  {
+    "lang": "fr-FR",
+    "headers": [
+      {
+        "fits": true,
+        "text": "Laboratoire Maia",
+        "transform": "none"
+      },
+      {
+        "fits": true,
+        "text": "Laboratoire Maia",
+        "transform": "none"
+      },
+      {
+        "fits": true,
+        "text": "Laboratoire Maia",
+        "transform": "none"
+      }
+    ],
+    "min": "600",
+    "below": true,
+    "output": "2600",
+    "overflow": false,
+    "padding": "0px",
+    "rangeLabel": "Niveau de Maia",
+    "san": [
+      {
+        "text": "a3",
+        "transform": "none"
+      },
+      {
+        "text": "a4",
+        "transform": "none"
+      },
+      {
+        "text": "Rb2",
+        "transform": "none"
+      },
+      {
+        "text": "Rb3+",
+        "transform": "none"
+      },
+      {
+        "text": "Kc5",
+        "transform": "none"
+      },
+      {
+        "text": "Rb5",
+        "transform": "none"
+      }
+    ],
+    "value": "2600"
+  },
+  {
+    "lang": "hi-IN",
+    "headers": [
+      {
+        "fits": true,
+        "text": "Maia प्रयोगशाला",
+        "transform": "none"
+      },
+      {
+        "fits": true,
+        "text": "Maia प्रयोगशाला",
+        "transform": "none"
+      },
+      {
+        "fits": true,
+        "text": "Maia प्रयोगशाला",
+        "transform": "none"
+      }
+    ],
+    "min": "600",
+    "below": true,
+    "output": "2600",
+    "overflow": false,
+    "padding": "0px",
+    "rangeLabel": "Maia रेटिंग",
+    "san": [
+      {
+        "text": "a3",
+        "transform": "none"
+      },
+      {
+        "text": "a4",
+        "transform": "none"
+      },
+      {
+        "text": "Rb2",
+        "transform": "none"
+      },
+      {
+        "text": "Rb3+",
+        "transform": "none"
+      },
+      {
+        "text": "Kc5",
+        "transform": "none"
+      },
+      {
+        "text": "Rb5",
+        "transform": "none"
+      }
+    ],
+    "value": "2600"
+  },
+  {
+    "lang": "ja-JP",
+    "headers": [
+      {
+        "fits": true,
+        "text": "Maiaラボ",
+        "transform": "none"
+      },
+      {
+        "fits": true,
+        "text": "Maiaラボ",
+        "transform": "none"
+      },
+      {
+        "fits": true,
+        "text": "Maiaラボ",
+        "transform": "none"
+      }
+    ],
+    "min": "600",
+    "below": true,
+    "output": "2600",
+    "overflow": false,
+    "padding": "0px",
+    "rangeLabel": "Maiaレーティング",
+    "san": [
+      {
+        "text": "a3",
+        "transform": "none"
+      },
+      {
+        "text": "a4",
+        "transform": "none"
+      },
+      {
+        "text": "Rb2",
+        "transform": "none"
+      },
+      {
+        "text": "Rb3+",
+        "transform": "none"
+      },
+      {
+        "text": "Kc5",
+        "transform": "none"
+      },
+      {
+        "text": "Rb5",
+        "transform": "none"
+      }
+    ],
+    "value": "2600"
+  },
+  {
+    "lang": "ko-KR",
+    "headers": [
+      {
+        "fits": true,
+        "text": "Maia 연구실",
+        "transform": "none"
+      },
+      {
+        "fits": true,
+        "text": "Maia 연구실",
+        "transform": "none"
+      },
+      {
+        "fits": true,
+        "text": "Maia 연구실",
+        "transform": "none"
+      }
+    ],
+    "min": "600",
+    "below": true,
+    "output": "2600",
+    "overflow": false,
+    "padding": "0px",
+    "rangeLabel": "Maia 레이팅",
+    "san": [
+      {
+        "text": "a3",
+        "transform": "none"
+      },
+      {
+        "text": "a4",
+        "transform": "none"
+      },
+      {
+        "text": "Rb2",
+        "transform": "none"
+      },
+      {
+        "text": "Rb3+",
+        "transform": "none"
+      },
+      {
+        "text": "Kc5",
+        "transform": "none"
+      },
+      {
+        "text": "Rb5",
+        "transform": "none"
+      }
+    ],
+    "value": "2600"
+  },
+  {
+    "lang": "pt-BR",
+    "headers": [
+      {
+        "fits": true,
+        "text": "Laboratório Maia",
+        "transform": "none"
+      },
+      {
+        "fits": true,
+        "text": "Laboratório Maia",
+        "transform": "none"
+      },
+      {
+        "fits": true,
+        "text": "Laboratório Maia",
+        "transform": "none"
+      }
+    ],
+    "min": "600",
+    "below": true,
+    "output": "2600",
+    "overflow": false,
+    "padding": "0px",
+    "rangeLabel": "Rating da Maia",
+    "san": [
+      {
+        "text": "a3",
+        "transform": "none"
+      },
+      {
+        "text": "a4",
+        "transform": "none"
+      },
+      {
+        "text": "Rb2",
+        "transform": "none"
+      },
+      {
+        "text": "Rb3+",
+        "transform": "none"
+      },
+      {
+        "text": "Kc5",
+        "transform": "none"
+      },
+      {
+        "text": "Rb5",
+        "transform": "none"
+      }
+    ],
+    "value": "2600"
+  },
+  {
+    "lang": "ru-RU",
+    "headers": [
+      {
+        "fits": true,
+        "text": "Лаборатория Maia",
+        "transform": "none"
+      },
+      {
+        "fits": true,
+        "text": "Лаборатория Maia",
+        "transform": "none"
+      },
+      {
+        "fits": true,
+        "text": "Лаборатория Maia",
+        "transform": "none"
+      }
+    ],
+    "min": "600",
+    "below": true,
+    "output": "2600",
+    "overflow": false,
+    "padding": "0px",
+    "rangeLabel": "Рейтинг Maia",
+    "san": [
+      {
+        "text": "a3",
+        "transform": "none"
+      },
+      {
+        "text": "a4",
+        "transform": "none"
+      },
+      {
+        "text": "Rb2",
+        "transform": "none"
+      },
+      {
+        "text": "Rb3+",
+        "transform": "none"
+      },
+      {
+        "text": "Kc5",
+        "transform": "none"
+      },
+      {
+        "text": "Rb5",
+        "transform": "none"
+      }
+    ],
+    "value": "2600"
+  },
+  {
+    "lang": "zh-CN",
+    "headers": [
+      {
+        "fits": true,
+        "text": "Maia 实验室",
+        "transform": "none"
+      },
+      {
+        "fits": true,
+        "text": "Maia 实验室",
+        "transform": "none"
+      },
+      {
+        "fits": true,
+        "text": "Maia 实验室",
+        "transform": "none"
+      }
+    ],
+    "min": "600",
+    "below": true,
+    "output": "2600",
+    "overflow": false,
+    "padding": "0px",
+    "rangeLabel": "Maia 等级分",
+    "san": [
+      {
+        "text": "a3",
+        "transform": "none"
+      },
+      {
+        "text": "a4",
+        "transform": "none"
+      },
+      {
+        "text": "Rb2",
+        "transform": "none"
+      },
+      {
+        "text": "Rb3+",
+        "transform": "none"
+      },
+      {
+        "text": "Kc5",
+        "transform": "none"
+      },
+      {
+        "text": "Rb5",
+        "transform": "none"
+      }
+    ],
+    "value": "2600"
+  }
+]
