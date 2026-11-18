@@ -65,3 +65,8 @@ The CC0 opening table follows Mobile Maia's bundled dataset at
 AGPL Mobile Maia opening/phase presentation references.
 
 The Mute-only `mute-chess-brilliant-v1` experiment intentionally changes `!!` eligibility from the retained EC baseline. Mobile Maia and the independent En Croissant references remain unchanged; see [the exact algorithm and comparison](docs/brilliant-moves.md). Existing licenses and attribution continue to apply.
+
+Maia Lab's rule-based descriptions adapt CSSLab/maia-platform-frontend revision
+`15cef70619bbd7d70c5b0575af3bcf907aeed62c`, GPL-3.0. Original generator/context
+source, license and adaptation notes are retained in
+[third-party/maia-platform-descriptions](third-party/maia-platform-descriptions/README.md).
