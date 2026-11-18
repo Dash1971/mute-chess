@@ -101723,7 +101723,7 @@ index 0000000..900a6ad
 +}
 diff --git a/ui/lib/src/nosweat/maiaLab.ts b/ui/lib/src/nosweat/maiaLab.ts
 new file mode 100644
-index 0000000..0b24e78
+index 0000000..309cb41
 --- /dev/null
 +++ b/ui/lib/src/nosweat/maiaLab.ts
 @@ -0,0 +1,382 @@
@@ -101784,7 +101784,7 @@ index 0000000..0b24e78
 +          <div class="maia-lab-layout"><div class="maia-lab-main"><nav class="maia-lab-tabs" aria-label="${t('LabTitle')}"><button type="button" class="fbt" data-lab-tab="rating">${t('LabRatingChart')}</button><button type="button" class="fbt" data-lab-tab="map">${t('LabMoveMap')}</button></nav>
 +          <div class="maia-lab-controls"><label>${t('LabRating')} <output data-lab-rating-value></output><input type="range" min="600" max="2600" step="100" data-lab-rating></label><label>${t('LabShow')}<select data-lab-count><option value="6">${escapeHtml(labText('LabMoveCount', 6))}</option><option value="8">${escapeHtml(labText('LabMoveCount', 8))}</option></select></label></div>
 +          <div class="maia-lab-chart"><div data-lab-plot><div></div></div><div data-lab-map hidden></div></div><p data-lab-map-help class="maia-lab-help" hidden>${t('LabMapHelp')}</p><p data-lab-progress role="status"></p><h3>${t('LabCandidates')}</h3><div class="maia-lab-table"><table><thead><tr><th>${t('LabMove')}</th><th>${t('LabProbability')}</th><th>${t('LabEvaluation')}</th></tr></thead><tbody></tbody></table></div></div>
-+          <aside><div class="cg-wrap" data-lab-board role="img" aria-label="${t('LabBoard')}"></div><p data-lab-model class="maia-lab-help"></p><section class="maia-lab-detail" aria-live="polite"><h3 data-lab-selected></h3><dl data-lab-details></dl><button type="button" class="button button-empty" data-lab-explore>${t('LabExplore')}</button></section></aside></div><p class="maia-lab-help maia-lab-explanation">${t('LabExplain')}</p>`,
++          <aside><div class="cg-wrap is2d" data-lab-board role="img" aria-label="${t('LabBoard')}"></div><p data-lab-model class="maia-lab-help"></p><section class="maia-lab-detail" aria-live="polite"><h3 data-lab-selected></h3><dl data-lab-details></dl><button type="button" class="button button-empty" data-lab-explore>${t('LabExplore')}</button></section></aside></div><p class="maia-lab-help maia-lab-explanation">${t('LabExplain')}</p>`,
 +        onClose: () => this.cleanup(),
 +      });
 +      if (epoch !== this.epoch || !this.source.snapshot()) {
@@ -103895,10 +103895,10 @@ index 0000000..b041dbc
 +});
 diff --git a/ui/lib/tests/maiaLabDialog.test.ts b/ui/lib/tests/maiaLabDialog.test.ts
 new file mode 100644
-index 0000000..69f45ae
+index 0000000..7e85315
 --- /dev/null
 +++ b/ui/lib/tests/maiaLabDialog.test.ts
-@@ -0,0 +1,146 @@
+@@ -0,0 +1,151 @@
 +import assert from 'node:assert/strict';
 +import { mock, test } from 'node:test';
 +
@@ -103986,6 +103986,11 @@ index 0000000..69f45ae
 +  await lab.open();
 +  assert.equal(started, 1);
 +  assert.equal(boardConfig.orientation, 'black');
++  assert.equal(document.body.classList.contains('is2d'), false);
++  assert.ok(
++    document.querySelector('[data-lab-board]')!.classList.contains('is2d'),
++    'the body-mounted dialog supplies its own native board and piece theme scope',
++  );
 +  assert.ok(
 +    !document.querySelector('[data-lab-details]')!.textContent!.includes('Evaluation loss'),
 +    'forced mates do not invent pawn losses',

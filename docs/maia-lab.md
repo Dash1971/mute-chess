@@ -94,3 +94,11 @@ cannot invoke the underlying board shortcuts. Forced mates retain signed mate
 notation; pawn-loss metrics are withheld when they would compare a CP value
 with a mate proxy. Empirical win-rate lookup percentages are labeled explicitly
 and are not forced-mate probabilities. Native UI suite: 462 passing tests.
+
+Live standalone testing caught a missing native theme scope on the body-mounted
+preview. The initial fixture supplied piece/board images directly, which masked
+this integration gap. The preview now declares its own native `is2d` scope.
+The dialog regression checks this with an unthemed body, and the corrected
+[browser fixture](maia-lab/native-preview-theme.jpg) uses the actual native theme
+stylesheet and variables: all 14 pieces and the board background resolve without
+an inherited page theme class. The fixture still uses deterministic engine inputs.
