@@ -240,3 +240,12 @@ schedule, Finished history and homepage spotlight are not deployed yet.
 - [Nostr identity and account access](nostr.md).
 - [Saving and restoring your sign-in key](nostr-sign-in-backup.md).
 - [Chess basics, practice and community features](native-learning-community.md).
+
+## Maia Lab and position descriptions
+
+Puzzle review, the analysis board and post-game analysis share the larger
+**Maia Lab** dialog: rating curves, candidate comparison, move previews and a
+Move map. Rule-based position descriptions explain tempting choices and strong
+continuations using actual browser analysis. See [Maia Lab details](maia-lab.md)
+for the full behavior, evidence requirements, translation coverage and upstream
+source differences.
