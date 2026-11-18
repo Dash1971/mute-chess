@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "release-targets",
-  "reviewedAt": "2026-11-13",
+  "reviewedAt": "2026-11-19",
   "deploymentIdentity": "Read RELEASE.json from the SAME current release. These targets are not proof of installation; compare with SECURITY279_BUILD.json and actual running versions. Recheck after every release or host/tool update.",
   "upstreamPins": {
     "lila": {
@@ -98,8 +98,14 @@
       "note": "Installed with production dependencies only; assess advisory ranges against this graph, not the retired root Node prototype."
     },
     "cloudflared": {
-      "observedVersion": "2026.11.0",
-      "observedAt": "2026-11-13",
+      "observedVersion": "2026.11.1",
+      "observedAt": "2026-11-19",
+      "embeddedOpenTelemetry": "1.47.0",
+      "securityFix": {
+        "ids": ["CVE-2026-128085", "GHSA-q7gw-24fr-5p69"],
+        "commit": "1d50650b69dd95663e6d97c8dc9cba5dd17a788c",
+        "evidence": "Cloudflared 2026.11.1 upgrades OpenTelemetry SDK/trace from 1.45.0 to 1.47.0, fixing attribute-value length-limit bypass and excess memory retention. Verify embedded modules and installed/running binary hashes; a public exploit path in this deployment has not been established."
+      },
       "maintenance": "APT managed; read actual cloudflared --version, not a frozen assumption."
     }
   },
