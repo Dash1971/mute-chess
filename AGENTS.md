@@ -1,5 +1,13 @@
 # Mute Chess implementation direction
 
+## Next application release: fast-xml-parser (#318)
+
+Owner instruction, November 19, 2026: include #318's reviewed fast-xml-parser
+5.12.0 native manifest/lock upgrade in the next planned application release.
+Refresh the deployed security inventory and current verification records, then
+confirm OpenClaw inventory_verified=true using a fresh collection. Keep the
+live advisory visible until deployment; this draft is not installation evidence.
+
 ## Required security verification after every deployment (owner policy, November 7, 2026)
 
 A deployment is not complete until the active release's security verification

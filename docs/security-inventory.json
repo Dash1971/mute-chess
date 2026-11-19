@@ -134,9 +134,10 @@
     "lock": "native pnpm-lock.yaml and pnpm-workspace.yaml",
     "note": "cheerio/jsdom fetch and CSS/YAML/glob processing are build/test paths. pip is installation tooling. Node embedded Undici is a separate component.",
     "fast-xml-parser": {
-      "version": "5.11.1",
+      "version": "5.12.0",
       "advisory": "GHSA-474x-hrwr-fgx4",
-      "context": "Inspected bin/i18n-file-gen.ts parses repository translation XML without stopNodes; advisory requires non-default stopNodes. Affected version retained and visible; fixed version5.12.0 available."
+      "status": "fixed-version-targeted; verify actual deployment",
+      "context": "Issue #318 pins bin/package.json and the native frozen lock to fixed version5.12.0. Translation generation retains its existing options without stopNodes. These are source release targets, not evidence the live dependency is upgraded; keep the live advisory visible until actual deployed lock/version and current verification are refreshed."
     }
   },
   "knownAdvisoryDecisions": [
