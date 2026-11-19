@@ -1,5 +1,26 @@
 # Security versions and advisory review
 
+## Required in the next application release: fast-xml-parser (#318)
+
+The draft native patch pins bin/package.json and the frozen pnpm-lock.yaml to
+fast-xml-parser 5.12.0, the fixed release for GHSA-474x-hrwr-fgx4 /
+CVE-2026-126066. Only its required parser dependency subtree changes. Retain the
+existing translation generator and options; no stopNodes option is introduced.
+Bundle this fix with the next planned application deployment, rather than a
+separate outage. The checked-in inventory describes the proposed release target;
+the live version remains affected until that release is actually deployed.
+
+Before merging, verify the frozen install, native translation generation and UI
+build. Compare generated Scala keys and parsed source/translated XML against
+5.11.1 for all ten supported locales. At deployment, inspect the actual native
+lock and installed bin dependency, preserve real build receipts and refresh
+SECURITY_VERIFICATION.json plus the identical SECURITY279_BUILD.json reader.
+Update OpenClaw's reviewed inventory only after deployment/runtime verification,
+and require inventory_verified=true with a fresh host collection and advisory
+scan. The previous fast-xml-parser match should disappear because the installed
+version is fixed; do not suppress it or alter classifier predicates. Keep any
+other unresolved or newly applicable advisory visible.
+
 ## November 19 runtime maintenance (#342)
 
 Cloudflared is updated through its existing APT repository from 2026.11.0 to
