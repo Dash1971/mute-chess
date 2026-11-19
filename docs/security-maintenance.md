@@ -1,5 +1,54 @@
 # Security versions and advisory review
 
+## Required in the next application release: fast-xml-parser (#318)
+
+The draft native patch pins bin/package.json and the frozen pnpm-lock.yaml to
+fast-xml-parser 5.12.0, the fixed release for GHSA-474x-hrwr-fgx4 /
+CVE-2026-126066. Only its required parser dependency subtree changes. Retain the
+existing translation generator and options; no stopNodes option is introduced.
+Bundle this fix with the next planned application deployment, rather than a
+separate outage. The checked-in inventory describes the proposed release target;
+the live version remains affected until that release is actually deployed.
+
+Before merging, verify the frozen install, native translation generation and UI
+build. Compare generated Scala keys and parsed source/translated XML against
+5.11.1 for all ten supported locales. At deployment, inspect the actual native
+lock and installed bin dependency, preserve real build receipts and refresh
+SECURITY_VERIFICATION.json plus the identical SECURITY279_BUILD.json reader.
+Update OpenClaw's reviewed inventory only after deployment/runtime verification,
+and require inventory_verified=true with a fresh host collection and advisory
+scan. The previous fast-xml-parser match should disappear because the installed
+version is fixed; do not suppress it or alter classifier predicates. Keep any
+other unresolved or newly applicable advisory visible.
+
+## November 19 runtime maintenance (#342)
+
+Cloudflared is updated through its existing APT repository from 2026.11.0 to
+2026.11.1. Cloudflare commit 1d50650b69dd95663e6d97c8dc9cba5dd17a788c
+bumps the embedded OpenTelemetry SDK/trace from 1.45.0 to 1.47.0, fixing
+CVE-2026-128085 / GHSA-q7gw-24fr-5p69 (attribute-value length-limit bypass and
+excess memory retention). The affected dependency was confirmed in the old
+binary; a public exploit path through our configuration was not established.
+Vendor packages may contain security fixes without an Ubuntu security-origin
+label. Verify the new binary's embedded modules and its running process hash.
+
+The pending cloud-init, cloud-init-base, fwupd, libfwupd3 and GStreamer packages
+are also updated. Needrestart's CVE-2026-124757 fix was already installed by
+automatic updates earlier that morning. GStreamer 1.28.2-1ubuntu0.1 fixes
+CVE-2026-125704. Cloud-init remains disabled. No reboot is required.
+
+This is a runtime/package maintenance operation: the active application remains
+main c2088ed8dd658d6152c6e818134811b43191b2e4 with its original build receipts
+and RELEASE.json unchanged. Publish these reviewed runtime records separately
+with their merged documentation commit, then refresh current verification from
+the real MAIA_LAB341_BUILD.json and observed runtime checks. Preserve the prior
+inventory/verification and update OpenClaw's reviewed reference only after those
+checks. Require a fresh existing-classifier result of inventory_verified=true.
+No application rebuild, classifier change, schedule change or control baseline
+reset is part of this work. Fast-xml-parser #318 remains pending for the next
+application build. Node PR67069 is a tracing feature, not a vulnerability fix;
+its keyword match may remain visible until separately recorded by the reviewer.
+
 The maintained release targets are [security-inventory.json](security-inventory.json). Read the actual active `/opt/nosweatchess/current/RELEASE.json` first, then `/opt/nosweatchess/current/corresponding-source/docs/security-inventory.json`. This follows the active release automatically. The original November5 `SECURITY279_BUILD.json` is historical build evidence. Every later deployment must supply current-release verification as described below; the review date alone is not evidence of freshness.
 
 OpenClaw can read these files using its existing authorized host access as part of its existing daily report. No extra scanner, scheduler or broader access is introduced. Compare advisory affected ranges with the actual runtime versions, upstream pins **and local patches**, and label browser, service-runtime and build/installation-tooling findings separately. Do not report upstream security keyword matches, resolved advisories or CI-only changes as new server vulnerabilities. Do report inventory drift and unresolved applicability rather than guessing.

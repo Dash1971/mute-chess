@@ -1,0 +1,92 @@
+[
+  {
+    "locale": "en-GB",
+    "detailsFit": true,
+    "empiricalLabel": "Empirical Stockfish win rate (side to move)",
+    "heading": "Maia Lab",
+    "metrics": 3,
+    "overflow": false,
+    "unresolved": false
+  },
+  {
+    "locale": "de-DE",
+    "detailsFit": true,
+    "empiricalLabel": "Empirische Stockfish-Gewinnrate (Zugseite)",
+    "heading": "Maia-Labor",
+    "metrics": 3,
+    "overflow": false,
+    "unresolved": false
+  },
+  {
+    "locale": "es-ES",
+    "detailsFit": true,
+    "empiricalLabel": "Tasa de victoria empírica de Stockfish (bando al turno)",
+    "heading": "Laboratorio Maia",
+    "metrics": 3,
+    "overflow": false,
+    "unresolved": false
+  },
+  {
+    "locale": "fr-FR",
+    "detailsFit": true,
+    "empiricalLabel": "Taux de victoire empirique Stockfish (camp au trait)",
+    "heading": "Laboratoire Maia",
+    "metrics": 3,
+    "overflow": false,
+    "unresolved": false
+  },
+  {
+    "locale": "hi-IN",
+    "detailsFit": true,
+    "empiricalLabel": "अनुभवजन्य Stockfish जीत दर (जिसकी बारी है)",
+    "heading": "Maia प्रयोगशाला",
+    "metrics": 3,
+    "overflow": false,
+    "unresolved": false
+  },
+  {
+    "locale": "ja-JP",
+    "detailsFit": true,
+    "empiricalLabel": "経験的なStockfish勝率（手番側）",
+    "heading": "Maiaラボ",
+    "metrics": 3,
+    "overflow": false,
+    "unresolved": false
+  },
+  {
+    "locale": "ko-KR",
+    "detailsFit": true,
+    "empiricalLabel": "경험적 Stockfish 승률 (둘 차례인 쪽)",
+    "heading": "Maia 연구실",
+    "metrics": 3,
+    "overflow": false,
+    "unresolved": false
+  },
+  {
+    "locale": "pt-BR",
+    "detailsFit": true,
+    "empiricalLabel": "Taxa de vitória empírica do Stockfish (lado a jogar)",
+    "heading": "Laboratório Maia",
+    "metrics": 3,
+    "overflow": false,
+    "unresolved": false
+  },
+  {
+    "locale": "ru-RU",
+    "detailsFit": true,
+    "empiricalLabel": "Эмпирическая вероятность победы Stockfish (сторона хода)",
+    "heading": "Лаборатория Maia",
+    "metrics": 3,
+    "overflow": false,
+    "unresolved": false
+  },
+  {
+    "locale": "zh-CN",
+    "detailsFit": true,
+    "empiricalLabel": "Stockfish 经验胜率（行棋方）",
+    "heading": "Maia 实验室",
+    "metrics": 3,
+    "overflow": false,
+    "unresolved": false
+  }
+]

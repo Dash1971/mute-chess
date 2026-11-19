@@ -63,4 +63,36 @@ pages' own controls. Native Practice uses Study content internally and must keep
 working. The disabled public Import game form also retains its native Study
 privacy link in source (`modules/game/src/main/ui/GameUi.scala`); it is not an
 exposed entry point. These are documented rather than deleting native services
-or rewriting existing records. The larger puzzle rating chart remains a mockup.
+or rewriting existing records. The shared Maia Lab is documented in [Maia Lab](maia-lab.md).
+
+## Minimum starting time
+
+New games require at least **one minute of initial time per side**, regardless
+of increment. `1+0` and `1+5` remain available; `0+5`, `¼+0`, `½+5` and `¾+0` do
+not. This applies to custom Maia games, human friend challenges, rematches and
+new Arenas, with the shared native insertion check covering direct requests too.
+A native Arena berserk action can still reduce a clock after the game starts.
+
+Custom setup sliders, presets and accessible time dropdowns exclude sub-minute
+choices. Old saved or URL-forced choices normalize to one minute while keeping
+the increment. Maia requests, friend creation/acceptance (including old pending
+invitations), and Arena forms/preparation reject unsupported clocks with a native
+translated validation message in all ten supported locales.
+
+Existing games can finish and historical UltraBullet ratings, statistics and
+replays remain stored. Old short Arenas cannot be prepared for new play. The
+policy is scoped to Mute's focused mode; the upstream time controls retain their
+native choices outside that flag.
+
+Legacy setup links normalize their forced time constraint as well as the visible
+clock, so Play stays enabled after a sub-minute value becomes one minute. Other
+forced options remain enforced, and the caller's options object is not mutated.
+Old sub-minute games show a disabled Rematch button with the existing translated
+minimum-clock explanation visibly beneath it. Supported clocks and links to
+already-created rematches retain native controls. The shared server insertion
+guard remains the backstop for direct requests; native rematch services, events
+and socket handling are unchanged.
+
+Arena berserk reduces a player's available time but retains the original game
+clock configuration. A berserked `1+0` game therefore still uses the **Bullet**
+rating, never UltraBullet. Native clock/speed/performance-key tests cover this.
