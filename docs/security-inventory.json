@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "release-targets",
-  "reviewedAt": "2026-11-13",
+  "reviewedAt": "2026-11-19",
   "deploymentIdentity": "Read RELEASE.json from the SAME current release. These targets are not proof of installation; compare with SECURITY279_BUILD.json and actual running versions. Recheck after every release or host/tool update.",
   "upstreamPins": {
     "lila": {
@@ -98,8 +98,14 @@
       "note": "Installed with production dependencies only; assess advisory ranges against this graph, not the retired root Node prototype."
     },
     "cloudflared": {
-      "observedVersion": "2026.11.0",
-      "observedAt": "2026-11-13",
+      "observedVersion": "2026.11.1",
+      "observedAt": "2026-11-19",
+      "embeddedOpenTelemetry": "1.47.0",
+      "securityFix": {
+        "ids": ["CVE-2026-128085", "GHSA-q7gw-24fr-5p69"],
+        "commit": "1d50650b69dd95663e6d97c8dc9cba5dd17a788c",
+        "evidence": "Cloudflared 2026.11.1 upgrades OpenTelemetry SDK/trace from 1.45.0 to 1.47.0, fixing attribute-value length-limit bypass and excess memory retention. Verify embedded modules and installed/running binary hashes; a public exploit path in this deployment has not been established."
+      },
       "maintenance": "APT managed; read actual cloudflared --version, not a frozen assumption."
     }
   },
@@ -128,9 +134,10 @@
     "lock": "native pnpm-lock.yaml and pnpm-workspace.yaml",
     "note": "cheerio/jsdom fetch and CSS/YAML/glob processing are build/test paths. pip is installation tooling. Node embedded Undici is a separate component.",
     "fast-xml-parser": {
-      "version": "5.11.1",
+      "version": "5.12.0",
       "advisory": "GHSA-474x-hrwr-fgx4",
-      "context": "Inspected bin/i18n-file-gen.ts parses repository translation XML without stopNodes; advisory requires non-default stopNodes. Affected version retained and visible; fixed version5.12.0 available."
+      "status": "fixed-version-targeted; verify actual deployment",
+      "context": "Issue #318 pins bin/package.json and the native frozen lock to fixed version5.12.0. Translation generation retains its existing options without stopNodes. These are source release targets, not evidence the live dependency is upgraded; keep the live advisory visible until actual deployed lock/version and current verification are refreshed."
     }
   },
   "knownAdvisoryDecisions": [
