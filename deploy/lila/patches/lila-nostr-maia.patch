@@ -1989,7 +1989,7 @@ index 5222d2d..2edd45b 100644
    def apply(
        tourneyWinners: List[lila.tournament.Winner],
 diff --git a/app/views/user/show/header.scala b/app/views/user/show/header.scala
-index 26a6045..2fa29ba 100644
+index 26a6045..91390ea 100644
 --- a/app/views/user/show/header.scala
 +++ b/app/views/user/show/header.scala
 @@ -3,6 +3,7 @@ package show
@@ -2121,6 +2121,15 @@ index 26a6045..2fa29ba 100644
        div(cls := "user-show__social")(
          div(cls := "number-menu")(
            u.noBot.option(
+@@ -102,7 +178,7 @@ object header:
+               splitNumber(trans.broadcast.nbBroadcasts.pluralSame(info.nbRelays))
+             )
+           ),
+-          (info.nbStudies > 0).option(
++          (info.nbStudies > 0 && !env.noSweat.enabled).option(
+             a(href := routes.Study.byOwnerDefault(u.username), cls := "nm-item")(
+               splitNumber(trans.site.`nbStudies`.pluralSame(info.nbStudies))
+             )
 @@ -162,6 +238,7 @@ object header:
                    .so(profile.nonEmptyBio)
                    .map: bio =>
@@ -10634,9 +10643,18 @@ index f3984e8..c070167 100644
  
    for (const fromChild of from.children) {
 diff --git a/ui/analyse/src/view/actionMenu.ts b/ui/analyse/src/view/actionMenu.ts
-index 92bfd1d..837cddb 100644
+index 92bfd1d..1e007b5 100644
 --- a/ui/analyse/src/view/actionMenu.ts
 +++ b/ui/analyse/src/view/actionMenu.ts
+@@ -58,7 +58,7 @@ function autoplayButtons(ctrl: AnalyseCtrl): VNode {
+ const hiddenInput = (name: string, value: string) => hl('input', { attrs: { type: 'hidden', name, value } });
+ 
+ function studyButton(ctrl: AnalyseCtrl) {
+-  if (ctrl.study || ctrl.ongoing) return undefined;
++  if (ctrl.study || ctrl.ongoing || document.documentElement.dataset.brand === 'mutechess') return undefined;
+   return hl(
+     'form',
+     {
 @@ -152,13 +152,13 @@ export function view(ctrl: AnalyseCtrl): VNode {
            'button',
            {
@@ -11508,10 +11526,20 @@ index 5cf97b4..42325aa 100644
    baseUrl: string;
    fen?: FEN;
 diff --git a/ui/editor/src/view.ts b/ui/editor/src/view.ts
-index 5b17c23..c672423 100644
+index 5b17c23..fc859d2 100644
 --- a/ui/editor/src/view.ts
 +++ b/ui/editor/src/view.ts
-@@ -272,21 +272,25 @@ function controls(ctrl: EditorCtrl, state: EditorState): VNode {
+@@ -55,7 +55,8 @@ function castleCheckBox(ctrl: EditorCtrl, id: CastlingToggle, inputLabel: string
+   return label(reversed ? [inputElement, inputLabel] : [inputLabel, inputElement]);
+ }
+ 
+-function studyButton(ctrl: EditorCtrl, state: EditorState): VNode {
++function studyButton(ctrl: EditorCtrl, state: EditorState): MaybeVNode {
++  if (document.documentElement.dataset.brand === 'mutechess') return undefined;
+   return form({ method: 'post', action: '/study/as' }, [
+     input('hidden')({ name: 'orientation', value: ctrl.bottomColor() }),
+     input('hidden')({ name: 'variant', value: lichessRules(ctrl.variant) }),
+@@ -272,21 +273,25 @@ function controls(ctrl: EditorCtrl, state: EditorState): VNode {
            ]),
          ]
        : [
@@ -14125,6 +14153,19 @@ index da36657..40ba614 100644
      current.children.push(nextNode);
      current = nextNode;
    });
+diff --git a/ui/puzzle/src/view/boardMenu.ts b/ui/puzzle/src/view/boardMenu.ts
+index 6a613bb..430afaf 100644
+--- a/ui/puzzle/src/view/boardMenu.ts
++++ b/ui/puzzle/src/view/boardMenu.ts
+@@ -50,7 +50,7 @@ function renderPgnInput(ctrl: PuzzleCtrl): string {
+ }
+ 
+ function studyButton(ctrl: PuzzleCtrl) {
+-  if (ctrl.mode === 'play') return undefined;
++  if (ctrl.mode === 'play' || document.documentElement.dataset.brand === 'mutechess') return undefined;
+   return h(
+     'section.board-menu__study',
+     hl('form', { attrs: { action: '/study/as', method: 'post', target: '_blank' } }, [
 diff --git a/ui/puzzle/src/view/main.ts b/ui/puzzle/src/view/main.ts
 index 4cbdc96..8f4b59c 100644
 --- a/ui/puzzle/src/view/main.ts
@@ -106090,6 +106131,52 @@ index 0000000..6d51906
 +  assert.equal(source.snapshot(), undefined);
 +  model.cancel();
 +});
+diff --git a/ui/puzzle/tests/studyEntryPoint.test.ts b/ui/puzzle/tests/studyEntryPoint.test.ts
+new file mode 100644
+index 0000000..c94899a
+--- /dev/null
++++ b/ui/puzzle/tests/studyEntryPoint.test.ts
+@@ -0,0 +1,40 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++import type { VNode } from 'snabbdom';
++
++import { toggle } from 'lib';
++
++import type PuzzleCtrl from '../src/ctrl';
++import boardMenu from '../src/view/boardMenu';
++
++Object.assign(globalThis, { location: window.location, $: () => ({ hasClass: () => false }) });
++const nodes = (node: VNode): VNode[] => [
++  node,
++  ...(node.children ?? []).flatMap(c => (c && typeof c === 'object' ? nodes(c) : [])),
++];
++
++for (const branded of [true, false])
++  for (const mode of ['view', 'play'] as const)
++    test(`${branded ? 'Mute' : 'native'} puzzle ${mode} menu keeps supported controls and scopes Study visibility`, () => {
++      document.documentElement.dataset.brand = branded ? 'mutechess' : 'lichess';
++      const ctrl = {
++        mode,
++        menu: toggle(true),
++        redraw() {},
++        flipped: () => false,
++        flip() {},
++        blindfold: toggle(false),
++        pov: 'white',
++        data: { puzzle: { id: '12345' } },
++        initialNode: { ply: 0, fen: '8/8/8/8/8/8/8/K6k w - - 0 1', children: [] },
++      } as unknown as PuzzleCtrl;
++      const view = boardMenu(ctrl);
++      assert.ok(view);
++      const all = nodes(view);
++      assert.equal(
++        all.some(n => n.data?.attrs?.action === '/study/as'),
++        !branded && mode === 'view',
++      );
++      assert.ok(all.some(n => n.data?.attrs?.href === '/account/preferences/display'));
++      assert.ok(all.some(n => n.sel?.includes('board-menu__links')));
++    });
 diff --git a/ui/round/src/premoveSequence.ts b/ui/round/src/premoveSequence.ts
 new file mode 100644
 index 0000000..249bf9a

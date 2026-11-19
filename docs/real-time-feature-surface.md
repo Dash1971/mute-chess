@@ -34,6 +34,37 @@ has no UltraBullet link, and direct visits to unsupported URLs retain a plain
 404 with a working home link and no mini-game request. Verify the title and link
 in en-GB, de-DE, es-ES, fr-FR, hi-IN, ja-JP, ko-KR, pt-BR, ru-RU and zh-CN.
 
+## Temporarily hidden Study entry points
+
+Restoration is tracked in [#123](https://github.com/Dash1971/mute-chess/issues/123).
+Hide creation/discovery controls with small Mute-only view guards; preserve native
+Study forms, translation keys, routes and stored content so these can be restored.
+
+| Surface | Native source | Native label / action |
+| --- | --- | --- |
+| Puzzle review board menu | `ui/puzzle/src/view/boardMenu.ts`, `studyButton` | `site:toStudy`; POST `/study/as` with puzzle PGN/FEN, orientation and gamebook mode |
+| Analysis board and post-game menu | `ui/analyse/src/view/actionMenu.ts`, `studyButton` | `site:toStudy`; POST `/study/as` with current analysis/exported PGN |
+| Board editor | `ui/editor/src/view.ts`, `studyButton` | `site:toStudy`; POST `/study/as` with FEN, orientation and variant |
+| Profile Study count (when nonzero) | `app/views/user/show/header.scala`, number menu | `site:nbStudies`; native `Study.byOwnerDefault` link |
+
+The first three guards use the existing `data-brand="mutechess"` document flag;
+the profile uses `env.noSweat.enabled`. Non-Mute rendering stays native. Remove
+these guards to restore the controls; no schema/data migration is required.
+
+Already hidden in the compact Mute navigation: Learn's Study link in
+`modules/web/src/main/ui/TopNav.scala` and the new-user welcome Study suggestion
+in `modules/user/src/main/ui/UserShow.scala`. Current Learn navigation remains
+Chess basics and Practice; #123's older Study-only menu idea is not implemented.
+
+Retained intentionally: historical Study links in profile activity
+(`modules/activity/src/main/ActivityUi.scala`) and the homepage timeline
+(`modules/timeline/src/main/TimelineUi.scala`), direct `/study/...` URLs and Study
+pages' own controls. Native Practice uses Study content internally and must keep
+working. The disabled public Import game form also retains its native Study
+privacy link in source (`modules/game/src/main/ui/GameUi.scala`); it is not an
+exposed entry point. These are documented rather than deleting native services
+or rewriting existing records. The shared Maia Lab is documented in [Maia Lab](maia-lab.md).
+
 ## Minimum starting time
 
 New games require at least **one minute of initial time per side**, regardless
