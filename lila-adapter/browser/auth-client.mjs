@@ -1,15 +1,27 @@
 export class AuthResponseError extends Error {
-  constructor(message, code) { super(message); this.code = code; }
+  constructor(message, code, status) { super(message); this.code = code; this.status = status; }
+}
+// Only messages taken from the rendered language catalog are shown verbatim.
+export class AuthUiError extends Error {}
+export function authFeedback(error, labels) {
+  if (error instanceof AuthUiError) return error.message;
+  if (!(error instanceof AuthResponseError)) return labels.failure;
+  if (error.status === 429) return labels.busy;
+  if (error.code === 'invalid_factor') return labels.invalidCode;
+  if (error.code === 'invalid_name') return labels.badName;
+  if (error.code === 'wrong_signer') return labels.wrongSigner;
+  if (error.status === 409) return labels.nameUnavailable ?? labels.reload;
+  return labels.failure;
 }
 export async function call(path, data, authorization) {
   const response = await fetch(path, { method: 'POST', credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...(authorization ? { Authorization: authorization } : {}) },
     body: typeof data === 'string' ? data : JSON.stringify(data), signal: AbortSignal.timeout(15000) });
-  const result = await response.json();
   if (!response.ok) {
-    throw new AuthResponseError(result.error || 'Authentication is temporarily unavailable', result.code);
+    const result = await response.json().catch(() => ({}));
+    throw new AuthResponseError(result.error || 'Authentication is temporarily unavailable', result.code, response.status);
   }
-  return result;
+  return response.json();
 }
 export async function signedCall(signer, action, fields = {}) {
   const pubkey = await signer.getPublicKey();

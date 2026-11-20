@@ -12,6 +12,12 @@ async function page(login,signer,options={}){
   if (!options.keepSaved) await forgetKey();
   const names=['generate','backup','created','copy','download','copy-saved','download-saved','persist','reveal','create-login','username','extension','saved','use-saved','forget','nsec','import','status','methods','second-factor','token','verify','back'];
   const nodes=new Map(names.map(name=>[name,{dataset:{copied:'Copied',copyFailed:'Could not copy the key. Use Download instead.'},style:{minInlineSize:''},getBoundingClientRect(){return {width:180};},value:'',textContent:name.startsWith('copy')?'Copy key':'',hidden:['created','saved','second-factor'].includes(name),disabled:false,listeners:{},addEventListener(type,fn){this.listeners[type]=fn;},focus(){this.focused=true;},scrollIntoView(){},async click(){await this.listeners.click?.();}}]));
+  Object.assign(nodes.get('status').dataset, {
+    createFirst: 'Create a key first', denied: 'Your browser will manage storage automatically.',
+    invalidCode: 'Invalid or already used authentication code.', failure: 'Please try again.',
+    downloaded: 'Backup download requested.', busy: 'しばらくしてからもう一度お試しください。',
+  });
+  Object.assign(nodes.get('reveal').dataset, { showKey: 'Show key', hideKey: 'Hide key' });
   const attempts=[],destinations=[],downloads=[],blobs=new Map(),revoked=[],events=new Map();let nonce=0,clipboard='';
   class BrowserURL extends URL {
     static createObjectURL(blob){const url='blob:http://127.0.0.1:19663/'+blobs.size;blobs.set(url,blob);return url;}
@@ -42,7 +48,7 @@ test('create/copy/save a new key preserves identity and returns to the requested
 });
 test('existing nsec prompts for 2FA after proof, signs fresh retries, and saves only after success',async()=>{
   const key=generateSecretKey(),pubkey=getPublicKey(key);
-  const ui=await page(body=>!body.twoFactorToken?{status:401,body:{error:'Code required',code:'two_factor_required'}}:body.twoFactorToken==='recovery-valid'?{status:200,body:{url:'/'}}:{status:401,body:{error:'Invalid or already used authentication code'}});
+  const ui=await page(body=>!body.twoFactorToken?{status:401,body:{error:'Code required',code:'two_factor_required'}}:body.twoFactorToken==='recovery-valid'?{status:200,body:{url:'/'}}:{status:401,body:{error:'Invalid or already used authentication code',code:'invalid_factor'}});
   ui.node('nsec').value=nsecEncode(key);await ui.node('import').click();assert.equal(ui.attempts[0].event.pubkey,pubkey);
   assert.equal(ui.node('second-factor').hidden,false);assert.equal(ui.node('methods').hidden,true);assert.equal(ui.node('token').focused,true);assert.equal(ui.node('nsec').value,'');assert.equal(await loadKey(),null);
   ui.node('token').value='wrong';await ui.node('verify').click();assert.match(ui.node('status').textContent,/Invalid/);assert.equal(ui.node('second-factor').hidden,false);
@@ -153,4 +159,13 @@ test('clipboard denial uses localized failure and never shows copied', async()=>
   assert.equal(ui.node('status').textContent,'鍵をコピーできませんでした。');
   assert.equal(ui.node('status').dataset.state,'error');
   assert.equal(ui.clipboard,'');
+});
+
+test('a sign-in limit uses the feedback in the current page language', async () => {
+  const key = generateSecretKey();
+  const ui = await page(() => ({ status: 429, body: { error: 'Too many attempts' } }));
+  ui.node('nsec').value = nsecEncode(key);
+  await ui.node('import').click();
+  assert.equal(ui.node('status').textContent, 'しばらくしてからもう一度お試しください。');
+  key.fill(0);
 });
