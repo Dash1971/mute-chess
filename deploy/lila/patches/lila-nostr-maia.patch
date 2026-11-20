@@ -6911,10 +6911,10 @@ index 58403d3..bdb1c27 100644
 +  <string name="allowBotAccounts">允许机器人账号参赛</string>
  </resources>
 diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
-index 88adade..5703046 100644
+index 88adade..87f0fe9 100644
 --- a/translation/dest/site/de-DE.xml
 +++ b/translation/dest/site/de-DE.xml
-@@ -1064,4 +1064,234 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
+@@ -1064,4 +1064,235 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
    <string name="write">Schreiben</string>
    <string name="preview">Vorschau</string>
    <string name="done">Erledigt</string>
@@ -7148,12 +7148,13 @@ index 88adade..5703046 100644
 +    <string name="muteLabPair">%1$s und %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s und %3$s</string>
 +    <string name="muteChooseDifferentName">Dieser Name ist reserviert. Bitte wähle einen anderen Namen.</string>
++  <string name="muteAuthPleaseWait">Zu viele Versuche aus diesem Netzwerk. Bitte versuche es später erneut.</string>
  </resources>
 diff --git a/translation/dest/site/es-ES.xml b/translation/dest/site/es-ES.xml
-index 76004f5..ac6ef6f 100644
+index 76004f5..b991589 100644
 --- a/translation/dest/site/es-ES.xml
 +++ b/translation/dest/site/es-ES.xml
-@@ -1064,4 +1064,234 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
+@@ -1064,4 +1064,235 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
    <string name="write">Escribir</string>
    <string name="preview">Vista previa</string>
    <string name="done">Listo</string>
@@ -7387,12 +7388,13 @@ index 76004f5..ac6ef6f 100644
 +    <string name="muteLabPair">%1$s y %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s y %3$s</string>
 +    <string name="muteChooseDifferentName">Este nombre está reservado. Elige otro.</string>
++  <string name="muteAuthPleaseWait">Demasiados intentos desde esta red. Vuelve a intentarlo más tarde.</string>
  </resources>
 diff --git a/translation/dest/site/fr-FR.xml b/translation/dest/site/fr-FR.xml
-index 7dfd5f7..a48f7a0 100644
+index 7dfd5f7..a63edb4 100644
 --- a/translation/dest/site/fr-FR.xml
 +++ b/translation/dest/site/fr-FR.xml
-@@ -1063,4 +1063,234 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
+@@ -1063,4 +1063,235 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
    <string name="write">Écrire</string>
    <string name="preview">Aperçu</string>
    <string name="done">Terminé</string>
@@ -7626,12 +7628,13 @@ index 7dfd5f7..a48f7a0 100644
 +    <string name="muteLabPair">%1$s et %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s et %3$s</string>
 +    <string name="muteChooseDifferentName">Ce nom est réservé. Choisissez un autre nom.</string>
++  <string name="muteAuthPleaseWait">Trop de tentatives depuis ce réseau. Réessayez plus tard.</string>
  </resources>
 diff --git a/translation/dest/site/hi-IN.xml b/translation/dest/site/hi-IN.xml
-index bbf1703..5068614 100644
+index bbf1703..afcb86e 100644
 --- a/translation/dest/site/hi-IN.xml
 +++ b/translation/dest/site/hi-IN.xml
-@@ -893,4 +893,234 @@
+@@ -893,4 +893,235 @@
    <string name="closingAccountWithdrawAppeal">आपका खाता बंद करने से आपकी अपील वापस ले ली जाएगी</string>
    <string name="ourEventTips">कार्यक्रम आयोजित करने कि सलाह</string>
    <string name="nothingToSeeHere">इस समय यहां देखने को कुछ भी नहीं है।</string>
@@ -7865,12 +7868,13 @@ index bbf1703..5068614 100644
 +    <string name="muteLabPair">%1$s और %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s और %3$s</string>
 +    <string name="muteChooseDifferentName">यह नाम आरक्षित है। कोई दूसरा नाम चुनें।</string>
++  <string name="muteAuthPleaseWait">इस नेटवर्क से बहुत अधिक प्रयास हुए हैं। कृपया बाद में फिर कोशिश करें।</string>
  </resources>
 diff --git a/translation/dest/site/ja-JP.xml b/translation/dest/site/ja-JP.xml
-index e628bdb..77ec058 100644
+index e628bdb..2b9ec3a 100644
 --- a/translation/dest/site/ja-JP.xml
 +++ b/translation/dest/site/ja-JP.xml
-@@ -1023,4 +1023,234 @@
+@@ -1023,4 +1023,235 @@
    <string name="write">書く</string>
    <string name="preview">プレビュー</string>
    <string name="done">完了</string>
@@ -8104,12 +8108,13 @@ index e628bdb..77ec058 100644
 +    <string name="muteLabPair">%1$sと%2$s</string>
 +    <string name="muteLabTriple">%1$s、%2$s、%3$s</string>
 +    <string name="muteChooseDifferentName">この名前は予約されています。別の名前を選んでください。</string>
++  <string name="muteAuthPleaseWait">このネットワークからの試行回数が多すぎます。しばらくしてからもう一度お試しください。</string>
  </resources>
 diff --git a/translation/dest/site/ko-KR.xml b/translation/dest/site/ko-KR.xml
-index 9341bf0..b3f9915 100644
+index 9341bf0..ed62822 100644
 --- a/translation/dest/site/ko-KR.xml
 +++ b/translation/dest/site/ko-KR.xml
-@@ -1022,4 +1022,234 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
+@@ -1022,4 +1022,235 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
    <string name="write">작성</string>
    <string name="preview">미리보기</string>
    <string name="done">완료</string>
@@ -8343,12 +8348,13 @@ index 9341bf0..b3f9915 100644
 +    <string name="muteLabPair">%1$s 및 %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s 및 %3$s</string>
 +    <string name="muteChooseDifferentName">예약된 이름입니다. 다른 이름을 선택하세요.</string>
++  <string name="muteAuthPleaseWait">이 네트워크에서 너무 많이 시도했습니다. 잠시 후 다시 시도하세요.</string>
  </resources>
 diff --git a/translation/dest/site/pt-BR.xml b/translation/dest/site/pt-BR.xml
-index 569e752..4f1ee10 100644
+index 569e752..a503934 100644
 --- a/translation/dest/site/pt-BR.xml
 +++ b/translation/dest/site/pt-BR.xml
-@@ -1063,4 +1063,234 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
+@@ -1063,4 +1063,235 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
    <string name="write">Escrever</string>
    <string name="preview">Pré-visualizar</string>
    <string name="done">Feito</string>
@@ -8582,12 +8588,13 @@ index 569e752..4f1ee10 100644
 +    <string name="muteLabPair">%1$s e %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s e %3$s</string>
 +    <string name="muteChooseDifferentName">Este nome está reservado. Escolha outro.</string>
++  <string name="muteAuthPleaseWait">Muitas tentativas nesta rede. Tente novamente mais tarde.</string>
  </resources>
 diff --git a/translation/dest/site/ru-RU.xml b/translation/dest/site/ru-RU.xml
-index 6384657..9511032 100644
+index 6384657..9c603ac 100644
 --- a/translation/dest/site/ru-RU.xml
 +++ b/translation/dest/site/ru-RU.xml
-@@ -1146,4 +1146,234 @@
+@@ -1146,4 +1146,235 @@
    <string name="write">Написать</string>
    <string name="preview">Предпросмотр</string>
    <string name="done">Готово</string>
@@ -8821,12 +8828,13 @@ index 6384657..9511032 100644
 +    <string name="muteLabPair">%1$s и %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s и %3$s</string>
 +    <string name="muteChooseDifferentName">Это имя зарезервировано. Выберите другое.</string>
++  <string name="muteAuthPleaseWait">Слишком много попыток из этой сети. Попробуйте позже.</string>
  </resources>
 diff --git a/translation/dest/site/zh-CN.xml b/translation/dest/site/zh-CN.xml
-index 176f4d1..38a35e5 100644
+index 176f4d1..66654ae 100644
 --- a/translation/dest/site/zh-CN.xml
 +++ b/translation/dest/site/zh-CN.xml
-@@ -1022,4 +1022,234 @@
+@@ -1022,4 +1022,235 @@
    <string name="write">撰写</string>
    <string name="preview">预览</string>
    <string name="done">完成</string>
@@ -9060,12 +9068,13 @@ index 176f4d1..38a35e5 100644
 +    <string name="muteLabPair">%1$s 和 %2$s</string>
 +    <string name="muteLabTriple">%1$s、%2$s 和 %3$s</string>
 +    <string name="muteChooseDifferentName">此名称已被保留。请选择其他名称。</string>
++  <string name="muteAuthPleaseWait">来自此网络的尝试次数过多。请稍后再试。</string>
  </resources>
 diff --git a/translation/source/site.xml b/translation/source/site.xml
-index 8b5a6a1..d47f6d7 100644
+index 8b5a6a1..f00c4d0 100644
 --- a/translation/source/site.xml
 +++ b/translation/source/site.xml
-@@ -1066,4 +1066,234 @@ Leave empty to start games from the normal initial position.</string>
+@@ -1066,4 +1066,235 @@ Leave empty to start games from the normal initial position.</string>
    <string name="write">Write</string>
    <string name="preview">Preview</string>
    <string name="done">Done</string>
@@ -9299,6 +9308,7 @@ index 8b5a6a1..d47f6d7 100644
 +    <string name="muteLabPair">%1$s and %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s and %3$s</string>
 +    <string name="muteChooseDifferentName">This name is reserved. Choose another name.</string>
++  <string name="muteAuthPleaseWait">Too many attempts from this network. Please try again later.</string>
  </resources>
 diff --git a/ui/.build/src/build.ts b/ui/.build/src/build.ts
 index 7d6adeb..b433f0c 100644
@@ -15723,10 +15733,10 @@ index 0000000..e1cb129
 +    bdoc("_id" -> payment, "userId" -> user, "paid" -> false)
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..37f72cf
+index 0000000..61656d1
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,1173 @@
+@@ -0,0 +1,1176 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -16141,7 +16151,9 @@ index 0000000..37f72cf
 +          .foreach: games =>
 +            games.foreach((doc, game) => failGame(game.id, "maia_adapter_unavailable"))
 +
-+  def nostrUser(pubkey: String, requested: Option[String])(using lila.core.i18n.Translate): Fu[UserModel] =
++  def nostrUser(pubkey: String, requested: Option[String])(checkSignup: => Unit)(using
++      lila.core.i18n.Translate
++  ): Fu[UserModel] =
 +    queue:
 +      ready.flatMap: _ =>
 +        requireThat(pubkey.matches("[0-9a-f]{64}"), 401, "Invalid verified identity")
@@ -16184,6 +16196,7 @@ index 0000000..37f72cf
 +                .existsPri(UserName(name).id)
 +                .flatMap: occupied =>
 +                  requireThat(!occupied, 409, "Username already taken")
++                  checkSignup
 +                  env.user.repo
 +                    .createNostr(pubkey, displayName)
 +                    .map:
@@ -17281,10 +17294,10 @@ index 0000000..703a031
 +  def find(key: String): Option[NoSweatStudyPlan] = plans.find(_.key == key)
 diff --git a/app/controllers/NoSweat.scala b/app/controllers/NoSweat.scala
 new file mode 100644
-index 0000000..ddfe464
+index 0000000..f558144
 --- /dev/null
 +++ b/app/controllers/NoSweat.scala
-@@ -0,0 +1,290 @@
+@@ -0,0 +1,314 @@
 +package controllers
 +
 +import play.api.libs.json.*
@@ -17294,6 +17307,25 @@ index 0000000..ddfe464
 +import lila.security.IsPwned
 +
 +final class NoSweat(env: Env) extends LilaController(env):
++  private given lila.core.config.RateLimit = env.net.rateLimit
++  private val challengeLimit = lila.memo.RateLimit[String](30, 1.minute, "mute.auth.challenge")
++  private val loginLimit = lila.memo.RateLimit[String](30, 1.minute, "mute.auth.login")
++  // Match the native signup policy for players sharing a school or mobile network.
++  private val signupLimit = lila.memo.RateLimit.composite[String]("mute.auth.signup")(
++    ("fast", 10, 10.minutes),
++    ("slow", 150, 1.day)
++  )
++
++  private def authNetwork(using Context): String = ctx.ip match
++    case ip: lila.core.net.IpV6Address =>
++      ip.inet.fold(ip.value)(addr => java.util.HexFormat.of().formatHex(addr.getAddress.take(8)))
++    case ip => ip.value
++
++  private def checkAuthLimit(limiter: lila.memo.RateLimit.RateLimiter[String])(using Context): Unit =
++    val network = authNetwork
++    if !limiter.synchronized(limiter.hit(network)) then
++      throw NoSweatError(429, lila.core.i18n.I18nKey("muteAuthPleaseWait").txt())
++
 +  private val club = env.noSweat
 +  private def handle(f: => Fu[Result]): Fu[Result] =
 +    def error(e: Throwable): Result = e match
@@ -17359,11 +17391,13 @@ index 0000000..ddfe464
 +  def challenge = OpenBodyOf(parse.tolerantText(4096)): context ?=>
 +    handle:
 +      sameOrigin
++      checkAuthLimit(challengeLimit)
 +      club.adapter("/challenge", Json.parse(context.body.body)).map(Ok(_))
 +
 +  def login = OpenBodyOf(parse.tolerantText(16384)): context ?=>
 +    handle:
 +      sameOrigin
++      checkAuthLimit(loginLimit)
 +      val raw = context.body.body
 +      if (Json.parse(raw) \ "action").asOpt[String].exists(_ != "login") then
 +        throw NoSweatError(401, "Login signature required")
@@ -17372,7 +17406,10 @@ index 0000000..ddfe464
 +          "/verify",
 +          Json.obj("authorization" -> context.req.headers.get("Authorization"), "rawBody" -> raw)
 +        )
-+        user <- club.nostrUser((verified \ "pubkey").as[String], (Json.parse(raw) \ "username").asOpt[String])
++        user <- club.nostrUser(
++          (verified \ "pubkey").as[String],
++          (Json.parse(raw) \ "username").asOpt[String]
++        )(checkAuthLimit(signupLimit))
 +        _ <- club.checkSecondFactor(user, (Json.parse(raw) \ "twoFactorToken").asOpt[String])
 +        session <- env.security.api.saveAuthentication(user.id, None, IsPwned(false))
 +      yield Ok(Json.obj("username" -> user.username.value, "url" -> "/"))
@@ -17895,10 +17932,10 @@ index 0000000..9d16b16
 +    case _ => emptyFrag
 diff --git a/app/views/noSweatLogin.scala b/app/views/noSweatLogin.scala
 new file mode 100644
-index 0000000..668b360
+index 0000000..ff2cc95
 --- /dev/null
 +++ b/app/views/noSweatLogin.scala
-@@ -0,0 +1,166 @@
+@@ -0,0 +1,171 @@
 +package views
 +
 +import lila.core.i18n.I18nKey
@@ -18059,7 +18096,12 @@ index 0000000..668b360
 +            button(id := "nostr-verify", cls := "button button-green")(I18nKey("muteSignIn").txt()),
 +            button(id := "nostr-back", cls := "button button-empty")("Use a different key")
 +          ),
-+          p(id := "nostr-status", role := "status", aria.live := "polite"),
++          p(
++            id := "nostr-status",
++            attr("data-busy") := lila.core.i18n.I18nKey("muteAuthPleaseWait").txt(),
++            role := "status",
++            aria.live := "polite"
++          ),
 +          p(cls := "nostr-help")(
 +            "Your secret key stays in your browser. Signing in does not post anything to Nostr."
 +          ),
@@ -18283,10 +18325,10 @@ index 0000000..8afa450
 +        )
 diff --git a/app/views/noSweatSecurity.scala b/app/views/noSweatSecurity.scala
 new file mode 100644
-index 0000000..14659d9
+index 0000000..0e3f66f
 --- /dev/null
 +++ b/app/views/noSweatSecurity.scala
-@@ -0,0 +1,84 @@
+@@ -0,0 +1,89 @@
 +package views
 +
 +import lila.app.UiEnv.{ *, given }
@@ -18354,7 +18396,12 @@ index 0000000..14659d9
 +              signerButtons
 +            )
 +          ),
-+          p(id := "nostr-security-status", role := "status", aria.live := "polite"),
++          p(
++            id := "nostr-security-status",
++            attr("data-busy") := lila.core.i18n.I18nKey("muteAuthPleaseWait").txt(),
++            role := "status",
++            aria.live := "polite"
++          ),
 +          div(id := "nostr-security-recovery", hidden)(
 +            h2("Save your recovery codes"),
 +            p(

@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { createHmac, randomBytes } from 'node:crypto';
 import { isIP } from 'node:net';
 import { createReadStream, statSync, realpathSync, readFileSync } from 'node:fs';
 
@@ -12,6 +13,13 @@ const nostrIdentity = Buffer.from(JSON.stringify({
   relays: { [nostrPubkey]: ['wss://relay.damus.io', 'wss://nos.lol', 'wss://relay.primal.net'] },
 }));
 const buckets = new Map();
+const authBuckets = new Map();
+// New networks still receive an allowance when the exact per-network table is full.
+const authOverflow = new Uint8Array(16384);
+let authWindowUntil = 0;
+const overflowKey = randomBytes(32);
+const requestLimits = { auth: 90, action: 600, asset: 6000 };
+const authPaths = new Set(['/club/challenge', '/club/login', '/club/security']);
 const websocketPaths = /^\/(?:socket(?:\/v\d+)?|analysis\/socket(?:\/v\d+)?|lobby\/socket(?:\/v\d+)?|study\/[A-Za-z0-9]{8}\/socket\/v\d+|(?:challenge|tournament)\/[A-Za-z0-9]{8}\/socket\/v\d+|play\/[A-Za-z0-9]{12}\/v\d+|watch\/[A-Za-z0-9]{8}\/(?:white|black)\/v\d+)$/;
 function pathOf(req) {
   try { return decodeURIComponent(new URL(req.url, 'http://local').pathname).replace(/\/+/g, '/'); }
@@ -19,16 +27,54 @@ function pathOf(req) {
 }
 function clientIp(req) {
   const value = req.headers['cf-connecting-ip'];
-  return typeof value === 'string' && isIP(value) ? value : '127.0.0.1';
+  return typeof value === 'string' && !value.includes('%') && isIP(value) ? value : '127.0.0.1';
 }
-function allowed(req, asset = false) {
-  const ip = `${asset ? "asset" : "action"}:${clientIp(req)}`, now = Date.now();
-  let bucket = buckets.get(ip);
+function rateLimitNetwork(address) {
+  if (isIP(address) !== 6) return address;
+  // The URL parser canonicalizes IPv6, including embedded IPv4 spellings.
+  const host = new URL(`http://[${address}]/`).hostname.slice(1, -1);
+  const [left, right] = host.split('::');
+  const head = left ? left.split(':') : [];
+  const tail = right ? right.split(':') : [];
+  const groups = right === undefined ? head : [...head, ...Array(8 - head.length - tail.length).fill('0'), ...tail];
+  return groups.slice(0, 4).join(':') + '::/64';
+}
+function authAllowed(network, now) {
+  if (now >= authWindowUntil) {
+    authBuckets.clear();
+    authOverflow.fill(0);
+    authWindowUntil = now + 60000;
+  }
+  const used = authBuckets.get(network);
+  if (used !== undefined || authBuckets.size < 10000) {
+    if (used >= requestLimits.auth) return false;
+    authBuckets.set(network, (used ?? 0) + 1);
+  } else {
+    // A keyed slot shares a counter only among overflow networks for this minute.
+    const hash = createHmac('sha256', overflowKey).update(network).digest();
+    const slot = hash.readUInt16BE() % authOverflow.length;
+    if (authOverflow[slot] >= requestLimits.auth) return false;
+    authOverflow[slot]++;
+  }
+  return true;
+}
+function allowed(req, kind = 'action') {
+  const now = Date.now();
+  const network = rateLimitNetwork(clientIp(req));
+  if (kind === 'auth') return authAllowed(network, now);
+  const key = kind + ':' + network;
+  let bucket = buckets.get(key);
   if (!bucket && buckets.size >= 10000) return false;
-  if (!bucket || bucket.until < now) { bucket = { until: now + 60000, requests: 0 }; buckets.set(ip, bucket); }
-  return ++bucket.requests <= (asset ? 6000 : 600);
+  if (!bucket || bucket.until <= now) {
+    bucket = { until: now + 60000, requests: 0 };
+    buckets.set(key, bucket);
+  }
+  return ++bucket.requests <= requestLimits[kind];
 }
-setInterval(() => { const now = Date.now(); for (const [key, value] of buckets) if (value.until < now) buckets.delete(key); }, 60000).unref();
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, bucket] of buckets) if (bucket.until <= now) buckets.delete(key);
+}, 60000).unref();
 function headers(req, upgrade = false) {
   const result = { ...req.headers, host: domain, 'x-real-ip': clientIp(req),
     'x-forwarded-for': clientIp(req), 'x-forwarded-proto': 'https', 'x-forwarded-host': domain };
@@ -49,8 +95,15 @@ const server = http.createServer((req, res) => {
   if (req.headers.host !== domain) return reject(res, 421, 'Unknown host');
   const path = pathOf(req);
   // Browsing the native flair catalog loads hundreds of images, independently of page actions.
-  if (!allowed(req, path.startsWith('/assets/') && ['GET', 'HEAD'].includes(req.method)))
+  const auth = req.method === 'POST' && authPaths.has(path);
+  const asset = path.startsWith('/assets/') && ['GET', 'HEAD'].includes(req.method);
+  if (!allowed(req, auth ? 'auth' : asset ? 'asset' : 'action')) {
+    if (auth) {
+      res.writeHead(429, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      return res.end(JSON.stringify({ code: 'auth_rate_limited' }));
+    }
     return reject(res, 429, 'Too many requests. Please try again shortly.');
+  }
   if (path === '/.well-known/nostr.json') {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
