@@ -15723,10 +15723,10 @@ index 0000000..e1cb129
 +    bdoc("_id" -> payment, "userId" -> user, "paid" -> false)
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..9ca3a11
+index 0000000..01ba6c8
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,1165 @@
+@@ -0,0 +1,1166 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -16153,11 +16153,12 @@ index 0000000..9ca3a11
 +              fuccess(user)
 +            case None =>
 +              val displayName = requested.filter(_.nonEmpty)
-+              requireThat(
-+                !displayName.exists(lila.user.PublicNameKeys.reservedForIdentity),
-+                409,
-+                lila.core.i18n.I18nKey("muteChooseDifferentName").txt()
-+              )
++              if displayName.exists(lila.user.PublicNameKeys.reservedForIdentity) then
++                throw NoSweatError(
++                  409,
++                  lila.core.i18n.I18nKey("muteChooseDifferentName").txt(),
++                  Some("reserved_public_name")
++                )
 +              val name = displayName.getOrElse("n" + pubkey.take(19))
 +              requireThat(name.matches("[A-Za-z][A-Za-z0-9_-]{2,19}"), 400, "Use a 3–20 character username")
 +              val reserved = Set(
