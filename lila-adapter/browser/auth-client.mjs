@@ -1,19 +1,29 @@
 export class AuthResponseError extends Error {
-  constructor(message, code) { super(message); this.code = code; }
+  constructor(message, code, status) { super(message); this.code = code; this.status = status; }
+}
+// Only catalog messages rendered by the page or returned by the native name validator are shown verbatim.
+export class AuthUiError extends Error {}
+export function authFeedback(error, labels) {
+  if (error instanceof AuthUiError) return error.message;
+  if (!(error instanceof AuthResponseError)) return labels.failure;
+  if (error.status === 429) return labels.busy;
+  if (error.code === 'account_unavailable') return labels.accountUnavailable ?? labels.failure;
+  if (error.code === 'invalid_factor') return labels.invalidCode;
+  if (error.code === 'invalid_name') return labels.badName;
+  if (error.code === 'wrong_signer') return labels.wrongSigner;
+  if (error.code === 'reserved_public_name') return error.message;
+  if (error.status === 409) return labels.nameUnavailable ?? labels.reload;
+  return labels.failure;
 }
 export async function call(path, data, authorization) {
   const response = await fetch(path, { method: 'POST', credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...(authorization ? { Authorization: authorization } : {}) },
     body: typeof data === 'string' ? data : JSON.stringify(data), signal: AbortSignal.timeout(15000) });
-  const result = await response.json();
   if (!response.ok) {
-    if (response.status === 429 && result.code === 'auth_rate_limited') {
-      const feedback = document.getElementById('nostr-status') ?? document.getElementById('nostr-security-status');
-      if (feedback?.dataset.busy) throw new AuthResponseError(feedback.dataset.busy, result.code);
-    }
-    throw new AuthResponseError(result.error || 'Authentication is temporarily unavailable', result.code);
+    const result = await response.json().catch(() => ({}));
+    throw new AuthResponseError(result.error || 'Authentication is temporarily unavailable', result.code, response.status);
   }
-  return result;
+  return response.json();
 }
 export async function signedCall(signer, action, fields = {}) {
   const pubkey = await signer.getPublicKey();

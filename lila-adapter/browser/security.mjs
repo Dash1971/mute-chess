@@ -1,6 +1,6 @@
 import { getPublicKey, finalizeEvent } from 'nostr-tools/pure';
 import { loadKey } from './key-store.mjs';
-import { signedCall } from './auth-client.mjs';
+import { signedCall, AuthUiError, authFeedback } from './auth-client.mjs';
 
 export function encodeSecret(bytes) {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -15,6 +15,7 @@ export function encodeSecret(bytes) {
 const page = typeof document === 'undefined' ? null : document.getElementById('nostr-security');
 if (page) {
   const element = id => document.getElementById('nostr-security-' + id);
+  const labels = element('status').dataset;
   let secret, busy = false;
   const enabled = page.dataset.enabled === 'true';
   element('setup')?.addEventListener('click', async () => {
@@ -27,7 +28,7 @@ if (page) {
     element('enroll').hidden = false;
     element('setup').hidden = true;
     try { await site.asset.loadEsm('bits.qrcode'); }
-    catch { element('status').textContent = 'Enter the setup key manually in your authenticator.'; }
+    catch { element('status').textContent = labels.manual; }
     element('token').focus();
   });
   const submit = async saved => {
@@ -41,12 +42,12 @@ if (page) {
       let signer = window.nostr;
       if (saved) {
         key = await loadKey();
-        if (!key) throw Error('No key is saved in this browser. Use your browser signer.');
+        if (!key) throw new AuthUiError(labels.noKey);
         signer = { getPublicKey: () => getPublicKey(key), signEvent: event => finalizeEvent(event, key) };
       }
-      if (!signer?.getPublicKey || !signer?.signEvent) throw Error('Enable your NIP-07 browser signer, then try again.');
+      if (!signer?.getPublicKey || !signer?.signEvent) throw new AuthUiError(labels.needSigner);
       const token = element('token').value.trim();
-      if (!token) throw Error('Enter your authenticator or recovery code.');
+      if (!token) throw new AuthUiError(labels.enterCode);
       const result = await signedCall(signer, enabled ? 'disable-two-factor' : 'enable-two-factor', {
         twoFactorToken: token, ...(!enabled ? { secret } : {}),
       });
@@ -56,16 +57,16 @@ if (page) {
       element('qr').removeAttribute('data-qr-url');
       element('enroll').hidden = true;
       element('disable')?.setAttribute('hidden', '');
-      element('state').textContent = result.enabled ? 'Two-factor authentication is enabled.' : 'Two-factor authentication is disabled.';
+      element('state').textContent = result.enabled ? labels.enabled : labels.disabled;
       if (result.enabled) {
         element('codes').value = result.recoveryCodes.join('\n');
         element('recovery').hidden = false;
-        element('status').textContent = 'Save these one-time recovery codes now. They are shown only once. Other sessions have been signed out.';
+        element('status').textContent = labels.saveNow;
       } else {
-        element('status').textContent = 'Other sessions have been signed out.';
+        element('status').textContent = labels.sessionsClosed;
         element('done').hidden = false;
       }
-    } catch (error) { element('status').textContent = error.message || 'Security settings could not be changed.'; }
+    } catch (error) { element('status').textContent = authFeedback(error, labels); }
     finally { key?.fill(0); busy = false; buttons.forEach(b => { b.disabled = false; }); }
   };
   for (const method of ['extension', 'saved']) {

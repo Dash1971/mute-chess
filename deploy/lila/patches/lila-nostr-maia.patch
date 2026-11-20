@@ -6911,10 +6911,10 @@ index 58403d3..bdb1c27 100644
 +  <string name="allowBotAccounts">允许机器人账号参赛</string>
  </resources>
 diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
-index 88adade..87f0fe9 100644
+index 88adade..e57cbc8 100644
 --- a/translation/dest/site/de-DE.xml
 +++ b/translation/dest/site/de-DE.xml
-@@ -1064,4 +1064,235 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
+@@ -1064,4 +1064,286 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
    <string name="write">Schreiben</string>
    <string name="preview">Vorschau</string>
    <string name="done">Erledigt</string>
@@ -7149,12 +7149,63 @@ index 88adade..87f0fe9 100644
 +    <string name="muteLabTriple">%1$s, %2$s und %3$s</string>
 +    <string name="muteChooseDifferentName">Dieser Name ist reserviert. Bitte wähle einen anderen Namen.</string>
 +  <string name="muteAuthPleaseWait">Zu viele Versuche aus diesem Netzwerk. Bitte versuche es später erneut.</string>
++  <string name="muteAuthBackupHelp">Sichere den Schlüssel für andere Geräte in einem Passwortmanager. Wer ihn hat, kann sich als du anmelden.</string>
++  <string name="muteAuthNewSecret">Dein neuer privater Nostr-Schlüssel</string>
++  <string name="muteAuthRememberHelp">Dieser Browser speichert deinen Schlüssel in den Websitedaten. Bewahre eine separate Sicherung auf.</string>
++  <string name="muteAuthBackupSaved">Gespeicherten Schlüssel sichern</string>
++  <string name="muteAuthBackupOptions">Kopiere ihn in deinen Passwortmanager oder lade eine private .txt-Kopie herunter.</string>
++  <string name="muteAuthAlreadyNostr">Nutzt du Nostr bereits?</string>
++  <string name="muteAuthSignerLink">Nutze deinen vorhandenen Signer oder installiere %s. Andere kompatible Nostr-Signer funktionieren ebenfalls.</string>
++  <string name="muteAuthKeepAccess">Zugriff auf deinen Schlüssel behalten</string>
++  <string name="muteAuthClearingData">Nach dem Löschen der Websitedaten oder einem Wechsel von Browser, Profil oder Gerät brauchst du den ursprünglichen Schlüssel oder Signer. Private Fenster können den Schlüssel beim Schließen löschen. Sichere ihn separat.</string>
++  <string name="muteAuthStorageHelp">Du kannst den Browser bitten, Websitedaten länger zu behalten. Er entscheidet darüber. Du kannst sie weiterhin selbst löschen.</string>
++  <string name="muteAuthRequestStorage">Browser um dauerhafte Speicherung bitten</string>
++  <string name="muteAuthPasswordManager">Lege im Passwortmanager einen Eintrag für mutechess.org an und füge den nsec als Passwort oder sichere Notiz ein. In Apple Passwörter nutze das Passwortfeld. Der iCloud-Schlüsselbund kann den Eintrag synchronisieren. Füge zur Wiederherstellung denselben Schlüssel hier ein.</string>
++  <string name="muteAuthPlaintext">Die .txt-Datei enthält deinen Schlüssel im Klartext. Bewahre sie privat auf.</string>
++  <string name="muteAuthOneMore">Noch ein Schritt</string>
++  <string name="muteAuthFactorToken">Authenticator- oder Wiederherstellungscode</string>
++  <string name="muteAuthDifferentKey">Anderen Schlüssel verwenden</string>
++  <string name="muteAuthPrivacy">Dein privater Schlüssel bleibt im Browser. Die Anmeldung veröffentlicht nichts auf Nostr.</string>
++  <string name="muteAuthSignEnable">Signieren und 2FA aktivieren</string>
++  <string name="muteAuthSignDisable">Signieren und 2FA deaktivieren</string>
++  <string name="muteAuthUseSaved">Gespeicherten Browserschlüssel verwenden</string>
++  <string name="muteAuthDisabled">Die Zwei-Faktor-Authentifizierung ist deaktiviert.</string>
++  <string name="muteAuthFactorHelp">Nostr ist dein erster Faktor. Beim Anmelden kommt ein sechsstelliger Code aus deiner Authenticator-App hinzu. Ein NIP-07-Browser-Signer wird empfohlen.</string>
++  <string name="muteAuthChangeHelp">Eine Änderung erfordert eine neue Signatur mit deinem Nostr-Schlüssel und meldet deine anderen Sitzungen ab.</string>
++  <string name="muteAuthSetup">Authenticator einrichten</string>
++  <string name="muteAuthAddApp">Zur Authenticator-App hinzufügen</string>
++  <string name="muteAuthScanOrType">Scanne den QR-Code oder gib den Einrichtungsschlüssel von Hand ein.</string>
++  <string name="muteAuthQrLabel">QR-Code zur Authenticator-Einrichtung</string>
++  <string name="muteAuthSetupKey">Einrichtungsschlüssel</string>
++  <string name="muteAuthUnusedCode">Authenticator-Code oder unbenutzter Wiederherstellungscode</string>
++  <string name="muteAuthSaveCodes">Wiederherstellungscodes sichern</string>
++  <string name="muteAuthCodesHelp">Jeder Code gilt einmal zusammen mit deinem Nostr-Schlüssel. Sichere die Codes außerhalb dieses Browsers. Sie werden nur einmal angezeigt.</string>
++  <string name="muteAuthCodesSaved">Ich habe meine Codes gesichert</string>
++  <string name="muteAuthDownloaded">Download der Sicherung angefordert. Bewahre die Datei privat auf.</string>
++  <string name="muteAuthNoKey">In diesem Browser ist kein Schlüssel gespeichert. Nutze deinen Signer oder importiere deinen Schlüssel.</string>
++  <string name="muteAuthNeedSigner">Aktiviere deinen Nostr-Browser-Signer und versuche es erneut.</string>
++  <string name="muteAuthCreateFirst">Erstelle zuerst einen Schlüssel</string>
++  <string name="muteAuthGranted">Der Browser behält die Websitedaten. Sichere den Schlüssel für einen Gerätewechsel oder falls du Daten löschst.</string>
++  <string name="muteAuthDenied">Dein Browser verwaltet den Speicher automatisch. Mit einer Sicherung kannst du dieselbe Identität wiederherstellen.</string>
++  <string name="muteAuthUnsupported">Dieser Browser unterstützt keine längere Speicherung. Du kannst eine Sicherung kopieren oder herunterladen.</string>
++  <string name="muteAuthBadKey">Gib einen gültigen nsec-Schlüssel ein</string>
++  <string name="muteAuthRemoved">Der gespeicherte Schlüssel wurde aus diesem Browser entfernt.</string>
++  <string name="muteAuthEnterCode">Gib deinen Authenticator- oder Wiederherstellungscode ein.</string>
++  <string name="muteAuthManual">Gib den Einrichtungsschlüssel von Hand in der Authenticator-App ein.</string>
++  <string name="muteAuthSessionsClosed">Deine anderen Sitzungen wurden abgemeldet.</string>
++  <string name="muteAuthSaveNow">Sichere jetzt die Einmal-Wiederherstellungscodes. Sie werden nur einmal angezeigt. Andere Sitzungen wurden abgemeldet.</string>
++  <string name="muteAuthAccountUnavailable">Dieses Konto ist nicht verfügbar.</string>
++  <string name="muteAuthFailure">Die Anfrage konnte nicht abgeschlossen werden. Bitte versuche es erneut.</string>
++  <string name="muteAuthInvalidCode">Der Code ist ungültig oder bereits verwendet.</string>
++  <string name="muteAuthBadName">Nutze 3–20 Zeichen und beginne mit einem Buchstaben. Erlaubt sind A–Z, Ziffern, Unterstriche und Bindestriche.</string>
++  <string name="muteAuthWrongSigner">Signiere mit dem Nostr-Schlüssel dieses Kontos.</string>
++  <string name="muteAuthReload">Die Sicherheitseinstellungen wurden geändert. Lade die Seite neu.</string>
  </resources>
 diff --git a/translation/dest/site/es-ES.xml b/translation/dest/site/es-ES.xml
-index 76004f5..b991589 100644
+index 76004f5..7ca3119 100644
 --- a/translation/dest/site/es-ES.xml
 +++ b/translation/dest/site/es-ES.xml
-@@ -1064,4 +1064,235 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
+@@ -1064,4 +1064,286 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
    <string name="write">Escribir</string>
    <string name="preview">Vista previa</string>
    <string name="done">Listo</string>
@@ -7389,12 +7440,63 @@ index 76004f5..b991589 100644
 +    <string name="muteLabTriple">%1$s, %2$s y %3$s</string>
 +    <string name="muteChooseDifferentName">Este nombre está reservado. Elige otro.</string>
 +  <string name="muteAuthPleaseWait">Demasiados intentos desde esta red. Vuelve a intentarlo más tarde.</string>
++  <string name="muteAuthBackupHelp">Guarda la clave en un gestor de contraseñas para usarla en otro dispositivo. Quien la tenga podrá usar tu identidad.</string>
++  <string name="muteAuthNewSecret">Tu nueva clave privada de Nostr</string>
++  <string name="muteAuthRememberHelp">Este navegador recuerda tu clave mientras conserve los datos del sitio. Guarda otra copia.</string>
++  <string name="muteAuthBackupSaved">Haz una copia de tu clave guardada</string>
++  <string name="muteAuthBackupOptions">Cópiala a tu gestor de contraseñas o descarga una copia privada en .txt.</string>
++  <string name="muteAuthAlreadyNostr">¿Ya usas Nostr?</string>
++  <string name="muteAuthSignerLink">Usa tu firmante o instala %s. También sirven otros firmantes compatibles con Nostr.</string>
++  <string name="muteAuthKeepAccess">Cómo conservar el acceso a tu clave</string>
++  <string name="muteAuthClearingData">Si borras los datos o cambias de navegador, perfil o dispositivo, necesitarás la clave original o el firmante. La navegación privada puede borrar la clave al salir. Guarda otra copia.</string>
++  <string name="muteAuthStorageHelp">Puedes pedir al navegador que conserve los datos más tiempo. Él decide si lo permite y tú puedes borrarlos.</string>
++  <string name="muteAuthRequestStorage">Pedir al navegador que conserve los datos</string>
++  <string name="muteAuthPasswordManager">En tu gestor, crea una entrada para mutechess.org y pega el nsec como contraseña o nota segura. En Contraseñas de Apple, guárdalo como contraseña. El llavero de iCloud puede sincronizarlo si está activado. Pega aquí la misma clave para volver a entrar.</string>
++  <string name="muteAuthPlaintext">El archivo .txt contiene la clave sin cifrar. Guárdalo en un lugar privado.</string>
++  <string name="muteAuthOneMore">Un paso más</string>
++  <string name="muteAuthFactorToken">Código de autenticación o recuperación</string>
++  <string name="muteAuthDifferentKey">Usar otra clave</string>
++  <string name="muteAuthPrivacy">Tu clave privada se queda en tu navegador. Al iniciar sesión no se publica nada en Nostr.</string>
++  <string name="muteAuthSignEnable">Firmar y activar 2FA</string>
++  <string name="muteAuthSignDisable">Firmar y desactivar 2FA</string>
++  <string name="muteAuthUseSaved">Usar la clave guardada en el navegador</string>
++  <string name="muteAuthDisabled">La autenticación en dos pasos está desactivada.</string>
++  <string name="muteAuthFactorHelp">Nostr es tu primer factor. Una aplicación de autenticación añade un código de seis dígitos al iniciar sesión. Se recomienda un firmante NIP-07 para el navegador.</string>
++  <string name="muteAuthChangeHelp">Cambiar este ajuste requiere una nueva firma con tu clave Nostr y cierra las demás sesiones.</string>
++  <string name="muteAuthSetup">Configurar la aplicación de autenticación</string>
++  <string name="muteAuthAddApp">Añadir a tu aplicación de autenticación</string>
++  <string name="muteAuthScanOrType">Escanea el código QR o introduce la clave de configuración manualmente.</string>
++  <string name="muteAuthQrLabel">Código QR de configuración del autenticador</string>
++  <string name="muteAuthSetupKey">Clave de configuración</string>
++  <string name="muteAuthUnusedCode">Código del autenticador o código de recuperación sin usar</string>
++  <string name="muteAuthSaveCodes">Guarda tus códigos de recuperación</string>
++  <string name="muteAuthCodesHelp">Cada código se usa una vez junto con tu clave Nostr. Guárdalos en un lugar seguro fuera del navegador. No podrás volver a verlos.</string>
++  <string name="muteAuthCodesSaved">He guardado mis códigos de recuperación</string>
++  <string name="muteAuthDownloaded">Se ha solicitado la descarga. Guarda el archivo en un lugar privado.</string>
++  <string name="muteAuthNoKey">No hay una clave guardada. Usa tu firmante o importa tu clave.</string>
++  <string name="muteAuthNeedSigner">Activa el firmante Nostr del navegador y vuelve a intentarlo.</string>
++  <string name="muteAuthCreateFirst">Crea primero una clave</string>
++  <string name="muteAuthGranted">El navegador conservará los datos. Guarda una copia por si los borras o cambias de dispositivo.</string>
++  <string name="muteAuthDenied">El navegador gestionará el almacenamiento automáticamente. Una copia permite restaurar la misma identidad.</string>
++  <string name="muteAuthUnsupported">Este navegador no permite solicitar más tiempo de almacenamiento. Puedes copiar o descargar una copia.</string>
++  <string name="muteAuthBadKey">Introduce una clave nsec válida</string>
++  <string name="muteAuthRemoved">Se ha eliminado la clave guardada de este navegador.</string>
++  <string name="muteAuthEnterCode">Introduce tu código de autenticación o recuperación.</string>
++  <string name="muteAuthManual">Introduce manualmente la clave en tu aplicación de autenticación.</string>
++  <string name="muteAuthSessionsClosed">Se han cerrado las demás sesiones.</string>
++  <string name="muteAuthSaveNow">Guarda ahora los códigos de recuperación de un solo uso. Solo se muestran una vez. Se han cerrado las demás sesiones.</string>
++  <string name="muteAuthAccountUnavailable">Esta cuenta no está disponible.</string>
++  <string name="muteAuthFailure">No se pudo completar la solicitud. Vuelve a intentarlo.</string>
++  <string name="muteAuthInvalidCode">El código no es válido o ya se ha usado.</string>
++  <string name="muteAuthBadName">Usa de 3 a 20 caracteres y empieza con una letra. Se permiten letras de la A a la Z, dígitos, guiones y guiones bajos.</string>
++  <string name="muteAuthWrongSigner">Firma con la clave Nostr de esta cuenta.</string>
++  <string name="muteAuthReload">La configuración de seguridad ha cambiado. Recarga esta página.</string>
  </resources>
 diff --git a/translation/dest/site/fr-FR.xml b/translation/dest/site/fr-FR.xml
-index 7dfd5f7..a63edb4 100644
+index 7dfd5f7..a740478 100644
 --- a/translation/dest/site/fr-FR.xml
 +++ b/translation/dest/site/fr-FR.xml
-@@ -1063,4 +1063,235 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
+@@ -1063,4 +1063,286 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
    <string name="write">Écrire</string>
    <string name="preview">Aperçu</string>
    <string name="done">Terminé</string>
@@ -7629,12 +7731,63 @@ index 7dfd5f7..a63edb4 100644
 +    <string name="muteLabTriple">%1$s, %2$s et %3$s</string>
 +    <string name="muteChooseDifferentName">Ce nom est réservé. Choisissez un autre nom.</string>
 +  <string name="muteAuthPleaseWait">Trop de tentatives depuis ce réseau. Réessayez plus tard.</string>
++  <string name="muteAuthBackupHelp">Gardez une copie de la clé dans un gestionnaire de mots de passe pour changer d’appareil. Quiconque la possède peut utiliser votre identité.</string>
++  <string name="muteAuthNewSecret">Votre nouvelle clé privée Nostr</string>
++  <string name="muteAuthRememberHelp">Ce navigateur conserve votre clé tant que les données du site sont présentes. Gardez une copie séparée.</string>
++  <string name="muteAuthBackupSaved">Sauvegarder la clé enregistrée</string>
++  <string name="muteAuthBackupOptions">Copiez-la dans votre gestionnaire de mots de passe ou téléchargez une copie privée au format .txt.</string>
++  <string name="muteAuthAlreadyNostr">Vous utilisez déjà Nostr ?</string>
++  <string name="muteAuthSignerLink">Utilisez votre outil de signature ou installez %s. Les autres outils compatibles Nostr conviennent aussi.</string>
++  <string name="muteAuthKeepAccess">Conserver l’accès à votre clé</string>
++  <string name="muteAuthClearingData">Après un effacement des données ou un changement de navigateur, de profil ou d’appareil, il vous faudra la clé d’origine ou votre outil de signature. Une fenêtre privée peut effacer la clé à sa fermeture. Gardez une sauvegarde séparée.</string>
++  <string name="muteAuthStorageHelp">Vous pouvez demander au navigateur de conserver les données plus longtemps. Il peut refuser et vous pouvez toujours les effacer.</string>
++  <string name="muteAuthRequestStorage">Demander la conservation des données</string>
++  <string name="muteAuthPasswordManager">Créez une entrée mutechess.org dans votre gestionnaire et collez le nsec dans le champ du mot de passe ou une note sécurisée. Dans Mots de passe d’Apple, utilisez le champ du mot de passe. Le trousseau iCloud peut le synchroniser si activé. Pour retrouver l’accès, collez la même clé ici.</string>
++  <string name="muteAuthPlaintext">Le fichier .txt contient votre clé en clair. Gardez-le en lieu sûr.</string>
++  <string name="muteAuthOneMore">Encore une étape</string>
++  <string name="muteAuthFactorToken">Code d’authentification ou de secours</string>
++  <string name="muteAuthDifferentKey">Utiliser une autre clé</string>
++  <string name="muteAuthPrivacy">Votre clé privée reste dans votre navigateur. La connexion ne publie rien sur Nostr.</string>
++  <string name="muteAuthSignEnable">Signer et activer la double authentification</string>
++  <string name="muteAuthSignDisable">Signer et désactiver la double authentification</string>
++  <string name="muteAuthUseSaved">Utiliser la clé enregistrée dans le navigateur</string>
++  <string name="muteAuthDisabled">La double authentification est désactivée.</string>
++  <string name="muteAuthFactorHelp">Nostr est votre premier facteur. Une application d’authentification ajoute un code à six chiffres à la connexion. Un outil de signature NIP-07 pour navigateur est recommandé.</string>
++  <string name="muteAuthChangeHelp">Modifier ce réglage nécessite une nouvelle signature avec votre clé Nostr et déconnecte vos autres sessions.</string>
++  <string name="muteAuthSetup">Configurer l’application d’authentification</string>
++  <string name="muteAuthAddApp">Ajouter à votre application d’authentification</string>
++  <string name="muteAuthScanOrType">Scannez ce QR code ou saisissez la clé de configuration à la main.</string>
++  <string name="muteAuthQrLabel">QR code de configuration de l’authentificateur</string>
++  <string name="muteAuthSetupKey">Clé de configuration</string>
++  <string name="muteAuthUnusedCode">Code d’authentification ou code de secours inutilisé</string>
++  <string name="muteAuthSaveCodes">Enregistrez vos codes de secours</string>
++  <string name="muteAuthCodesHelp">Chaque code s’utilise une fois avec votre clé Nostr. Conservez-les en lieu sûr hors de ce navigateur. Ils ne seront plus affichés.</string>
++  <string name="muteAuthCodesSaved">J’ai enregistré mes codes de secours</string>
++  <string name="muteAuthDownloaded">Téléchargement de la sauvegarde demandé. Gardez le fichier en lieu sûr.</string>
++  <string name="muteAuthNoKey">Aucune clé enregistrée dans ce navigateur. Utilisez votre outil de signature ou importez votre clé.</string>
++  <string name="muteAuthNeedSigner">Activez votre outil de signature Nostr dans le navigateur et réessayez.</string>
++  <string name="muteAuthCreateFirst">Créez d’abord une clé</string>
++  <string name="muteAuthGranted">Votre navigateur conservera les données. Gardez une sauvegarde pour un effacement ou un changement d’appareil.</string>
++  <string name="muteAuthDenied">Votre navigateur gère le stockage automatiquement. Une sauvegarde permet de retrouver la même identité.</string>
++  <string name="muteAuthUnsupported">Ce navigateur ne permet pas de prolonger la conservation. Vous pouvez copier ou télécharger une sauvegarde.</string>
++  <string name="muteAuthBadKey">Saisissez une clé privée nsec valide</string>
++  <string name="muteAuthRemoved">La clé enregistrée a été supprimée de ce navigateur.</string>
++  <string name="muteAuthEnterCode">Saisissez votre code d’authentification ou de secours.</string>
++  <string name="muteAuthManual">Saisissez la clé de configuration à la main dans votre application d’authentification.</string>
++  <string name="muteAuthSessionsClosed">Les autres sessions ont été déconnectées.</string>
++  <string name="muteAuthSaveNow">Sauvegardez maintenant ces codes de secours à usage unique. Ils ne seront affichés qu’une fois. Les autres sessions ont été déconnectées.</string>
++  <string name="muteAuthAccountUnavailable">Ce compte est indisponible.</string>
++  <string name="muteAuthFailure">La demande a échoué. Veuillez réessayer.</string>
++  <string name="muteAuthInvalidCode">Code non valide ou déjà utilisé.</string>
++  <string name="muteAuthBadName">Utilisez 3 à 20 caractères en commençant par une lettre. Sont admis les lettres de A à Z, les chiffres, les tirets et les tirets bas.</string>
++  <string name="muteAuthWrongSigner">Signez avec la clé Nostr de ce compte.</string>
++  <string name="muteAuthReload">Les paramètres de sécurité ont changé. Rechargez la page.</string>
  </resources>
 diff --git a/translation/dest/site/hi-IN.xml b/translation/dest/site/hi-IN.xml
-index bbf1703..afcb86e 100644
+index bbf1703..0b2601d 100644
 --- a/translation/dest/site/hi-IN.xml
 +++ b/translation/dest/site/hi-IN.xml
-@@ -893,4 +893,235 @@
+@@ -893,4 +893,287 @@
    <string name="closingAccountWithdrawAppeal">आपका खाता बंद करने से आपकी अपील वापस ले ली जाएगी</string>
    <string name="ourEventTips">कार्यक्रम आयोजित करने कि सलाह</string>
    <string name="nothingToSeeHere">इस समय यहां देखने को कुछ भी नहीं है।</string>
@@ -7869,12 +8022,64 @@ index bbf1703..afcb86e 100644
 +    <string name="muteLabTriple">%1$s, %2$s और %3$s</string>
 +    <string name="muteChooseDifferentName">यह नाम आरक्षित है। कोई दूसरा नाम चुनें।</string>
 +  <string name="muteAuthPleaseWait">इस नेटवर्क से बहुत अधिक प्रयास हुए हैं। कृपया बाद में फिर कोशिश करें।</string>
++  <string name="muteAuthBackupHelp">दूसरे डिवाइस पर लौटने के लिए कुंजी की कॉपी पासवर्ड मैनेजर में रखें। जिसके पास कुंजी है वह आपकी पहचान इस्तेमाल कर सकता है।</string>
++  <string name="muteAuthNewSecret">आपकी नई निजी Nostr कुंजी</string>
++  <string name="muteAuthRememberHelp">साइट का डेटा रहने तक यह ब्राउज़र आपकी कुंजी याद रखता है। अलग बैकअप रखें।</string>
++  <string name="muteAuthBackupSaved">सहेजी हुई कुंजी का बैकअप लें</string>
++  <string name="muteAuthBackupOptions">पासवर्ड मैनेजर में कॉपी करें या निजी .txt कॉपी डाउनलोड करें।</string>
++  <string name="muteAuthAlreadyNostr">क्या आप पहले से Nostr इस्तेमाल करते हैं?</string>
++  <string name="muteAuthSignerLink">अपना मौजूदा साइनर इस्तेमाल करें या %s इंस्टॉल करें। अन्य संगत Nostr साइनर भी काम करते हैं।</string>
++  <string name="muteAuthKeepAccess">कुंजी तक पहुँच बनाए रखें</string>
++  <string name="muteAuthClearingData">डेटा मिटाने या ब्राउज़र, प्रोफ़ाइल या डिवाइस बदलने पर मूल कुंजी या साइनर चाहिए। निजी विंडो बंद करने पर कुंजी मिट सकती है। अलग बैकअप रखें।</string>
++  <string name="muteAuthStorageHelp">आप ब्राउज़र से डेटा लंबे समय तक रखने का अनुरोध कर सकते हैं। अनुमति ब्राउज़र तय करता है और आप फिर भी डेटा मिटा सकते हैं।</string>
++  <string name="muteAuthRequestStorage">ब्राउज़र से डेटा रखने का अनुरोध करें</string>
++  <string name="muteAuthPasswordManager">पासवर्ड मैनेजर में mutechess.org की प्रविष्टि बनाएँ और nsec को पासवर्ड या सुरक्षित नोट में चिपकाएँ। Apple Passwords में इसे पासवर्ड के रूप में रखें। चालू होने पर iCloud Keychain इसे सिंक कर सकता है। पहुँच वापस पाने के लिए वही कुंजी यहाँ चिपकाएँ।</string>
++  <string name="muteAuthPlaintext">.txt फ़ाइल में आपकी कुंजी सादे टेक्स्ट में है। इसे निजी जगह रखें।</string>
++  <string name="muteAuthOneMore">एक और कदम</string>
++  <string name="muteAuthFactorToken">ऑथेंटिकेटर या रिकवरी कोड</string>
++  <string name="muteAuthDifferentKey">दूसरी कुंजी इस्तेमाल करें</string>
++  <string name="muteAuthPrivacy">आपकी निजी कुंजी ब्राउज़र में रहती है। साइन इन करने से Nostr पर कुछ पोस्ट नहीं होता।</string>
++  <string name="muteAuthSignEnable">हस्ताक्षर करके 2FA चालू करें</string>
++  <string name="muteAuthSignDisable">हस्ताक्षर करके 2FA बंद करें</string>
++  <string name="muteAuthUseSaved">ब्राउज़र में सहेजी कुंजी इस्तेमाल करें</string>
++  <string name="muteAuthDisabled">दो-चरणीय प्रमाणीकरण बंद है।</string>
++  <string name="muteAuthFactorHelp">Nostr पहला सुरक्षा चरण है। साइन इन करते समय ऑथेंटिकेटर ऐप छह अंकों का कोड जोड़ता है। NIP-07 ब्राउज़र साइनर सुझाया जाता है।</string>
++  <string name="muteAuthChangeHelp">यह सेटिंग बदलने के लिए आपकी Nostr कुंजी से नया हस्ताक्षर चाहिए। आपके अन्य सत्र बंद हो जाएँगे।</string>
++  <string name="muteAuthSetup">ऑथेंटिकेटर सेट करें</string>
++  <string name="muteAuthAddApp">अपने ऑथेंटिकेटर में जोड़ें</string>
++  <string name="muteAuthScanOrType">QR कोड स्कैन करें या सेटअप कुंजी खुद दर्ज करें।</string>
++  <string name="muteAuthQrLabel">ऑथेंटिकेटर सेटअप का QR कोड</string>
++  <string name="muteAuthSetupKey">सेटअप कुंजी</string>
++  <string name="muteAuthUnusedCode">ऑथेंटिकेटर कोड या अप्रयुक्त रिकवरी कोड</string>
++  <string name="muteAuthSaveCodes">अपने रिकवरी कोड सहेजें</string>
++  <string name="muteAuthCodesHelp">हर कोड आपकी Nostr कुंजी के साथ एक बार काम करता है। इन्हें ब्राउज़र से बाहर सुरक्षित रखें। ये दोबारा नहीं दिखेंगे।</string>
++  <string name="muteAuthCodesSaved">मैंने अपने रिकवरी कोड सहेज लिए हैं</string>
++  <string name="muteAuthDownloaded">बैकअप डाउनलोड का अनुरोध किया गया। फ़ाइल निजी जगह रखें।</string>
++  <string name="muteAuthNoKey">इस ब्राउज़र में कुंजी नहीं है। साइनर इस्तेमाल करें या कुंजी आयात करें।</string>
++  <string name="muteAuthNeedSigner">Nostr ब्राउज़र साइनर चालू करके फिर कोशिश करें।</string>
++  <string name="muteAuthCreateFirst">पहले कुंजी बनाएँ</string>
++  <string name="muteAuthGranted">ब्राउज़र डेटा बनाए रखेगा। डेटा मिटाने या डिवाइस बदलने के लिए बैकअप रखें।</string>
++  <string name="muteAuthDenied">ब्राउज़र स्टोरेज अपने आप संभालेगा। बैकअप से वही पहचान वापस मिल सकती है।</string>
++  <string name="muteAuthUnsupported">यह ब्राउज़र लंबे समय तक रखने का अनुरोध नहीं कर सकता। आप बैकअप कॉपी या डाउनलोड कर सकते हैं।</string>
++  <string name="muteAuthBadKey">मान्य nsec निजी कुंजी दर्ज करें</string>
++  <string name="muteAuthRemoved">सहेजी हुई कुंजी इस ब्राउज़र से हटा दी गई है।</string>
++  <string name="muteAuthEnterCode">अपना ऑथेंटिकेटर या रिकवरी कोड दर्ज करें।</string>
++  <string name="muteAuthManual">अपने ऑथेंटिकेटर में सेटअप कुंजी खुद दर्ज करें।</string>
++  <string name="muteAuthSessionsClosed">अन्य सत्रों से साइन आउट कर दिया गया है।</string>
++  <string name="muteAuthSaveNow">ये एक बार इस्तेमाल होने वाले रिकवरी कोड अभी सहेजें। ये फिर नहीं दिखेंगे। अन्य सत्र बंद हो गए हैं।</string>
++  <string name="muteAuthAccountUnavailable">यह खाता उपलब्ध नहीं है।</string>
++  <string name="muteAuthFailure">अनुरोध पूरा नहीं हुआ। फिर कोशिश करें।</string>
++  <string name="muteAuthInvalidCode">कोड अमान्य है या पहले इस्तेमाल हो चुका है।</string>
++  <string name="muteAuthBadName">3–20 अक्षरों का नाम चुनें जो अंग्रेज़ी अक्षर से शुरू हो। A–Z, अंक, अंडरस्कोर और हाइफ़न इस्तेमाल कर सकते हैं।</string>
++  <string name="muteAuthWrongSigner">इस खाते की Nostr कुंजी से हस्ताक्षर करें।</string>
++  <string name="muteAuthReload">सुरक्षा सेटिंग बदल गई है। पेज फिर लोड करें।</string>
++  <string name="done">हो गया</string>
  </resources>
 diff --git a/translation/dest/site/ja-JP.xml b/translation/dest/site/ja-JP.xml
-index e628bdb..2b9ec3a 100644
+index e628bdb..1437b5d 100644
 --- a/translation/dest/site/ja-JP.xml
 +++ b/translation/dest/site/ja-JP.xml
-@@ -1023,4 +1023,235 @@
+@@ -1023,4 +1023,286 @@
    <string name="write">書く</string>
    <string name="preview">プレビュー</string>
    <string name="done">完了</string>
@@ -8109,12 +8314,63 @@ index e628bdb..2b9ec3a 100644
 +    <string name="muteLabTriple">%1$s、%2$s、%3$s</string>
 +    <string name="muteChooseDifferentName">この名前は予約されています。別の名前を選んでください。</string>
 +  <string name="muteAuthPleaseWait">このネットワークからの試行回数が多すぎます。しばらくしてからもう一度お試しください。</string>
++  <string name="muteAuthBackupHelp">別の端末でも使えるよう、鍵をパスワード管理アプリに保存してください。鍵を持つ人は誰でもあなたとしてログインできます。</string>
++  <string name="muteAuthNewSecret">新しいNostr秘密鍵</string>
++  <string name="muteAuthRememberHelp">サイトデータが残っている間は、このブラウザーで鍵を使えます。別の場所にもバックアップしてください。</string>
++  <string name="muteAuthBackupSaved">保存済みの鍵をバックアップ</string>
++  <string name="muteAuthBackupOptions">パスワード管理アプリにコピーするか、.txt ファイルとしてダウンロードし、安全に保管してください。</string>
++  <string name="muteAuthAlreadyNostr">すでにNostrを使っていますか？</string>
++  <string name="muteAuthSignerLink">お使いの署名ツールを使うか、%s をインストールしてください。他のNostr対応署名ツールも使えます。</string>
++  <string name="muteAuthKeepAccess">鍵を使い続けるには</string>
++  <string name="muteAuthClearingData">データの消去後やブラウザー、プロファイル、端末の変更時には、元の鍵か署名ツールが必要です。プライベートウィンドウを閉じると鍵が消えることがあります。別途バックアップしてください。</string>
++  <string name="muteAuthStorageHelp">サイトデータを長く保持するようブラウザーに依頼できます。許可するかはブラウザーが決めます。自分で消去することもできます。</string>
++  <string name="muteAuthRequestStorage">サイトデータの保持を依頼</string>
++  <string name="muteAuthPasswordManager">パスワード管理アプリで mutechess.org の項目を作り、パスワード欄か保護されたメモに nsec を貼り付けます。Appleの「パスワード」ではパスワード欄に保存します。iCloudキーチェーンを有効にすると同期できます。復元時は同じ鍵をここに貼り付けます。</string>
++  <string name="muteAuthPlaintext">.txt ファイルには鍵が暗号化されずに保存されます。他の人が見られない場所に保管してください。</string>
++  <string name="muteAuthOneMore">あと一歩です</string>
++  <string name="muteAuthFactorToken">認証コードまたはリカバリーコード</string>
++  <string name="muteAuthDifferentKey">別の鍵を使う</string>
++  <string name="muteAuthPrivacy">秘密鍵はブラウザー内に残ります。ログインしてもNostrに投稿されることはありません。</string>
++  <string name="muteAuthSignEnable">署名して二要素認証を有効にする</string>
++  <string name="muteAuthSignDisable">署名して二要素認証を無効にする</string>
++  <string name="muteAuthUseSaved">ブラウザーに保存した鍵を使う</string>
++  <string name="muteAuthDisabled">二要素認証は無効です。</string>
++  <string name="muteAuthFactorHelp">Nostrが第1の認証要素です。ログイン時に認証アプリの6桁のコードを追加します。NIP-07対応のブラウザー署名ツールを推奨します。</string>
++  <string name="muteAuthChangeHelp">設定を変更するにはアカウントのNostr鍵で再度署名します。他のセッションはログアウトされます。</string>
++  <string name="muteAuthSetup">認証アプリを設定</string>
++  <string name="muteAuthAddApp">認証アプリに追加</string>
++  <string name="muteAuthScanOrType">QRコードをスキャンするか、設定用の鍵を手入力してください。</string>
++  <string name="muteAuthQrLabel">認証アプリ設定用QRコード</string>
++  <string name="muteAuthSetupKey">設定用の鍵</string>
++  <string name="muteAuthUnusedCode">認証コードまたは未使用のリカバリーコード</string>
++  <string name="muteAuthSaveCodes">リカバリーコードを保存</string>
++  <string name="muteAuthCodesHelp">各コードはNostr鍵と一緒に1回だけ使えます。このブラウザー以外の安全な場所に保存してください。再表示はできません。</string>
++  <string name="muteAuthCodesSaved">リカバリーコードを保存しました</string>
++  <string name="muteAuthDownloaded">バックアップのダウンロードを要求しました。ファイルは安全な場所に保管してください。</string>
++  <string name="muteAuthNoKey">このブラウザーに鍵は保存されていません。署名ツールを使うか鍵を読み込んでください。</string>
++  <string name="muteAuthNeedSigner">Nostrのブラウザー署名ツールを有効にして、もう一度お試しください。</string>
++  <string name="muteAuthCreateFirst">先に鍵を作成してください</string>
++  <string name="muteAuthGranted">サイトデータの保持が許可されました。データ消去や機種変更に備えてバックアップしてください。</string>
++  <string name="muteAuthDenied">保存領域はブラウザーが自動で管理します。バックアップがあれば同じアカウントに戻れます。</string>
++  <string name="muteAuthUnsupported">このブラウザーでは長期保存を依頼できません。コピーやダウンロードでバックアップできます。</string>
++  <string name="muteAuthBadKey">有効なnsec秘密鍵を入力してください</string>
++  <string name="muteAuthRemoved">このブラウザーから保存済みの鍵を削除しました。</string>
++  <string name="muteAuthEnterCode">認証コードまたはリカバリーコードを入力してください。</string>
++  <string name="muteAuthManual">認証アプリに設定用の鍵を手入力してください。</string>
++  <string name="muteAuthSessionsClosed">他のセッションからログアウトしました。</string>
++  <string name="muteAuthSaveNow">使い切りのリカバリーコードを今すぐ保存してください。再表示はできません。他のセッションはログアウトされました。</string>
++  <string name="muteAuthAccountUnavailable">このアカウントは利用できません。</string>
++  <string name="muteAuthFailure">処理を完了できませんでした。もう一度お試しください。</string>
++  <string name="muteAuthInvalidCode">無効なコード、または使用済みのコードです。</string>
++  <string name="muteAuthBadName">名前は英字で始まる3～20文字にしてください。英字、数字、アンダースコア、ハイフンが使えます。</string>
++  <string name="muteAuthWrongSigner">このアカウントのNostr鍵で署名してください。</string>
++  <string name="muteAuthReload">セキュリティ設定が変更されました。ページを再読み込みしてください。</string>
  </resources>
 diff --git a/translation/dest/site/ko-KR.xml b/translation/dest/site/ko-KR.xml
-index 9341bf0..ed62822 100644
+index 9341bf0..95abc55 100644
 --- a/translation/dest/site/ko-KR.xml
 +++ b/translation/dest/site/ko-KR.xml
-@@ -1022,4 +1022,235 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
+@@ -1022,4 +1022,286 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
    <string name="write">작성</string>
    <string name="preview">미리보기</string>
    <string name="done">완료</string>
@@ -8349,12 +8605,63 @@ index 9341bf0..ed62822 100644
 +    <string name="muteLabTriple">%1$s, %2$s 및 %3$s</string>
 +    <string name="muteChooseDifferentName">예약된 이름입니다. 다른 이름을 선택하세요.</string>
 +  <string name="muteAuthPleaseWait">이 네트워크에서 너무 많이 시도했습니다. 잠시 후 다시 시도하세요.</string>
++  <string name="muteAuthBackupHelp">다른 기기에서도 사용할 수 있게 키를 비밀번호 관리자에 보관하세요. 키를 가진 사람은 누구나 내 계정을 사용할 수 있습니다.</string>
++  <string name="muteAuthNewSecret">새 Nostr 개인 키</string>
++  <string name="muteAuthRememberHelp">사이트 데이터가 남아 있는 동안 이 브라우저가 키를 기억합니다. 별도로 백업하세요.</string>
++  <string name="muteAuthBackupSaved">저장된 키 백업</string>
++  <string name="muteAuthBackupOptions">비밀번호 관리자에 복사하거나 개인용 .txt 파일로 내려받으세요.</string>
++  <string name="muteAuthAlreadyNostr">이미 Nostr를 사용하시나요?</string>
++  <string name="muteAuthSignerLink">기존 서명 도구를 사용하거나 %s을 설치하세요. 다른 Nostr 호환 서명 도구도 사용할 수 있습니다.</string>
++  <string name="muteAuthKeepAccess">키에 계속 접근하는 방법</string>
++  <string name="muteAuthClearingData">데이터를 지우거나 브라우저, 프로필, 기기를 바꾸면 원래 키나 서명 도구가 필요합니다. 비공개 창을 닫으면 키가 지워질 수 있으니 따로 백업하세요.</string>
++  <string name="muteAuthStorageHelp">브라우저에 데이터 장기 보관을 요청할 수 있습니다. 허용 여부는 브라우저가 결정하며 직접 지울 수도 있습니다.</string>
++  <string name="muteAuthRequestStorage">사이트 데이터 보관 요청</string>
++  <string name="muteAuthPasswordManager">비밀번호 관리자에 mutechess.org 항목을 만들고 비밀번호 칸이나 보안 메모에 nsec을 붙여 넣으세요. Apple 암호 앱에서는 비밀번호로 저장하세요. iCloud 키체인을 켜면 동기화할 수 있습니다. 복원하려면 같은 키를 여기에 붙여 넣으세요.</string>
++  <string name="muteAuthPlaintext">.txt 파일에는 암호화되지 않은 키가 들어 있습니다. 안전한 곳에 보관하세요.</string>
++  <string name="muteAuthOneMore">마지막 단계</string>
++  <string name="muteAuthFactorToken">인증 또는 복구 코드</string>
++  <string name="muteAuthDifferentKey">다른 키 사용</string>
++  <string name="muteAuthPrivacy">개인 키는 브라우저에 보관됩니다. 로그인해도 Nostr에 게시되지 않습니다.</string>
++  <string name="muteAuthSignEnable">서명하고 2단계 인증 켜기</string>
++  <string name="muteAuthSignDisable">서명하고 2단계 인증 끄기</string>
++  <string name="muteAuthUseSaved">브라우저에 저장한 키 사용</string>
++  <string name="muteAuthDisabled">2단계 인증이 꺼져 있습니다.</string>
++  <string name="muteAuthFactorHelp">Nostr가 첫 번째 인증 수단입니다. 로그인할 때 인증 앱의 6자리 코드를 추가합니다. NIP-07 브라우저 서명 도구를 권장합니다.</string>
++  <string name="muteAuthChangeHelp">이 설정을 바꾸려면 계정의 Nostr 키로 다시 서명해야 하며 다른 세션은 로그아웃됩니다.</string>
++  <string name="muteAuthSetup">인증 앱 설정</string>
++  <string name="muteAuthAddApp">인증 앱에 추가</string>
++  <string name="muteAuthScanOrType">QR 코드를 스캔하거나 설정 키를 직접 입력하세요.</string>
++  <string name="muteAuthQrLabel">인증 앱 설정 QR 코드</string>
++  <string name="muteAuthSetupKey">설정 키</string>
++  <string name="muteAuthUnusedCode">인증 코드 또는 사용하지 않은 복구 코드</string>
++  <string name="muteAuthSaveCodes">복구 코드 저장</string>
++  <string name="muteAuthCodesHelp">각 코드는 Nostr 키와 함께 한 번만 사용할 수 있습니다. 브라우저 밖의 안전한 곳에 보관하세요. 다시 볼 수 없습니다.</string>
++  <string name="muteAuthCodesSaved">복구 코드를 저장했습니다</string>
++  <string name="muteAuthDownloaded">백업 다운로드를 요청했습니다. 파일을 안전한 곳에 보관하세요.</string>
++  <string name="muteAuthNoKey">이 브라우저에 저장된 키가 없습니다. 서명 도구를 사용하거나 키를 가져오세요.</string>
++  <string name="muteAuthNeedSigner">Nostr 브라우저 서명 도구를 켠 뒤 다시 시도하세요.</string>
++  <string name="muteAuthCreateFirst">먼저 키를 만드세요</string>
++  <string name="muteAuthGranted">사이트 데이터 보관이 허용됐습니다. 데이터 삭제나 기기 변경에 대비해 백업하세요.</string>
++  <string name="muteAuthDenied">브라우저가 저장 공간을 자동 관리합니다. 백업하면 같은 계정으로 돌아올 수 있습니다.</string>
++  <string name="muteAuthUnsupported">이 브라우저에서는 장기 보관을 요청할 수 없습니다. 백업을 복사하거나 내려받을 수 있습니다.</string>
++  <string name="muteAuthBadKey">유효한 nsec 개인 키를 입력하세요</string>
++  <string name="muteAuthRemoved">이 브라우저에서 저장된 키를 삭제했습니다.</string>
++  <string name="muteAuthEnterCode">인증 코드 또는 복구 코드를 입력하세요.</string>
++  <string name="muteAuthManual">인증 앱에 설정 키를 직접 입력하세요.</string>
++  <string name="muteAuthSessionsClosed">다른 세션에서 로그아웃했습니다.</string>
++  <string name="muteAuthSaveNow">일회용 복구 코드를 지금 저장하세요. 다시 볼 수 없습니다. 다른 세션은 로그아웃되었습니다.</string>
++  <string name="muteAuthAccountUnavailable">이 계정은 사용할 수 없습니다.</string>
++  <string name="muteAuthFailure">요청을 완료하지 못했습니다. 다시 시도하세요.</string>
++  <string name="muteAuthInvalidCode">유효하지 않거나 이미 사용한 코드입니다.</string>
++  <string name="muteAuthBadName">영문자로 시작하는 3~20자를 사용하세요. 영문자, 숫자, 밑줄, 하이픈을 쓸 수 있습니다.</string>
++  <string name="muteAuthWrongSigner">이 계정의 Nostr 키로 서명하세요.</string>
++  <string name="muteAuthReload">보안 설정이 변경되었습니다. 페이지를 새로고침하세요.</string>
  </resources>
 diff --git a/translation/dest/site/pt-BR.xml b/translation/dest/site/pt-BR.xml
-index 569e752..a503934 100644
+index 569e752..d7b0ab5 100644
 --- a/translation/dest/site/pt-BR.xml
 +++ b/translation/dest/site/pt-BR.xml
-@@ -1063,4 +1063,235 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
+@@ -1063,4 +1063,286 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
    <string name="write">Escrever</string>
    <string name="preview">Pré-visualizar</string>
    <string name="done">Feito</string>
@@ -8589,12 +8896,63 @@ index 569e752..a503934 100644
 +    <string name="muteLabTriple">%1$s, %2$s e %3$s</string>
 +    <string name="muteChooseDifferentName">Este nome está reservado. Escolha outro.</string>
 +  <string name="muteAuthPleaseWait">Muitas tentativas nesta rede. Tente novamente mais tarde.</string>
++  <string name="muteAuthBackupHelp">Guarde a chave em um gerenciador de senhas para usá-la em outro dispositivo. Quem tiver a chave poderá usar sua identidade.</string>
++  <string name="muteAuthNewSecret">Sua nova chave privada Nostr</string>
++  <string name="muteAuthRememberHelp">O navegador lembra sua chave enquanto os dados do site forem mantidos. Guarde uma cópia separada.</string>
++  <string name="muteAuthBackupSaved">Fazer backup da chave salva</string>
++  <string name="muteAuthBackupOptions">Copie para o gerenciador de senhas ou baixe uma cópia privada em .txt.</string>
++  <string name="muteAuthAlreadyNostr">Já usa Nostr?</string>
++  <string name="muteAuthSignerLink">Use seu assinador ou instale %s. Outros assinadores compatíveis com Nostr também funcionam.</string>
++  <string name="muteAuthKeepAccess">Como manter o acesso à chave</string>
++  <string name="muteAuthClearingData">Ao limpar os dados ou mudar de navegador, perfil ou dispositivo, você precisará da chave original ou do assinador. A navegação privada pode apagar a chave ao fechar. Guarde um backup separado.</string>
++  <string name="muteAuthStorageHelp">Você pode pedir ao navegador que guarde os dados por mais tempo. Ele decide se permite, e você ainda pode apagá-los.</string>
++  <string name="muteAuthRequestStorage">Pedir ao navegador para guardar os dados</string>
++  <string name="muteAuthPasswordManager">Crie uma entrada para mutechess.org no gerenciador e cole o nsec no campo de senha ou em uma nota segura. No app Senhas da Apple, salve como senha. As Chaves do iCloud podem sincronizá-la quando ativadas. Cole a mesma chave aqui para recuperar o acesso.</string>
++  <string name="muteAuthPlaintext">O arquivo .txt contém a chave em texto simples. Guarde-o em um local privado.</string>
++  <string name="muteAuthOneMore">Mais uma etapa</string>
++  <string name="muteAuthFactorToken">Código de autenticação ou recuperação</string>
++  <string name="muteAuthDifferentKey">Usar outra chave</string>
++  <string name="muteAuthPrivacy">Sua chave privada fica no navegador. Entrar não publica nada no Nostr.</string>
++  <string name="muteAuthSignEnable">Assinar e ativar 2FA</string>
++  <string name="muteAuthSignDisable">Assinar e desativar 2FA</string>
++  <string name="muteAuthUseSaved">Usar a chave salva no navegador</string>
++  <string name="muteAuthDisabled">A autenticação em duas etapas está desativada.</string>
++  <string name="muteAuthFactorHelp">Nostr é o primeiro fator. Ao entrar, o app autenticador fornece um código de seis dígitos. Recomendamos um assinador NIP-07 no navegador.</string>
++  <string name="muteAuthChangeHelp">Alterar esta configuração exige uma nova assinatura com sua chave Nostr e encerra as outras sessões.</string>
++  <string name="muteAuthSetup">Configurar o autenticador</string>
++  <string name="muteAuthAddApp">Adicionar ao autenticador</string>
++  <string name="muteAuthScanOrType">Leia o QR code ou digite a chave de configuração.</string>
++  <string name="muteAuthQrLabel">QR code de configuração do autenticador</string>
++  <string name="muteAuthSetupKey">Chave de configuração</string>
++  <string name="muteAuthUnusedCode">Código do autenticador ou código de recuperação ainda não usado</string>
++  <string name="muteAuthSaveCodes">Guarde seus códigos de recuperação</string>
++  <string name="muteAuthCodesHelp">Cada código funciona uma vez com sua chave Nostr. Guarde-os em um local seguro fora deste navegador. Você não poderá vê-los novamente.</string>
++  <string name="muteAuthCodesSaved">Guardei meus códigos de recuperação</string>
++  <string name="muteAuthDownloaded">Download do backup solicitado. Guarde o arquivo em um local privado.</string>
++  <string name="muteAuthNoKey">Não há chave salva neste navegador. Use o assinador ou importe sua chave.</string>
++  <string name="muteAuthNeedSigner">Ative o assinador Nostr no navegador e tente novamente.</string>
++  <string name="muteAuthCreateFirst">Crie uma chave primeiro</string>
++  <string name="muteAuthGranted">O navegador aceitou manter os dados. Guarde uma cópia caso os apague ou troque de dispositivo.</string>
++  <string name="muteAuthDenied">O navegador gerenciará o armazenamento automaticamente. Com um backup, você recupera a mesma identidade.</string>
++  <string name="muteAuthUnsupported">Este navegador não permite pedir armazenamento prolongado. Você pode copiar ou baixar um backup.</string>
++  <string name="muteAuthBadKey">Digite uma chave privada nsec válida</string>
++  <string name="muteAuthRemoved">A chave salva foi removida deste navegador.</string>
++  <string name="muteAuthEnterCode">Digite seu código de autenticação ou recuperação.</string>
++  <string name="muteAuthManual">Digite a chave de configuração no autenticador.</string>
++  <string name="muteAuthSessionsClosed">As outras sessões foram encerradas.</string>
++  <string name="muteAuthSaveNow">Guarde agora os códigos de recuperação de uso único. Eles só serão exibidos uma vez. As outras sessões foram encerradas.</string>
++  <string name="muteAuthAccountUnavailable">Esta conta está indisponível.</string>
++  <string name="muteAuthFailure">Não foi possível concluir a solicitação. Tente novamente.</string>
++  <string name="muteAuthInvalidCode">Código inválido ou já utilizado.</string>
++  <string name="muteAuthBadName">Use de 3 a 20 caracteres, começando com letra. São permitidos letras de A a Z, dígitos, sublinhados e hífens.</string>
++  <string name="muteAuthWrongSigner">Assine com a chave Nostr desta conta.</string>
++  <string name="muteAuthReload">As configurações de segurança mudaram. Recarregue a página.</string>
  </resources>
 diff --git a/translation/dest/site/ru-RU.xml b/translation/dest/site/ru-RU.xml
-index 6384657..9c603ac 100644
+index 6384657..432144c 100644
 --- a/translation/dest/site/ru-RU.xml
 +++ b/translation/dest/site/ru-RU.xml
-@@ -1146,4 +1146,235 @@
+@@ -1146,4 +1146,286 @@
    <string name="write">Написать</string>
    <string name="preview">Предпросмотр</string>
    <string name="done">Готово</string>
@@ -8829,12 +9187,63 @@ index 6384657..9c603ac 100644
 +    <string name="muteLabTriple">%1$s, %2$s и %3$s</string>
 +    <string name="muteChooseDifferentName">Это имя зарезервировано. Выберите другое.</string>
 +  <string name="muteAuthPleaseWait">Слишком много попыток из этой сети. Попробуйте позже.</string>
++  <string name="muteAuthBackupHelp">Сохраните ключ в менеджере паролей для входа с другого устройства. Любой, у кого есть ключ, сможет войти от вашего имени.</string>
++  <string name="muteAuthNewSecret">Ваш новый закрытый ключ Nostr</string>
++  <string name="muteAuthRememberHelp">Ключ хранится в браузере, пока сохранены данные сайта. Сделайте отдельную резервную копию.</string>
++  <string name="muteAuthBackupSaved">Создать копию сохранённого ключа</string>
++  <string name="muteAuthBackupOptions">Скопируйте ключ в менеджер паролей или скачайте личную копию в формате .txt.</string>
++  <string name="muteAuthAlreadyNostr">Уже пользуетесь Nostr?</string>
++  <string name="muteAuthSignerLink">Используйте своё приложение для подписи или установите %s. Подойдут и другие совместимые с Nostr приложения.</string>
++  <string name="muteAuthKeepAccess">Как сохранить доступ к ключу</string>
++  <string name="muteAuthClearingData">После очистки данных или смены браузера, профиля или устройства понадобится исходный ключ или приложение для подписи. Закрытие приватного окна может удалить ключ. Храните отдельную копию.</string>
++  <string name="muteAuthStorageHelp">Можно попросить браузер дольше хранить данные сайта. Решение принимает браузер. Вы по-прежнему можете удалить данные сами.</string>
++  <string name="muteAuthRequestStorage">Попросить браузер хранить данные</string>
++  <string name="muteAuthPasswordManager">Создайте в менеджере паролей запись для mutechess.org. Вставьте nsec в поле пароля или в защищённую заметку. В приложении Apple «Пароли» сохраните его как пароль. Если включена связка ключей iCloud, запись можно синхронизировать. Для восстановления вставьте сюда тот же ключ.</string>
++  <string name="muteAuthPlaintext">Файл .txt содержит ключ в открытом виде. Храните его в недоступном для других месте.</string>
++  <string name="muteAuthOneMore">Ещё один шаг</string>
++  <string name="muteAuthFactorToken">Код аутентификации или восстановления</string>
++  <string name="muteAuthDifferentKey">Использовать другой ключ</string>
++  <string name="muteAuthPrivacy">Закрытый ключ остаётся в браузере. При входе ничего не публикуется в Nostr.</string>
++  <string name="muteAuthSignEnable">Подписать и включить 2FA</string>
++  <string name="muteAuthSignDisable">Подписать и отключить 2FA</string>
++  <string name="muteAuthUseSaved">Использовать ключ из браузера</string>
++  <string name="muteAuthDisabled">Двухфакторная аутентификация отключена.</string>
++  <string name="muteAuthFactorHelp">Первый фактор — Nostr. При входе приложение-аутентификатор выдаёт шестизначный код. Рекомендуем браузерное приложение для подписи с поддержкой NIP-07.</string>
++  <string name="muteAuthChangeHelp">Для изменения нужна новая подпись ключом Nostr этого аккаунта. Остальные сеансы будут завершены.</string>
++  <string name="muteAuthSetup">Настроить аутентификатор</string>
++  <string name="muteAuthAddApp">Добавить в аутентификатор</string>
++  <string name="muteAuthScanOrType">Отсканируйте QR-код или введите ключ настройки вручную.</string>
++  <string name="muteAuthQrLabel">QR-код для настройки аутентификатора</string>
++  <string name="muteAuthSetupKey">Ключ настройки</string>
++  <string name="muteAuthUnusedCode">Код аутентификатора или неиспользованный код восстановления</string>
++  <string name="muteAuthSaveCodes">Сохраните коды восстановления</string>
++  <string name="muteAuthCodesHelp">Каждый код применяется один раз вместе с ключом Nostr. Сохраните коды в безопасном месте вне браузера. Повторно посмотреть их нельзя.</string>
++  <string name="muteAuthCodesSaved">Я сохранил коды восстановления</string>
++  <string name="muteAuthDownloaded">Запрошено скачивание копии. Храните файл в недоступном для других месте.</string>
++  <string name="muteAuthNoKey">В этом браузере нет сохранённого ключа. Используйте приложение для подписи или импортируйте ключ.</string>
++  <string name="muteAuthNeedSigner">Включите приложение для подписи Nostr в браузере и попробуйте снова.</string>
++  <string name="muteAuthCreateFirst">Сначала создайте ключ</string>
++  <string name="muteAuthGranted">Браузер согласился хранить данные. Сохраните копию на случай очистки или смены устройства.</string>
++  <string name="muteAuthDenied">Браузер сам управляет хранилищем. Резервная копия позволит восстановить ту же учётную запись.</string>
++  <string name="muteAuthUnsupported">Этот браузер не позволяет запросить длительное хранение. Вы можете скопировать или скачать ключ.</string>
++  <string name="muteAuthBadKey">Введите действительный закрытый ключ nsec</string>
++  <string name="muteAuthRemoved">Сохранённый ключ удалён из браузера.</string>
++  <string name="muteAuthEnterCode">Введите код аутентификации или восстановления.</string>
++  <string name="muteAuthManual">Введите ключ настройки в приложении-аутентификаторе вручную.</string>
++  <string name="muteAuthSessionsClosed">Остальные сеансы завершены.</string>
++  <string name="muteAuthSaveNow">Сохраните одноразовые коды восстановления сейчас. Они показываются только один раз. Остальные сеансы завершены.</string>
++  <string name="muteAuthAccountUnavailable">Эта учётная запись недоступна.</string>
++  <string name="muteAuthFailure">Не удалось выполнить запрос. Попробуйте снова.</string>
++  <string name="muteAuthInvalidCode">Код недействителен или уже использован.</string>
++  <string name="muteAuthBadName">Используйте от 3 до 20 символов, начиная с буквы. Допустимы латинские буквы, цифры, подчёркивания и дефисы.</string>
++  <string name="muteAuthWrongSigner">Подпишите запрос ключом Nostr этого аккаунта.</string>
++  <string name="muteAuthReload">Настройки безопасности изменились. Обновите страницу.</string>
  </resources>
 diff --git a/translation/dest/site/zh-CN.xml b/translation/dest/site/zh-CN.xml
-index 176f4d1..66654ae 100644
+index 176f4d1..ade400b 100644
 --- a/translation/dest/site/zh-CN.xml
 +++ b/translation/dest/site/zh-CN.xml
-@@ -1022,4 +1022,235 @@
+@@ -1022,4 +1022,286 @@
    <string name="write">撰写</string>
    <string name="preview">预览</string>
    <string name="done">完成</string>
@@ -9069,12 +9478,63 @@ index 176f4d1..66654ae 100644
 +    <string name="muteLabTriple">%1$s、%2$s 和 %3$s</string>
 +    <string name="muteChooseDifferentName">此名称已被保留。请选择其他名称。</string>
 +  <string name="muteAuthPleaseWait">来自此网络的尝试次数过多。请稍后再试。</string>
++  <string name="muteAuthBackupHelp">将密钥备份到密码管理器，以便换设备后登录。持有密钥的人都能使用你的身份。</string>
++  <string name="muteAuthNewSecret">你的新 Nostr 私钥</string>
++  <string name="muteAuthRememberHelp">只要网站数据还在，浏览器就会记住密钥。请另存备份。</string>
++  <string name="muteAuthBackupSaved">备份已保存的密钥</string>
++  <string name="muteAuthBackupOptions">复制到密码管理器，或下载一份私密的 .txt 副本。</string>
++  <string name="muteAuthAlreadyNostr">已经在用 Nostr？</string>
++  <string name="muteAuthSignerLink">使用已有的签名工具，或安装 %s。其他兼容 Nostr 的签名工具也可以使用。</string>
++  <string name="muteAuthKeepAccess">如何保留密钥</string>
++  <string name="muteAuthClearingData">清除网站数据或更换浏览器、浏览器配置、设备后，需要原密钥或签名工具。关闭无痕窗口可能会删除密钥，请单独备份。</string>
++  <string name="muteAuthStorageHelp">你可以请求浏览器延长网站数据的保留时间。是否允许由浏览器决定，你仍可自行清除数据。</string>
++  <string name="muteAuthRequestStorage">请求浏览器保留网站数据</string>
++  <string name="muteAuthPasswordManager">在密码管理器中为 mutechess.org 建立条目，把 nsec 粘贴到密码栏或安全笔记中。在 Apple「密码」中将其存为密码，启用 iCloud 钥匙串后可同步。恢复时将同一密钥粘贴到这里。</string>
++  <string name="muteAuthPlaintext">下载的 .txt 文件以明文保存密钥。请妥善私密保管。</string>
++  <string name="muteAuthOneMore">还差一步</string>
++  <string name="muteAuthFactorToken">验证码或恢复码</string>
++  <string name="muteAuthDifferentKey">使用其他密钥</string>
++  <string name="muteAuthPrivacy">私钥保留在浏览器中。登录不会向 Nostr 发布任何内容。</string>
++  <string name="muteAuthSignEnable">签名并启用双重验证</string>
++  <string name="muteAuthSignDisable">签名并停用双重验证</string>
++  <string name="muteAuthUseSaved">使用浏览器中保存的密钥</string>
++  <string name="muteAuthDisabled">双重验证已停用。</string>
++  <string name="muteAuthFactorHelp">Nostr 是第一重验证。登录时，验证器应用会提供六位验证码。建议使用支持 NIP-07 的浏览器签名工具。</string>
++  <string name="muteAuthChangeHelp">更改此设置需要使用账户的 Nostr 密钥重新签名，其他会话将退出。</string>
++  <string name="muteAuthSetup">设置验证器</string>
++  <string name="muteAuthAddApp">添加到验证器</string>
++  <string name="muteAuthScanOrType">扫描此二维码，或手动输入设置密钥。</string>
++  <string name="muteAuthQrLabel">验证器设置二维码</string>
++  <string name="muteAuthSetupKey">设置密钥</string>
++  <string name="muteAuthUnusedCode">验证码或未使用的恢复码</string>
++  <string name="muteAuthSaveCodes">保存恢复码</string>
++  <string name="muteAuthCodesHelp">每个恢复码只能与 Nostr 密钥配合使用一次。请保存在此浏览器以外的安全位置，以后无法再次查看。</string>
++  <string name="muteAuthCodesSaved">我已保存恢复码</string>
++  <string name="muteAuthDownloaded">已请求下载备份。请私密保管文件。</string>
++  <string name="muteAuthNoKey">此浏览器中没有已保存的密钥。请使用签名工具或导入密钥。</string>
++  <string name="muteAuthNeedSigner">请启用浏览器中的 Nostr 签名工具，然后重试。</string>
++  <string name="muteAuthCreateFirst">请先创建密钥</string>
++  <string name="muteAuthGranted">浏览器已同意保留网站数据。请备份密钥，以防清除数据或更换设备。</string>
++  <string name="muteAuthDenied">浏览器将自动管理存储。有备份就能恢复同一身份。</string>
++  <string name="muteAuthUnsupported">此浏览器无法请求延长存储时间。你仍可复制或下载备份。</string>
++  <string name="muteAuthBadKey">请输入有效的 nsec 私钥</string>
++  <string name="muteAuthRemoved">已从此浏览器移除保存的密钥。</string>
++  <string name="muteAuthEnterCode">请输入验证码或恢复码。</string>
++  <string name="muteAuthManual">请在验证器中手动输入设置密钥。</string>
++  <string name="muteAuthSessionsClosed">其他会话已退出。</string>
++  <string name="muteAuthSaveNow">请立即保存这些一次性恢复码。它们只会显示一次。其他会话已退出。</string>
++  <string name="muteAuthAccountUnavailable">此账号不可用。</string>
++  <string name="muteAuthFailure">无法完成请求，请重试。</string>
++  <string name="muteAuthInvalidCode">验证码无效或已使用。</string>
++  <string name="muteAuthBadName">名称须为 3 至 20 个字符，以英文字母开头，可含英文字母、数字、下划线或连字符。</string>
++  <string name="muteAuthWrongSigner">请使用此账户的 Nostr 密钥签名。</string>
++  <string name="muteAuthReload">安全设置已更改。请重新加载此页。</string>
  </resources>
 diff --git a/translation/source/site.xml b/translation/source/site.xml
-index 8b5a6a1..f00c4d0 100644
+index 8b5a6a1..4b3c914 100644
 --- a/translation/source/site.xml
 +++ b/translation/source/site.xml
-@@ -1066,4 +1066,235 @@ Leave empty to start games from the normal initial position.</string>
+@@ -1066,4 +1066,286 @@ Leave empty to start games from the normal initial position.</string>
    <string name="write">Write</string>
    <string name="preview">Preview</string>
    <string name="done">Done</string>
@@ -9309,6 +9769,57 @@ index 8b5a6a1..f00c4d0 100644
 +    <string name="muteLabTriple">%1$s, %2$s and %3$s</string>
 +    <string name="muteChooseDifferentName">This name is reserved. Choose another name.</string>
 +  <string name="muteAuthPleaseWait">Too many attempts from this network. Please try again later.</string>
++  <string name="muteAuthBackupHelp">Save a copy of this key so you can return on another device. A password manager is a good place for it; anyone with the key can use this identity.</string>
++  <string name="muteAuthNewSecret">Your new Nostr secret key</string>
++  <string name="muteAuthRememberHelp">This browser remembers your key between visits, as long as its site data is kept. Keep a separate backup.</string>
++  <string name="muteAuthBackupSaved">Back up your saved key</string>
++  <string name="muteAuthBackupOptions">Copy it to your password manager or download a private .txt copy.</string>
++  <string name="muteAuthAlreadyNostr">Already use Nostr?</string>
++  <string name="muteAuthSignerLink">Use your existing signer or install %s. Other compatible Nostr signers also work.</string>
++  <string name="muteAuthKeepAccess">Keeping access to your key</string>
++  <string name="muteAuthClearingData">Clearing site data, a new browser or profile, or another device needs your original key or signer. Private browsing may remove the key when you close it. Browser storage is not a backup.</string>
++  <string name="muteAuthStorageHelp">You can ask this browser to keep site data for longer. It decides whether to allow this, and you can still clear it yourself.</string>
++  <string name="muteAuthRequestStorage">Ask browser to keep site data</string>
++  <string name="muteAuthPasswordManager">For a password manager, add an entry for mutechess.org and paste the copied nsec into its password field or secure note. In Apple Passwords, save it as the password; iCloud Keychain can sync the entry when enabled. Copy that same key back here to restore access.</string>
++  <string name="muteAuthPlaintext">The .txt download contains your key as plain text. Keep it somewhere private.</string>
++  <string name="muteAuthOneMore">One more step</string>
++  <string name="muteAuthFactorToken">Authenticator or recovery code</string>
++  <string name="muteAuthDifferentKey">Use a different key</string>
++  <string name="muteAuthPrivacy">Your secret key stays in your browser. Signing in does not post anything to Nostr.</string>
++  <string name="muteAuthSignEnable">Sign and enable 2FA</string>
++  <string name="muteAuthSignDisable">Sign and disable 2FA</string>
++  <string name="muteAuthUseSaved">Use saved browser key</string>
++  <string name="muteAuthDisabled">Two-factor authentication is disabled.</string>
++  <string name="muteAuthFactorHelp">Nostr is your first factor. An authenticator app adds a six-digit code when you sign in. A NIP-07 browser signer is recommended.</string>
++  <string name="muteAuthChangeHelp">Changing this setting requires a fresh signature from your account’s Nostr key and signs out your other sessions.</string>
++  <string name="muteAuthSetup">Set up authenticator</string>
++  <string name="muteAuthAddApp">Add to your authenticator</string>
++  <string name="muteAuthScanOrType">Scan this QR code or enter the setup key manually.</string>
++  <string name="muteAuthQrLabel">Authenticator setup QR code</string>
++  <string name="muteAuthSetupKey">Setup key</string>
++  <string name="muteAuthUnusedCode">Authenticator or unused recovery code</string>
++  <string name="muteAuthSaveCodes">Save your recovery codes</string>
++  <string name="muteAuthCodesHelp">Each code works once, together with your Nostr key. Store them somewhere safe outside this browser. You cannot view them again.</string>
++  <string name="muteAuthCodesSaved">I saved my recovery codes</string>
++  <string name="muteAuthDownloaded">Backup download requested. Keep the file somewhere private.</string>
++  <string name="muteAuthNoKey">No key is saved in this browser. Use your signer or import your key.</string>
++  <string name="muteAuthNeedSigner">Enable your Nostr browser signer, then try again.</string>
++  <string name="muteAuthCreateFirst">Create a key first</string>
++  <string name="muteAuthGranted">Your browser agreed to keep site data. Keep a backup for clearing data or changing devices.</string>
++  <string name="muteAuthDenied">Your browser will manage storage automatically. A backup lets you restore the same identity.</string>
++  <string name="muteAuthUnsupported">This browser cannot request longer storage. You can still copy or download a backup.</string>
++  <string name="muteAuthBadKey">Enter a valid nsec secret key</string>
++  <string name="muteAuthRemoved">Saved key removed from this browser.</string>
++  <string name="muteAuthEnterCode">Enter your authenticator or recovery code.</string>
++  <string name="muteAuthManual">Enter the setup key manually in your authenticator.</string>
++  <string name="muteAuthSessionsClosed">Other sessions have been signed out.</string>
++  <string name="muteAuthSaveNow">Save these one-time recovery codes now. They are shown only once. Other sessions have been signed out.</string>
++  <string name="muteAuthAccountUnavailable">This account is unavailable.</string>
++  <string name="muteAuthFailure">Could not complete the request. Please try again.</string>
++  <string name="muteAuthInvalidCode">Invalid or already used authentication code.</string>
++  <string name="muteAuthBadName">Use a name of 3–20 characters starting with a letter. Use letters A–Z, digits, underscores or hyphens.</string>
++  <string name="muteAuthWrongSigner">Sign with this account’s Nostr key.</string>
++  <string name="muteAuthReload">Security settings changed. Reload this page.</string>
  </resources>
 diff --git a/ui/.build/src/build.ts b/ui/.build/src/build.ts
 index 7d6adeb..b433f0c 100644
@@ -15733,10 +16244,10 @@ index 0000000..e1cb129
 +    bdoc("_id" -> payment, "userId" -> user, "paid" -> false)
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..61656d1
+index 0000000..d0022f9
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,1176 @@
+@@ -0,0 +1,1193 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -15860,8 +16371,8 @@ index 0000000..61656d1
 +              ratingCatalog.update(id, Map.empty)
 +              pick(excluded + id, retries - 1)
 +    env.tournament.noSweatArena.reservedBots.flatMap(reserved => pick(busy ++ reserved, 4))
-+  private def requireThat(ok: Boolean, status: Int, message: String): Unit =
-+    if !ok then throw NoSweatError(status, message)
++  private def requireThat(ok: Boolean, status: Int, message: String, code: Option[String] = None): Unit =
++    if !ok then throw NoSweatError(status, message, code)
 +
 +  def internalAuthorized(header: Option[String]): Boolean = enabled && header.exists: value =>
 +    java.security.MessageDigest.isEqual(
@@ -16161,12 +16672,22 @@ index 0000000..61656d1
 +          .byNostr(pubkey)
 +          .flatMap:
 +            case Some(user) =>
-+              requireThat(user.enabled.yes && !user.isBot, 403, "Account unavailable")
++              requireThat(
++                user.enabled.yes && !user.isBot,
++                403,
++                "Account unavailable",
++                Some("account_unavailable")
++              )
 +              fuccess(user)
 +            case None =>
 +              val displayName = NoSweatService.signupDisplayName(requested)
 +              val name = displayName.getOrElse("n" + pubkey.take(19))
-+              requireThat(name.matches("[A-Za-z][A-Za-z0-9_-]{2,19}"), 400, "Use a 3–20 character username")
++              requireThat(
++                name.matches("[A-Za-z][A-Za-z0-9_-]{2,19}"),
++                400,
++                "Use a 3–20 character username",
++                Some("invalid_name")
++              )
 +              val reserved = Set(
 +                "lichess",
 +                "ghost",
@@ -16274,7 +16795,9 @@ index 0000000..61656d1
 +                bdoc("$pull" -> bdoc("nosweatRecovery" -> hash))
 +              )
 +            case _ => fuccess(false)
-+          consumed.map(ok => requireThat(ok, 401, "Invalid or already used authentication code"))
++          consumed.map(ok =>
++            requireThat(ok, 401, "Invalid or already used authentication code", Some("invalid_factor"))
++          )
 +
 +  def enableSecondFactor(user: UserModel, base32: String, token: String): Fu[List[String]] =
 +    import lila.user.TotpSecret.totp
@@ -16284,7 +16807,12 @@ index 0000000..61656d1
 +    factorRateLimit(user).flatMap: _ =>
 +      val period = System.currentTimeMillis() / 30000
 +      val step = List(0L, -1L, 1L).map(period + _).find(n => secret.totp(n).value == token)
-+      requireThat(step.isDefined && token.matches("[0-9]{6}"), 400, "Enter a valid authenticator code")
++      requireThat(
++        step.isDefined && token.matches("[0-9]{6}"),
++        400,
++        "Enter a valid authenticator code",
++        Some("invalid_factor")
++      )
 +      val codes = List.fill(8)(
 +        java.util.HexFormat
 +          .of()
@@ -17294,7 +17822,7 @@ index 0000000..703a031
 +  def find(key: String): Option[NoSweatStudyPlan] = plans.find(_.key == key)
 diff --git a/app/controllers/NoSweat.scala b/app/controllers/NoSweat.scala
 new file mode 100644
-index 0000000..f558144
+index 0000000..bfa18e8
 --- /dev/null
 +++ b/app/controllers/NoSweat.scala
 @@ -0,0 +1,314 @@
@@ -17483,7 +18011,7 @@ index 0000000..f558144
 +          identity <- env.user.repo.byNostr((verified \ "pubkey").as[String])
 +          user = identity
 +            .filter(_.id == me.userId)
-+            .getOrElse(throw NoSweatError(403, "Sign with this account’s Nostr key"))
++            .getOrElse(throw NoSweatError(403, "Sign with this account’s Nostr key", Some("wrong_signer")))
 +          codes <-
 +            if action == "enable-two-factor" then
 +              club.enableSecondFactor(
@@ -17932,10 +18460,10 @@ index 0000000..9d16b16
 +    case _ => emptyFrag
 diff --git a/app/views/noSweatLogin.scala b/app/views/noSweatLogin.scala
 new file mode 100644
-index 0000000..ff2cc95
+index 0000000..8c43145
 --- /dev/null
 +++ b/app/views/noSweatLogin.scala
-@@ -0,0 +1,171 @@
+@@ -0,0 +1,188 @@
 +package views
 +
 +import lila.core.i18n.I18nKey
@@ -17947,7 +18475,7 @@ index 0000000..ff2cc95
 +    Page(I18nKey("muteSignIn").txt())
 +      .css("bits.auth")
 +      .headAppend(link(rel := "stylesheet", href := s"${assetPath("nosweat/nostr.css")}?v=key-backup2"))
-+      .headAppend(script(src := s"${assetPath("nosweat/nostr.js")}?v=key-copy3", defer)):
++      .headAppend(script(src := s"${assetPath("nosweat/nostr.js")}?v=auth-i18n", defer)):
 +        main(cls := "auth auth-login box box-pad")(
 +          div(cls := "auth__brand")(
 +            img(
@@ -17981,7 +18509,7 @@ index 0000000..ff2cc95
 +            button(id := "nostr-generate", cls := "button button-green")(I18nKey("muteCreateKey").txt()),
 +            div(id := "nostr-created", hidden)(
 +              p(
-+                "Save a copy of this key so you can return on another device. A password manager is a good place for it; anyone with the key can use this identity."
++                I18nKey("muteAuthBackupHelp").txt()
 +              ),
 +              input(
 +                id := "nostr-backup",
@@ -17989,7 +18517,7 @@ index 0000000..ff2cc95
 +                tpe := "password",
 +                readonly,
 +                autocomplete := "off",
-+                aria.label := "Your new Nostr secret key"
++                aria.label := I18nKey("muteAuthNewSecret").txt()
 +              ),
 +              div(cls := "nostr-key-actions")(
 +                button(
@@ -18021,13 +18549,13 @@ index 0000000..ff2cc95
 +              )
 +            ),
 +            p(cls := "nostr-help")(
-+              "This browser remembers your key between visits, as long as its site data is kept. Keep a separate backup."
++              I18nKey("muteAuthRememberHelp").txt()
 +            ),
 +            div(id := "nostr-saved", hidden)(
 +              button(id := "nostr-use-saved", cls := "button")(I18nKey("muteContinueSaved").txt()),
 +              details(cls := "nostr-guide")(
-+                summary("Back up your saved key"),
-+                p("Copy it to your password manager or download a private .txt copy."),
++                summary(I18nKey("muteAuthBackupSaved").txt()),
++                p(I18nKey("muteAuthBackupOptions").txt()),
 +                div(cls := "nostr-key-actions")(
 +                  button(
 +                    id := "nostr-copy-saved",
@@ -18045,18 +18573,18 @@ index 0000000..ff2cc95
 +              ),
 +              button(id := "nostr-forget", cls := "button button-empty")(I18nKey("muteForgetSaved").txt())
 +            ),
-+            div(cls := "or-separator")(span("Already use Nostr?")),
++            div(cls := "or-separator")(span(I18nKey("muteAuthAlreadyNostr").txt())),
 +            button(id := "nostr-extension", cls := "button button-metal")(
 +              I18nKey("muteSigner").txt()
 +            ),
 +            p(cls := "nostr-help")(
-+              "Already have a signer? Continue directly. Or install ",
-+              a(
-+                href := "https://chromewebstore.google.com/detail/nos2x/kpgefcfmnafjgpblomihpgmejjdanjjp",
-+                targetBlank,
-+                rel := "noopener noreferrer"
-+              )("nos2x for Chrome / Chromium"),
-+              ". Other compatible Nostr signers work too."
++              I18nKey("muteAuthSignerLink")(
++                a(
++                  href := "https://chromewebstore.google.com/detail/nos2x/kpgefcfmnafjgpblomihpgmejjdanjjp",
++                  targetBlank,
++                  rel := "noopener noreferrer"
++                )("nos2x (Chrome / Chromium)")
++              )
 +            ),
 +            label(cls := "form-label", `for` := "nostr-nsec")(I18nKey("muteExistingKey").txt()),
 +            input(
@@ -18069,24 +18597,26 @@ index 0000000..ff2cc95
 +            ),
 +            button(id := "nostr-import", cls := "button button-metal")(I18nKey("muteImportKey").txt()),
 +            details(cls := "nostr-guide")(
-+              summary("Keeping access to your key"),
++              summary(I18nKey("muteAuthKeepAccess").txt()),
 +              p(
-+                "Clearing site data, a new browser or profile, or another device needs your original key or signer. Private browsing may remove the key when you close it. Browser storage is not a backup."
++                I18nKey("muteAuthClearingData").txt()
 +              ),
 +              p(
-+                "You can ask this browser to keep site data for longer. It decides whether to allow this, and you can still clear it yourself."
++                I18nKey("muteAuthStorageHelp").txt()
 +              ),
-+              button(id := "nostr-persist", cls := "button button-empty")("Ask browser to keep site data"),
++              button(id := "nostr-persist", cls := "button button-empty")(
++                I18nKey("muteAuthRequestStorage").txt()
++              ),
 +              p(
-+                "For a password manager, add an entry for mutechess.org and paste the copied nsec into its password field or secure note. In Apple Passwords, save it as the password; iCloud Keychain can sync the entry when enabled. Copy that same key back here to restore access."
++                I18nKey("muteAuthPasswordManager").txt()
 +              ),
-+              p("The .txt download contains your key as plain text. Keep it somewhere private.")
++              p(I18nKey("muteAuthPlaintext").txt())
 +            )
 +          ),
 +          div(id := "nostr-second-factor", cls := "form3", hidden)(
-+            h2("One more step"),
-+            p("Two-factor authentication is enabled for this account."),
-+            label(cls := "form-label", `for` := "nostr-token")("Authenticator or recovery code"),
++            h2(I18nKey("muteAuthOneMore").txt()),
++            p(I18nKey("tfa:twoFactorEnabled").txt()),
++            label(cls := "form-label", `for` := "nostr-token")(I18nKey("muteAuthFactorToken").txt()),
 +            input(
 +              id := "nostr-token",
 +              cls := "form-control",
@@ -18094,16 +18624,31 @@ index 0000000..ff2cc95
 +              maxlength := 64
 +            ),
 +            button(id := "nostr-verify", cls := "button button-green")(I18nKey("muteSignIn").txt()),
-+            button(id := "nostr-back", cls := "button button-empty")("Use a different key")
++            button(id := "nostr-back", cls := "button button-empty")(I18nKey("muteAuthDifferentKey").txt())
 +          ),
 +          p(
 +            id := "nostr-status",
-+            attr("data-busy") := lila.core.i18n.I18nKey("muteAuthPleaseWait").txt(),
++            attr("data-downloaded") := I18nKey("muteAuthDownloaded").txt(),
++            attr("data-no-key") := I18nKey("muteAuthNoKey").txt(),
++            attr("data-need-signer") := I18nKey("muteAuthNeedSigner").txt(),
++            attr("data-create-first") := I18nKey("muteAuthCreateFirst").txt(),
++            attr("data-granted") := I18nKey("muteAuthGranted").txt(),
++            attr("data-denied") := I18nKey("muteAuthDenied").txt(),
++            attr("data-unsupported") := I18nKey("muteAuthUnsupported").txt(),
++            attr("data-bad-key") := I18nKey("muteAuthBadKey").txt(),
++            attr("data-removed") := I18nKey("muteAuthRemoved").txt(),
++            attr("data-enter-code") := I18nKey("muteAuthEnterCode").txt(),
++            attr("data-failure") := I18nKey("muteAuthFailure").txt(),
++            attr("data-invalid-code") := I18nKey("muteAuthInvalidCode").txt(),
++            attr("data-busy") := I18nKey("muteAuthPleaseWait").txt(),
++            attr("data-bad-name") := I18nKey("muteAuthBadName").txt(),
++            attr("data-account-unavailable") := I18nKey("muteAuthAccountUnavailable").txt(),
++            attr("data-name-unavailable") := I18nKey("usernameAlreadyUsed").txt(),
 +            role := "status",
 +            aria.live := "polite"
 +          ),
 +          p(cls := "nostr-help")(
-+            "Your secret key stays in your browser. Signing in does not post anything to Nostr."
++            I18nKey("muteAuthPrivacy").txt()
 +          ),
 +          a(href := "/")(I18nKey("mutePlayAnon").txt())
 +        )
@@ -18325,11 +18870,13 @@ index 0000000..8afa450
 +        )
 diff --git a/app/views/noSweatSecurity.scala b/app/views/noSweatSecurity.scala
 new file mode 100644
-index 0000000..0e3f66f
+index 0000000..b6c273f
 --- /dev/null
 +++ b/app/views/noSweatSecurity.scala
-@@ -0,0 +1,89 @@
+@@ -0,0 +1,111 @@
 +package views
++
++import lila.core.i18n.I18nKey
 +
 +import lila.app.UiEnv.{ *, given }
 +
@@ -18338,41 +18885,47 @@ index 0000000..0e3f66f
 +    val enabled = user.totpSecret.isDefined
 +    def signerButtons = frag(
 +      button(tpe := "button", cls := "button button-green", attr("data-security-signer") := "extension")(
-+        if enabled then "Sign and disable 2FA" else "Sign and enable 2FA"
++        if enabled then I18nKey("muteAuthSignDisable").txt() else I18nKey("muteAuthSignEnable").txt()
 +      ),
 +      button(tpe := "button", cls := "button button-metal", attr("data-security-signer") := "saved", hidden)(
-+        "Use saved browser key"
++        I18nKey("muteAuthUseSaved").txt()
 +      )
 +    )
 +    account.ui
-+      .AccountPage("Two-factor authentication", "twofactor")
-+      .headAppend(script(src := assetPath("nosweat/nostr.js"), defer)):
++      .AccountPage(I18nKey("tfa:twoFactorAuth").txt(), "twofactor")
++      .headAppend(script(src := s"${assetPath("nosweat/nostr.js")}?v=auth-i18n", defer)):
 +        div(
 +          id := "nostr-security",
 +          cls := "box box-pad form3",
 +          attr("data-enabled") := enabled.toString,
 +          attr("data-account") := user.username.value
 +        )(
-+          h1("Two-factor authentication"),
-+          p(id := "nostr-security-state")(if enabled then "Two-factor authentication is enabled."
-+          else "Two-factor authentication is disabled."),
++          h1(I18nKey("tfa:twoFactorAuth").txt()),
++          p(id := "nostr-security-state")(if enabled then I18nKey("tfa:twoFactorEnabled").txt()
++          else I18nKey("muteAuthDisabled").txt()),
 +          p(
-+            "Nostr is your first factor. An authenticator app adds a six-digit code when you sign in. A NIP-07 browser signer is recommended."
++            I18nKey("muteAuthFactorHelp").txt()
 +          ),
 +          p(
-+            "Changing this setting requires a fresh signature from your account’s Nostr key and signs out your other sessions."
++            I18nKey("muteAuthChangeHelp").txt()
 +          ),
 +          (!enabled).option(
-+            button(id := "nostr-security-setup", tpe := "button", cls := "button")("Set up authenticator")
++            button(id := "nostr-security-setup", tpe := "button", cls := "button")(
++              I18nKey("muteAuthSetup").txt()
++            )
 +          ),
 +          div(id := "nostr-security-enroll", hidden)(
-+            h2("Add to your authenticator"),
-+            p("Scan this QR code or enter the setup key manually."),
-+            canvas(id := "nostr-security-qr", cls := "qrcode", aria.label := "Authenticator setup QR code"),
-+            p("Setup key: ", code(id := "nostr-security-secret")),
++            h2(I18nKey("muteAuthAddApp").txt()),
++            p(I18nKey("muteAuthScanOrType").txt()),
++            canvas(
++              id := "nostr-security-qr",
++              cls := "qrcode",
++              aria.label := I18nKey("muteAuthQrLabel").txt()
++            ),
++            p(I18nKey("muteAuthSetupKey").txt(), " ", code(id := "nostr-security-secret")),
 +            (!enabled).option(
 +              frag(
-+                label(`for` := "nostr-security-token")("Authenticator code"),
++                label(`for` := "nostr-security-token")(I18nKey("tfa:authenticationCode").txt()),
 +                input(
 +                  id := "nostr-security-token",
 +                  cls := "form-control",
@@ -18385,8 +18938,8 @@ index 0000000..0e3f66f
 +          ),
 +          enabled.option(
 +            div(id := "nostr-security-disable")(
-+              h2("Disable two-factor authentication"),
-+              label(`for` := "nostr-security-token")("Authenticator or unused recovery code"),
++              h2(I18nKey("tfa:disableTwoFactor").txt()),
++              label(`for` := "nostr-security-token")(I18nKey("muteAuthUnusedCode").txt()),
 +              input(
 +                id := "nostr-security-token",
 +                cls := "form-control",
@@ -18398,14 +18951,26 @@ index 0000000..0e3f66f
 +          ),
 +          p(
 +            id := "nostr-security-status",
-+            attr("data-busy") := lila.core.i18n.I18nKey("muteAuthPleaseWait").txt(),
++            attr("data-manual") := I18nKey("muteAuthManual").txt(),
++            attr("data-no-key") := I18nKey("muteAuthNoKey").txt(),
++            attr("data-need-signer") := I18nKey("muteAuthNeedSigner").txt(),
++            attr("data-enter-code") := I18nKey("muteAuthEnterCode").txt(),
++            attr("data-disabled") := I18nKey("muteAuthDisabled").txt(),
++            attr("data-save-now") := I18nKey("muteAuthSaveNow").txt(),
++            attr("data-sessions-closed") := I18nKey("muteAuthSessionsClosed").txt(),
++            attr("data-failure") := I18nKey("muteAuthFailure").txt(),
++            attr("data-invalid-code") := I18nKey("muteAuthInvalidCode").txt(),
++            attr("data-busy") := I18nKey("muteAuthPleaseWait").txt(),
++            attr("data-wrong-signer") := I18nKey("muteAuthWrongSigner").txt(),
++            attr("data-reload") := I18nKey("muteAuthReload").txt(),
++            attr("data-enabled") := I18nKey("tfa:twoFactorEnabled").txt(),
 +            role := "status",
 +            aria.live := "polite"
 +          ),
 +          div(id := "nostr-security-recovery", hidden)(
-+            h2("Save your recovery codes"),
++            h2(I18nKey("muteAuthSaveCodes").txt()),
 +            p(
-+              "Each code works once, together with your Nostr key. Store them somewhere safe outside this browser. You cannot view them again."
++              I18nKey("muteAuthCodesHelp").txt()
 +            ),
 +            textarea(
 +              id := "nostr-security-codes",
@@ -18414,9 +18979,11 @@ index 0000000..0e3f66f
 +              rows := 8,
 +              autocomplete := "off"
 +            ),
-+            a(href := "/club/security", cls := "button")("I saved my recovery codes")
++            a(href := "/club/security", cls := "button")(I18nKey("muteAuthCodesSaved").txt())
 +          ),
-+          a(id := "nostr-security-done", href := "/club/security", cls := "button", hidden)("Done")
++          a(id := "nostr-security-done", href := "/club/security", cls := "button", hidden)(
++            I18nKey("done").txt()
++          )
 +        )
 diff --git a/app/views/noSweatUnsupported.scala b/app/views/noSweatUnsupported.scala
 new file mode 100644
@@ -32145,10 +32712,10 @@ HcmV?d00001
 
 diff --git a/public/nosweat/brand.css b/public/nosweat/brand.css
 new file mode 100644
-index 0000000..b7720f6
+index 0000000..1be53ba
 --- /dev/null
 +++ b/public/nosweat/brand.css
-@@ -0,0 +1,200 @@
+@@ -0,0 +1,203 @@
 +.site-title .nosweat-header-icon{width:38px;height:38px;margin-right:2px}.site-title .nosweat-wordmark{width:174px;height:50px;object-fit:contain}.nosweat-light{display:none}.light .nosweat-dark{display:none}.light .nosweat-light{display:block}.nosweat-login-wordmark{width:272px;max-width:100%;height:62px}.auth__brand{justify-content:center}@media(max-width:799px){.site-title .nosweat-wordmark{display:none!important}.site-title .nosweat-header-icon{width:36px;height:36px;margin:0}}
 +
 +main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-dark.svg")}.light main.lobby .lobby__app__content{background-image:url("/assets/nosweat/watermark-light.svg")}
@@ -32349,6 +32916,9 @@ index 0000000..b7720f6
 +  .nosweat-arena-bots summary { min-height:44px; }
 +  .nosweat-arena-controls a { min-height:44px; display:inline-flex; align-items:center; }
 +}
++
++/* Two-factor controls follow the current enrollment and saved-key state. */
++#nostr-security [hidden] { display: none !important; }
 diff --git a/public/nosweat/favicon-32.png b/public/nosweat/favicon-32.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..4261e6d916997479521a76cde8d32c2f0eee3236
