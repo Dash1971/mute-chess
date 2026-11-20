@@ -17294,10 +17294,10 @@ index 0000000..703a031
 +  def find(key: String): Option[NoSweatStudyPlan] = plans.find(_.key == key)
 diff --git a/app/controllers/NoSweat.scala b/app/controllers/NoSweat.scala
 new file mode 100644
-index 0000000..bc75e27
+index 0000000..f558144
 --- /dev/null
 +++ b/app/controllers/NoSweat.scala
-@@ -0,0 +1,310 @@
+@@ -0,0 +1,314 @@
 +package controllers
 +
 +import play.api.libs.json.*
@@ -17310,14 +17310,18 @@ index 0000000..bc75e27
 +  private given lila.core.config.RateLimit = env.net.rateLimit
 +  private val challengeLimit = lila.memo.RateLimit[String](30, 1.minute, "mute.auth.challenge")
 +  private val loginLimit = lila.memo.RateLimit[String](30, 1.minute, "mute.auth.login")
-+  private val signupLimit = lila.memo.RateLimit[String](10, 1.hour, "mute.auth.signup")
++  // Match the native signup policy for players sharing a school or mobile network.
++  private val signupLimit = lila.memo.RateLimit.composite[String]("mute.auth.signup")(
++    ("fast", 10, 10.minutes),
++    ("slow", 150, 1.day)
++  )
 +
 +  private def authNetwork(using Context): String = ctx.ip match
 +    case ip: lila.core.net.IpV6Address =>
 +      ip.inet.fold(ip.value)(addr => java.util.HexFormat.of().formatHex(addr.getAddress.take(8)))
 +    case ip => ip.value
 +
-+  private def checkAuthLimit(limiter: lila.memo.RateLimit[String])(using Context): Unit =
++  private def checkAuthLimit(limiter: lila.memo.RateLimit.RateLimiter[String])(using Context): Unit =
 +    val network = authNetwork
 +    if !limiter.synchronized(limiter.hit(network)) then
 +      throw NoSweatError(429, lila.core.i18n.I18nKey("muteAuthPleaseWait").txt())

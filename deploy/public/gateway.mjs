@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { createHmac, randomBytes } from 'node:crypto';
 import { isIP } from 'node:net';
 import { createReadStream, statSync, realpathSync, readFileSync } from 'node:fs';
 
@@ -13,6 +14,10 @@ const nostrIdentity = Buffer.from(JSON.stringify({
 }));
 const buckets = new Map();
 const authBuckets = new Map();
+// New networks still receive an allowance when the exact per-network table is full.
+const authOverflow = new Uint8Array(16384);
+let authWindowUntil = 0;
+const overflowKey = randomBytes(32);
 const requestLimits = { auth: 90, action: 600, asset: 6000 };
 const authPaths = new Set(['/club/challenge', '/club/login', '/club/security']);
 const websocketPaths = /^\/(?:socket(?:\/v\d+)?|analysis\/socket(?:\/v\d+)?|lobby\/socket(?:\/v\d+)?|study\/[A-Za-z0-9]{8}\/socket\/v\d+|(?:challenge|tournament)\/[A-Za-z0-9]{8}\/socket\/v\d+|play\/[A-Za-z0-9]{12}\/v\d+|watch\/[A-Za-z0-9]{8}\/(?:white|black)\/v\d+)$/;
@@ -34,23 +39,41 @@ function rateLimitNetwork(address) {
   const groups = right === undefined ? head : [...head, ...Array(8 - head.length - tail.length).fill('0'), ...tail];
   return groups.slice(0, 4).join(':') + '::/64';
 }
+function authAllowed(network, now) {
+  if (now >= authWindowUntil) {
+    authBuckets.clear();
+    authOverflow.fill(0);
+    authWindowUntil = now + 60000;
+  }
+  const used = authBuckets.get(network);
+  if (used !== undefined || authBuckets.size < 10000) {
+    if (used >= requestLimits.auth) return false;
+    authBuckets.set(network, (used ?? 0) + 1);
+  } else {
+    // A keyed slot shares a counter only among overflow networks for this minute.
+    const hash = createHmac('sha256', overflowKey).update(network).digest();
+    const slot = hash.readUInt16BE() % authOverflow.length;
+    if (authOverflow[slot] >= requestLimits.auth) return false;
+    authOverflow[slot]++;
+  }
+  return true;
+}
 function allowed(req, kind = 'action') {
-  const store = kind === 'auth' ? authBuckets : buckets;
-  const key = kind + ':' + rateLimitNetwork(clientIp(req));
   const now = Date.now();
-  let bucket = store.get(key);
-  if (!bucket && store.size >= 10000) return false;
+  const network = rateLimitNetwork(clientIp(req));
+  if (kind === 'auth') return authAllowed(network, now);
+  const key = kind + ':' + network;
+  let bucket = buckets.get(key);
+  if (!bucket && buckets.size >= 10000) return false;
   if (!bucket || bucket.until <= now) {
     bucket = { until: now + 60000, requests: 0 };
-    store.set(key, bucket);
+    buckets.set(key, bucket);
   }
   return ++bucket.requests <= requestLimits[kind];
 }
 setInterval(() => {
   const now = Date.now();
-  for (const store of [buckets, authBuckets]) {
-    for (const [key, bucket] of store) if (bucket.until <= now) store.delete(key);
-  }
+  for (const [key, bucket] of buckets) if (bucket.until <= now) buckets.delete(key);
 }, 60000).unref();
 function headers(req, upgrade = false) {
   const result = { ...req.headers, host: domain, 'x-real-ip': clientIp(req),
