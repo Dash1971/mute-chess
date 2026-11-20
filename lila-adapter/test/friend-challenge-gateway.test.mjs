@@ -19,14 +19,15 @@ const code=(await build({
   }}],
 })).outputFiles[0].text;
 
-function gateway({ authLimit, clock = Date } = {}){
+function gateway({ authLimit, fullAuthTable = false, clock = Date } = {}){
   const handlers={},calls=[];
   const server={on(event,fn){handlers[event]=fn;return this;},listen(){}};
   const transport={
     createServer(handler){handlers.request=handler;return server;},
     request(options){const request={options,on(){return this;},end(){this.ended=true;},destroy(){},};calls.push(request);return request;},
   };
-  const { networkFor, limits } = vm.runInNewContext(code + '\n;({networkFor: rateLimitNetwork, limits: requestLimits})',{transport,Buffer,URL,Date:clock,console,require:createRequire(import.meta.url),setInterval(){return {unref(){}};}});
+  const { networkFor, limits, authBuckets } = vm.runInNewContext(code + '\n;({networkFor: rateLimitNetwork, limits: requestLimits, authBuckets})',{transport,Buffer,URL,Date:clock,console,require:createRequire(import.meta.url),setInterval(){return {unref(){}};}});
+  if (fullAuthTable) Object.defineProperty(authBuckets, 'size', { value: 10000 });
   if (authLimit !== undefined) limits.auth = authLimit;
   return {
     calls, networkFor,
@@ -169,4 +170,16 @@ test('an authentication quota leaves ordinary browsing and other networks availa
   assert.ok(app.request('/club/challenge', 'POST', '192.0.2.2').req.upstream);
   now += 60000;
   assert.ok(app.request('/club/security', 'POST').req.upstream);
+});
+
+test('a new client network can sign in when the exact network table is full', () => {
+  let now = 0;
+  const app = gateway({ authLimit: 2, fullAuthTable: true, clock: { now: () => now } });
+  assert.ok(app.request('/club/challenge').req.upstream);
+  const { req } = app.request('/club/login');
+  assert.equal(req.upstream.options.headers['x-forwarded-for'], '192.0.2.1');
+  assert.equal(app.request('/club/security').res.status, 429);
+  assert.ok(app.request('/', 'GET').req.upstream);
+  now += 60000;
+  assert.ok(app.request('/club/security').req.upstream);
 });
