@@ -6911,7 +6911,7 @@ index 58403d3..bdb1c27 100644
 +  <string name="allowBotAccounts">允许机器人账号参赛</string>
  </resources>
 diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
-index 88adade..35337a3 100644
+index 88adade..5703046 100644
 --- a/translation/dest/site/de-DE.xml
 +++ b/translation/dest/site/de-DE.xml
 @@ -1064,4 +1064,234 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
@@ -7147,10 +7147,10 @@ index 88adade..35337a3 100644
 +    <string name="muteLabIntuitive">Diese Züge sind auf den meisten Wertungsstufen Maias erste Wahl.</string>
 +    <string name="muteLabPair">%1$s und %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s und %3$s</string>
-+  <string name="muteChooseDifferentName">Dieser Name ist reserviert. Bitte wähle einen anderen Namen.</string>
++    <string name="muteChooseDifferentName">Dieser Name ist reserviert. Bitte wähle einen anderen Namen.</string>
  </resources>
 diff --git a/translation/dest/site/es-ES.xml b/translation/dest/site/es-ES.xml
-index 76004f5..a189f9d 100644
+index 76004f5..ac6ef6f 100644
 --- a/translation/dest/site/es-ES.xml
 +++ b/translation/dest/site/es-ES.xml
 @@ -1064,4 +1064,234 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
@@ -7386,10 +7386,10 @@ index 76004f5..a189f9d 100644
 +    <string name="muteLabIntuitive">Estas jugadas son la primera opción de Maia en la mayoría de los niveles.</string>
 +    <string name="muteLabPair">%1$s y %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s y %3$s</string>
-+  <string name="muteChooseDifferentName">Este nombre está reservado. Elige otro.</string>
++    <string name="muteChooseDifferentName">Este nombre está reservado. Elige otro.</string>
  </resources>
 diff --git a/translation/dest/site/fr-FR.xml b/translation/dest/site/fr-FR.xml
-index 7dfd5f7..985809e 100644
+index 7dfd5f7..a48f7a0 100644
 --- a/translation/dest/site/fr-FR.xml
 +++ b/translation/dest/site/fr-FR.xml
 @@ -1063,4 +1063,234 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
@@ -7625,10 +7625,10 @@ index 7dfd5f7..985809e 100644
 +    <string name="muteLabIntuitive">Ces coups sont le premier choix de Maia à la plupart des niveaux.</string>
 +    <string name="muteLabPair">%1$s et %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s et %3$s</string>
-+  <string name="muteChooseDifferentName">Ce nom est réservé. Choisissez un autre nom.</string>
++    <string name="muteChooseDifferentName">Ce nom est réservé. Choisissez un autre nom.</string>
  </resources>
 diff --git a/translation/dest/site/hi-IN.xml b/translation/dest/site/hi-IN.xml
-index bbf1703..8d3a4fc 100644
+index bbf1703..5068614 100644
 --- a/translation/dest/site/hi-IN.xml
 +++ b/translation/dest/site/hi-IN.xml
 @@ -893,4 +893,234 @@
@@ -7864,10 +7864,10 @@ index bbf1703..8d3a4fc 100644
 +    <string name="muteLabIntuitive">अधिकांश रेटिंग स्तरों पर ये चालें Maia की पहली पसंद होती हैं।</string>
 +    <string name="muteLabPair">%1$s और %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s और %3$s</string>
-+  <string name="muteChooseDifferentName">यह नाम आरक्षित है। कोई दूसरा नाम चुनें।</string>
++    <string name="muteChooseDifferentName">यह नाम आरक्षित है। कोई दूसरा नाम चुनें।</string>
  </resources>
 diff --git a/translation/dest/site/ja-JP.xml b/translation/dest/site/ja-JP.xml
-index e628bdb..754c80a 100644
+index e628bdb..77ec058 100644
 --- a/translation/dest/site/ja-JP.xml
 +++ b/translation/dest/site/ja-JP.xml
 @@ -1023,4 +1023,234 @@
@@ -8103,10 +8103,10 @@ index e628bdb..754c80a 100644
 +    <string name="muteLabIntuitive">これらの手は、大半のレーティングでMaiaの第一候補です。</string>
 +    <string name="muteLabPair">%1$sと%2$s</string>
 +    <string name="muteLabTriple">%1$s、%2$s、%3$s</string>
-+  <string name="muteChooseDifferentName">この名前は予約されています。別の名前を選んでください。</string>
++    <string name="muteChooseDifferentName">この名前は予約されています。別の名前を選んでください。</string>
  </resources>
 diff --git a/translation/dest/site/ko-KR.xml b/translation/dest/site/ko-KR.xml
-index 9341bf0..a3cb607 100644
+index 9341bf0..b3f9915 100644
 --- a/translation/dest/site/ko-KR.xml
 +++ b/translation/dest/site/ko-KR.xml
 @@ -1022,4 +1022,234 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
@@ -8342,10 +8342,10 @@ index 9341bf0..a3cb607 100644
 +    <string name="muteLabIntuitive">이 수들은 대부분의 레이팅에서 Maia의 첫 선택입니다.</string>
 +    <string name="muteLabPair">%1$s 및 %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s 및 %3$s</string>
-+  <string name="muteChooseDifferentName">예약된 이름입니다. 다른 이름을 선택하세요.</string>
++    <string name="muteChooseDifferentName">예약된 이름입니다. 다른 이름을 선택하세요.</string>
  </resources>
 diff --git a/translation/dest/site/pt-BR.xml b/translation/dest/site/pt-BR.xml
-index 569e752..379d81f 100644
+index 569e752..4f1ee10 100644
 --- a/translation/dest/site/pt-BR.xml
 +++ b/translation/dest/site/pt-BR.xml
 @@ -1063,4 +1063,234 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
@@ -8581,10 +8581,10 @@ index 569e752..379d81f 100644
 +    <string name="muteLabIntuitive">Esses lances são a primeira escolha da Maia na maioria dos níveis de rating.</string>
 +    <string name="muteLabPair">%1$s e %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s e %3$s</string>
-+  <string name="muteChooseDifferentName">Este nome está reservado. Escolha outro.</string>
++    <string name="muteChooseDifferentName">Este nome está reservado. Escolha outro.</string>
  </resources>
 diff --git a/translation/dest/site/ru-RU.xml b/translation/dest/site/ru-RU.xml
-index 6384657..10944b5 100644
+index 6384657..9511032 100644
 --- a/translation/dest/site/ru-RU.xml
 +++ b/translation/dest/site/ru-RU.xml
 @@ -1146,4 +1146,234 @@
@@ -8820,10 +8820,10 @@ index 6384657..10944b5 100644
 +    <string name="muteLabIntuitive">Эти ходы — первый выбор Maia на большинстве уровней рейтинга.</string>
 +    <string name="muteLabPair">%1$s и %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s и %3$s</string>
-+  <string name="muteChooseDifferentName">Это имя зарезервировано. Выберите другое.</string>
++    <string name="muteChooseDifferentName">Это имя зарезервировано. Выберите другое.</string>
  </resources>
 diff --git a/translation/dest/site/zh-CN.xml b/translation/dest/site/zh-CN.xml
-index 176f4d1..428e0d8 100644
+index 176f4d1..38a35e5 100644
 --- a/translation/dest/site/zh-CN.xml
 +++ b/translation/dest/site/zh-CN.xml
 @@ -1022,4 +1022,234 @@
@@ -9059,10 +9059,10 @@ index 176f4d1..428e0d8 100644
 +    <string name="muteLabIntuitive">在大多数等级分下，这些着法都是 Maia 的首选。</string>
 +    <string name="muteLabPair">%1$s 和 %2$s</string>
 +    <string name="muteLabTriple">%1$s、%2$s 和 %3$s</string>
-+  <string name="muteChooseDifferentName">此名称已被保留。请选择其他名称。</string>
++    <string name="muteChooseDifferentName">此名称已被保留。请选择其他名称。</string>
  </resources>
 diff --git a/translation/source/site.xml b/translation/source/site.xml
-index 8b5a6a1..e12fb1a 100644
+index 8b5a6a1..d47f6d7 100644
 --- a/translation/source/site.xml
 +++ b/translation/source/site.xml
 @@ -1066,4 +1066,234 @@ Leave empty to start games from the normal initial position.</string>
@@ -9298,7 +9298,7 @@ index 8b5a6a1..e12fb1a 100644
 +    <string name="muteLabIntuitive">These moves are Maia’s first choice at most rating levels.</string>
 +    <string name="muteLabPair">%1$s and %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s and %3$s</string>
-+  <string name="muteChooseDifferentName">This name is reserved. Choose another name.</string>
++    <string name="muteChooseDifferentName">This name is reserved. Choose another name.</string>
  </resources>
 diff --git a/ui/.build/src/build.ts b/ui/.build/src/build.ts
 index 7d6adeb..b433f0c 100644
@@ -15723,10 +15723,10 @@ index 0000000..e1cb129
 +    bdoc("_id" -> payment, "userId" -> user, "paid" -> false)
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..01ba6c8
+index 0000000..37f72cf
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,1166 @@
+@@ -0,0 +1,1173 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -16152,13 +16152,7 @@ index 0000000..01ba6c8
 +              requireThat(user.enabled.yes && !user.isBot, 403, "Account unavailable")
 +              fuccess(user)
 +            case None =>
-+              val displayName = requested.filter(_.nonEmpty)
-+              if displayName.exists(lila.user.PublicNameKeys.reservedForIdentity) then
-+                throw NoSweatError(
-+                  409,
-+                  lila.core.i18n.I18nKey("muteChooseDifferentName").txt(),
-+                  Some("reserved_public_name")
-+                )
++              val displayName = NoSweatService.signupDisplayName(requested)
 +              val name = displayName.getOrElse("n" + pubkey.take(19))
 +              requireThat(name.matches("[A-Za-z][A-Za-z0-9_-]{2,19}"), 400, "Use a 3–20 character username")
 +              val reserved = Set(
@@ -16893,6 +16887,19 @@ index 0000000..01ba6c8
 +          "failure" -> doc.getAsOpt[String]("failure"),
 +          "policy" -> publicArenaPolicy(Json.parse(doc.getAsOpt[String]("snapshot").get))
 +        )
++
++object NoSweatService:
++  private[app] def signupDisplayName(requested: Option[String])(using
++      lila.core.i18n.Translate
++  ): Option[String] =
++    val displayName = requested.filter(_.nonEmpty)
++    if displayName.exists(lila.user.PublicNameKeys.reservedForIdentity) then
++      throw NoSweatError(
++        409,
++        lila.core.i18n.I18nKey("muteChooseDifferentName").txt(),
++        Some("reserved_public_name")
++      )
++    displayName
 diff --git a/app/NoSweatStudy.scala b/app/NoSweatStudy.scala
 new file mode 100644
 index 0000000..3005300
@@ -33593,6 +33600,28 @@ index 0000000..2a8acbd
 +    assert(!NoSweatInsights.accepts(JsonQuestion("color", "result", Map("accuracy" -> List("90")))))
 +    assert(!NoSweatInsights.accepts(JsonQuestion("variant", "result", Map("variant" -> List("atomic")))))
 +    assert(NoSweatInsights.accepts(JsonQuestion("variant", "ratingDiff", Map("variant" -> List("blitz")))))
+diff --git a/src/test/scala/NoSweatSignupNameTest.scala b/src/test/scala/NoSweatSignupNameTest.scala
+new file mode 100644
+index 0000000..9271e5e
+--- /dev/null
++++ b/src/test/scala/NoSweatSignupNameTest.scala
+@@ -0,0 +1,16 @@
++package lila.app
++
++import lila.core.i18n.Translate
++import lila.i18n.Translator
++
++class NoSweatSignupNameTest extends munit.FunSuite:
++  test("signup rejects a chosen account ID and accepts an ordinary or omitted name"):
++    given Translate = Translator.toDefault
++    val id = "n0123456789abcdef012"
++    for name <- List(id, id.toUpperCase(java.util.Locale.ROOT)) do
++      val error = intercept[NoSweatError](NoSweatService.signupDisplayName(Some(name)))
++      assertEquals(error.status, 409)
++      assertEquals(error.code, Some("reserved_public_name"))
++    assertEquals(NoSweatService.signupDisplayName(Some("ChessFan")), Some("ChessFan"))
++    assertEquals(NoSweatService.signupDisplayName(None), None)
++    assertEquals(NoSweatService.signupDisplayName(Some("")), None)
 diff --git a/src/test/scala/NoSweatStudyPlanTest.scala b/src/test/scala/NoSweatStudyPlanTest.scala
 new file mode 100644
 index 0000000..806bb5f
