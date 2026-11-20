@@ -12,6 +12,9 @@ const nostrIdentity = Buffer.from(JSON.stringify({
   relays: { [nostrPubkey]: ['wss://relay.damus.io', 'wss://nos.lol', 'wss://relay.primal.net'] },
 }));
 const buckets = new Map();
+const authBuckets = new Map();
+const requestLimits = { auth: 90, action: 600, asset: 6000 };
+const authPaths = new Set(['/club/challenge', '/club/login', '/club/security']);
 const websocketPaths = /^\/(?:socket(?:\/v\d+)?|analysis\/socket(?:\/v\d+)?|lobby\/socket(?:\/v\d+)?|study\/[A-Za-z0-9]{8}\/socket\/v\d+|(?:challenge|tournament)\/[A-Za-z0-9]{8}\/socket\/v\d+|play\/[A-Za-z0-9]{12}\/v\d+|watch\/[A-Za-z0-9]{8}\/(?:white|black)\/v\d+)$/;
 function pathOf(req) {
   try { return decodeURIComponent(new URL(req.url, 'http://local').pathname).replace(/\/+/g, '/'); }
@@ -31,14 +34,24 @@ function rateLimitNetwork(address) {
   const groups = right === undefined ? head : [...head, ...Array(8 - head.length - tail.length).fill('0'), ...tail];
   return groups.slice(0, 4).join(':') + '::/64';
 }
-function allowed(req, asset = false) {
-  const ip = `${asset ? "asset" : "action"}:${rateLimitNetwork(clientIp(req))}`, now = Date.now();
-  let bucket = buckets.get(ip);
-  if (!bucket && buckets.size >= 10000) return false;
-  if (!bucket || bucket.until < now) { bucket = { until: now + 60000, requests: 0 }; buckets.set(ip, bucket); }
-  return ++bucket.requests <= (asset ? 6000 : 600);
+function allowed(req, kind = 'action') {
+  const store = kind === 'auth' ? authBuckets : buckets;
+  const key = kind + ':' + rateLimitNetwork(clientIp(req));
+  const now = Date.now();
+  let bucket = store.get(key);
+  if (!bucket && store.size >= 10000) return false;
+  if (!bucket || bucket.until <= now) {
+    bucket = { until: now + 60000, requests: 0 };
+    store.set(key, bucket);
+  }
+  return ++bucket.requests <= requestLimits[kind];
 }
-setInterval(() => { const now = Date.now(); for (const [key, value] of buckets) if (value.until < now) buckets.delete(key); }, 60000).unref();
+setInterval(() => {
+  const now = Date.now();
+  for (const store of [buckets, authBuckets]) {
+    for (const [key, bucket] of store) if (bucket.until <= now) store.delete(key);
+  }
+}, 60000).unref();
 function headers(req, upgrade = false) {
   const result = { ...req.headers, host: domain, 'x-real-ip': clientIp(req),
     'x-forwarded-for': clientIp(req), 'x-forwarded-proto': 'https', 'x-forwarded-host': domain };
@@ -59,8 +72,15 @@ const server = http.createServer((req, res) => {
   if (req.headers.host !== domain) return reject(res, 421, 'Unknown host');
   const path = pathOf(req);
   // Browsing the native flair catalog loads hundreds of images, independently of page actions.
-  if (!allowed(req, path.startsWith('/assets/') && ['GET', 'HEAD'].includes(req.method)))
+  const auth = req.method === 'POST' && authPaths.has(path);
+  const asset = path.startsWith('/assets/') && ['GET', 'HEAD'].includes(req.method);
+  if (!allowed(req, auth ? 'auth' : asset ? 'asset' : 'action')) {
+    if (auth) {
+      res.writeHead(429, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      return res.end(JSON.stringify({ code: 'auth_rate_limited' }));
+    }
     return reject(res, 429, 'Too many requests. Please try again shortly.');
+  }
   if (path === '/.well-known/nostr.json') {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');

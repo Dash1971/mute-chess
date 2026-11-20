@@ -7,6 +7,10 @@ export async function call(path, data, authorization) {
     body: typeof data === 'string' ? data : JSON.stringify(data), signal: AbortSignal.timeout(15000) });
   const result = await response.json();
   if (!response.ok) {
+    if (response.status === 429 && result.code === 'auth_rate_limited') {
+      const feedback = document.getElementById('nostr-status') ?? document.getElementById('nostr-security-status');
+      if (feedback?.dataset.busy) throw new AuthResponseError(feedback.dataset.busy, result.code);
+    }
     throw new AuthResponseError(result.error || 'Authentication is temporarily unavailable', result.code);
   }
   return result;
