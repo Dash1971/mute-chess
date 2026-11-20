@@ -1,5 +1,36 @@
 # Security versions and advisory review
 
+## November 21 OS security maintenance (#355)
+
+Apply the pending Ubuntu packages through the existing weekly-update procedure,
+which drains all games before a required reboot and reopens admissions after
+healthy startup. The kernel target is 7.0.0-44.44 (running 7.0.0-44-generic),
+covered by USN-9166-1 even though its APT candidate is labelled updates rather
+than security. PyJWT's system package target is 2.10.1-4ubuntu1.4 for
+CVE-2026-102269 / USN-9177-1; it is absent from the application's Python venv.
+OpenJDK21.0.13.1 was already installed automatically on November20 for
+USN-9156-1. Confirm both running Java services use that patched runtime.
+
+GHSA-f5v5-272f-4q4f is already fixed in the unchanged Lila pin: upstream commit
+016e06f188e05dc96a7c5a0ab2b548895f7ec44e precedes our pin, and RequestPref
+retains the removal of bgImg request/session input. Confirm the deployed class,
+then apply this reviewed inventory decision through OpenClaw's existing
+matching-pin verification. No application source patch or classifier change is
+needed. Preserve the active RELEASE.json, original build receipts and security
+control hashes; refresh current verification using the actual boot/runtime
+observations and require a fresh inventory_verified=true collection.
+
+Monitoring investigation found repeated connection-refused stack traces to the
+unconfigured opening explorer at localhost:9002. A sampled ten-minute window
+had 1,332 application journal entries, exceeding the fast poll's existing
+250-entry / 200,000-byte limits. The independent full journal archive retains
+the underlying records. Two isolated failed fast polls have no saved exception
+reason; do not invent a cause or discard the missed intervals. Current complete
+polls do not backfill those observations. Keep existing monitoring and history
+enabled. Correcting the optional opening requests is a separate bounded
+follow-up; no limit increase, warning suppression or monitoring redesign is
+part of this maintenance.
+
 ## Required in the next application release: fast-xml-parser (#318)
 
 The draft native patch pins bin/package.json and the frozen pnpm-lock.yaml to

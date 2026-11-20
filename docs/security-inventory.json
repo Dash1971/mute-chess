@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "release-targets",
-  "reviewedAt": "2026-11-19",
+  "reviewedAt": "2026-11-21",
   "deploymentIdentity": "Read RELEASE.json from the SAME current release. These targets are not proof of installation; compare with SECURITY279_BUILD.json and actual running versions. Recheck after every release or host/tool update.",
   "upstreamPins": {
     "lila": {
@@ -54,6 +54,14 @@
     }
   },
   "runtime": {
+    "hostOS": {
+      "kernel": "7.0.0-44-generic",
+      "kernelPackageVersion": "7.0.0-44.44",
+      "python3-jwt": "2.10.1-4ubuntu1.4",
+      "openjdk-21": "21.0.13.1+2-1~26.04.1",
+      "securityNotices": ["USN-9166-1", "USN-9177-1", "USN-9156-1"],
+      "maintenance": "APT-managed host targets. Verify installed packages, the booted kernel and both running Java services; repository pocket labels alone do not identify every security fix. Current operational verification supplies installation evidence."
+    },
     "node": {
       "version": "24.22.1",
       "embeddedUndici": "7.30.1",
@@ -141,6 +149,11 @@
     }
   },
   "knownAdvisoryDecisions": [
+    {
+      "ids": ["GHSA-f5v5-272f-4q4f"],
+      "status": "fixed-in-pinned-source",
+      "evidence": "Upstream fix016e06f188e05dc96a7c5a0ab2b548895f7ec44e is an ancestor of pin b551752d2a0e7a63459d9812825d95a633a98737. RequestPref no longer accepts bgImg from request parameters/session; the deployed source retains that removal and uses pref.bgImgUrl. Verify the deployed RequestPref class and retain this decision only with matching release/build/pin evidence."
+    },
     {
       "ids": [
         "GHSA-25xh-q7f9-6v6v"
