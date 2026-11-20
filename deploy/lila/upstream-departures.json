@@ -93,6 +93,7 @@
             "ui/site/src/clinput.ts",
             "modules/user/src/test/NoSweatBotIdentityTest.scala",
             "modules/user/src/test/NoSweatNostrIdentityTest.scala",
+            "src/test/scala/NoSweatSignupNameTest.scala",
             "ui/user/css/_header.scss",
             "ui/lib/src/nosweat/identity.ts",
             "ui/lib/tests/nostrIdentity.test.ts",
