@@ -18,6 +18,43 @@ The owner instead approved deleting the disposable Test1 account. No account-ID
 migration or previous-ID redirect is introduced. Other existing accounts remain
 unchanged pending an owner decision.
 
+## Reserved account-ID names (#348)
+
+New chosen names cannot use the permanent account-ID format: `n` followed by
+19 hexadecimal characters. Signup and profile editing check the normalized name
+(NFKC, trimmed and case-folded), so equivalent spellings are reserved too. An
+unchanged historical name remains valid for unrelated profile edits. The native
+unique name-claim index still decides concurrent conflicts; no IDs, keys, ratings
+or history are migrated. Before release, check existing matching display names
+against their owners and obtain an owner decision before changing any conflict.
+
+## Sign-in limits and challenge lifetime (#349/#354)
+
+The native app permits 30 challenge requests and 30 sign-in submissions per
+client network per minute. Only creation of a new identity uses the native signup
+allowance of 10 accounts per ten minutes and 150 per day; returning players do
+not consume it. IPv6 addresses in the same /64 share a network allowance.
+The gateway separately allows 90 authentication POSTs per network per minute,
+with browsing/action and asset allowances remaining separate. When its exact
+network table fills, bounded keyed overflow counters still admit new networks;
+colliding overflow networks share a counter for that minute.
+
+Challenges last 60 seconds and remain bound to the public key and requested
+action. The signed event also covers the URL, HTTP method and exact body.
+Unfinished requests consume no replay-storage slots and do not cancel earlier
+requests. Only successfully verified proofs occupy replay storage: at most
+256 buckets of 256 proofs. If one bucket fills with unexpired successful proofs,
+its key rotates before entries are forgotten, invalidating that bucket's older
+outstanding challenges; those callers can retry with a fresh challenge. Other
+buckets continue. An adapter restart invalidates outstanding challenges, while
+existing native sign-in sessions remain unchanged. Native per-account two-factor
+attempt limits, atomic code consumption and session revocation remain in force.
+
+Sign-in, key backup, browser-storage feedback and two-factor setup/recovery use
+all ten supported native languages, including accessibility labels and errors.
+Account-unavailable feedback is returned only after a verified signed request.
+Enrollment and recovery controls stay hidden until their corresponding step.
+
 ## Experience
 
 Profile information buttons beside the npub and permanent account handle open

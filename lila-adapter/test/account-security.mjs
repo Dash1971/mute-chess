@@ -40,6 +40,10 @@ function totp(bytes, step = Math.floor(Date.now()/30000)) {
   return ((hash.readUInt32BE(offset)&0x7fffffff)%1000000).toString().padStart(6,'0');
 }
 try {
+  // A fresh key can retry without a chosen name after signup rejects a reserved one.
+  const reservedName = 'N' + pubkey.slice(0, 19).toUpperCase();
+  const rejected = await signed('login', { username: reservedName }, 409);
+  assert.equal(rejected.data.code, 'reserved_public_name');
   const login = await signed('login'); cookie = sessionOf(login);
   const handle = login.data.username;
   assert.equal(handle, 'n' + pubkey.slice(0,19));

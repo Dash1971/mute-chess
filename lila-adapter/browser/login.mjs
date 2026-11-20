@@ -1,12 +1,13 @@
 import { generateSecretKey, getPublicKey, finalizeEvent } from 'nostr-tools/pure';
 import { decode, nsecEncode } from 'nostr-tools/nip19';
 import { saveKey, loadKey, forgetKey, requestKeyPersistence } from './key-store.mjs';
-import { signedCall, AuthResponseError } from './auth-client.mjs';
+import { signedCall, AuthResponseError, AuthUiError, authFeedback } from './auth-client.mjs';
 import './security.mjs';
 import './patron.mjs';
 import './keys.mjs';
 
 const element = id => document.getElementById('nostr-' + id);
+const labels = element('status')?.dataset;
 let generated, pending, copyFeedback, copyTimer;
 function clearCopyFeedback() {
   clearTimeout(copyTimer);
@@ -83,16 +84,16 @@ async function exportKey(key, download = false, button) {
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
-    status('Backup download requested. Keep the file somewhere private.');
+    status(labels.downloaded);
   } else {
     try { await navigator.clipboard.writeText(nsec); }
-    catch { throw Error(button.dataset.copyFailed); }
+    catch { throw new AuthUiError(button.dataset.copyFailed); }
     if (epoch === pageEpoch) showCopyFeedback(button);
   }
 }
 async function exportSavedKey(download, button) {
   const key = await loadKey();
-  if (!key) throw Error('No key is saved in this browser');
+  if (!key) throw new AuthUiError(labels.noKey);
   try { await exportKey(key, download, button); } finally { key.fill(0); }
 }
 let busy = false;
@@ -103,20 +104,20 @@ function action(name, callback) {
     const buttons = [...document.querySelectorAll('.auth-login button')];
     buttons.forEach(button => { button.disabled = true; });
     try { await callback(); }
-    catch (error) { status(error instanceof Error ? error.message : 'Sign-in failed', true); }
+    catch (error) { status(authFeedback(error, labels), true); }
     finally { busy = false; buttons.forEach(button => { button.disabled = false; }); }
   });
 }
 if (element('extension')) {
   action('extension', async () => {
-    if (!window.nostr?.getPublicKey || !window.nostr?.signEvent) throw Error('Enable your Nostr browser signer, then try again.');
+    if (!window.nostr?.getPublicKey || !window.nostr?.signEvent) throw new AuthUiError(labels.needSigner);
     await signIn(window.nostr);
   });
   action('generate', () => {
     clearCopyFeedback(); resetFactor(); generated?.fill(0); generated = generateSecretKey();
     element('backup').value = nsecEncode(generated);
     element('backup').type = 'password';
-    element('reveal').textContent = element('reveal').dataset.showKey || 'Show key';
+    element('reveal').textContent = element('reveal').dataset.showKey;
     element('created').hidden = false;
     element('created').scrollIntoView({ block: 'nearest' });
     element('copy').focus();
@@ -124,14 +125,14 @@ if (element('extension')) {
   action('reveal', () => {
     const hidden = element('backup').type === 'password';
     element('backup').type = hidden ? 'text' : 'password';
-    element('reveal').textContent = hidden ? element('reveal').dataset.hideKey || 'Hide key' : element('reveal').dataset.showKey || 'Show key';
+    element('reveal').textContent = hidden ? element('reveal').dataset.hideKey : element('reveal').dataset.showKey;
   });
   action('copy', async () => {
-    if (!generated) throw Error('Create a key first');
+    if (!generated) throw new AuthUiError(labels.createFirst);
     await exportKey(generated, false, element('copy'));
   });
   action('download', async () => {
-    if (!generated) throw Error('Create a key first');
+    if (!generated) throw new AuthUiError(labels.createFirst);
     await exportKey(generated, true);
   });
   action('copy-saved', () => exportSavedKey(false, element('copy-saved')));
@@ -145,13 +146,13 @@ if (element('extension')) {
     persistencePending = false;
     element('persist').disabled = false;
     status(result === 'granted'
-      ? 'Your browser agreed to keep site data. Keep a backup for clearing data or changing devices.'
+      ? labels.granted
       : result === 'denied'
-        ? 'Your browser will manage storage automatically. A backup lets you restore the same identity.'
-        : 'This browser cannot request longer storage. You can still copy or download a backup.');
+        ? labels.denied
+        : labels.unsupported);
   });
   action('create-login', async () => {
-    if (!generated) throw Error('Create a key first');
+    if (!generated) throw new AuthUiError(labels.createFirst);
     await signIn(localSigner(generated), generated);
   });
   action('import', async () => {
@@ -161,20 +162,20 @@ if (element('extension')) {
       if (decoded.type !== 'nsec') throw Error();
       key = decoded.data;
       getPublicKey(key);
-    } catch { throw Error('Enter a valid nsec secret key'); }
+    } catch { throw new AuthUiError(labels.badKey); }
     element('nsec').value = '';
     try { await signIn(localSigner(key), key); } finally { key.fill(0); }
   });
   action('use-saved', async () => {
     const key = await loadKey();
-    if (!key) throw Error('No key is saved in this browser');
+    if (!key) throw new AuthUiError(labels.noKey);
     try { await signIn(localSigner(key), key, false); } finally { key.fill(0); }
   });
-  action('forget', async () => { resetFactor(); await forgetKey(); element('saved').hidden = true; status('Saved key removed from this browser.'); });
+  action('forget', async () => { resetFactor(); await forgetKey(); element('saved').hidden = true; status(labels.removed); });
   action('verify', async () => {
     if (!pending) return;
     const token = element('token').value.trim();
-    if (!token) throw Error('Enter your authenticator or recovery code');
+    if (!token) throw new AuthUiError(labels.enterCode);
     // Each retry obtains and signs a new one-use challenge, including the code.
     const attempt = pending, epoch = pageEpoch;
     const result = await signedCall(attempt.signer, 'login', { ...attempt.fields, twoFactorToken: token });
