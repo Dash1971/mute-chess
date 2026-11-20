@@ -6911,10 +6911,10 @@ index 58403d3..bdb1c27 100644
 +  <string name="allowBotAccounts">允许机器人账号参赛</string>
  </resources>
 diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
-index 88adade..55716ae 100644
+index 88adade..e57cbc8 100644
 --- a/translation/dest/site/de-DE.xml
 +++ b/translation/dest/site/de-DE.xml
-@@ -1064,4 +1064,285 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
+@@ -1064,4 +1064,286 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
    <string name="write">Schreiben</string>
    <string name="preview">Vorschau</string>
    <string name="done">Erledigt</string>
@@ -7147,7 +7147,7 @@ index 88adade..55716ae 100644
 +    <string name="muteLabIntuitive">Diese Züge sind auf den meisten Wertungsstufen Maias erste Wahl.</string>
 +    <string name="muteLabPair">%1$s und %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s und %3$s</string>
-+  <string name="muteChooseDifferentName">Dieser Name ist reserviert. Bitte wähle einen anderen Namen.</string>
++    <string name="muteChooseDifferentName">Dieser Name ist reserviert. Bitte wähle einen anderen Namen.</string>
 +  <string name="muteAuthPleaseWait">Zu viele Versuche aus diesem Netzwerk. Bitte versuche es später erneut.</string>
 +  <string name="muteAuthBackupHelp">Sichere den Schlüssel für andere Geräte in einem Passwortmanager. Wer ihn hat, kann sich als du anmelden.</string>
 +  <string name="muteAuthNewSecret">Dein neuer privater Nostr-Schlüssel</string>
@@ -7194,6 +7194,7 @@ index 88adade..55716ae 100644
 +  <string name="muteAuthManual">Gib den Einrichtungsschlüssel von Hand in der Authenticator-App ein.</string>
 +  <string name="muteAuthSessionsClosed">Deine anderen Sitzungen wurden abgemeldet.</string>
 +  <string name="muteAuthSaveNow">Sichere jetzt die Einmal-Wiederherstellungscodes. Sie werden nur einmal angezeigt. Andere Sitzungen wurden abgemeldet.</string>
++  <string name="muteAuthAccountUnavailable">Dieses Konto ist nicht verfügbar.</string>
 +  <string name="muteAuthFailure">Die Anfrage konnte nicht abgeschlossen werden. Bitte versuche es erneut.</string>
 +  <string name="muteAuthInvalidCode">Der Code ist ungültig oder bereits verwendet.</string>
 +  <string name="muteAuthBadName">Nutze 3–20 Zeichen und beginne mit einem Buchstaben. Erlaubt sind A–Z, Ziffern, Unterstriche und Bindestriche.</string>
@@ -7201,10 +7202,10 @@ index 88adade..55716ae 100644
 +  <string name="muteAuthReload">Die Sicherheitseinstellungen wurden geändert. Lade die Seite neu.</string>
  </resources>
 diff --git a/translation/dest/site/es-ES.xml b/translation/dest/site/es-ES.xml
-index 76004f5..94bd683 100644
+index 76004f5..7ca3119 100644
 --- a/translation/dest/site/es-ES.xml
 +++ b/translation/dest/site/es-ES.xml
-@@ -1064,4 +1064,285 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
+@@ -1064,4 +1064,286 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
    <string name="write">Escribir</string>
    <string name="preview">Vista previa</string>
    <string name="done">Listo</string>
@@ -7437,7 +7438,7 @@ index 76004f5..94bd683 100644
 +    <string name="muteLabIntuitive">Estas jugadas son la primera opción de Maia en la mayoría de los niveles.</string>
 +    <string name="muteLabPair">%1$s y %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s y %3$s</string>
-+  <string name="muteChooseDifferentName">Este nombre está reservado. Elige otro.</string>
++    <string name="muteChooseDifferentName">Este nombre está reservado. Elige otro.</string>
 +  <string name="muteAuthPleaseWait">Demasiados intentos desde esta red. Vuelve a intentarlo más tarde.</string>
 +  <string name="muteAuthBackupHelp">Guarda la clave en un gestor de contraseñas para usarla en otro dispositivo. Quien la tenga podrá usar tu identidad.</string>
 +  <string name="muteAuthNewSecret">Tu nueva clave privada de Nostr</string>
@@ -7484,6 +7485,7 @@ index 76004f5..94bd683 100644
 +  <string name="muteAuthManual">Introduce manualmente la clave en tu aplicación de autenticación.</string>
 +  <string name="muteAuthSessionsClosed">Se han cerrado las demás sesiones.</string>
 +  <string name="muteAuthSaveNow">Guarda ahora los códigos de recuperación de un solo uso. Solo se muestran una vez. Se han cerrado las demás sesiones.</string>
++  <string name="muteAuthAccountUnavailable">Esta cuenta no está disponible.</string>
 +  <string name="muteAuthFailure">No se pudo completar la solicitud. Vuelve a intentarlo.</string>
 +  <string name="muteAuthInvalidCode">El código no es válido o ya se ha usado.</string>
 +  <string name="muteAuthBadName">Usa de 3 a 20 caracteres y empieza con una letra. Se permiten letras de la A a la Z, dígitos, guiones y guiones bajos.</string>
@@ -7491,10 +7493,10 @@ index 76004f5..94bd683 100644
 +  <string name="muteAuthReload">La configuración de seguridad ha cambiado. Recarga esta página.</string>
  </resources>
 diff --git a/translation/dest/site/fr-FR.xml b/translation/dest/site/fr-FR.xml
-index 7dfd5f7..a7da90a 100644
+index 7dfd5f7..a740478 100644
 --- a/translation/dest/site/fr-FR.xml
 +++ b/translation/dest/site/fr-FR.xml
-@@ -1063,4 +1063,285 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
+@@ -1063,4 +1063,286 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
    <string name="write">Écrire</string>
    <string name="preview">Aperçu</string>
    <string name="done">Terminé</string>
@@ -7727,7 +7729,7 @@ index 7dfd5f7..a7da90a 100644
 +    <string name="muteLabIntuitive">Ces coups sont le premier choix de Maia à la plupart des niveaux.</string>
 +    <string name="muteLabPair">%1$s et %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s et %3$s</string>
-+  <string name="muteChooseDifferentName">Ce nom est réservé. Choisissez un autre nom.</string>
++    <string name="muteChooseDifferentName">Ce nom est réservé. Choisissez un autre nom.</string>
 +  <string name="muteAuthPleaseWait">Trop de tentatives depuis ce réseau. Réessayez plus tard.</string>
 +  <string name="muteAuthBackupHelp">Gardez une copie de la clé dans un gestionnaire de mots de passe pour changer d’appareil. Quiconque la possède peut utiliser votre identité.</string>
 +  <string name="muteAuthNewSecret">Votre nouvelle clé privée Nostr</string>
@@ -7774,6 +7776,7 @@ index 7dfd5f7..a7da90a 100644
 +  <string name="muteAuthManual">Saisissez la clé de configuration à la main dans votre application d’authentification.</string>
 +  <string name="muteAuthSessionsClosed">Les autres sessions ont été déconnectées.</string>
 +  <string name="muteAuthSaveNow">Sauvegardez maintenant ces codes de secours à usage unique. Ils ne seront affichés qu’une fois. Les autres sessions ont été déconnectées.</string>
++  <string name="muteAuthAccountUnavailable">Ce compte est indisponible.</string>
 +  <string name="muteAuthFailure">La demande a échoué. Veuillez réessayer.</string>
 +  <string name="muteAuthInvalidCode">Code non valide ou déjà utilisé.</string>
 +  <string name="muteAuthBadName">Utilisez 3 à 20 caractères en commençant par une lettre. Sont admis les lettres de A à Z, les chiffres, les tirets et les tirets bas.</string>
@@ -7781,10 +7784,10 @@ index 7dfd5f7..a7da90a 100644
 +  <string name="muteAuthReload">Les paramètres de sécurité ont changé. Rechargez la page.</string>
  </resources>
 diff --git a/translation/dest/site/hi-IN.xml b/translation/dest/site/hi-IN.xml
-index bbf1703..2153c45 100644
+index bbf1703..0b2601d 100644
 --- a/translation/dest/site/hi-IN.xml
 +++ b/translation/dest/site/hi-IN.xml
-@@ -893,4 +893,286 @@
+@@ -893,4 +893,287 @@
    <string name="closingAccountWithdrawAppeal">आपका खाता बंद करने से आपकी अपील वापस ले ली जाएगी</string>
    <string name="ourEventTips">कार्यक्रम आयोजित करने कि सलाह</string>
    <string name="nothingToSeeHere">इस समय यहां देखने को कुछ भी नहीं है।</string>
@@ -8017,7 +8020,7 @@ index bbf1703..2153c45 100644
 +    <string name="muteLabIntuitive">अधिकांश रेटिंग स्तरों पर ये चालें Maia की पहली पसंद होती हैं।</string>
 +    <string name="muteLabPair">%1$s और %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s और %3$s</string>
-+  <string name="muteChooseDifferentName">यह नाम आरक्षित है। कोई दूसरा नाम चुनें।</string>
++    <string name="muteChooseDifferentName">यह नाम आरक्षित है। कोई दूसरा नाम चुनें।</string>
 +  <string name="muteAuthPleaseWait">इस नेटवर्क से बहुत अधिक प्रयास हुए हैं। कृपया बाद में फिर कोशिश करें।</string>
 +  <string name="muteAuthBackupHelp">दूसरे डिवाइस पर लौटने के लिए कुंजी की कॉपी पासवर्ड मैनेजर में रखें। जिसके पास कुंजी है वह आपकी पहचान इस्तेमाल कर सकता है।</string>
 +  <string name="muteAuthNewSecret">आपकी नई निजी Nostr कुंजी</string>
@@ -8064,6 +8067,7 @@ index bbf1703..2153c45 100644
 +  <string name="muteAuthManual">अपने ऑथेंटिकेटर में सेटअप कुंजी खुद दर्ज करें।</string>
 +  <string name="muteAuthSessionsClosed">अन्य सत्रों से साइन आउट कर दिया गया है।</string>
 +  <string name="muteAuthSaveNow">ये एक बार इस्तेमाल होने वाले रिकवरी कोड अभी सहेजें। ये फिर नहीं दिखेंगे। अन्य सत्र बंद हो गए हैं।</string>
++  <string name="muteAuthAccountUnavailable">यह खाता उपलब्ध नहीं है।</string>
 +  <string name="muteAuthFailure">अनुरोध पूरा नहीं हुआ। फिर कोशिश करें।</string>
 +  <string name="muteAuthInvalidCode">कोड अमान्य है या पहले इस्तेमाल हो चुका है।</string>
 +  <string name="muteAuthBadName">3–20 अक्षरों का नाम चुनें जो अंग्रेज़ी अक्षर से शुरू हो। A–Z, अंक, अंडरस्कोर और हाइफ़न इस्तेमाल कर सकते हैं।</string>
@@ -8072,10 +8076,10 @@ index bbf1703..2153c45 100644
 +  <string name="done">हो गया</string>
  </resources>
 diff --git a/translation/dest/site/ja-JP.xml b/translation/dest/site/ja-JP.xml
-index e628bdb..c125759 100644
+index e628bdb..1437b5d 100644
 --- a/translation/dest/site/ja-JP.xml
 +++ b/translation/dest/site/ja-JP.xml
-@@ -1023,4 +1023,285 @@
+@@ -1023,4 +1023,286 @@
    <string name="write">書く</string>
    <string name="preview">プレビュー</string>
    <string name="done">完了</string>
@@ -8308,7 +8312,7 @@ index e628bdb..c125759 100644
 +    <string name="muteLabIntuitive">これらの手は、大半のレーティングでMaiaの第一候補です。</string>
 +    <string name="muteLabPair">%1$sと%2$s</string>
 +    <string name="muteLabTriple">%1$s、%2$s、%3$s</string>
-+  <string name="muteChooseDifferentName">この名前は予約されています。別の名前を選んでください。</string>
++    <string name="muteChooseDifferentName">この名前は予約されています。別の名前を選んでください。</string>
 +  <string name="muteAuthPleaseWait">このネットワークからの試行回数が多すぎます。しばらくしてからもう一度お試しください。</string>
 +  <string name="muteAuthBackupHelp">別の端末でも使えるよう、鍵をパスワード管理アプリに保存してください。鍵を持つ人は誰でもあなたとしてログインできます。</string>
 +  <string name="muteAuthNewSecret">新しいNostr秘密鍵</string>
@@ -8355,6 +8359,7 @@ index e628bdb..c125759 100644
 +  <string name="muteAuthManual">認証アプリに設定用の鍵を手入力してください。</string>
 +  <string name="muteAuthSessionsClosed">他のセッションからログアウトしました。</string>
 +  <string name="muteAuthSaveNow">使い切りのリカバリーコードを今すぐ保存してください。再表示はできません。他のセッションはログアウトされました。</string>
++  <string name="muteAuthAccountUnavailable">このアカウントは利用できません。</string>
 +  <string name="muteAuthFailure">処理を完了できませんでした。もう一度お試しください。</string>
 +  <string name="muteAuthInvalidCode">無効なコード、または使用済みのコードです。</string>
 +  <string name="muteAuthBadName">名前は英字で始まる3～20文字にしてください。英字、数字、アンダースコア、ハイフンが使えます。</string>
@@ -8362,10 +8367,10 @@ index e628bdb..c125759 100644
 +  <string name="muteAuthReload">セキュリティ設定が変更されました。ページを再読み込みしてください。</string>
  </resources>
 diff --git a/translation/dest/site/ko-KR.xml b/translation/dest/site/ko-KR.xml
-index 9341bf0..451c84d 100644
+index 9341bf0..95abc55 100644
 --- a/translation/dest/site/ko-KR.xml
 +++ b/translation/dest/site/ko-KR.xml
-@@ -1022,4 +1022,285 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
+@@ -1022,4 +1022,286 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
    <string name="write">작성</string>
    <string name="preview">미리보기</string>
    <string name="done">완료</string>
@@ -8598,7 +8603,7 @@ index 9341bf0..451c84d 100644
 +    <string name="muteLabIntuitive">이 수들은 대부분의 레이팅에서 Maia의 첫 선택입니다.</string>
 +    <string name="muteLabPair">%1$s 및 %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s 및 %3$s</string>
-+  <string name="muteChooseDifferentName">예약된 이름입니다. 다른 이름을 선택하세요.</string>
++    <string name="muteChooseDifferentName">예약된 이름입니다. 다른 이름을 선택하세요.</string>
 +  <string name="muteAuthPleaseWait">이 네트워크에서 너무 많이 시도했습니다. 잠시 후 다시 시도하세요.</string>
 +  <string name="muteAuthBackupHelp">다른 기기에서도 사용할 수 있게 키를 비밀번호 관리자에 보관하세요. 키를 가진 사람은 누구나 내 계정을 사용할 수 있습니다.</string>
 +  <string name="muteAuthNewSecret">새 Nostr 개인 키</string>
@@ -8645,6 +8650,7 @@ index 9341bf0..451c84d 100644
 +  <string name="muteAuthManual">인증 앱에 설정 키를 직접 입력하세요.</string>
 +  <string name="muteAuthSessionsClosed">다른 세션에서 로그아웃했습니다.</string>
 +  <string name="muteAuthSaveNow">일회용 복구 코드를 지금 저장하세요. 다시 볼 수 없습니다. 다른 세션은 로그아웃되었습니다.</string>
++  <string name="muteAuthAccountUnavailable">이 계정은 사용할 수 없습니다.</string>
 +  <string name="muteAuthFailure">요청을 완료하지 못했습니다. 다시 시도하세요.</string>
 +  <string name="muteAuthInvalidCode">유효하지 않거나 이미 사용한 코드입니다.</string>
 +  <string name="muteAuthBadName">영문자로 시작하는 3~20자를 사용하세요. 영문자, 숫자, 밑줄, 하이픈을 쓸 수 있습니다.</string>
@@ -8652,10 +8658,10 @@ index 9341bf0..451c84d 100644
 +  <string name="muteAuthReload">보안 설정이 변경되었습니다. 페이지를 새로고침하세요.</string>
  </resources>
 diff --git a/translation/dest/site/pt-BR.xml b/translation/dest/site/pt-BR.xml
-index 569e752..51aa5e4 100644
+index 569e752..d7b0ab5 100644
 --- a/translation/dest/site/pt-BR.xml
 +++ b/translation/dest/site/pt-BR.xml
-@@ -1063,4 +1063,285 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
+@@ -1063,4 +1063,286 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
    <string name="write">Escrever</string>
    <string name="preview">Pré-visualizar</string>
    <string name="done">Feito</string>
@@ -8888,7 +8894,7 @@ index 569e752..51aa5e4 100644
 +    <string name="muteLabIntuitive">Esses lances são a primeira escolha da Maia na maioria dos níveis de rating.</string>
 +    <string name="muteLabPair">%1$s e %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s e %3$s</string>
-+  <string name="muteChooseDifferentName">Este nome está reservado. Escolha outro.</string>
++    <string name="muteChooseDifferentName">Este nome está reservado. Escolha outro.</string>
 +  <string name="muteAuthPleaseWait">Muitas tentativas nesta rede. Tente novamente mais tarde.</string>
 +  <string name="muteAuthBackupHelp">Guarde a chave em um gerenciador de senhas para usá-la em outro dispositivo. Quem tiver a chave poderá usar sua identidade.</string>
 +  <string name="muteAuthNewSecret">Sua nova chave privada Nostr</string>
@@ -8935,6 +8941,7 @@ index 569e752..51aa5e4 100644
 +  <string name="muteAuthManual">Digite a chave de configuração no autenticador.</string>
 +  <string name="muteAuthSessionsClosed">As outras sessões foram encerradas.</string>
 +  <string name="muteAuthSaveNow">Guarde agora os códigos de recuperação de uso único. Eles só serão exibidos uma vez. As outras sessões foram encerradas.</string>
++  <string name="muteAuthAccountUnavailable">Esta conta está indisponível.</string>
 +  <string name="muteAuthFailure">Não foi possível concluir a solicitação. Tente novamente.</string>
 +  <string name="muteAuthInvalidCode">Código inválido ou já utilizado.</string>
 +  <string name="muteAuthBadName">Use de 3 a 20 caracteres, começando com letra. São permitidos letras de A a Z, dígitos, sublinhados e hífens.</string>
@@ -8942,10 +8949,10 @@ index 569e752..51aa5e4 100644
 +  <string name="muteAuthReload">As configurações de segurança mudaram. Recarregue a página.</string>
  </resources>
 diff --git a/translation/dest/site/ru-RU.xml b/translation/dest/site/ru-RU.xml
-index 6384657..0a40fae 100644
+index 6384657..432144c 100644
 --- a/translation/dest/site/ru-RU.xml
 +++ b/translation/dest/site/ru-RU.xml
-@@ -1146,4 +1146,285 @@
+@@ -1146,4 +1146,286 @@
    <string name="write">Написать</string>
    <string name="preview">Предпросмотр</string>
    <string name="done">Готово</string>
@@ -9178,7 +9185,7 @@ index 6384657..0a40fae 100644
 +    <string name="muteLabIntuitive">Эти ходы — первый выбор Maia на большинстве уровней рейтинга.</string>
 +    <string name="muteLabPair">%1$s и %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s и %3$s</string>
-+  <string name="muteChooseDifferentName">Это имя зарезервировано. Выберите другое.</string>
++    <string name="muteChooseDifferentName">Это имя зарезервировано. Выберите другое.</string>
 +  <string name="muteAuthPleaseWait">Слишком много попыток из этой сети. Попробуйте позже.</string>
 +  <string name="muteAuthBackupHelp">Сохраните ключ в менеджере паролей для входа с другого устройства. Любой, у кого есть ключ, сможет войти от вашего имени.</string>
 +  <string name="muteAuthNewSecret">Ваш новый закрытый ключ Nostr</string>
@@ -9225,6 +9232,7 @@ index 6384657..0a40fae 100644
 +  <string name="muteAuthManual">Введите ключ настройки в приложении-аутентификаторе вручную.</string>
 +  <string name="muteAuthSessionsClosed">Остальные сеансы завершены.</string>
 +  <string name="muteAuthSaveNow">Сохраните одноразовые коды восстановления сейчас. Они показываются только один раз. Остальные сеансы завершены.</string>
++  <string name="muteAuthAccountUnavailable">Эта учётная запись недоступна.</string>
 +  <string name="muteAuthFailure">Не удалось выполнить запрос. Попробуйте снова.</string>
 +  <string name="muteAuthInvalidCode">Код недействителен или уже использован.</string>
 +  <string name="muteAuthBadName">Используйте от 3 до 20 символов, начиная с буквы. Допустимы латинские буквы, цифры, подчёркивания и дефисы.</string>
@@ -9232,10 +9240,10 @@ index 6384657..0a40fae 100644
 +  <string name="muteAuthReload">Настройки безопасности изменились. Обновите страницу.</string>
  </resources>
 diff --git a/translation/dest/site/zh-CN.xml b/translation/dest/site/zh-CN.xml
-index 176f4d1..1cd9aa7 100644
+index 176f4d1..ade400b 100644
 --- a/translation/dest/site/zh-CN.xml
 +++ b/translation/dest/site/zh-CN.xml
-@@ -1022,4 +1022,285 @@
+@@ -1022,4 +1022,286 @@
    <string name="write">撰写</string>
    <string name="preview">预览</string>
    <string name="done">完成</string>
@@ -9468,7 +9476,7 @@ index 176f4d1..1cd9aa7 100644
 +    <string name="muteLabIntuitive">在大多数等级分下，这些着法都是 Maia 的首选。</string>
 +    <string name="muteLabPair">%1$s 和 %2$s</string>
 +    <string name="muteLabTriple">%1$s、%2$s 和 %3$s</string>
-+  <string name="muteChooseDifferentName">此名称已被保留。请选择其他名称。</string>
++    <string name="muteChooseDifferentName">此名称已被保留。请选择其他名称。</string>
 +  <string name="muteAuthPleaseWait">来自此网络的尝试次数过多。请稍后再试。</string>
 +  <string name="muteAuthBackupHelp">将密钥备份到密码管理器，以便换设备后登录。持有密钥的人都能使用你的身份。</string>
 +  <string name="muteAuthNewSecret">你的新 Nostr 私钥</string>
@@ -9515,6 +9523,7 @@ index 176f4d1..1cd9aa7 100644
 +  <string name="muteAuthManual">请在验证器中手动输入设置密钥。</string>
 +  <string name="muteAuthSessionsClosed">其他会话已退出。</string>
 +  <string name="muteAuthSaveNow">请立即保存这些一次性恢复码。它们只会显示一次。其他会话已退出。</string>
++  <string name="muteAuthAccountUnavailable">此账号不可用。</string>
 +  <string name="muteAuthFailure">无法完成请求，请重试。</string>
 +  <string name="muteAuthInvalidCode">验证码无效或已使用。</string>
 +  <string name="muteAuthBadName">名称须为 3 至 20 个字符，以英文字母开头，可含英文字母、数字、下划线或连字符。</string>
@@ -9522,10 +9531,10 @@ index 176f4d1..1cd9aa7 100644
 +  <string name="muteAuthReload">安全设置已更改。请重新加载此页。</string>
  </resources>
 diff --git a/translation/source/site.xml b/translation/source/site.xml
-index 8b5a6a1..7212986 100644
+index 8b5a6a1..4b3c914 100644
 --- a/translation/source/site.xml
 +++ b/translation/source/site.xml
-@@ -1066,4 +1066,285 @@ Leave empty to start games from the normal initial position.</string>
+@@ -1066,4 +1066,286 @@ Leave empty to start games from the normal initial position.</string>
    <string name="write">Write</string>
    <string name="preview">Preview</string>
    <string name="done">Done</string>
@@ -9758,7 +9767,7 @@ index 8b5a6a1..7212986 100644
 +    <string name="muteLabIntuitive">These moves are Maia’s first choice at most rating levels.</string>
 +    <string name="muteLabPair">%1$s and %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s and %3$s</string>
-+  <string name="muteChooseDifferentName">This name is reserved. Choose another name.</string>
++    <string name="muteChooseDifferentName">This name is reserved. Choose another name.</string>
 +  <string name="muteAuthPleaseWait">Too many attempts from this network. Please try again later.</string>
 +  <string name="muteAuthBackupHelp">Save a copy of this key so you can return on another device. A password manager is a good place for it; anyone with the key can use this identity.</string>
 +  <string name="muteAuthNewSecret">Your new Nostr secret key</string>
@@ -9805,6 +9814,7 @@ index 8b5a6a1..7212986 100644
 +  <string name="muteAuthManual">Enter the setup key manually in your authenticator.</string>
 +  <string name="muteAuthSessionsClosed">Other sessions have been signed out.</string>
 +  <string name="muteAuthSaveNow">Save these one-time recovery codes now. They are shown only once. Other sessions have been signed out.</string>
++  <string name="muteAuthAccountUnavailable">This account is unavailable.</string>
 +  <string name="muteAuthFailure">Could not complete the request. Please try again.</string>
 +  <string name="muteAuthInvalidCode">Invalid or already used authentication code.</string>
 +  <string name="muteAuthBadName">Use a name of 3–20 characters starting with a letter. Use letters A–Z, digits, underscores or hyphens.</string>
@@ -16234,10 +16244,10 @@ index 0000000..e1cb129
 +    bdoc("_id" -> payment, "userId" -> user, "paid" -> false)
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..26169b1
+index 0000000..d0022f9
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,1181 @@
+@@ -0,0 +1,1193 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -16662,16 +16672,15 @@ index 0000000..26169b1
 +          .byNostr(pubkey)
 +          .flatMap:
 +            case Some(user) =>
-+              requireThat(user.enabled.yes && !user.isBot, 403, "Account unavailable")
++              requireThat(
++                user.enabled.yes && !user.isBot,
++                403,
++                "Account unavailable",
++                Some("account_unavailable")
++              )
 +              fuccess(user)
 +            case None =>
-+              val displayName = requested.filter(_.nonEmpty)
-+              if displayName.exists(lila.user.PublicNameKeys.reservedForIdentity) then
-+                throw NoSweatError(
-+                  409,
-+                  lila.core.i18n.I18nKey("muteChooseDifferentName").txt(),
-+                  Some("reserved_public_name")
-+                )
++              val displayName = NoSweatService.signupDisplayName(requested)
 +              val name = displayName.getOrElse("n" + pubkey.take(19))
 +              requireThat(
 +                name.matches("[A-Za-z][A-Za-z0-9_-]{2,19}"),
@@ -17419,6 +17428,19 @@ index 0000000..26169b1
 +          "failure" -> doc.getAsOpt[String]("failure"),
 +          "policy" -> publicArenaPolicy(Json.parse(doc.getAsOpt[String]("snapshot").get))
 +        )
++
++object NoSweatService:
++  private[app] def signupDisplayName(requested: Option[String])(using
++      lila.core.i18n.Translate
++  ): Option[String] =
++    val displayName = requested.filter(_.nonEmpty)
++    if displayName.exists(lila.user.PublicNameKeys.reservedForIdentity) then
++      throw NoSweatError(
++        409,
++        lila.core.i18n.I18nKey("muteChooseDifferentName").txt(),
++        Some("reserved_public_name")
++      )
++    displayName
 diff --git a/app/NoSweatStudy.scala b/app/NoSweatStudy.scala
 new file mode 100644
 index 0000000..3005300
@@ -18434,10 +18456,10 @@ index 0000000..9d16b16
 +    case _ => emptyFrag
 diff --git a/app/views/noSweatLogin.scala b/app/views/noSweatLogin.scala
 new file mode 100644
-index 0000000..69f6839
+index 0000000..8c43145
 --- /dev/null
 +++ b/app/views/noSweatLogin.scala
-@@ -0,0 +1,187 @@
+@@ -0,0 +1,188 @@
 +package views
 +
 +import lila.core.i18n.I18nKey
@@ -18616,6 +18638,7 @@ index 0000000..69f6839
 +            attr("data-invalid-code") := I18nKey("muteAuthInvalidCode").txt(),
 +            attr("data-busy") := I18nKey("muteAuthPleaseWait").txt(),
 +            attr("data-bad-name") := I18nKey("muteAuthBadName").txt(),
++            attr("data-account-unavailable") := I18nKey("muteAuthAccountUnavailable").txt(),
 +            attr("data-name-unavailable") := I18nKey("usernameAlreadyUsed").txt(),
 +            role := "status",
 +            aria.live := "polite"
@@ -34190,6 +34213,28 @@ index 0000000..2a8acbd
 +    assert(!NoSweatInsights.accepts(JsonQuestion("color", "result", Map("accuracy" -> List("90")))))
 +    assert(!NoSweatInsights.accepts(JsonQuestion("variant", "result", Map("variant" -> List("atomic")))))
 +    assert(NoSweatInsights.accepts(JsonQuestion("variant", "ratingDiff", Map("variant" -> List("blitz")))))
+diff --git a/src/test/scala/NoSweatSignupNameTest.scala b/src/test/scala/NoSweatSignupNameTest.scala
+new file mode 100644
+index 0000000..9271e5e
+--- /dev/null
++++ b/src/test/scala/NoSweatSignupNameTest.scala
+@@ -0,0 +1,16 @@
++package lila.app
++
++import lila.core.i18n.Translate
++import lila.i18n.Translator
++
++class NoSweatSignupNameTest extends munit.FunSuite:
++  test("signup rejects a chosen account ID and accepts an ordinary or omitted name"):
++    given Translate = Translator.toDefault
++    val id = "n0123456789abcdef012"
++    for name <- List(id, id.toUpperCase(java.util.Locale.ROOT)) do
++      val error = intercept[NoSweatError](NoSweatService.signupDisplayName(Some(name)))
++      assertEquals(error.status, 409)
++      assertEquals(error.code, Some("reserved_public_name"))
++    assertEquals(NoSweatService.signupDisplayName(Some("ChessFan")), Some("ChessFan"))
++    assertEquals(NoSweatService.signupDisplayName(None), None)
++    assertEquals(NoSweatService.signupDisplayName(Some("")), None)
 diff --git a/src/test/scala/NoSweatStudyPlanTest.scala b/src/test/scala/NoSweatStudyPlanTest.scala
 new file mode 100644
 index 0000000..806bb5f

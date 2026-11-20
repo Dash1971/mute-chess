@@ -7,6 +7,7 @@ export function authFeedback(error, labels) {
   if (error instanceof AuthUiError) return error.message;
   if (!(error instanceof AuthResponseError)) return labels.failure;
   if (error.status === 429) return labels.busy;
+  if (error.code === 'account_unavailable') return labels.accountUnavailable ?? labels.failure;
   if (error.code === 'invalid_factor') return labels.invalidCode;
   if (error.code === 'invalid_name') return labels.badName;
   if (error.code === 'wrong_signer') return labels.wrongSigner;

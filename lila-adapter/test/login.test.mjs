@@ -15,6 +15,7 @@ async function page(login,signer,options={}){
   Object.assign(nodes.get('status').dataset, {
     createFirst: 'Create a key first', denied: 'Your browser will manage storage automatically.',
     invalidCode: 'Invalid or already used authentication code.', failure: 'Please try again.',
+    accountUnavailable: 'このアカウントは利用できません。',
     downloaded: 'Backup download requested.', busy: 'しばらくしてからもう一度お試しください。',
   });
   Object.assign(nodes.get('reveal').dataset, { showKey: 'Show key', hideKey: 'Hide key' });
@@ -65,6 +66,16 @@ test('unqualified errors never reveal 2FA; switching identity clears the pending
   ui.node('nsec').value=nsecEncode(key);await ui.node('import').click();assert.equal(ui.node('second-factor').hidden,true);
   requireFactor=true;ui.node('nsec').value=nsecEncode(key);await ui.node('import').click();ui.node('token').value='old-code';await ui.node('back').click();
   assert.equal(ui.node('token').value,'');assert.equal(ui.node('second-factor').hidden,true);assert.equal(ui.node('methods').hidden,false);key.fill(0);
+});
+
+test('account availability feedback is specific to a verified unavailable account', async () => {
+  for (const [code, message] of [['account_unavailable', 'このアカウントは利用できません。'], [undefined, 'Please try again.']]) {
+    const ui = await page(() => ({ status: 403, body: { code, error: 'server detail' } }));
+    await ui.node('generate').click();
+    await ui.node('create-login').click();
+    assert.equal(ui.node('status').textContent, message);
+    assert.equal(ui.node('second-factor').hidden, true);
+  }
 });
 
 test('a signer error cannot impersonate the server 2FA confirmation',async()=>{
