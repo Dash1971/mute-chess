@@ -19,10 +19,20 @@ function pathOf(req) {
 }
 function clientIp(req) {
   const value = req.headers['cf-connecting-ip'];
-  return typeof value === 'string' && isIP(value) ? value : '127.0.0.1';
+  return typeof value === 'string' && !value.includes('%') && isIP(value) ? value : '127.0.0.1';
+}
+function rateLimitNetwork(address) {
+  if (isIP(address) !== 6) return address;
+  // The URL parser canonicalizes IPv6, including embedded IPv4 spellings.
+  const host = new URL(`http://[${address}]/`).hostname.slice(1, -1);
+  const [left, right] = host.split('::');
+  const head = left ? left.split(':') : [];
+  const tail = right ? right.split(':') : [];
+  const groups = right === undefined ? head : [...head, ...Array(8 - head.length - tail.length).fill('0'), ...tail];
+  return groups.slice(0, 4).join(':') + '::/64';
 }
 function allowed(req, asset = false) {
-  const ip = `${asset ? "asset" : "action"}:${clientIp(req)}`, now = Date.now();
+  const ip = `${asset ? "asset" : "action"}:${rateLimitNetwork(clientIp(req))}`, now = Date.now();
   let bucket = buckets.get(ip);
   if (!bucket && buckets.size >= 10000) return false;
   if (!bucket || bucket.until < now) { bucket = { until: now + 60000, requests: 0 }; buckets.set(ip, bucket); }

@@ -26,9 +26,9 @@ function gateway(){
     createServer(handler){handlers.request=handler;return server;},
     request(options){const request={options,on(){return this;},end(){this.ended=true;},destroy(){},};calls.push(request);return request;},
   };
-  vm.runInNewContext(code,{transport,Buffer,URL,Date,console,require:createRequire(import.meta.url),setInterval(){return {unref(){}};}});
+  const networkFor = vm.runInNewContext(code + '\n;rateLimitNetwork',{transport,Buffer,URL,Date,console,require:createRequire(import.meta.url),setInterval(){return {unref(){}};}});
   return {
-    calls,
+    calls, networkFor,
     request(path,method='POST'){
       const req={url:path,method,headers:{host:'mutechess.org',origin:'https://mutechess.org','cf-connecting-ip':'192.0.2.1',cookie:'session=test'},pipe(upstream){this.upstream=upstream;},on(){}};
       const res={status:undefined,on(){return this;},setHeader(){},writeHead(status){this.status=status;},end(){}};
@@ -146,4 +146,12 @@ test('Arena discovery exposes native read-only calendar and history without wide
     app.request(path,'GET');
     assert.equal(app.calls.at(-1).options.path,'/club/unsupported');
   }
+});
+
+test('gateway groups IPv6 by the first 64 bits and preserves separate IPv4 addresses', () => {
+  const { networkFor } = gateway();
+  assert.equal(networkFor('2001:db8::1'), networkFor('2001:0db8:0000:0000:abcd::2'));
+  assert.notEqual(networkFor('2001:db8:0:1::1'), networkFor('2001:db8::1'));
+  assert.equal(networkFor('::1'), '0:0:0:0::/64');
+  assert.equal(networkFor('192.0.2.1'), '192.0.2.1');
 });
