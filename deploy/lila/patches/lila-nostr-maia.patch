@@ -5098,7 +5098,7 @@ index 5c99667..463120f 100644
 +              yield lila.core.user.LightPerf(user.light, pk, perf.intRating, perf.progress)
 +            .sortBy(p => (-p.rating.value, p.user.id.value))
 diff --git a/modules/user/src/main/UserForm.scala b/modules/user/src/main/UserForm.scala
-index 947bee6..d3f3a3f 100644
+index 947bee6..599c3af 100644
 --- a/modules/user/src/main/UserForm.scala
 +++ b/modules/user/src/main/UserForm.scala
 @@ -46,7 +46,8 @@ final class UserForm:
@@ -5111,39 +5111,48 @@ index 947bee6..d3f3a3f 100644
      )(Profile.apply)(unapply)
    .fill(user.profileOrDefault)
  
-@@ -55,6 +56,13 @@ final class UserForm:
+@@ -55,6 +56,18 @@ final class UserForm:
  
  object UserForm:
  
 +  private[user] def publicName(existing: Option[String]): Mapping[Option[String]] = optional(
-+    cleanFewSymbolsAndNonEmptyText(minLength = 3, maxLength = 30).verifying(
-+      "Use at most 20 characters for your public name",
-+      name => name.length <= 20 || existing.contains(name)
-+    )
++    cleanFewSymbolsAndNonEmptyText(minLength = 3, maxLength = 30)
++      .verifying(
++        "Use at most 20 characters for your public name",
++        name => name.length <= 20 || existing.contains(name)
++      )
++      .verifying(
++        "muteChooseDifferentName",
++        name => existing.contains(name) || !PublicNameKeys.reservedForIdentity(name)
++      )
 +  )
 +
    val note = Form:
      mapping(
        "text" -> cleanTextWithSymbols(minLength = 3, maxLength = 2000),
 diff --git a/modules/user/src/main/UserRepo.scala b/modules/user/src/main/UserRepo.scala
-index 45fd497..122d3fb 100644
+index 45fd497..3cf4d4b 100644
 --- a/modules/user/src/main/UserRepo.scala
 +++ b/modules/user/src/main/UserRepo.scala
-@@ -147,8 +147,11 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+@@ -147,8 +147,15 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
            else if i < -2 then Color.white.some
            else none
  
 -  def setProfile(id: UserId, profile: Profile): Funit =
 -    coll.updateField(bid(id), F.profile, profile).void
 +  def setProfile(id: UserId, profile: Profile): Fu[Boolean] =
++    val selector = profile.displayName
++      .filter(PublicNameKeys.reservedForIdentity)
++      .fold(bid(id)): legacy =>
++        bid(id) ++ bdoc(s"${F.profile}.displayName" -> legacy)
 +    coll.update
-+      .one(bid(id), set(F.profile -> profile, "nameKeys" -> PublicNameKeys(id.value, profile.displayName)))
++      .one(selector, set(F.profile -> profile, "nameKeys" -> PublicNameKeys(id.value, profile.displayName)))
 +      .map(_.n > 0)
 +      .recover(lila.db.recoverDuplicateKey(_ => false))
  
    def setRealName(id: UserId, name: RealName): Funit =
      coll.updateField(bid(id), s"${F.profile}.realName", name).void
-@@ -236,6 +239,35 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+@@ -236,6 +243,35 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
        coll.insert.one(doc) >> byId(name.id)
  
    def existsPri[U: UserIdOf](u: U): Fu[Boolean] = coll.exists(bid(u.id))
@@ -5179,7 +5188,7 @@ index 45fd497..122d3fb 100644
    def existsSec[U: UserIdOf](u: U): Fu[Boolean] = coll.secondary.exists(bid(u.id))
  
    def filterExists(ids: Set[UserId]): Fu[List[UserId]] =
-@@ -247,6 +279,25 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+@@ -247,6 +283,25 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
    def userIdsLikeClosed(text: UserSearch, max: Int = 10): Fu[List[UserId]] =
      userIdsLikeFilter(text, bdoc(F.enabled -> false), max)
  
@@ -5205,7 +5214,7 @@ index 45fd497..122d3fb 100644
    private[user] def userIdsLikeFilter(text: UserSearch, filter: Bdoc, max: Int): Fu[List[UserId]] =
      coll
        .find(
-@@ -383,6 +434,7 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+@@ -383,6 +438,7 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
          bdoc(
            F.prevEmail -> lockEmail,
            F.createdAt -> user.createdAt,
@@ -5213,7 +5222,7 @@ index 45fd497..122d3fb 100644
            F.deletedAt -> nowInstant
          )
        )
-@@ -573,6 +625,7 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+@@ -573,6 +629,7 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
      bdoc(
        F.id -> name.id,
        F.username -> name.value,
@@ -5221,7 +5230,7 @@ index 45fd497..122d3fb 100644
        F.email -> normalizedEmail,
        F.mustConfirmEmail -> mustConfirmEmail.option(now),
        F.bpass -> passwordHash,
-@@ -589,3 +642,25 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
+@@ -589,3 +646,25 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
      } ++ {
        kid.yes.so(bdoc(F.kid -> kid))
      }
@@ -6902,10 +6911,10 @@ index 58403d3..bdb1c27 100644
 +  <string name="allowBotAccounts">允许机器人账号参赛</string>
  </resources>
 diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
-index 88adade..e5920b6 100644
+index 88adade..35337a3 100644
 --- a/translation/dest/site/de-DE.xml
 +++ b/translation/dest/site/de-DE.xml
-@@ -1064,4 +1064,233 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
+@@ -1064,4 +1064,234 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
    <string name="write">Schreiben</string>
    <string name="preview">Vorschau</string>
    <string name="done">Erledigt</string>
@@ -7138,12 +7147,13 @@ index 88adade..e5920b6 100644
 +    <string name="muteLabIntuitive">Diese Züge sind auf den meisten Wertungsstufen Maias erste Wahl.</string>
 +    <string name="muteLabPair">%1$s und %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s und %3$s</string>
++  <string name="muteChooseDifferentName">Dieser Name ist reserviert. Bitte wähle einen anderen Namen.</string>
  </resources>
 diff --git a/translation/dest/site/es-ES.xml b/translation/dest/site/es-ES.xml
-index 76004f5..5cfb138 100644
+index 76004f5..a189f9d 100644
 --- a/translation/dest/site/es-ES.xml
 +++ b/translation/dest/site/es-ES.xml
-@@ -1064,4 +1064,233 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
+@@ -1064,4 +1064,234 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
    <string name="write">Escribir</string>
    <string name="preview">Vista previa</string>
    <string name="done">Listo</string>
@@ -7376,12 +7386,13 @@ index 76004f5..5cfb138 100644
 +    <string name="muteLabIntuitive">Estas jugadas son la primera opción de Maia en la mayoría de los niveles.</string>
 +    <string name="muteLabPair">%1$s y %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s y %3$s</string>
++  <string name="muteChooseDifferentName">Este nombre está reservado. Elige otro.</string>
  </resources>
 diff --git a/translation/dest/site/fr-FR.xml b/translation/dest/site/fr-FR.xml
-index 7dfd5f7..059965f 100644
+index 7dfd5f7..985809e 100644
 --- a/translation/dest/site/fr-FR.xml
 +++ b/translation/dest/site/fr-FR.xml
-@@ -1063,4 +1063,233 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
+@@ -1063,4 +1063,234 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
    <string name="write">Écrire</string>
    <string name="preview">Aperçu</string>
    <string name="done">Terminé</string>
@@ -7614,12 +7625,13 @@ index 7dfd5f7..059965f 100644
 +    <string name="muteLabIntuitive">Ces coups sont le premier choix de Maia à la plupart des niveaux.</string>
 +    <string name="muteLabPair">%1$s et %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s et %3$s</string>
++  <string name="muteChooseDifferentName">Ce nom est réservé. Choisissez un autre nom.</string>
  </resources>
 diff --git a/translation/dest/site/hi-IN.xml b/translation/dest/site/hi-IN.xml
-index bbf1703..633fb86 100644
+index bbf1703..8d3a4fc 100644
 --- a/translation/dest/site/hi-IN.xml
 +++ b/translation/dest/site/hi-IN.xml
-@@ -893,4 +893,233 @@
+@@ -893,4 +893,234 @@
    <string name="closingAccountWithdrawAppeal">आपका खाता बंद करने से आपकी अपील वापस ले ली जाएगी</string>
    <string name="ourEventTips">कार्यक्रम आयोजित करने कि सलाह</string>
    <string name="nothingToSeeHere">इस समय यहां देखने को कुछ भी नहीं है।</string>
@@ -7852,12 +7864,13 @@ index bbf1703..633fb86 100644
 +    <string name="muteLabIntuitive">अधिकांश रेटिंग स्तरों पर ये चालें Maia की पहली पसंद होती हैं।</string>
 +    <string name="muteLabPair">%1$s और %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s और %3$s</string>
++  <string name="muteChooseDifferentName">यह नाम आरक्षित है। कोई दूसरा नाम चुनें।</string>
  </resources>
 diff --git a/translation/dest/site/ja-JP.xml b/translation/dest/site/ja-JP.xml
-index e628bdb..d0e36bd 100644
+index e628bdb..754c80a 100644
 --- a/translation/dest/site/ja-JP.xml
 +++ b/translation/dest/site/ja-JP.xml
-@@ -1023,4 +1023,233 @@
+@@ -1023,4 +1023,234 @@
    <string name="write">書く</string>
    <string name="preview">プレビュー</string>
    <string name="done">完了</string>
@@ -8090,12 +8103,13 @@ index e628bdb..d0e36bd 100644
 +    <string name="muteLabIntuitive">これらの手は、大半のレーティングでMaiaの第一候補です。</string>
 +    <string name="muteLabPair">%1$sと%2$s</string>
 +    <string name="muteLabTriple">%1$s、%2$s、%3$s</string>
++  <string name="muteChooseDifferentName">この名前は予約されています。別の名前を選んでください。</string>
  </resources>
 diff --git a/translation/dest/site/ko-KR.xml b/translation/dest/site/ko-KR.xml
-index 9341bf0..ebfa975 100644
+index 9341bf0..a3cb607 100644
 --- a/translation/dest/site/ko-KR.xml
 +++ b/translation/dest/site/ko-KR.xml
-@@ -1022,4 +1022,233 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
+@@ -1022,4 +1022,234 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
    <string name="write">작성</string>
    <string name="preview">미리보기</string>
    <string name="done">완료</string>
@@ -8328,12 +8342,13 @@ index 9341bf0..ebfa975 100644
 +    <string name="muteLabIntuitive">이 수들은 대부분의 레이팅에서 Maia의 첫 선택입니다.</string>
 +    <string name="muteLabPair">%1$s 및 %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s 및 %3$s</string>
++  <string name="muteChooseDifferentName">예약된 이름입니다. 다른 이름을 선택하세요.</string>
  </resources>
 diff --git a/translation/dest/site/pt-BR.xml b/translation/dest/site/pt-BR.xml
-index 569e752..613ab52 100644
+index 569e752..379d81f 100644
 --- a/translation/dest/site/pt-BR.xml
 +++ b/translation/dest/site/pt-BR.xml
-@@ -1063,4 +1063,233 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
+@@ -1063,4 +1063,234 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
    <string name="write">Escrever</string>
    <string name="preview">Pré-visualizar</string>
    <string name="done">Feito</string>
@@ -8566,12 +8581,13 @@ index 569e752..613ab52 100644
 +    <string name="muteLabIntuitive">Esses lances são a primeira escolha da Maia na maioria dos níveis de rating.</string>
 +    <string name="muteLabPair">%1$s e %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s e %3$s</string>
++  <string name="muteChooseDifferentName">Este nome está reservado. Escolha outro.</string>
  </resources>
 diff --git a/translation/dest/site/ru-RU.xml b/translation/dest/site/ru-RU.xml
-index 6384657..cc063b2 100644
+index 6384657..10944b5 100644
 --- a/translation/dest/site/ru-RU.xml
 +++ b/translation/dest/site/ru-RU.xml
-@@ -1146,4 +1146,233 @@
+@@ -1146,4 +1146,234 @@
    <string name="write">Написать</string>
    <string name="preview">Предпросмотр</string>
    <string name="done">Готово</string>
@@ -8804,12 +8820,13 @@ index 6384657..cc063b2 100644
 +    <string name="muteLabIntuitive">Эти ходы — первый выбор Maia на большинстве уровней рейтинга.</string>
 +    <string name="muteLabPair">%1$s и %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s и %3$s</string>
++  <string name="muteChooseDifferentName">Это имя зарезервировано. Выберите другое.</string>
  </resources>
 diff --git a/translation/dest/site/zh-CN.xml b/translation/dest/site/zh-CN.xml
-index 176f4d1..43d1fbe 100644
+index 176f4d1..428e0d8 100644
 --- a/translation/dest/site/zh-CN.xml
 +++ b/translation/dest/site/zh-CN.xml
-@@ -1022,4 +1022,233 @@
+@@ -1022,4 +1022,234 @@
    <string name="write">撰写</string>
    <string name="preview">预览</string>
    <string name="done">完成</string>
@@ -9042,12 +9059,13 @@ index 176f4d1..43d1fbe 100644
 +    <string name="muteLabIntuitive">在大多数等级分下，这些着法都是 Maia 的首选。</string>
 +    <string name="muteLabPair">%1$s 和 %2$s</string>
 +    <string name="muteLabTriple">%1$s、%2$s 和 %3$s</string>
++  <string name="muteChooseDifferentName">此名称已被保留。请选择其他名称。</string>
  </resources>
 diff --git a/translation/source/site.xml b/translation/source/site.xml
-index 8b5a6a1..8a35db1 100644
+index 8b5a6a1..e12fb1a 100644
 --- a/translation/source/site.xml
 +++ b/translation/source/site.xml
-@@ -1066,4 +1066,233 @@ Leave empty to start games from the normal initial position.</string>
+@@ -1066,4 +1066,234 @@ Leave empty to start games from the normal initial position.</string>
    <string name="write">Write</string>
    <string name="preview">Preview</string>
    <string name="done">Done</string>
@@ -9280,6 +9298,7 @@ index 8b5a6a1..8a35db1 100644
 +    <string name="muteLabIntuitive">These moves are Maia’s first choice at most rating levels.</string>
 +    <string name="muteLabPair">%1$s and %2$s</string>
 +    <string name="muteLabTriple">%1$s, %2$s and %3$s</string>
++  <string name="muteChooseDifferentName">This name is reserved. Choose another name.</string>
  </resources>
 diff --git a/ui/.build/src/build.ts b/ui/.build/src/build.ts
 index 7d6adeb..b433f0c 100644
@@ -15704,10 +15723,10 @@ index 0000000..e1cb129
 +    bdoc("_id" -> payment, "userId" -> user, "paid" -> false)
 diff --git a/app/NoSweatService.scala b/app/NoSweatService.scala
 new file mode 100644
-index 0000000..21f4e30
+index 0000000..9ca3a11
 --- /dev/null
 +++ b/app/NoSweatService.scala
-@@ -0,0 +1,1159 @@
+@@ -0,0 +1,1165 @@
 +package lila.app
 +
 +import java.nio.file.Files
@@ -16122,55 +16141,61 @@ index 0000000..21f4e30
 +          .foreach: games =>
 +            games.foreach((doc, game) => failGame(game.id, "maia_adapter_unavailable"))
 +
-+  def nostrUser(pubkey: String, requested: Option[String]): Fu[UserModel] = queue:
-+    ready.flatMap: _ =>
-+      requireThat(pubkey.matches("[0-9a-f]{64}"), 401, "Invalid verified identity")
-+      env.user.repo
-+        .byNostr(pubkey)
-+        .flatMap:
-+          case Some(user) =>
-+            requireThat(user.enabled.yes && !user.isBot, 403, "Account unavailable")
-+            fuccess(user)
-+          case None =>
-+            val displayName = requested.filter(_.nonEmpty)
-+            val name = displayName.getOrElse("n" + pubkey.take(19))
-+            requireThat(name.matches("[A-Za-z][A-Za-z0-9_-]{2,19}"), 400, "Use a 3–20 character username")
-+            val reserved = Set(
-+              "lichess",
-+              "ghost",
-+              "openingexplorer",
-+              "broadcaster",
-+              "irwin",
-+              "kaladin",
-+              "ai",
-+              "lichess4545",
-+              "challengermode",
-+              "watcherbot",
-+              "taketaketakeapp",
-+              "undefined",
-+              "anonymous",
-+              "admin",
-+              "system",
-+              "nosweatchess",
-+              "mutechess"
-+            )
-+            requireThat(!reserved.contains(name.toLowerCase), 409, "That is a reserved system name")
-+            requireThat(
-+              !roster.exists(botId(_).value == name.toLowerCase),
-+              409,
-+              "That name belongs to a Maia opponent"
-+            )
-+            env.user.repo
-+              .existsPri(UserName(name).id)
-+              .flatMap: occupied =>
-+                requireThat(!occupied, 409, "Username already taken")
-+                env.user.repo
-+                  .createNostr(pubkey, displayName)
-+                  .map:
-+                    _.getOrElse(throw NoSweatError(503, "Could not create identity"))
-+                  .recover(
-+                    lila.db.recoverDuplicateKey(_ => throw NoSweatError(409, "Username already taken"))
-+                  )
++  def nostrUser(pubkey: String, requested: Option[String])(using lila.core.i18n.Translate): Fu[UserModel] =
++    queue:
++      ready.flatMap: _ =>
++        requireThat(pubkey.matches("[0-9a-f]{64}"), 401, "Invalid verified identity")
++        env.user.repo
++          .byNostr(pubkey)
++          .flatMap:
++            case Some(user) =>
++              requireThat(user.enabled.yes && !user.isBot, 403, "Account unavailable")
++              fuccess(user)
++            case None =>
++              val displayName = requested.filter(_.nonEmpty)
++              requireThat(
++                !displayName.exists(lila.user.PublicNameKeys.reservedForIdentity),
++                409,
++                lila.core.i18n.I18nKey("muteChooseDifferentName").txt()
++              )
++              val name = displayName.getOrElse("n" + pubkey.take(19))
++              requireThat(name.matches("[A-Za-z][A-Za-z0-9_-]{2,19}"), 400, "Use a 3–20 character username")
++              val reserved = Set(
++                "lichess",
++                "ghost",
++                "openingexplorer",
++                "broadcaster",
++                "irwin",
++                "kaladin",
++                "ai",
++                "lichess4545",
++                "challengermode",
++                "watcherbot",
++                "taketaketakeapp",
++                "undefined",
++                "anonymous",
++                "admin",
++                "system",
++                "nosweatchess",
++                "mutechess"
++              )
++              requireThat(!reserved.contains(name.toLowerCase), 409, "That is a reserved system name")
++              requireThat(
++                !roster.exists(botId(_).value == name.toLowerCase),
++                409,
++                "That name belongs to a Maia opponent"
++              )
++              env.user.repo
++                .existsPri(UserName(name).id)
++                .flatMap: occupied =>
++                  requireThat(!occupied, 409, "Username already taken")
++                  env.user.repo
++                    .createNostr(pubkey, displayName)
++                    .map:
++                      _.getOrElse(throw NoSweatError(503, "Could not create identity"))
++                    .recover(
++                      lila.db.recoverDuplicateKey(_ => throw NoSweatError(409, "Username already taken"))
++                    )
 +
 +  def isNostr(user: UserModel): Fu[Boolean] =
 +    env.user.repo.withColl(_.exists(bdoc("_id" -> user.id, "nostr" -> bdoc("$exists" -> true))))
@@ -20409,10 +20434,10 @@ index 0000000..ed0e0b5
 +  def literalPrefix(term: String): String = "^" + java.util.regex.Pattern.quote(term)
 diff --git a/modules/user/src/main/PublicNameKeys.scala b/modules/user/src/main/PublicNameKeys.scala
 new file mode 100644
-index 0000000..debb18d
+index 0000000..a6379b9
 --- /dev/null
 +++ b/modules/user/src/main/PublicNameKeys.scala
-@@ -0,0 +1,12 @@
+@@ -0,0 +1,14 @@
 +package lila.user
 +
 +import java.text.Normalizer
@@ -20422,6 +20447,8 @@ index 0000000..debb18d
 +object PublicNameKeys:
 +  def normalize(name: String): String =
 +    Normalizer.normalize(name, Normalizer.Form.NFKC).trim.toLowerCase(Locale.ROOT)
++
++  def reservedForIdentity(name: String): Boolean = normalize(name).matches("n[0-9a-f]{19}")
 +
 +  def apply(canonical: String, display: Option[String]): List[String] =
 +    (normalize(canonical) :: display.map(normalize).filter(_.nonEmpty).toList).distinct
@@ -20597,10 +20624,10 @@ index 0000000..21aedf5
 +    )
 diff --git a/modules/user/src/test/PublicNameTest.scala b/modules/user/src/test/PublicNameTest.scala
 new file mode 100644
-index 0000000..9869ce0
+index 0000000..f286965
 --- /dev/null
 +++ b/modules/user/src/test/PublicNameTest.scala
-@@ -0,0 +1,16 @@
+@@ -0,0 +1,23 @@
 +package lila.user
 +
 +class PublicNameTest extends munit.FunSuite:
@@ -20611,6 +20638,13 @@ index 0000000..9869ce0
 +    assertEquals(bind(""), Right(None))
 +    assertEquals(bind("a" * 20), Right(Some("a" * 20)))
 +    assert(bind("a" * 21).isLeft)
++
++  test("new public names cannot take system IDs, including normalized spellings"):
++    val reserved = "n" + "a" * 19
++    assert(bind(reserved).isLeft)
++    assert(bind("Ｎ" + "Ａ" * 19).isLeft)
++    assertEquals(bind(reserved, Some(reserved)), Right(Some(reserved)))
++    assertEquals(bind("棋士さくら"), Right(Some("棋士さくら")))
 +
 +  test("existing longer names survive unrelated profile edits without allowing new long names"):
 +    val old = "PreviouslyChosenLongPublicName"
