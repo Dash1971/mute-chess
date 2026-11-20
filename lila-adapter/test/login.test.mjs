@@ -169,3 +169,13 @@ test('a sign-in limit uses the feedback in the current page language', async () 
   assert.equal(ui.node('status').textContent, 'しばらくしてからもう一度お試しください。');
   key.fill(0);
 });
+
+test('the native name validator can return a reserved-name message in the selected language', async () => {
+  const key = generateSecretKey();
+  const message = 'この名前は予約されています。別の名前を選んでください。';
+  const ui = await page(() => ({ status: 409, body: { code: 'reserved_public_name', error: message } }));
+  ui.node('nsec').value = nsecEncode(key);
+  await ui.node('import').click();
+  assert.equal(ui.node('status').textContent, message);
+  key.fill(0);
+});

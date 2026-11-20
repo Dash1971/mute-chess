@@ -1,7 +1,7 @@
 export class AuthResponseError extends Error {
   constructor(message, code, status) { super(message); this.code = code; this.status = status; }
 }
-// Only messages taken from the rendered language catalog are shown verbatim.
+// Only catalog messages rendered by the page or returned by the native name validator are shown verbatim.
 export class AuthUiError extends Error {}
 export function authFeedback(error, labels) {
   if (error instanceof AuthUiError) return error.message;
@@ -10,6 +10,7 @@ export function authFeedback(error, labels) {
   if (error.code === 'invalid_factor') return labels.invalidCode;
   if (error.code === 'invalid_name') return labels.badName;
   if (error.code === 'wrong_signer') return labels.wrongSigner;
+  if (error.code === 'reserved_public_name') return error.message;
   if (error.status === 409) return labels.nameUnavailable ?? labels.reload;
   return labels.failure;
 }
