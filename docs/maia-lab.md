@@ -14,6 +14,11 @@ including inspiration from its MoveMap component. The
 [Maia3 engine and models](https://github.com/CSSLab/maia3) supply the move
 predictions. These are separate upstream repositories and contributions.
 
+The About-page change in [#359](https://github.com/Dash1971/mute-chess/issues/359)
+gives maiachess.com and its frontend repository their own linked credit, separate
+from Maia3, in all ten supported locales. It is pending review and has not been
+deployed.
+
 1. Pick a position on the analysis board, then open **Maia Lab**.
 2. Use **Show candidates** to compare six or eight moves. The list includes the
    best evaluated moves as well as Maia's likely choices.

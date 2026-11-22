@@ -6911,10 +6911,10 @@ index 58403d3..bdb1c27 100644
 +  <string name="allowBotAccounts">允许机器人账号参赛</string>
  </resources>
 diff --git a/translation/dest/site/de-DE.xml b/translation/dest/site/de-DE.xml
-index 88adade..e57cbc8 100644
+index 88adade..af8aca2 100644
 --- a/translation/dest/site/de-DE.xml
 +++ b/translation/dest/site/de-DE.xml
-@@ -1064,4 +1064,286 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
+@@ -1064,4 +1064,289 @@ Leer lassen, um Partien von der normalen Ausgangsstellung aus zu starten.</strin
    <string name="write">Schreiben</string>
    <string name="preview">Vorschau</string>
    <string name="done">Erledigt</string>
@@ -7200,12 +7200,15 @@ index 88adade..e57cbc8 100644
 +  <string name="muteAuthBadName">Nutze 3–20 Zeichen und beginne mit einem Buchstaben. Erlaubt sind A–Z, Ziffern, Unterstriche und Bindestriche.</string>
 +  <string name="muteAuthWrongSigner">Signiere mit dem Nostr-Schlüssel dieses Kontos.</string>
 +  <string name="muteAuthReload">Die Sicherheitseinstellungen wurden geändert. Lade die Seite neu.</string>
++  <string name="muteAboutMaiaEngineCredit">%s ermöglicht unsere menschenähnlich spielenden Gegner sowie Vorhersagen zu Zugwahrscheinlichkeiten und erwarteten Ergebnissen.</string>
++  <string name="muteAboutMaiaFrontendCredit">%1$s und sein %2$s dienen als Vorlagen für unsere Analyseoberfläche: Züge nach Wertung, Zugqualitätsfarben, die Logik der Stellungsbeschreibungen und die Inspiration für die Zugübersicht.</string>
++  <string name="muteAboutMaiaFrontendSource">quelloffenes Frontend</string>
  </resources>
 diff --git a/translation/dest/site/es-ES.xml b/translation/dest/site/es-ES.xml
-index 76004f5..7ca3119 100644
+index 76004f5..47a6c54 100644
 --- a/translation/dest/site/es-ES.xml
 +++ b/translation/dest/site/es-ES.xml
-@@ -1064,4 +1064,286 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
+@@ -1064,4 +1064,289 @@ Déjalo vacío para empezar las partidas desde la posición inicial habitual.</s
    <string name="write">Escribir</string>
    <string name="preview">Vista previa</string>
    <string name="done">Listo</string>
@@ -7491,12 +7494,15 @@ index 76004f5..7ca3119 100644
 +  <string name="muteAuthBadName">Usa de 3 a 20 caracteres y empieza con una letra. Se permiten letras de la A a la Z, dígitos, guiones y guiones bajos.</string>
 +  <string name="muteAuthWrongSigner">Firma con la clave Nostr de esta cuenta.</string>
 +  <string name="muteAuthReload">La configuración de seguridad ha cambiado. Recarga esta página.</string>
++  <string name="muteAboutMaiaEngineCredit">%s impulsa a nuestros rivales con juego similar al humano, las probabilidades de las jugadas y las predicciones de puntuación esperada.</string>
++  <string name="muteAboutMaiaFrontendCredit">%1$s y su %2$s sirven de referencia para nuestra interfaz de análisis: Jugadas por nivel, colores de calidad de las jugadas, lógica de descripción de posiciones e inspiración para el Mapa de jugadas.</string>
++  <string name="muteAboutMaiaFrontendSource">interfaz web de código abierto</string>
  </resources>
 diff --git a/translation/dest/site/fr-FR.xml b/translation/dest/site/fr-FR.xml
-index 7dfd5f7..a740478 100644
+index 7dfd5f7..ac1e147 100644
 --- a/translation/dest/site/fr-FR.xml
 +++ b/translation/dest/site/fr-FR.xml
-@@ -1063,4 +1063,286 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
+@@ -1063,4 +1063,289 @@ Laissez vide pour commencer les parties à partir de la position initiale normal
    <string name="write">Écrire</string>
    <string name="preview">Aperçu</string>
    <string name="done">Terminé</string>
@@ -7782,12 +7788,15 @@ index 7dfd5f7..a740478 100644
 +  <string name="muteAuthBadName">Utilisez 3 à 20 caractères en commençant par une lettre. Sont admis les lettres de A à Z, les chiffres, les tirets et les tirets bas.</string>
 +  <string name="muteAuthWrongSigner">Signez avec la clé Nostr de ce compte.</string>
 +  <string name="muteAuthReload">Les paramètres de sécurité ont changé. Rechargez la page.</string>
++  <string name="muteAboutMaiaEngineCredit">%s fait fonctionner nos adversaires au style humain, les probabilités des coups et les prédictions de score attendu.</string>
++  <string name="muteAboutMaiaFrontendCredit">%1$s et son %2$s servent de références pour notre interface d’analyse : Coups par niveau, couleurs de qualité des coups, logique des descriptions de position et inspiration pour la Carte des coups.</string>
++  <string name="muteAboutMaiaFrontendSource">interface web open source</string>
  </resources>
 diff --git a/translation/dest/site/hi-IN.xml b/translation/dest/site/hi-IN.xml
-index bbf1703..0b2601d 100644
+index bbf1703..0e9ba64 100644
 --- a/translation/dest/site/hi-IN.xml
 +++ b/translation/dest/site/hi-IN.xml
-@@ -893,4 +893,287 @@
+@@ -893,4 +893,290 @@
    <string name="closingAccountWithdrawAppeal">आपका खाता बंद करने से आपकी अपील वापस ले ली जाएगी</string>
    <string name="ourEventTips">कार्यक्रम आयोजित करने कि सलाह</string>
    <string name="nothingToSeeHere">इस समय यहां देखने को कुछ भी नहीं है।</string>
@@ -8074,12 +8083,15 @@ index bbf1703..0b2601d 100644
 +  <string name="muteAuthWrongSigner">इस खाते की Nostr कुंजी से हस्ताक्षर करें।</string>
 +  <string name="muteAuthReload">सुरक्षा सेटिंग बदल गई है। पेज फिर लोड करें।</string>
 +  <string name="done">हो गया</string>
++  <string name="muteAboutMaiaEngineCredit">%s हमारे इंसानों जैसे खेलने वाले प्रतिद्वंद्वियों, चालों की संभावनाओं और अपेक्षित स्कोर के पूर्वानुमानों को संचालित करता है।</string>
++  <string name="muteAboutMaiaFrontendCredit">%1$s और उसका %2$s हमारे विश्लेषण इंटरफ़ेस के लिए संदर्भ प्रदान करते हैं: रेटिंग के अनुसार चालें, चालों की गुणवत्ता के रंग, स्थिति के विवरण का तर्क और चालों के मानचित्र की प्रेरणा।</string>
++  <string name="muteAboutMaiaFrontendSource">ओपन-सोर्स फ़्रंटएंड</string>
  </resources>
 diff --git a/translation/dest/site/ja-JP.xml b/translation/dest/site/ja-JP.xml
-index e628bdb..1437b5d 100644
+index e628bdb..8806ea9 100644
 --- a/translation/dest/site/ja-JP.xml
 +++ b/translation/dest/site/ja-JP.xml
-@@ -1023,4 +1023,286 @@
+@@ -1023,4 +1023,289 @@
    <string name="write">書く</string>
    <string name="preview">プレビュー</string>
    <string name="done">完了</string>
@@ -8365,12 +8377,15 @@ index e628bdb..1437b5d 100644
 +  <string name="muteAuthBadName">名前は英字で始まる3～20文字にしてください。英字、数字、アンダースコア、ハイフンが使えます。</string>
 +  <string name="muteAuthWrongSigner">このアカウントのNostr鍵で署名してください。</string>
 +  <string name="muteAuthReload">セキュリティ設定が変更されました。ページを再読み込みしてください。</string>
++  <string name="muteAboutMaiaEngineCredit">%s は、人間らしい対戦相手、指し手の確率、期待スコアの予測を支えています。</string>
++  <string name="muteAboutMaiaFrontendCredit">%1$s とその%2$sは、レーティング別の指し手、指し手の質を示す色、局面説明のロジック、指し手マップの着想など、分析画面の参考となっています。</string>
++  <string name="muteAboutMaiaFrontendSource">オープンソースのフロントエンド</string>
  </resources>
 diff --git a/translation/dest/site/ko-KR.xml b/translation/dest/site/ko-KR.xml
-index 9341bf0..95abc55 100644
+index 9341bf0..1cd4b6d 100644
 --- a/translation/dest/site/ko-KR.xml
 +++ b/translation/dest/site/ko-KR.xml
-@@ -1022,4 +1022,286 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
+@@ -1022,4 +1022,289 @@ FEN 포지션을 생성하기 위해 %s를 사용할 수 있습니다.
    <string name="write">작성</string>
    <string name="preview">미리보기</string>
    <string name="done">완료</string>
@@ -8656,12 +8671,15 @@ index 9341bf0..95abc55 100644
 +  <string name="muteAuthBadName">영문자로 시작하는 3~20자를 사용하세요. 영문자, 숫자, 밑줄, 하이픈을 쓸 수 있습니다.</string>
 +  <string name="muteAuthWrongSigner">이 계정의 Nostr 키로 서명하세요.</string>
 +  <string name="muteAuthReload">보안 설정이 변경되었습니다. 페이지를 새로고침하세요.</string>
++  <string name="muteAboutMaiaEngineCredit">%s는 인간처럼 두는 상대, 수의 선택 확률, 기대 점수 예측을 구동합니다.</string>
++  <string name="muteAboutMaiaFrontendCredit">%1$s와 해당 %2$s는 레이팅별 수, 수의 품질 색상, 포지션 설명 로직, 수 지도에 대한 아이디어 등 분석 인터페이스의 참고 자료를 제공합니다.</string>
++  <string name="muteAboutMaiaFrontendSource">오픈 소스 프런트엔드</string>
  </resources>
 diff --git a/translation/dest/site/pt-BR.xml b/translation/dest/site/pt-BR.xml
-index 569e752..d7b0ab5 100644
+index 569e752..f9afb53 100644
 --- a/translation/dest/site/pt-BR.xml
 +++ b/translation/dest/site/pt-BR.xml
-@@ -1063,4 +1063,286 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
+@@ -1063,4 +1063,289 @@ Deixe em branco para começar as partidas na posição inicial padrão.</string>
    <string name="write">Escrever</string>
    <string name="preview">Pré-visualizar</string>
    <string name="done">Feito</string>
@@ -8947,12 +8965,15 @@ index 569e752..d7b0ab5 100644
 +  <string name="muteAuthBadName">Use de 3 a 20 caracteres, começando com letra. São permitidos letras de A a Z, dígitos, sublinhados e hífens.</string>
 +  <string name="muteAuthWrongSigner">Assine com a chave Nostr desta conta.</string>
 +  <string name="muteAuthReload">As configurações de segurança mudaram. Recarregue a página.</string>
++  <string name="muteAboutMaiaEngineCredit">%s é a base dos nossos adversários com jogo semelhante ao humano, das probabilidades de lances e das previsões de pontuação esperada.</string>
++  <string name="muteAboutMaiaFrontendCredit">%1$s e seu %2$s servem de referência para nossa interface de análise: Lances por rating, cores de qualidade dos lances, lógica das descrições de posição e inspiração para o Mapa de lances.</string>
++  <string name="muteAboutMaiaFrontendSource">frontend de código aberto</string>
  </resources>
 diff --git a/translation/dest/site/ru-RU.xml b/translation/dest/site/ru-RU.xml
-index 6384657..432144c 100644
+index 6384657..85f7352 100644
 --- a/translation/dest/site/ru-RU.xml
 +++ b/translation/dest/site/ru-RU.xml
-@@ -1146,4 +1146,286 @@
+@@ -1146,4 +1146,289 @@
    <string name="write">Написать</string>
    <string name="preview">Предпросмотр</string>
    <string name="done">Готово</string>
@@ -9238,12 +9259,15 @@ index 6384657..432144c 100644
 +  <string name="muteAuthBadName">Используйте от 3 до 20 символов, начиная с буквы. Допустимы латинские буквы, цифры, подчёркивания и дефисы.</string>
 +  <string name="muteAuthWrongSigner">Подпишите запрос ключом Nostr этого аккаунта.</string>
 +  <string name="muteAuthReload">Настройки безопасности изменились. Обновите страницу.</string>
++  <string name="muteAboutMaiaEngineCredit">%s обеспечивает игру наших человекоподобных соперников, вероятности ходов и прогнозы ожидаемого результата.</string>
++  <string name="muteAboutMaiaFrontendCredit">%1$s и его %2$s послужили основой для элементов нашего интерфейса анализа: графика «Ходы по рейтингу», цветов качества ходов, логики описаний позиций и идеи «Карты ходов».</string>
++  <string name="muteAboutMaiaFrontendSource">открытый фронтенд</string>
  </resources>
 diff --git a/translation/dest/site/zh-CN.xml b/translation/dest/site/zh-CN.xml
-index 176f4d1..ade400b 100644
+index 176f4d1..60d3e15 100644
 --- a/translation/dest/site/zh-CN.xml
 +++ b/translation/dest/site/zh-CN.xml
-@@ -1022,4 +1022,286 @@
+@@ -1022,4 +1022,289 @@
    <string name="write">撰写</string>
    <string name="preview">预览</string>
    <string name="done">完成</string>
@@ -9529,12 +9553,15 @@ index 176f4d1..ade400b 100644
 +  <string name="muteAuthBadName">名称须为 3 至 20 个字符，以英文字母开头，可含英文字母、数字、下划线或连字符。</string>
 +  <string name="muteAuthWrongSigner">请使用此账户的 Nostr 密钥签名。</string>
 +  <string name="muteAuthReload">安全设置已更改。请重新加载此页。</string>
++  <string name="muteAboutMaiaEngineCredit">%s 为我们的类人对手、着法概率和预期得分预测提供支持。</string>
++  <string name="muteAboutMaiaFrontendCredit">%1$s 及其%2$s为我们的分析界面提供了参考，包括各等级分着法、着法质量配色、局面描述逻辑，以及着法分布图的设计灵感。</string>
++  <string name="muteAboutMaiaFrontendSource">开源前端</string>
  </resources>
 diff --git a/translation/source/site.xml b/translation/source/site.xml
-index 8b5a6a1..4b3c914 100644
+index 8b5a6a1..fdf087c 100644
 --- a/translation/source/site.xml
 +++ b/translation/source/site.xml
-@@ -1066,4 +1066,286 @@ Leave empty to start games from the normal initial position.</string>
+@@ -1066,4 +1066,289 @@ Leave empty to start games from the normal initial position.</string>
    <string name="write">Write</string>
    <string name="preview">Preview</string>
    <string name="done">Done</string>
@@ -9820,6 +9847,9 @@ index 8b5a6a1..4b3c914 100644
 +  <string name="muteAuthBadName">Use a name of 3–20 characters starting with a letter. Use letters A–Z, digits, underscores or hyphens.</string>
 +  <string name="muteAuthWrongSigner">Sign with this account’s Nostr key.</string>
 +  <string name="muteAuthReload">Security settings changed. Reload this page.</string>
++  <string name="muteAboutMaiaEngineCredit">%s powers our human-like opponents, move probabilities and expected-score predictions.</string>
++  <string name="muteAboutMaiaFrontendCredit">%1$s and its %2$s inform our analysis interface: Moves by Rating, move-quality colors, position-description logic and inspiration for the Move map.</string>
++  <string name="muteAboutMaiaFrontendSource">open-source frontend</string>
  </resources>
 diff --git a/ui/.build/src/build.ts b/ui/.build/src/build.ts
 index 7d6adeb..b433f0c 100644
@@ -18228,10 +18258,10 @@ index 0000000..ea79016
 +    )
 diff --git a/app/views/noSweatInfo.scala b/app/views/noSweatInfo.scala
 new file mode 100644
-index 0000000..9d16b16
+index 0000000..4297f1f
 --- /dev/null
 +++ b/app/views/noSweatInfo.scala
-@@ -0,0 +1,227 @@
+@@ -0,0 +1,236 @@
 +package views
 +
 +import lila.app.UiEnv.{ *, given }
@@ -18282,10 +18312,19 @@ index 0000000..9d16b16
 +          ),
 +          li(
 +            p(
-+              strong(a(href := "https://github.com/CSSLab/maia3")("Maia3 by CSSLab")),
-+              " powers our human-like opponents, move probabilities and expected-score predictions. The ",
-+              a(href := "https://github.com/CSSLab/maia-platform-frontend")("Maia platform"),
-+              " also informs our analysis features and move-quality colors."
++              I18nKey("muteAboutMaiaEngineCredit")(
++                strong(a(href := "https://github.com/CSSLab/maia3")("Maia3 by CSSLab"))
++              )
++            )
++          ),
++          li(
++            p(
++              I18nKey("muteAboutMaiaFrontendCredit")(
++                strong(a(href := "https://www.maiachess.com/")("maiachess.com")),
++                a(href := "https://github.com/CSSLab/maia-platform-frontend")(
++                  I18nKey("muteAboutMaiaFrontendSource")()
++                )
++              )
 +            )
 +          ),
 +          li(
