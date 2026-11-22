@@ -5,7 +5,10 @@ features. For a quick overview, see the [README feature guide](../README.md#feat
 
 - [Bot pool behavior](#bot-pool-behavior): pairing, capacity, background games and ratings.
 - [Engine settings](#engine-settings): playing Maia, browser analysis, models and move history.
+- [Maia Lab and position descriptions](#maia-lab-and-position-descriptions): rating curves, move comparison and previews.
+- [Supported play and learning](#supported-play-and-learning): time controls and feature availability.
 - [Disconnect grace periods and reconnecting](#disconnect-grace-periods-and-reconnecting).
+- [Community Arenas](#community-arenas): finding and joining host events.
 
 ## Bot pool behavior
 
@@ -187,6 +190,39 @@ only expands the list. Move-hover details show Maia probability, White-perspecti
 Stockfish evaluation, mover win rate and evaluation loss. These estimates remain
 separate from whole-game classifications. See the [source audit](maia-rating-chart.md).
 
+## Maia Lab and position descriptions
+
+Open **Maia Lab** beside **Moves by Rating** on the analysis board, in post-game
+analysis, or once a puzzle has entered review. Compare six or eight candidate moves,
+view rating curves from 600 to 2600, or use **Move map** to compare how likely a
+move is with how strong Stockfish considers it. The Lab slider changes only its
+viewing rating; it does not change your saved analysis settings.
+
+Select a move to inspect its probability, evaluation and board highlights. Use
+**Explore selected move** to enter that variation on the analysis board. Closing
+the dialog normally leaves the analysis line unchanged.
+
+Rule-based position descriptions identify tempting choices and strong
+continuations once the rating sweep and engine analysis are complete. They
+summarize model predictions, not measured human success rates, and do not alter
+game classifications. Everything runs locally using the selected browser model.
+See the [Maia Lab guide](maia-lab.md) for step-by-step controls, live screenshots,
+metric explanations, pending states and implementation details.
+
+## Supported play and learning
+
+New games use **standard chess with at least one minute of starting time per
+side**, regardless of increment. This applies to Maia games, friend challenges,
+rematches and new Arenas. New correspondence and unlimited games are unavailable;
+existing game histories and replays remain readable. See the
+[time-control rules](real-time-feature-surface.md#minimum-starting-time).
+
+Puzzles, Chess basics, Practice and the forum remain available. Study creation
+and profile shortcuts are hidden; existing direct Study links and content are
+retained. [Basic Chess Insights](basic-insights-and-unsupported-links.md) provides
+results and rating breakdowns, with engine-analysis statistics excluded. Other
+unsupported inherited links show a not-yet-supported notice.
+
 ## Disconnect grace periods and reconnecting
 
 Maia uses Lichess's native disconnect detection and grace periods before
@@ -230,22 +266,16 @@ and results. Approved hosts can configure human-only events or managed Maia
 fillers (default saved-rating range 1400–1700, target ten active participants).
 Human entry remains unlimited. See the guide for setup and bot behavior.
 
-The native discovery/menu/homepage alignment in #324 is a draft follow-up; its
-schedule, Finished history and homepage spotlight are not deployed yet.
+Open **Play → Arena tournaments** for the event schedule and **Finished** results.
+The page also links to the calendar and Arena history. Eligible upcoming or active
+host events can appear in a homepage spotlight; no eligible event means no card.
+Discovery is limited to public events from approved hosts.
 
 ## Related feature guides
 
 - [Maia opponents, game capacity and background activity](public-bot-activity.md).
 - [Analysis boards, engine preferences and move insights](analysis-presentation.md).
+- [Maia Lab controls, charts and position descriptions](maia-lab.md).
 - [Nostr identity and account access](nostr.md).
 - [Saving and restoring your sign-in key](nostr-sign-in-backup.md).
 - [Chess basics, practice and community features](native-learning-community.md).
-
-## Maia Lab and position descriptions
-
-Puzzle review, the analysis board and post-game analysis share the larger
-**Maia Lab** dialog: rating curves, candidate comparison, move previews and a
-Move map. Rule-based position descriptions explain tempting choices and strong
-continuations using actual browser analysis. See [Maia Lab details](maia-lab.md)
-for the full behavior, evidence requirements, translation coverage and upstream
-source differences.

@@ -1,9 +1,10 @@
 # Weekly community Arenas
 
-**Status:** owner-hosted Arenas (#313/#320) and native discovery (#325) are deployed.
-The compact sidebar follow-up in #326 is draft only and is being held for a later
-batch release. Original draft implementation/validation notes below are historical;
-this follow-up starts no event and changes no live service or bot pool.
+**Status:** owner-hosted Arenas (#313/#320), native discovery (#325) and the compact
+sidebar (#327, implementing #326) are deployed. See the
+[site manual](site-manual.md#community-arenas) for a short introduction. Original
+draft implementation/validation notes below are historical; they are not current
+release holds or authorization to start an event.
 The Arena feature supersedes the one-human-per-Arena proposal in #84.
 
 ## Event setup
@@ -39,7 +40,7 @@ the band during play; do not replace bots mid-event or reset their ratings.
 If the configured number of eligible bots cannot be reserved, show the shortage to the host rather
 than creating accounts, changing ratings or silently widening the band.
 
-## Configurable fillers and human-only events (#319, draft)
+## Configurable fillers and human-only events (#319/#320)
 
 The owner-approved follow-up to merged #313 adds **Allow bot accounts**, a minimum
 and maximum saved rating (400–3200), and an active participant target (1–20).
@@ -66,9 +67,9 @@ for spectator labels is read-only, batched and safely renders names as text.
 The host sidebar omits the repeated explanatory paragraph beneath chat.
 
 All added labels, help, validation, and participant notices use the ten native
-translation catalogs. This follow-up remains draft and is not a deployment.
+translation catalogs. This behavior shipped in #320.
 
-## Compact event sidebar (#326, draft)
+## Compact event sidebar (#326/#327)
 
 The tournament details card replaces the large Maia warning with a collapsed
 **Maia bots fill empty seats** row. Click or keyboard-activate the row to expand
@@ -89,8 +90,8 @@ readiness and does not prepare, start or reconfigure it.
 All changed text, including the disclosure, draining status and Refresh link,
 uses the existing native catalogs in all ten supported locales. This is presentation
 only: native chat permissions, owner/CSRF checks, bot settings, game admission,
-clocks, ratings, pairings and event lifecycle are unchanged. No merge or deployment
-is authorized until a later batch is explicitly approved.
+clocks, ratings, pairings and event lifecycle are unchanged. This presentation
+update shipped in #327.
 
 ## Participation rule
 
@@ -316,7 +317,7 @@ draft PR. No merge, deployment or live event is authorized by this implementatio
 The follow-up backports the upstream tournament visibility fix for games/results/teams exports and the broadcast source-address validation fix. It retains this draft's owner-event gate, gateway API denial and hidden export controls; no API route is opened. The source inventory's tournament advisory decision becomes a backported source target when the follow-up is included. The earlier draft-only unpatched status above remains historical validation context. Merge #313 before the follow-up and verify/deploy the combined final main once. The moderator-token advisory is outside this follow-up.
 
 
-## Discovery alignment (#324, draft)
+## Discovery alignment (#324/#325)
 
 The Arena index reuses the native Lichess schedule/timeline and Finished table.
 Its selection contains public, standard, non-position, non-team Arenas from the
@@ -350,4 +351,4 @@ Reused UI keys are checked through the native registry in all ten supported
 locales; calendar date tooltips use the document locale. No new UI catalog key,
 service, scheduler, deployment procedure or database migration is introduced.
 
-This discovery follow-up is a draft PR. It is not merged or deployed.
+This discovery behavior shipped in #325.

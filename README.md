@@ -101,6 +101,31 @@ different things; a popular human move is not automatically the best move.
   <img src="docs/screenshots/2026-11-02-maia-analysis.jpg" width="1100" alt="Ruy Lopez analysis with Maia 1500 and Maia 2400 probability cards, the Moves by Rating chart, Stockfish and board arrows">
 </p>
 
+### Explore a position in Maia Lab
+
+Open **Maia Lab** beside **Moves by Rating** to explore a position in more detail.
+It is available on the analysis board, in post-game analysis, and after a puzzle
+has reached review.
+
+Compare six or eight candidate moves and slide the Maia rating from **600 to
+2600**. **Moves by rating** shows how their popularity changes; **Move map** puts
+Maia's likely choices beside Stockfish's assessment of their strength. A short
+position description points out strong continuations and tempting mistakes.
+
+Select a candidate to preview it, then choose **Explore selected move** to enter
+that variation on the analysis board. The Lab rating is independent of your
+saved Maia settings. Everything runs in your browser. Position descriptions
+combine Maia predictions with Stockfish analysis and fixed chess rules.
+
+<p align="center">
+  <img src="docs/screenshots/2026-11-22-maia-lab-chart.jpg" width="300" alt="Live Maia Lab rating chart for the starting position, with a position description, 600–2600 rating range and candidate comparison">
+  <img src="docs/screenshots/2026-11-22-maia-lab-map.jpg" width="300" alt="The same position in Maia Lab's Move map, comparing Maia probability with Stockfish win-rate loss">
+</p>
+
+*Live narrow-screen views; scroll inside the dialog for the preview board and
+selected-move details. See the [Maia Lab guide](docs/maia-lab.md) for the controls,
+what the numbers mean and how to interpret the descriptions.*
+
 ### More chances to find a brilliant move
 
 Brillies are part of the fun. Mute Chess uses
@@ -158,7 +183,7 @@ beside your name, whether you prefer circuitry, a neon fox or a mischievous ghos
 | <img src="docs/screenshots/flairs/symbols.mute-neon-fox.webp" width="60" alt="Neon Fox flair"> | <img src="docs/screenshots/flairs/symbols.mute-origami-crane.webp" width="60" alt="Origami Crane flair"> | <img src="docs/screenshots/flairs/symbols.mute-ghost-terminal.webp" width="60" alt="Ghost Terminal flair"> |
 
 [Original artwork and credits](design/bot-flairs/README.md).
-The screenshots above were captured from the real site on 2 November 2026;
+The screenshots above were captured from the real site on November 2 and 22, 2026;
 see [capture details](docs/screenshots/README.md).
 
 ## Rating goal
@@ -246,7 +271,11 @@ placeholder parity and localized rendering before release; see [AGENTS.md](AGENT
 
 ### Basic Chess Insights and unsupported features
 
-The proposed basic Insights view reuses native Lichess results and rating analytics, including opening, color, time-control and date breakdowns. Engine-analysis statistics remain unavailable; browser reviews are not uploaded for Insights. Unsupported inherited feature links show a translated not-yet-supported notice rather than a dead end. See [scope and limitations](docs/basic-insights-and-unsupported-links.md) (#281/#282).
+Basic Chess Insights groups game results, rating changes and opponent ratings by
+opening, color, time control and date. Engine-analysis statistics are unavailable;
+browser reviews are not uploaded for Insights. Unsupported inherited feature links
+show a translated not-yet-supported notice. See
+[scope and limitations](docs/basic-insights-and-unsupported-links.md).
 
 
 ### Full Lichess puzzle catalog

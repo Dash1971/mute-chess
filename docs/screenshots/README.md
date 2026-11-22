@@ -1,5 +1,7 @@
 # README feature captures
 
+## November 2, 2026
+
 Actual browser captures of https://mutechess.org/ on 2 November 2026 (JST),
 using the dark Quiet Signal appearance and a 1440 × 1000 desktop viewport.
 The deployed revision header was not recorded for these captures.
@@ -18,6 +20,28 @@ The temporary viewport override was reset afterward.
 - `2026-11-02-bot-profile.jpg`: Wintermute's public profile and real speed ratings,
   fixed settings, game history and Circuit Knight flair. Ratings and activity
   naturally change over time.
+
+## November 22, 2026: Maia Lab
+
+The two `2026-11-22-maia-lab-*.jpg` images are direct live captures of
+https://mutechess.org/analysis at the browser's existing 322 × 814 viewport.
+The site reported revision `2b925bd25d67753c9f1481667dd89f558ea5403e` in its
+`X-NoSweat-Revision` header. No viewport override was applied.
+
+- `2026-11-22-maia-lab-chart.jpg`: the starting position in Maia Lab's
+  **Moves by rating** tab after the description and rating sweep completed.
+- `2026-11-22-maia-lab-map.jpg`: the same position in **Move map**.
+
+Both use the real 5M model, move history on, a Lab viewing rating of 1500 and six
+candidates. They show the upper part of the scrollable dialog; the preview board
+and further move details are below the fold. Values are model/search examples,
+not measured human success rates. No game or account was created.
+
+The live review also checked candidate selection and **Explore selected move**;
+the selected `d4` entered the standalone analysis line, while the original
+Maia 1500/2400 channel settings remained unchanged.
+
+## Image provenance
 
 The JPEGs are direct browser screenshots, with no repainted UI or compositing.
 The gallery in `flairs/` contains the six existing 60 × 60 lossless WebP assets
