@@ -1,0 +1,125 @@
+{
+  "classifier": "Mute Exchange (mute-brilliant-v8)",
+  "model_sha256": "992a792a646b11e612486c4fe26796fc38ee47f395f2220b00d26db65ba1e27d",
+  "selected_cutoff": 0.8193002847777424,
+  "test": {
+    "account": "Witty_Alien",
+    "games": 337,
+    "description": "Games from the published 1,000-game Witty_Alien test that were re-reviewed on Chess.com on 2026-11-22; none of their own moves were used to fit the model.",
+    "gallery_brilliants": 416,
+    "todays_review_brilliants": 440
+  },
+  "training": {
+    "rows": 33037,
+    "brilliants": 7806,
+    "labels": "Chess.com Game Review label where a fresh review exists, otherwise the gallery label"
+  },
+  "evidence": "TEST: archived native Stockfish 19 1MB Fast review snapshots (depth 12 / 500 ms, two root lines) from the Mute Selective study, replayed through classify(). TRAINING: Stockfish 18, fixed 200,000-node searches read back at depth 12.",
+  "results": {
+    "mute_selective_v5": {
+      "awards": 274,
+      "found_gallery": 259,
+      "false_vs_gallery": 15,
+      "false_by_both": 12
+    },
+    "mute_exchange_selected_medium": {
+      "awards": 319,
+      "found_gallery": 300,
+      "false_vs_gallery": 19,
+      "false_by_both": 12,
+      "cutoff": 0.8193002847777424
+    },
+    "mute_exchange_medium_plus_previous_iteration": {
+      "awards": 312,
+      "found_gallery": 295,
+      "false_vs_gallery": 17,
+      "false_by_both": 10
+    },
+    "mute_exchange_strict": {
+      "awards": 271,
+      "found_gallery": 261,
+      "false_vs_gallery": 10,
+      "false_by_both": 5,
+      "cutoff": 0.884087894158697
+    },
+    "mute_exchange_loose": {
+      "awards": 354,
+      "found_gallery": 324,
+      "false_vs_gallery": 30,
+      "false_by_both": 19,
+      "cutoff": 0.7206616707791499
+    },
+    "mute_exchange_very_strict": {
+      "awards": 183,
+      "found_gallery": 180,
+      "false_vs_gallery": 3,
+      "false_by_both": 1,
+      "cutoff": 0.949471678024081
+    }
+  },
+  "owner_examples": [
+    {
+      "game": "tjxdTRho",
+      "move": "6.Ne5",
+      "idea": "Legal's Mate queen offer",
+      "chesscom": "Brilliant",
+      "mute_selective": "!",
+      "mute_exchange": "Brilliant",
+      "score": 0.916,
+      "evidence": "research Stockfish 18"
+    },
+    {
+      "game": "bJPg3bse",
+      "move": "12...Bxh2+",
+      "idea": "Greek Gift",
+      "chesscom": "Brilliant",
+      "mute_selective": "!?",
+      "mute_exchange": "not awarded",
+      "score": 0.595,
+      "evidence": "research Stockfish 18"
+    }
+  ],
+  "limits": [
+    "The model was trained on Stockfish 18 evidence and has never seen Stockfish 19 evidence in training.",
+    "No fresh native searches and no browser session were run; the test replays archived review snapshots.",
+    "The test account is a titled player; every training account is rated 2400+.",
+    "Features were designed with aggregate statistics that included the test account.",
+    "Other Witty_Alien games (not these 337) are in the shipped model's training set."
+  ],
+  "study": "https://github.com/Dash1971/open-brilly-finder/tree/main/studies/brilliant-exchange-2026-11-22",
+  "results_research_stockfish18_evidence": {
+    "mute_exchange_selected_medium": {
+      "awards": 316,
+      "found_gallery": 298,
+      "false_vs_gallery": 18,
+      "false_by_both": 11
+    }
+  },
+  "all_1000_games_six_account_model_native_evidence": {
+    "note": "Research check: model trained on the six development accounts only; not the shipped model.",
+    "gallery_brilliants": 1234,
+    "mute_selective_v5": {
+      "awards": 812,
+      "found": 774,
+      "false_vs_gallery": 38
+    },
+    "mute_exchange_medium": {
+      "awards": 934,
+      "found": 876,
+      "false_vs_gallery": 58,
+      "cutoff": 0.8549045486915725
+    },
+    "mute_exchange_strict": {
+      "awards": 800,
+      "found": 771,
+      "false_vs_gallery": 29,
+      "cutoff": 0.9104123129470945
+    },
+    "mute_exchange_found_at_38_false": 820
+  },
+  "native_classify_replay": {
+    "scored_moves": 31657,
+    "errors": 0,
+    "brilliant_decisions_differing_from_python_reference": 0
+  }
+}

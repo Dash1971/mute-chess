@@ -244,7 +244,10 @@ and the existing watchdog; they are not device performance or accuracy evidence.
 
 This section supersedes the historical Brilliant-policy descriptions above for
 newly computed Mute `!!` awards only. Mobile Maia and the independent En Croissant
-references remain unchanged. The native worker selects the fixed v5 forest;
+references remain unchanged. Since the November 22, 2026 Mute Exchange change the
+native worker selects `mute-brilliant-v8`, whose chess logic is original to this
+project and whose model was trained on Chess.com Game Review labels (see the
+current algorithm link below). Before that, the native worker selected the fixed v5 forest;
 internal v4 remains a reference branch, not a UI option. See the
 [current algorithm and validation limits](../docs/brilliant-moves.md) and
 [public study](https://github.com/Dash1971/mute-chess-research/blob/main/studies/brilliant-moves/REPORT.md).

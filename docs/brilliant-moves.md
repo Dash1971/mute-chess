@@ -1,4 +1,153 @@
-# Brilliant moves: Mute Selective
+# Brilliant moves: Mute Exchange
+
+**Mute Exchange** decides the `!!` badge in Mute Chess. It asks one chess
+question and then lets a trained model answer the rest:
+
+1. **Is a piece really on offer?** After the move, can the opponent capture a
+   knight, bishop, rook or queen and come out at least two points ahead on that
+   square? About 12% of moves pass. In our data this simple test covers
+   8,290 of 8,295 Chess.com Brilliants.
+2. **Would Chess.com call it Brilliant?** A model trained on Chess.com's own
+   Game Review labels scores the candidate from board facts and the engine
+   lines the review already has.
+
+It runs locally in the analysis worker as ordinary JavaScript. It adds no
+Stockfish searches, calls no service and does not learn during play.
+**Mobile Maia keeps its existing En Croissant classifier.**
+
+This is our open implementation, not Chess.com's unpublished formula.
+No human manual testing is claimed.
+
+## What the tests show
+
+The test set is **337 Witty_Alien games** from the published 1,000-game test
+that were re-reviewed on Chess.com on November 22, 2026. None of that account's
+moves in those games were used to fit the model.
+
+Both rows use the same engine output: the **Stockfish 19 1MB Fast review
+snapshots** archived by the Mute Selective study for these games. Mute Exchange
+was run through this patch's `classify()` on those saved windows.
+
+| Classifier | Brilliants found (of 416) | False vs gallery | False by Chess.com's review today as well |
+| --- | ---: | ---: | ---: |
+| Mute Selective (v5) | 259 (62.3%) | 15 | 12 |
+| **Mute Exchange (v8, selected cutoff)** | **300 (72.1%)** | **19** | **12** |
+| Mute Exchange, strict cutoff | 261 (62.7%) | 10 | 5 |
+
+"False vs gallery" counts awards on moves missing from the captured Brilliant
+gallery. The gallery is slightly stale: Chess.com's review of the same games
+today awards 440 Brilliants, including 28 that are not in the gallery. The last
+column counts awards that neither reference accepts.
+
+**The Mute Selective study's own protocol.** A Mute Exchange model trained on
+the six development accounts alone, with no Witty_Alien move of any kind, scored
+on all 1,000 games with the same native evidence:
+
+| 1,000 games, 1,234 gallery Brilliants | Found | False vs gallery |
+| --- | ---: | ---: |
+| Mute Selective (v5) | 774 (62.7%) | 38 |
+| Mute Exchange, six-account model, medium cutoff | 876 (71.0%) | 58 |
+| Mute Exchange, six-account model, held to 38 false | 820 (66.5%) | 38 |
+
+That model is a research check, not the shipped one. The shipped model also
+learned from Witty_Alien games outside the 337.
+
+The owner's two reference sacrifices, both awarded Brilliant by Chess.com when
+reviewed there:
+
+| Move | Mute Selective | Mute Exchange |
+| --- | --- | --- |
+| Legal's Mate queen offer, 6.Ne5 | `!` | **`!!`** (score 0.92) |
+| Greek Gift, 12...Bxh2+ | `!?` | not awarded (score 0.59, cutoff 0.82) |
+
+Those two scores use research Stockfish 18 evidence; the owner's games have no
+archived native review. The Greek Gift is a disclosed miss. The mover was
+already a piece ahead, and among the titled-player accounts the model learned
+from, Chess.com rarely awards Brilliant in that situation. Chess.com says it is
+more generous at lower ratings; this training data cannot teach that.
+
+[Compact result record](../analysis/data/brilliants-exchange-2026-11-22.json) ·
+[published study](https://github.com/Dash1971/open-brilly-finder/tree/main/studies/brilliant-exchange-2026-11-22)
+
+### What has and has not been validated
+
+- **Validated on saved native evidence.** The app's `classify()` with the v8
+  policy was run over the archived Stockfish 19 Fast windows for all 31,657
+  scored moves of the 1,000-game sample: no errors, and every `!!` decision
+  equal to the Python reference.
+- **Not validated with fresh searches or in a browser.** No new Stockfish 19
+  searches were run and no browser session was tested.
+- **Trained on a different engine.** The model was fitted on Stockfish 18
+  evidence (fixed 200,000-node searches read back at depth 12, two root lines).
+  It has never seen Stockfish 19 evidence in training. On the 337 games its
+  native and research-evidence scores correlate at 0.975 and share 289 awards.
+- The test account is a titled player and every training account is rated 2400+.
+- The features were designed with aggregate statistics that included the test
+  account, and other Witty_Alien games are in the shipped model's training set.
+
+## Exact classifier
+
+The native module is `ui/analyse/src/noSweatBrilliantExchange.ts`, with weights
+in `noSweatBrilliantExchangeModel.json`, carried by the
+[Lila patch](../deploy/lila/patches/lila-nostr-maia.patch). The worker selects
+`mute-brilliant-v8`.
+
+**Candidate test.** Exchanges are evaluated with fully legal captures on one
+square, least valuable attacker first, either side free to stop. Piece values
+are pawn 1, knight 3, bishop 3, rook 5, queen 9. A move is a candidate when the
+opponent's best such capture of a non-pawn piece gains 2 or more.
+
+**Model.** 400 gradient-boosted trees (scikit-learn
+`HistGradientBoostingClassifier`, at most 31 leaves, learning rate 0.05) over
+**91 features**. The score is `sigmoid(baseline + sum of leaf values)`. A
+candidate is Brilliant at **score >= 0.8193**, the cutoff that gave 95.3%
+precision in grouped cross-validation on the training games. Model SHA-256:
+`992a792a646b11e612486c4fe26796fc38ee47f395f2220b00d26db65ba1e27d`.
+
+**Features**, all computed from the three-position review window:
+
+- The offer: which piece, how much, whether it is the piece that moved, what
+  the move captured, whether other moves kept material.
+- Acceptance: what the mover can win straight back if the piece is taken,
+  whether that was already threatened, whether acceptance allows mate in one.
+- Capture-only material search to depths 2, 4, 6 and 10.
+- History: whether the same piece was already on offer one move earlier, and
+  what the opponent's last move did to it.
+- Engine: the two root lines before the move and the best line after it, as
+  centipawns from the mover's side (mates beyond +-9000), win-chance loss, and
+  whether the engine's reply takes the piece.
+
+No player identity, rating, game ID or Chess.com label is a runtime input.
+
+**Decision.** Mute Exchange decides from the completed current window alone. It
+does not require the previous iteration to agree and uses no confirmation
+searches. On the 337-game test with native evidence, also requiring the
+previous iteration costs 5 Brilliants and removes 2 false awards (295 and 17). It may award a move that the same engine
+lines would mark as an inaccuracy: on research evidence, gating on that removed
+28 awards on the test, 26 of them genuine, because Chess.com's engine often
+prefers a different move from ours.
+
+When the model does not award `!!`, En Croissant annotations keep their meaning
+and their confirmation rules, exactly as under v5. Accuracy and centipawn loss
+are unchanged. Computed badges carry `mute-chess-brilliant-v8` provenance, which
+conflict protection recognizes alongside v1-v7.
+
+**Parity.** The TypeScript module reproduces the Python reference exactly on
+4,000 candidate positions (all 91 features, score within 1e-9). 123 of those
+cases, including the owner examples, are checked in as
+`ui/analyse/tests/fixtures/noSweat/brilliant-v8.json`.
+
+**Provenance.** The chess logic is original to this project. The model was
+trained on labels from Chess.com Game Review and the public Brilliant
+galleries; games and labels are published in Open Brilly Finder. Authored with
+Anthropic Claude assistance.
+
+---
+
+## Previous classifier: Mute Selective (v5)
+
+The remainder of this page records the classifier that Mute Exchange replaced.
+Its code and model remain in the patch as the `mute-brilliant-v5` policy.
 
 For **Mute Selective**, we trained a small model on chess moves labeled by
 Chess.com and combined it with basic soundness and legal-piece-offer checks.
@@ -20,7 +169,7 @@ labeled examples. Both still rely on engine analysis.
 This is our open implementation, not Chess.com's unpublished formula.
 No human manual testing is claimed.
 
-## What the tests show
+### What the tests show
 
 The frozen **128-tree model at 0.83 with PR285 complete-window confirmation**
 was tested on 1,000 games from Witty_Alien using the site's **Stockfish 19 1MB
@@ -71,7 +220,7 @@ Mate and Greek Gift examples in the Fast diagnostic: Ne5 remains `!` and Bxh2+
 remains `!?`. Those two examples are separate from the statistical test. The
 Greek Gift has no confirmed Chess.com label in this study.
 
-## Further improvement
+### Further improvement
 
 The updated forest was trained on 6,293 labeled development moves with improved
 tree settings and the same position features and hard chess checks. More
@@ -80,13 +229,13 @@ the preferred tradeoff. Prioritize broader coverage while keeping wrong awards
 low. Keep this fresh test separate from training, and test future changes on new
 games rather than tuning against these labels.
 
-## Exact frozen classifier
+### Exact frozen classifier
 
 The [published selective study](https://github.com/Dash1971/open-brilly-finder/tree/main/studies/brilliant-selective-2026-11-06/)
 provides the frozen model, training procedure and validation evidence. The native adapter is
 `ui/analyse/src/noSweatBrilliantForest.ts`, with static weights in
 `noSweatBrilliantForestModel.json`, carried by the
-[Lila patch](../deploy/lila/patches/lila-nostr-maia.patch). The worker selects v5.
+[Lila patch](../deploy/lila/patches/lila-nostr-maia.patch). The worker selected v5 until Mute Exchange replaced it.
 The internal v4 reference branch is not exposed as a review-mode choice.
 
 The forest has **128 trees and 75 semantic features**, plus a missingness indicator
@@ -137,7 +286,7 @@ missingness condition on slower devices; it is not a claim of calibrated behavio
 under timeouts. Other optional unknowns, including avoidability unknowns seen in
 training, retain the frozen model's handling.
 
-## Confirmation, fallback and native behavior
+### Confirmation, fallback and native behavior
 
 The classifier evaluates the current and previous complete engine iterations.
 An independent confirmation can replace the second window while leaving the
@@ -175,7 +324,7 @@ recognized by conflict protection. Native evaluations, analysis-tree ownership,
 clocks and outcomes are unchanged. Explicit fresh review may replace computed
 judgments; there is no historical batch or silent rewrite of saved badges.
 
-## Historical implementation parity and current limits
+### Historical implementation parity and current limits
 
 The [versioned validation record](../analysis/data/brilliants-v5-validation.json)
 pins the original 64-tree model, native source and maintained patch, with its historical check results. The new model and fresh-account counts are pinned separately in the [selective Fast record](../analysis/data/brilliants-selective-fast-2026-11-06.json).

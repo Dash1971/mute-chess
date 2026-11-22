@@ -137,23 +137,24 @@ Brillies are part of the fun. Mute Chess uses
 project for spotting sound sacrifices and marking them **Brilliant (!!)** during
 game review.
 
-Its classifier, **Mute Selective**, learns patterns from moves labeled by
-Chess.com. Stockfish checks whether a move is sound, and chess rules check that
-a piece really is being offered. The classifier runs locally in your browser.
+Its classifier, **Mute Exchange**, first checks that a piece is really on offer,
+then asks a model trained on Chess.com's own Game Review labels whether the
+sacrifice would earn the badge there. It runs locally in your browser.
 Chess.com's full formula is private; this is our own open implementation.
 
-The latest research tested an updated model on **1,000 Witty_Alien games** that
-were not used to train or tune it, using Stockfish 19 and Fast analysis:
+On **337 Witty_Alien games** held out from training:
 
-- It recognized **774 of 1,234 Chess.com Brilliants (62.7%)**.
-- Of the **812 Brilliant badges it awarded, 774 matched Chess.com (95.3%)**.
-  The other 38 were extra awards.
+- It recognized **300 of 416 Chess.com Brilliants (72.1%)**, up from 259 (62.3%)
+  for the previous classifier on the same games.
+- Of the **319 Brilliant badges it awarded, 300 matched Chess.com's gallery
+  (94.0%)**. Seven more are Brilliants in Chess.com's review today.
 
-Those results describe this player's games in Chess.com's Brilliant gallery;
-results for other players and analysis settings can differ.
+Both classifiers were scored on the site's saved Stockfish 19 Fast review
+output for those games. They are one titled player's games; results for other
+players and settings can differ, and no live browser test has been run.
 
-**[Read the illustrated research report](https://github.com/Dash1971/open-brilly-finder/blob/main/studies/brilliant-selective-2026-11-06/REPORT.md)**
-for examples, results and what we want to improve next.
+**[Read the illustrated research report](https://github.com/Dash1971/open-brilly-finder/blob/main/studies/brilliant-exchange-2026-11-22/REPORT.md)**
+for the method, results and what we want to improve next.
 **[Explore Open Brilly Finder](https://github.com/Dash1971/open-brilly-finder)**
 for the code, trained model, labeled games and instructions to reproduce the work.
 For Mute Chess integration details, see the [implementation notes](docs/brilliant-moves.md).
