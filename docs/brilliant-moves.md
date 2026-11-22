@@ -24,16 +24,33 @@ The test set is **337 Witty_Alien games** from the published 1,000-game test
 that were re-reviewed on Chess.com on November 22, 2026. None of that account's
 moves in those games were used to fit the model.
 
+Both rows use the same engine output: the **Stockfish 19 1MB Fast review
+snapshots** archived by the Mute Selective study for these games. Mute Exchange
+was run through this patch's `classify()` on those saved windows.
+
 | Classifier | Brilliants found (of 416) | False vs gallery | False by Chess.com's review today as well |
 | --- | ---: | ---: | ---: |
-| Mute Selective (v5, native Fast replay) | 259 (62.3%) | 15 | 12 |
-| **Mute Exchange (v8, selected cutoff)** | **298 (71.6%)** | **18** | **11** |
-| Mute Exchange, strict cutoff | 265 (63.7%) | 12 | 6 |
+| Mute Selective (v5) | 259 (62.3%) | 15 | 12 |
+| **Mute Exchange (v8, selected cutoff)** | **300 (72.1%)** | **19** | **12** |
+| Mute Exchange, strict cutoff | 261 (62.7%) | 10 | 5 |
 
 "False vs gallery" counts awards on moves missing from the captured Brilliant
 gallery. The gallery is slightly stale: Chess.com's review of the same games
 today awards 440 Brilliants, including 28 that are not in the gallery. The last
 column counts awards that neither reference accepts.
+
+**The Mute Selective study's own protocol.** A Mute Exchange model trained on
+the six development accounts alone, with no Witty_Alien move of any kind, scored
+on all 1,000 games with the same native evidence:
+
+| 1,000 games, 1,234 gallery Brilliants | Found | False vs gallery |
+| --- | ---: | ---: |
+| Mute Selective (v5) | 774 (62.7%) | 38 |
+| Mute Exchange, six-account model, medium cutoff | 876 (71.0%) | 58 |
+| Mute Exchange, six-account model, held to 38 false | 820 (66.5%) | 38 |
+
+That model is a research check, not the shipped one. The shipped model also
+learned from Witty_Alien games outside the 337.
 
 The owner's two reference sacrifices, both awarded Brilliant by Chess.com when
 reviewed there:
@@ -43,24 +60,30 @@ reviewed there:
 | Legal's Mate queen offer, 6.Ne5 | `!` | **`!!`** (score 0.92) |
 | Greek Gift, 12...Bxh2+ | `!?` | not awarded (score 0.59, cutoff 0.82) |
 
-The Greek Gift is a disclosed miss. The mover was already a piece ahead, and
-among the titled-player accounts the model learned from, Chess.com rarely awards
-Brilliant in that situation. Chess.com says it is more generous at lower
-ratings; this training data cannot teach that.
+Those two scores use research Stockfish 18 evidence; the owner's games have no
+archived native review. The Greek Gift is a disclosed miss. The mover was
+already a piece ahead, and among the titled-player accounts the model learned
+from, Chess.com rarely awards Brilliant in that situation. Chess.com says it is
+more generous at lower ratings; this training data cannot teach that.
 
 [Compact result record](../analysis/data/brilliants-exchange-2026-11-22.json) ·
 [published study](https://github.com/Dash1971/open-brilly-finder/tree/main/studies/brilliant-exchange-2026-11-22)
 
-### What has not been validated
+### What has and has not been validated
 
-- **No native Stockfish 19 replay has been run for this model.** Its training and
-  test evidence came from Stockfish 18 with fixed 200,000-node searches read
-  back at depth 12 with two root lines, which approximates Fast review but is
-  not the same engine or time control. A native Fast replay of the 337 games is
-  the outstanding check before deployment.
+- **Validated on saved native evidence.** The app's `classify()` with the v8
+  policy was run over the archived Stockfish 19 Fast windows for all 31,657
+  scored moves of the 1,000-game sample: no errors, and every `!!` decision
+  equal to the Python reference.
+- **Not validated with fresh searches or in a browser.** No new Stockfish 19
+  searches were run and no browser session was tested.
+- **Trained on a different engine.** The model was fitted on Stockfish 18
+  evidence (fixed 200,000-node searches read back at depth 12, two root lines).
+  It has never seen Stockfish 19 evidence in training. On the 337 games its
+  native and research-evidence scores correlate at 0.975 and share 289 awards.
 - The test account is a titled player and every training account is rated 2400+.
 - The features were designed with aggregate statistics that included the test
-  account, and other Witty_Alien games are in the training set.
+  account, and other Witty_Alien games are in the shipped model's training set.
 
 ## Exact classifier
 
@@ -98,11 +121,11 @@ No player identity, rating, game ID or Chess.com label is a runtime input.
 
 **Decision.** Mute Exchange decides from the completed current window alone. It
 does not require the previous iteration to agree and uses no confirmation
-searches. On the 337-game test, also requiring the previous iteration costs 10
-Brilliants and removes 2 false awards. It may award a move that the same engine
-lines would mark as an inaccuracy: gating on that removed 28 awards on the
-test, 26 of them genuine, because Chess.com's engine often prefers a different
-move from ours.
+searches. On the 337-game test with native evidence, also requiring the
+previous iteration costs 5 Brilliants and removes 2 false awards (295 and 17). It may award a move that the same engine
+lines would mark as an inaccuracy: on research evidence, gating on that removed
+28 awards on the test, 26 of them genuine, because Chess.com's engine often
+prefers a different move from ours.
 
 When the model does not award `!!`, En Croissant annotations keep their meaning
 and their confirmation rules, exactly as under v5. Accuracy and centipawn loss

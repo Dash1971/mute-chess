@@ -144,14 +144,14 @@ Chess.com's full formula is private; this is our own open implementation.
 
 On **337 Witty_Alien games** held out from training:
 
-- It recognized **298 of 416 Chess.com Brilliants (71.6%)**, up from 259 (62.3%)
+- It recognized **300 of 416 Chess.com Brilliants (72.1%)**, up from 259 (62.3%)
   for the previous classifier on the same games.
-- Of the **316 Brilliant badges it awarded, 298 matched Chess.com's gallery
-  (94.3%)**. Seven more are Brilliants in Chess.com's review today.
+- Of the **319 Brilliant badges it awarded, 300 matched Chess.com's gallery
+  (94.0%)**. Seven more are Brilliants in Chess.com's review today.
 
-Those results come from research engine settings close to Fast analysis, for
-one titled player's games; a replay with the site's own engine is still to be
-run, and results for other players and settings can differ.
+Both classifiers were scored on the site's saved Stockfish 19 Fast review
+output for those games. They are one titled player's games; results for other
+players and settings can differ, and no live browser test has been run.
 
 **[Read the illustrated research report](https://github.com/Dash1971/open-brilly-finder/blob/main/studies/brilliant-exchange-2026-11-22/REPORT.md)**
 for the method, results and what we want to improve next.

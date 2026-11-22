@@ -14,51 +14,46 @@
     "brilliants": 7806,
     "labels": "Chess.com Game Review label where a fresh review exists, otherwise the gallery label"
   },
-  "evidence": "Stockfish 18, one thread, fixed 200,000-node searches read back at depth 12 with two root lines; NOT native Stockfish 19 Fast output",
+  "evidence": "TEST: archived native Stockfish 19 1MB Fast review snapshots (depth 12 / 500 ms, two root lines) from the Mute Selective study, replayed through classify(). TRAINING: Stockfish 18, fixed 200,000-node searches read back at depth 12.",
   "results": {
-    "mute_selective_v5_native_fast": {
+    "mute_selective_v5": {
       "awards": 274,
       "found_gallery": 259,
       "false_vs_gallery": 15,
-      "found_todays_review": 260,
-      "false_vs_todays_review": 14,
-      "false_by_both": 12,
-      "cutoff": null
+      "false_by_both": 12
     },
     "mute_exchange_selected_medium": {
-      "awards": 316,
-      "found_gallery": 298,
-      "false_vs_gallery": 18,
-      "found_todays_review": 300,
-      "false_vs_todays_review": 16,
-      "false_by_both": 11,
+      "awards": 319,
+      "found_gallery": 300,
+      "false_vs_gallery": 19,
+      "false_by_both": 12,
       "cutoff": 0.8193002847777424
     },
+    "mute_exchange_medium_plus_previous_iteration": {
+      "awards": 312,
+      "found_gallery": 295,
+      "false_vs_gallery": 17,
+      "false_by_both": 10
+    },
     "mute_exchange_strict": {
-      "awards": 277,
-      "found_gallery": 265,
-      "false_vs_gallery": 12,
-      "found_todays_review": 269,
-      "false_vs_todays_review": 8,
-      "false_by_both": 6,
+      "awards": 271,
+      "found_gallery": 261,
+      "false_vs_gallery": 10,
+      "false_by_both": 5,
       "cutoff": 0.884087894158697
     },
     "mute_exchange_loose": {
-      "awards": 363,
-      "found_gallery": 331,
-      "false_vs_gallery": 32,
-      "found_todays_review": 338,
-      "false_vs_todays_review": 25,
+      "awards": 354,
+      "found_gallery": 324,
+      "false_vs_gallery": 30,
       "false_by_both": 19,
       "cutoff": 0.7206616707791499
     },
     "mute_exchange_very_strict": {
-      "awards": 182,
-      "found_gallery": 181,
-      "false_vs_gallery": 1,
-      "found_todays_review": 181,
-      "false_vs_todays_review": 1,
-      "false_by_both": 0,
+      "awards": 183,
+      "found_gallery": 180,
+      "false_vs_gallery": 3,
+      "false_by_both": 1,
       "cutoff": 0.949471678024081
     }
   },
@@ -70,7 +65,8 @@
       "chesscom": "Brilliant",
       "mute_selective": "!",
       "mute_exchange": "Brilliant",
-      "score": 0.916
+      "score": 0.916,
+      "evidence": "research Stockfish 18"
     },
     {
       "game": "bJPg3bse",
@@ -79,14 +75,51 @@
       "chesscom": "Brilliant",
       "mute_selective": "!?",
       "mute_exchange": "not awarded",
-      "score": 0.595
+      "score": 0.595,
+      "evidence": "research Stockfish 18"
     }
   ],
   "limits": [
-    "No native Stockfish 19 replay has been run for this model.",
+    "The model was trained on Stockfish 18 evidence and has never seen Stockfish 19 evidence in training.",
+    "No fresh native searches and no browser session were run; the test replays archived review snapshots.",
     "The test account is a titled player; every training account is rated 2400+.",
     "Features were designed with aggregate statistics that included the test account.",
-    "Other Witty_Alien games (not these 337) are in the training set."
+    "Other Witty_Alien games (not these 337) are in the shipped model's training set."
   ],
-  "study": "https://github.com/Dash1971/open-brilly-finder/tree/main/studies/brilliant-exchange-2026-11-22"
+  "study": "https://github.com/Dash1971/open-brilly-finder/tree/main/studies/brilliant-exchange-2026-11-22",
+  "results_research_stockfish18_evidence": {
+    "mute_exchange_selected_medium": {
+      "awards": 316,
+      "found_gallery": 298,
+      "false_vs_gallery": 18,
+      "false_by_both": 11
+    }
+  },
+  "all_1000_games_six_account_model_native_evidence": {
+    "note": "Research check: model trained on the six development accounts only; not the shipped model.",
+    "gallery_brilliants": 1234,
+    "mute_selective_v5": {
+      "awards": 812,
+      "found": 774,
+      "false_vs_gallery": 38
+    },
+    "mute_exchange_medium": {
+      "awards": 934,
+      "found": 876,
+      "false_vs_gallery": 58,
+      "cutoff": 0.8549045486915725
+    },
+    "mute_exchange_strict": {
+      "awards": 800,
+      "found": 771,
+      "false_vs_gallery": 29,
+      "cutoff": 0.9104123129470945
+    },
+    "mute_exchange_found_at_38_false": 820
+  },
+  "native_classify_replay": {
+    "scored_moves": 31657,
+    "errors": 0,
+    "brilliant_decisions_differing_from_python_reference": 0
+  }
 }
