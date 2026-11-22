@@ -366,3 +366,11 @@ The [arrow behavior feature page](arrow-behavior.md) documents each app's curren
 overlap order, Mute's retained Lichess tapering and classification-badge layering.
 The accompanying comparison captures use matching pieces and legal inputs. This
 is documentation only; it does not change either application's rendering policy.
+
+## Maia Lab (#337/#340)
+
+The **Maia Lab** action beside **Moves by Rating** opens the shared rating chart,
+Move map, candidate comparison and rule-based position descriptions. It is
+available on standalone and post-game analysis boards and in puzzle review.
+See the [Maia Lab guide](maia-lab.md) for the current controls, metric explanations,
+browser-only evidence requirements and shared-component implementation notes.
