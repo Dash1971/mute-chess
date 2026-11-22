@@ -1,5 +1,23 @@
 # Native analysis and premove extensions
 
+## maiachess.com frontend attribution
+
+[maiachess.com](https://www.maiachess.com/) and its
+[CSSLab/maia-platform-frontend](https://github.com/CSSLab/maia-platform-frontend)
+repository (GPL-3.0) contribute analysis-interface references independently of
+the [CSSLab/maia3](https://github.com/CSSLab/maia3) engine and model attribution.
+Mute's Moves by Rating, candidate-quality colors and rule-based Maia Lab
+descriptions adapt frontend sources; the Move map is inspired by its retained
+MoveMap component.
+
+Exact chart/color source versions are documented below and in the
+[source audit](../docs/maia-rating-chart.md). Maia Lab descriptions use revision
+`15cef70619bbd7d70c5b0575af3bcf907aeed62c`; original files, the GPL license and
+adaptation notes are retained in
+[third-party/maia-platform-descriptions](../third-party/maia-platform-descriptions/README.md).
+See the [Maia Lab guide](../docs/maia-lab.md) for behavior and differences from
+the upstream site.
+
 ## November 2 Mute-only brilliant experiment (#221)
 
 The owner chose a more generous Mute Chess `!!` policy while keeping Mobile Maia
