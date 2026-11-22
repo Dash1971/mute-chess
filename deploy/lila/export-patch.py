@@ -3,6 +3,7 @@
 import argparse
 import importlib.util
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -37,9 +38,10 @@ def export_patch(pin, source=None):
     with tempfile.TemporaryDirectory(prefix="mute-native-export-") as directory:
         root = Path(directory)
         git = ["git", "-c", "core.autocrlf=false", "-C", str(root)]
+        env = dict(os.environ, GIT_LFS_SKIP_SMUDGE="1")
 
         def run(*args):
-            return subprocess.run(git + list(args), check=True, stdout=subprocess.DEVNULL)
+            return subprocess.run(git + list(args), check=True, stdout=subprocess.DEVNULL, env=env)
 
         run("init", "--quiet")
         # Git's automatic abbreviation grows with the object database. The

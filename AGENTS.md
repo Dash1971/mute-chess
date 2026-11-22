@@ -9,6 +9,9 @@ fast-forward-only upstream mirror; never commit to it. Merge upstream into
 native `main`, never rebase or force-push deployed history. Urgent upstream
 security fixes use `git cherry-pick -x`.
 
+Native application changes are frozen during the phase-1 bootstrap until #363's
+companion migration PR merges. The approved GitHub test file is metadata only.
+
 `deploy/lila/native-pin.json` pins the native fork commit and upstream base.
 `deploy/lila/patches/lila-nostr-maia.patch` is now a generated compatibility
 artifact: regenerate it with `python3 deploy/lila/export-patch.py --output

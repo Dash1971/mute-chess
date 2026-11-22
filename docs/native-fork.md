@@ -24,6 +24,10 @@ companion PR here to bump `deploy/lila/native-pin.json`, regenerate the patch,
 and carry integration/documentation changes. The companion PR closes the issue.
 Adapter-only changes still need only a PR here.
 
+The fork improves three-way merging and review; conflicts still need human
+decisions. `cherry-pick -x` records a fix's source, rather than guaranteeing a
+conflict-free later merge. Upstream changes remain separate reviewed work.
+
 ## The phase-1 compatibility patch
 
 The three pin fields are `repository`, `commit` and `upstreamBase`, with full
@@ -39,6 +43,7 @@ that disposable checkout's index to the upstream base, and calls the existing
 `native-source.patch_for` serializer. It does not reset or modify the caller's
 checkout. `--source /path/to/native/repository` reuses commits fetched by CI or
 an offline check; that repository must contain both pinned commits.
+Checkout skips LFS smudging so a source export does not download engine networks.
 
 CI exports the pinned fork and compares the output byte for byte with the
 committed patch before building/testing the native UI. The existing native
