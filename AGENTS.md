@@ -1,5 +1,29 @@
 # Mute Chess implementation direction
 
+## Native source of truth: Lila fork (phase 1, #362/#363)
+
+Native application changes belong in `Dash1971/lila`, through pull requests
+against its `main` branch. Preserve the existing NoSweat namespaces and keep
+edits to upstream files to small hooks. The fork's `master` is an untouched,
+fast-forward-only upstream mirror; never commit to it. Merge upstream into
+native `main`, never rebase or force-push deployed history. Urgent upstream
+security fixes use `git cherry-pick -x`.
+
+`deploy/lila/native-pin.json` pins the native fork commit and upstream base.
+`deploy/lila/patches/lila-nostr-maia.patch` is now a generated compatibility
+artifact: regenerate it with `python3 deploy/lila/export-patch.py --output
+deploy/lila/patches/lila-nostr-maia.patch`; never edit it by hand. Native PRs
+reference the Mute issue; the companion PR here bumps the pin, regenerates the
+patch and carries any adapter/documentation changes, closing the issue.
+
+The owner approved one phase-1 tree exception on November 23: the fork-only
+`.github/workflows/mute.yml` test file is excluded from the application export.
+No other source path is exempt. Phase 1 preserves every application file and
+the exact patch bytes. Installation, release metadata, departure registration
+and host-monitor identity remain unchanged until separately reviewed phase 2.
+See [the fork contract](docs/native-fork.md). No upstream update or deployment
+is authorized by this migration PR.
+
 ## Next application release: fast-xml-parser (#318)
 
 Owner instruction, November 19, 2026: include #318's reviewed fast-xml-parser

@@ -2,6 +2,21 @@
 
 Owner decision, October 30, 2026: Mute Chess is a maintained adaptation of Lichess, not an independently maintained replacement for its server. Keep upstream behavior wherever our defined product differences do not require a change. This rule applies to every feature and fix, including bot infrastructure.
 
+## Native Git history (#362/#363)
+
+The native source of truth is [Dash1971/lila](https://github.com/Dash1971/lila),
+pinned by [`native-pin.json`](../deploy/lila/native-pin.json). Native changes
+are reviewed there; the companion PR here bumps the pin and regenerates the
+compatibility patch using `deploy/lila/export-patch.py`. Never hand-edit that
+generated patch. The adapter, deployment and feature documentation stay here.
+
+Phase 1 changes how the source is carried, without changing application files,
+the installer, release metadata or the departure register. The sole approved
+tree exception is the fork's GitHub test file, `.github/workflows/mute.yml`;
+it is omitted from the application export. See [history, equality evidence and
+the development workflow](native-fork.md). The existing small WebSocket,
+Redis and GIF patches remain patches.
+
 ## Supported differences
 
 - Maia analysis and the approved Mobile Maia / En Croissant analysis additions,
@@ -46,10 +61,10 @@ The register uses complete source paths within the [native patch](../deploy/lila
 
 ## Updating upstream
 
-1. Record old/new upstream commits and review release notes and intervening changes for affected areas. Update the register, build instructions and CI pins together.
-2. Apply our patches to a clean checkout of the new revisions. Resolve each conflict against its documented reason, adopt new native equivalents, and remove obsolete hunks and register entries. Do not restore an old fork implementation over a native fix without explaining why.
-3. Reconstruct and compare the complete patch, retain license/source provenance, and run native formatting/compilation plus affected native UI, adapter and integration checks. Exercise login, pairing, clocks, results/ratings, premoves, analysis, profiles and reconnect behavior as relevant.
-4. Review in GitHub, merge to the one permanent `main` branch, then build and deploy that exact verified revision with the existing backup and live-game protections. Record both upstream revisions and the native patch hash in the release metadata.
+1. Record old/new upstream commits and review intervening changes. Fast-forward the fork's untouched `master` mirror, then **merge** the selected upstream commit into native `main` through a reviewed PR. Never rebase or force-push native history. The owner selected a two-week cadence after the first upstream merge (#365); phase 1 performs no upstream merge or scheduling change.
+2. Resolve conflicts against each departure's documented reason, adopt native equivalents, and remove obsolete hooks. Record the reason when declining an upstream change. Keep new behavior in namespaced files and edits to upstream files small; avoid reformatting or whole-file rewrites. Urgent security backports use `git cherry-pick -x` so their provenance is retained.
+3. Run the fork's `mute.yml` native checks and affected integration checks. Exercise login, pairing, clocks, results/ratings, premoves, analysis, profiles and reconnect behavior as relevant. Preserve licenses and exact source provenance.
+4. Open the companion PR here to update `native-pin.json`, regenerate the compatibility patch, and update the register/build documentation for an upstream-base change. Pass this repository's checks before merging. Build and deploy verified Mute `main` through the existing release procedure; phase 1 retains both upstream revisions and the native patch hash in release metadata.
 
 An upstream update is its own reviewed change. Do not mix a broad upstream rebase into an unrelated feature PR.
 
