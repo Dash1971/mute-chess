@@ -5,7 +5,7 @@ question and then lets a trained model answer the rest:
 
 1. **Is a piece really on offer?** After the move, can the opponent capture a
    knight, bishop, rook or queen and come out at least two points ahead on that
-   square? Only about 8% of moves pass. In our data this simple test covers
+   square? About 12% of moves pass. In our data this simple test covers
    8,290 of 8,295 Chess.com Brilliants.
 2. **Would Chess.com call it Brilliant?** A model trained on Chess.com's own
    Game Review labels scores the candidate from board facts and the engine
