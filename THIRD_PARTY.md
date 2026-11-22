@@ -66,7 +66,19 @@ AGPL Mobile Maia opening/phase presentation references.
 
 The Mute-only `mute-chess-brilliant-v1` experiment intentionally changes `!!` eligibility from the retained EC baseline. Mobile Maia and the independent En Croissant references remain unchanged; see [the exact algorithm and comparison](docs/brilliant-moves.md). Existing licenses and attribution continue to apply.
 
-Maia Lab's rule-based descriptions adapt CSSLab/maia-platform-frontend revision
+## maiachess.com analysis frontend
+
+[maiachess.com](https://www.maiachess.com/) is credited separately from the
+Maia3 engine and model sources above. Its
+[CSSLab/maia-platform-frontend](https://github.com/CSSLab/maia-platform-frontend)
+repository is GPL-3.0 and supplies the Moves by Rating references,
+candidate-quality colors, adapted position-description logic and Move map
+inspiration used in Mute Chess's native analysis interface. The retained source
+versions and adaptations are recorded in [analysis provenance](analysis/PROVENANCE.md),
+[candidate-quality references](third-party/maia-platform-quality/README.md) and
+[position-description references](third-party/maia-platform-descriptions/README.md).
+
+Maia Lab's rule-based descriptions adapt that frontend's revision
 `15cef70619bbd7d70c5b0575af3bcf907aeed62c`, GPL-3.0. Original generator/context
 source, license and adaptation notes are retained in
 [third-party/maia-platform-descriptions](third-party/maia-platform-descriptions/README.md).

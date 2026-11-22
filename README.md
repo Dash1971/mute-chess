@@ -107,6 +107,10 @@ Open **Maia Lab** beside **Moves by Rating** to explore a position in more detai
 It is available on the analysis board, in post-game analysis, and after a puzzle
 has reached review.
 
+Maia Lab builds on [maiachess.com](https://www.maiachess.com/) and its
+[open-source frontend](https://github.com/CSSLab/maia-platform-frontend), including
+adapted position-description logic and inspiration for the Move map.
+
 Compare six or eight candidate moves and slide the Maia rating from **600 to
 2600**. **Moves by rating** shows how their popularity changes; **Move map** puts
 Maia's likely choices beside Stockfish's assessment of their strength. A short
@@ -249,10 +253,21 @@ device.
 Mute Chess is noncommercial and licensed under the
 [GNU Affero General Public License v3.0](LICENSE).
 
-The project builds on [Lichess](https://github.com/lichess-org/lila),
-[Maia](https://github.com/CSSLab/maia3),
-[Stockfish](https://github.com/official-stockfish/Stockfish), and other free and
-open-source work. Upstream licenses, notices, and source attribution are retained.
+The project builds on these distinct upstream contributions:
+
+- [Lichess/Lila](https://github.com/lichess-org/lila): the native chess interface,
+  rules, clocks, ratings and game review.
+- [Maia3](https://github.com/CSSLab/maia3): the engine and models behind human-like
+  play and move predictions.
+- [maiachess.com](https://www.maiachess.com/) and its
+  [Maia platform frontend](https://github.com/CSSLab/maia-platform-frontend)
+  (GPL-3.0): Moves by Rating references, candidate-quality colors, adapted
+  position descriptions and Move map inspiration.
+- [Stockfish](https://github.com/official-stockfish/Stockfish): engine evaluations
+  and strong-move analysis.
+
+Upstream licenses, notices, and source attribution are retained for these and
+other free and open-source components.
 
 See [third-party notices](THIRD_PARTY.md),
 [analysis source provenance](analysis/PROVENANCE.md), and the

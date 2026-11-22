@@ -7,6 +7,13 @@ strong. Open **Maia Lab** beside **Moves by Rating** on the
 [analysis board](https://mutechess.org/analysis), in post-game analysis, or in puzzle
 **review**. It is unavailable while you are still solving a puzzle.
 
+We credit [maiachess.com](https://www.maiachess.com/) and its
+[GPL-3.0 frontend repository](https://github.com/CSSLab/maia-platform-frontend)
+for the adapted position-description logic and analysis-interface references,
+including inspiration from its MoveMap component. The
+[Maia3 engine and models](https://github.com/CSSLab/maia3) supply the move
+predictions. These are separate upstream repositories and contributions.
+
 1. Pick a position on the analysis board, then open **Maia Lab**.
 2. Use **Show candidates** to compare six or eight moves. The list includes the
    best evaluated moves as well as Maia's likely choices.
@@ -99,7 +106,8 @@ scale is a documented adaptation of upstream's retained MoveMap component.
 
 ## Position descriptions
 
-The rule-based summaries adapt [Maia's GPL source](../third-party/maia-platform-descriptions/README.md),
+The rule-based summaries adapt
+[maiachess.com's frontend source](../third-party/maia-platform-descriptions/README.md),
 not an LLM. They consider all 21 rating levels, identify tempting blunders,
 list up to three similar-strength continuations, describe the overall outcome
 and indicate how often an acceptable move is the model's first choice. They do
