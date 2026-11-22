@@ -99781,10 +99781,10 @@ index 0000000..23a2245
 +});
 diff --git a/ui/analyse/tests/noSweatBrilliants.test.ts b/ui/analyse/tests/noSweatBrilliants.test.ts
 new file mode 100644
-index 0000000..d76eb5e
+index 0000000..8973618
 --- /dev/null
 +++ b/ui/analyse/tests/noSweatBrilliants.test.ts
-@@ -0,0 +1,155 @@
+@@ -0,0 +1,156 @@
 +import assert from 'node:assert/strict';
 +import { readFileSync } from 'node:fs';
 +import { test } from 'node:test';
@@ -99918,7 +99918,7 @@ index 0000000..d76eb5e
 +  assert.equal(into.glyphs?.[0].id, 2);
 +  const clean = { ...nodes[1] } as TreeNodeLite;
 +  mergeReviewData(clean, from);
-+  assert.equal(clean.glyphs?.[0].source, 'mute-chess-brilliant-v5');
++  assert.equal(clean.glyphs?.[0].source, 'mute-chess-brilliant-v8');
 +});
 +
 +test('every computed policy generation protects manual and native judgments', () => {
@@ -99929,6 +99929,7 @@ index 0000000..d76eb5e
 +    'mute-chess-brilliant-v3',
 +    'mute-chess-brilliant-v4',
 +    'mute-chess-brilliant-v5',
++    'mute-chess-brilliant-v8',
 +  ]) {
 +    const into = { ...nodes[1], glyphs: [{ id: 2, symbol: '?', name: 'Manual mistake' }] } as TreeNodeLite;
 +    const from = { ...nodes[1], glyphs: [{ ...brilliantGlyph(), source }] } as TreeNodeLite;
