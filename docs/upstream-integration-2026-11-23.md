@@ -76,7 +76,20 @@ and replies, watcher permissions, private player-URL isolation and finished-game
 removal also passed, using the current supported subset of the older community
 fixture (which still contained retired study functionality).
 
-Final native CI, browser captures and private-page results are recorded below when
-complete. CI links identify the exact tested commit rather than an earlier green
-run. No human acceptance testing, live donation payment, full puzzle-catalog
+[Browser captures and observed results](screenshots/upstream-2026-11-23/README.md)
+cover desktop/narrow home, custom clock minimum, profile help, Nostr login,
+puzzle solving/review, standalone/terminal analysis, completed post-game review,
+classification navigation, badges/arrows, shared Maia Lab and Arena discovery.
+The private pages loaded successfully. Full local review completed on both a
+real disposable game and an imported standalone line; both native accuracy and
+the Mute six-class summary appeared.
+
+[Native CI for the pinned candidate](https://github.com/Dash1971/lila/actions/runs/45112756403)
+and [current companion checks](https://github.com/Dash1971/mute-chess/pull/372/checks)
+are the authoritative final check status. CI includes all ten locale rendering
+regressions, native security/access tests and the new local-review JSON tests.
+Both browser-build workflows perform a second build with warm translation caches.
+The private local stage was built from this source before its final commit;
+its embedded Git version was c3a31496, while the committed source is c1f6f3a6.
+The candidate must be rebuilt from the final pin for any later authorized release. No human acceptance testing, live donation payment, full puzzle-catalog
 performance run or deployment security verification is claimed by this document.
