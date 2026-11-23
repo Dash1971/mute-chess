@@ -52,7 +52,9 @@ status entries are:
 Generated `ui/@types/lichess/i18n.d.ts` is **not** an ignored source edit. The UI
 build retains its generated declaration as evidence, validates its Mute keys
 against the native source catalog and the unchanged bootstrap declarations, then
-restores that one generated file before source verification. Unexpected edits
+restores that one generated file before source verification. Before each UI
+build, remove this checked bootstrap file so Lila regenerates the types even
+when its translation JavaScript cache is warm. Unexpected edits
 fail instead of being reset. The generated `conf/version.conf` is already ignored
 by upstream; runtime configuration and secrets remain outside Git/source archives.
 
