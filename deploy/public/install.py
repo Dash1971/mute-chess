@@ -125,6 +125,10 @@ shutil.copytree(dev / 'sources/lila/target/universal/stage/lib', release / 'lila
 shutil.copytree(dev / 'sources/lila-ws/target/universal/stage/lib', release / 'ws/lib')
 shutil.copytree(payload / 'lila-adapter', release / 'lila-adapter')
 shutil.copytree(payload / 'nosweat', release / 'lila/public/nosweat', dirs_exist_ok=True)
+subprocess.run([str(checker), str(payload / 'lila-adapter/stage-catalog.mjs'),
+                str(release / 'lila')], check=True)
+subprocess.run([str(checker), str(payload / 'lila-adapter/stage-catalog.mjs'),
+                '--verify', str(release / 'lila')], check=True)
 shutil.copy(payload / 'gateway.mjs', release / 'gateway.mjs')
 shutil.copy(payload / 'RELEASE.json', release / 'RELEASE.json')
 (release / 'RELEASE.json').chmod(0o644)

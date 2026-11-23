@@ -71,6 +71,14 @@ candidate and validation evidence.
 
 An upstream update is its own reviewed change. Do not mix a broad upstream merge into an unrelated feature PR.
 
+The native fork's existing `mute.yml` publishes a read-only upstream drift
+summary on Mondays at 09:17 Asia/Tokyo and on PR/push/manual runs (#365).
+It records the fork, upstream and merge-base commits, unique conflicted paths,
+modified upstream file/line counts and added Mute files separately. Scheduled
+runs omit the full UI/Scala jobs; normal PR/push/manual checks remain. History
+or Git errors fail the report instead of claiming zero conflicts. Reports live
+in the GitHub Actions run summary; no branch is merged or pushed automatically.
+
 ## Bounded native bot trial (#80)
 
 The owner explicitly approved public bot-versus-bot rating games, retained in

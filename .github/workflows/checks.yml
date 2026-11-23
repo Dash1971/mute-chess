@@ -85,8 +85,6 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24.22.1
-      - name: Native and adapter catalogs agree
-        run: node lila-adapter/validate-catalog.mjs /tmp/lila
       - name: Build and test the native board and analysis extensions
         working-directory: /tmp/lila
         run: |

@@ -53,6 +53,15 @@ The installer copies staged Java libraries and builds an independent Python
 environment. The external model is SHA-256 verified. Keep keys and data out of
 the payload and source archive.
 
+Managed catalog data comes from the payload's `lila-adapter`: the installer
+runs `stage-catalog.mjs` on the assembled release, then verifies both generated
+JSON files against those same canonical inputs. Source-only native builds stay
+clean; the fork no longer contains a second roster or alias map. Custom release
+packaging must perform the same stage/verify calls on its assembled `lila` root
+before activation. Missing or invalid runtime catalog files fail closed before
+managed-bot initialization. This changes file delivery, not account IDs, names,
+playing policies, seeding, earned ratings or history.
+
 The fresh Mongo database is `nosweat` on loopback port 27019. Apply upstream
 `lila/bin/mongodb/indexes.js` and this directory's guarded `indexes.js` before
 accepting logins. Redis is on 16380. Native HTTP/WS/adapter ports are

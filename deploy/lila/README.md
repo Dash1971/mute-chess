@@ -112,6 +112,14 @@ node ui/test premove promotion boardAnalysis pgnExport nodePGN winningChances
 ```
 
 The private environment exposes development surfaces and must remain private.
+After the clean native build/source checks, stage the managed runtime catalog
+with `node /path/to/mute-chess/lila-adapter/stage-catalog.mjs "$PWD/sources/lila"`
+from the development directory. It derives the same 10,000 records
+and public aliases from the adapter inputs; the fork no longer carries duplicate
+JSON. Remove only `public/nosweat-roster.json` and
+`public/nosweat-bot-aliases.json` from that private checkout after stopping the
+fixture stack and before the next source verification. Release packaging stages
+them into the assembled release instead; see `../public/README.md`.
 The `../../lila-adapter` sidecar uses `npm ci`, the pinned external model and
 `configure-adapter.py`/`start-adapter.sh`. Initialize `lila-adapter/indexes.js`
 only on its explicitly guarded development database. Run its Node and Python
