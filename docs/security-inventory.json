@@ -9,8 +9,8 @@
       "commit": "b071608bc4ce71b31cda36ffa493100e3dc3580f",
       "fork": {
         "repository": "https://github.com/Dash1971/lila",
-        "commit": "27eed2353bb0a4fa74cda0defd7bcaaeb5da188e",
-        "tree": "7d8d933cb77f19f2f7be6550ffe0a05ff307c2fb"
+        "commit": "2499fbc8971679eabcfa308cfeda51e3ec2afae3",
+        "tree": "c4fed962b68d51abd40c005c066426bea8eeacd0"
       },
       "securityBackports": [
         {
