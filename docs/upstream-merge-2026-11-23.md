@@ -1,5 +1,9 @@
 # Upstream merge trial — 23 November 2026
 
+**Historical trial:** conflicts have since been resolved in the
+[separate integration report](upstream-integration-2026-11-23.md). The measurements
+and unresolved-state statements below describe the original trial.
+
 This is the first, report-only stage of [#365](https://github.com/Dash1971/mute-chess/issues/365).
 The isolated trial reproduced **48 conflicted files and 69 text-conflict hunks**.
 No conflicts have been resolved and the merged application has not been compiled,

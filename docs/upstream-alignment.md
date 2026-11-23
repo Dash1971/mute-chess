@@ -183,3 +183,7 @@ versioned compatibility and unchanged self/history/sampling/timing controls.
 
 
 Security maintenance #279 also aligns existing jsoup/Guava/Jakarta Mail dependencies and the native browser/build graph while retaining upstream pins. See [the maintained version inventory](security-inventory.json) and [advisory review instructions](security-maintenance.md). Update this inventory and verify staged/runtime versions whenever changing private runtimes or security overrides.
+
+The first resolved native-history integration is documented in the [23 November
+2026 integration report](upstream-integration-2026-11-23.md), with the original
+trial, resolution decisions and exact candidate validation.
