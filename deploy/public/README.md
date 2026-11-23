@@ -45,8 +45,10 @@ to `PAYLOAD/requirements.txt`), BUILD.md, LICENSE,
 THIRD_PARTY.md, the complete `third-party` directory and deployment scripts.
 Include the pinned renderer artifact at `PAYLOAD/gif-renderer`, with official
 source, exact moss-theme overlay and verified build receipt described in
-[gif-renderer.md](gif-renderer.md). Keep the renderer build receipt with the matching release; the original
-active-study hold is historical, not a current release restriction.
+[gif-renderer.md](gif-renderer.md). Keep the renderer build receipt with the matching release.
+Renderer build and installation follow the owner's current release authorization;
+this guide does not lift any active hold. The October 31 study restriction remains
+recorded in the [dated owner decision](../../docs/decisions/analysis-and-learning.md#native-analysis-board-export-and-initial-import-october-31-2026).
 Include `design/quiet-signal` and `design/logo-explorations/final` (excluding
 `node_modules` and Python environments). The installer checks for the brand sources
 before preparing a release and includes them with the corresponding-source archive.
@@ -145,7 +147,9 @@ not provide continuous disaster recovery.
 
 Read-only release rollback: stop app/WS/adapter/gateway, select the previous
 known-good `current` symlink, then restart. Review schema compatibility first.
-Drain games before planned restarts; never fabricate results or reset game records.
+Drain games before planned restarts. At application startup, unfinished managed
+Maia games are voided with `application_restart`; an unplanned restart therefore
+does not resume those games. Never fabricate results or reset game records.
 Inspect `journalctl -u nosweatchess-app` and the other units; HTTP request logging
 is disabled. The public source archive includes exact upstream trees and our
 patches, with build instructions and licenses, but no accounts, keys or backups.
