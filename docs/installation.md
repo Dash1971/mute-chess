@@ -62,7 +62,7 @@ java -version
 
 sudo python3 -m venv /opt/club-maia/venv
 sudo /opt/club-maia/venv/bin/python -m pip install \
-  -r "$MUTE_REPO/worker/requirements.txt"
+  -r "$MUTE_REPO/lila-adapter/requirements.txt"
 
 bash "$MUTE_REPO/deploy/lila/prepare-host.sh" "$MUTE_DEV"
 export PATH="$MUTE_DEV/tools/pnpm/node_modules/.bin:$PATH"
@@ -72,7 +72,7 @@ export PATH="$MUTE_DEV/tools/pnpm/node_modules/.bin:$PATH"
 installs the pinned pnpm and mongosh packages, and extracts the distribution's
 Redis packages into the local tools directory. It does not require a shared
 MongoDB or Redis service. Keep the Python dependency versions in
-[`worker/requirements.txt`](../worker/requirements.txt).
+[`lila-adapter/requirements.txt`](../lila-adapter/requirements.txt).
 
 ## 3. Fetch and verify the native fork; patch WebSockets
 
