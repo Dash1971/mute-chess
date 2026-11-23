@@ -1,0 +1,1423 @@
+{
+  "schemaVersion": 1,
+  "kind": "unresolved-upstream-merge-trial",
+  "collectedAtUTC": "2026-11-23T02:39:37.672853+00:00",
+  "gitVersion": "git version 2.53.0",
+  "forkRepository": "https://github.com/Dash1971/lila",
+  "upstreamRepository": "https://github.com/lichess-org/lila",
+  "forkCommit": "335cc0ac04d3c7e5ad8a527c84c3551b206620a9",
+  "forkTree": "4e5bf5bb963f86c50451e03590f17eb9d3603658",
+  "upstreamCommit": "b071608bc4ce71b31cda36ffa493100e3dc3580f",
+  "mergeBase": "b551752d2a0e7a63459d9812825d95a633a98737",
+  "upstreamCommitsAhead": 686,
+  "upstreamChangedFiles": 1868,
+  "forkChangedFilesIncludingWorkflow": 475,
+  "forkApplicationChangedFiles": 474,
+  "applicationFilesChangedOnBothSides": 137,
+  "conflictedFiles": 48,
+  "textConflictHunks": 69,
+  "conflictKinds": {
+    "content": 45,
+    "upstream-delete/ours-modify": 3
+  },
+  "rerereEnabled": true,
+  "rerereAutoupdate": false,
+  "conflicts": [
+    {
+      "path": "app/controllers/Account.scala",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        53
+      ],
+      "departureArea": "nostr-and-public-profiles",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "27a9f7da975bd396d2d1d05f8601fa36c3840675"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "82ae5caafedebe726af142bed0ad7e04255653d9"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "ab51359d2441d042eafca6af74db4b518b56ca60"
+        }
+      }
+    },
+    {
+      "path": "app/controllers/Api.scala",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        143
+      ],
+      "departureArea": "tournament-export-and-relay-security",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "d78890c04c9510a96e8b15b6e03739fe75c79ea0"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "bbf4e00781a44ea8414da4c7ece8f5065526d068"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "f369f3bef06f384604d664b0fee93a1585fd8cab"
+        }
+      }
+    },
+    {
+      "path": "app/controllers/Challenge.scala",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        100
+      ],
+      "departureArea": "focused-feature-surface",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "cfd1602bfe8fc7c1d7f245f7d00fe1dec3fc3f83"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "c4c096a5d6e148ba0c396d21bc682ec574ea3d82"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "2f7e93e479355ceca2cadbba76bbe0c84f8c0ff1"
+        }
+      }
+    },
+    {
+      "path": "app/controllers/Importer.scala",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        25
+      ],
+      "departureArea": "focused-native-features",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "ede74af3cf32b3eb966e078a2076b7dbcab753be"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "d872a6df789aedbb4027ea33193ec5b700b2f6d6"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "e44b10a305785c8ff9fc24e751196dde62d68bd9"
+        }
+      }
+    },
+    {
+      "path": "app/controllers/Insight.scala",
+      "kind": "content",
+      "textHunks": 3,
+      "markerStartLines": [
+        13,
+        36,
+        87
+      ],
+      "departureArea": "basic-insights-and-unsupported-navigation",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "d8ed52411b0009fde81b5a27ea3ef47aeb2fba97"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "863412207c93cb6418c11e077315c715cf482403"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "860269affa8c3e0ad97966a54c4ff8c4a39a78ea"
+        }
+      }
+    },
+    {
+      "path": "app/controllers/Study.scala",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        293
+      ],
+      "departureArea": "study-private-chapter-config",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "638f3c90842e985bbce4baf652bd27ea61e5e0bf"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "f7351b64c21fa6a3b13a4758a8670cfa8d032518"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "80a4054b947328c6ef3883ba4bb1c67d3db35758"
+        }
+      }
+    },
+    {
+      "path": "app/controllers/Tournament.scala",
+      "kind": "content",
+      "textHunks": 3,
+      "markerStartLines": [
+        340,
+        544,
+        600
+      ],
+      "departureArea": "owner-hosted-arena",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "383bbdbdcacd1634ff62e6c05a206574e291c0ac"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "fced58642a5b27afaeed75670c65ba38e78db222"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "382a9d35fdb29b8b43b73cacc8b785051758c994"
+        }
+      }
+    },
+    {
+      "path": "app/http/ErrorHandler.scala",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        23
+      ],
+      "departureArea": "maia-bot-pool",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "efaa98c02ede9226b99c9195dc03aae23970d5a0"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "4b6b8e5a2c53cb0f16c9b5963abc8ce47e659b19"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "a1b6a4818480a39b09b70863ebfaaa709e3c2251"
+        }
+      }
+    },
+    {
+      "path": "app/http/HttpRequestHandler.scala",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        18
+      ],
+      "departureArea": "application-wiring",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "a6875eb16ec8006bcdd8b3377a25610186c4a689"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "cb262693ef1c46d49676e49b79f34c1816b7f537"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "0e3ab22cb530fcd9f68ffa25434462044146b93b"
+        }
+      }
+    },
+    {
+      "path": "app/http/RequestContext.scala",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        45
+      ],
+      "departureArea": "supported-localization",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "aca6782bebc8ecc13b4fc9275331fc27150b50b4"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "525ec4d4ad5af3c15f65f1472a03391039106aca"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "2bc870821904b72d6162fdc4560a9d752dd97446"
+        }
+      }
+    },
+    {
+      "path": "app/views/base/page.scala",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        96
+      ],
+      "departureArea": "branding-and-layout",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "b408a91ee122d011e9d2c4e9a4df4cd59e723116"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "e1c909a1f0772ee53c6664671dd3950308c63259"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "083fb38551950a90bad67d18741d443712e26956"
+        }
+      }
+    },
+    {
+      "path": "app/views/insight.scala",
+      "kind": "upstream-delete/ours-modify",
+      "textHunks": 0,
+      "markerStartLines": [],
+      "departureArea": "basic-insights-and-unsupported-navigation",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "625c94445859c1c5060d842c3a1ec23c3f63cf76"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "0890d6fe0e93e431975f330618aaa1f0346d311c"
+        }
+      }
+    },
+    {
+      "path": "app/views/lobby/home.scala",
+      "kind": "upstream-delete/ours-modify",
+      "textHunks": 0,
+      "markerStartLines": [],
+      "departureArea": "focused-native-features",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "2db52a94abe3827aade0cada8835032e635dd75d"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "ffea0d5e9389961767983fb1fd91cc9fa48dce6b"
+        }
+      }
+    },
+    {
+      "path": "app/views/study.scala",
+      "kind": "content",
+      "textHunks": 2,
+      "markerStartLines": [
+        8,
+        42
+      ],
+      "departureArea": "branding-and-layout",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "692c27c921b03e7aca55b66bcec296a2b660df02"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "fa8ae339b163e45070bd946ffdbf065ec90a2201"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "c6b3fc2b6e6e1537a6b401cd7f8f3ad4f906dc06"
+        }
+      }
+    },
+    {
+      "path": "bin/package.json",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        7
+      ],
+      "departureArea": "security-dependency-alignment",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "aaa0f5996208ddc7e60f746f50de8d2306d2c16e"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "1adbef09efb0ff5b95f068fe8a0543e0d585894b"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "e4fbca7311389ec84361db822611b7b6a6d8fca9"
+        }
+      }
+    },
+    {
+      "path": "modules/analyse/src/main/ui/AnalyseUi.scala",
+      "kind": "content",
+      "textHunks": 2,
+      "markerStartLines": [
+        11,
+        21
+      ],
+      "departureArea": "maia-analysis-and-review",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "2fde85caabffd49a04ed1d03e3902067fae4dc5f"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "b009933c5e6675c882563c6d344a2b1390ba37d5"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "bea10c60ab05cdd9ca09f88e372760ac13b11565"
+        }
+      }
+    },
+    {
+      "path": "modules/markdown/src/main/MarkdownRender.scala",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        129
+      ],
+      "departureArea": "markdown-parser-error-escaping",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "d9d8540585ad8b0f36ceb81d32d3906eb1d13948"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "2dfdbdbef56a8410e6b0b295d70fd1e264f5c8dc"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "7439dc5eba3cdfe0d65f60b51885e2294009e718"
+        }
+      }
+    },
+    {
+      "path": "modules/relay/src/main/RelayRoundForm.scala",
+      "kind": "content",
+      "textHunks": 3,
+      "markerStartLines": [
+        4,
+        220,
+        233
+      ],
+      "departureArea": "tournament-export-and-relay-security",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "d7b3c5e5757b3d7afbabce67ade5094d099ba671"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "f1f1b24fbd2dfb0b9d0fa227afd45c74603de750"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "ee128043ee9f5894c18eb83beb0eeed1abf62270"
+        }
+      }
+    },
+    {
+      "path": "modules/tournament/src/main/TournamentApi.scala",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        171
+      ],
+      "departureArea": "owner-hosted-arena",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "012d0f4f0e8c851b21c24f810fc2f0dfda5423a1"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "f9138a178eee61e334f63f869683be15a746f1e1"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "c476f2e0588412ed2940623c69f2f36bd951efef"
+        }
+      }
+    },
+    {
+      "path": "modules/tv/src/main/TvUi.scala",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        77
+      ],
+      "departureArea": "focused-native-features",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "2303c7de917aef23fb0297255076ee7776d46bbe"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "302c7a45c6e9f0b9cb262fbf1d084f3bcb8c6ff7"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "e800e487273daa1571c1c9d58618de572ef53533"
+        }
+      }
+    },
+    {
+      "path": "modules/ublog/src/main/ui/UblogPostUi.scala",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        7
+      ],
+      "departureArea": "focused-native-features",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "b4c4ae7497b1c1ad52fbf0ade894bb21e7c5d450"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "b153a0b5913dd2aa17558a8b92ba31471658c3df"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "c631d955c7d96b847927fe4805086bae392a70bf"
+        }
+      }
+    },
+    {
+      "path": "modules/user/src/main/UserRepo.scala",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        648
+      ],
+      "departureArea": "nostr-and-public-profiles",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "45fd497d4a9193c95cfb9b1a8dfeb701c870375c"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "3cf4d4b5d248cb700b363962a458e9ebfaba4240"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "c0dae14f81bc6b5b53915f9916f04a527c489c18"
+        }
+      }
+    },
+    {
+      "path": "modules/web/src/main/StaticContent.scala",
+      "kind": "content",
+      "textHunks": 2,
+      "markerStartLines": [
+        119,
+        160
+      ],
+      "departureArea": "branding-and-layout",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "9f475eb4414c0bf68220fcfa0fe35f444ea62458"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "fc0866327082fc1017d30255df3dd7555d678758"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "332ee65c8dadfd0d84e04a8e20a29aee1ed9a6fc"
+        }
+      }
+    },
+    {
+      "path": "modules/web/src/main/ui/layout.scala",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        237
+      ],
+      "departureArea": "focused-native-features",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "1c7a30b5552a3310f50caaef8d3b3f0350babb82"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "58d39e23c265ab1562bdc39fc7157fa29bb0c764"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "2857d28e19fb160f8fdc9006ffbc46312bed98f1"
+        }
+      }
+    },
+    {
+      "path": "modules/web/src/main/ui/openGraph.scala",
+      "kind": "upstream-delete/ours-modify",
+      "textHunks": 0,
+      "markerStartLines": [],
+      "departureArea": "branding-and-layout",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "cc4a793302a19154172623d74a9fe993da0663dc"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "6c6e871faba9d5b7e7fef8c4f0fabc3472466996"
+        }
+      }
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "kind": "content",
+      "textHunks": 9,
+      "markerStartLines": [
+        254,
+        958,
+        1708,
+        1956,
+        2747,
+        2919,
+        3372,
+        3384,
+        3612
+      ],
+      "departureArea": "security-dependency-alignment",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "6dcc74e9060fecd245e3179fa8ad4a7464da8efe"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "919c18891d920460578539eb5eb61462b0e75367"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "36e5dcb7538ef40a43a9029af187f55ceaa32452"
+        }
+      }
+    },
+    {
+      "path": "translation/dest/arena/de-DE.xml",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        94
+      ],
+      "departureArea": "owner-hosted-arena",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "d3d67dd97347a3d609ab38c320b04166281de52e"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "6f8e10693aa3f7072323afad736e3a6e75c94fc9"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "7cd3039aa1e5e01d68fde0284825a8189ab79dc1"
+        }
+      }
+    },
+    {
+      "path": "translation/dest/arena/es-ES.xml",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        94
+      ],
+      "departureArea": "owner-hosted-arena",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "f326a19a2421b953adcf79c00a860530c1d3ccbb"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "6bda03116379be42e4a220bf7ea90cfac150c37c"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "5a79935a3af11006f833695c37ae954e94ca6556"
+        }
+      }
+    },
+    {
+      "path": "translation/dest/arena/fr-FR.xml",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        90
+      ],
+      "departureArea": "owner-hosted-arena",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "29631009651113d1be7b3d0ca2ab4278d44a6b29"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "222ef6a51e24ced34e0f83f08b3fb5d65311df51"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "328e04595fd3c9c570cbf61f71cd42d67d19d18c"
+        }
+      }
+    },
+    {
+      "path": "translation/dest/arena/ja-JP.xml",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        84
+      ],
+      "departureArea": "owner-hosted-arena",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "d09c3cc364955542b5b0dac5c2d69e0be17dd0ca"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "b6afbc1c9d1a0f5aeccdf3d369491e64f3ab5eb6"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "619a0d2ce7a025a299d25c970caa6ffbf7f2d503"
+        }
+      }
+    },
+    {
+      "path": "translation/dest/arena/ko-KR.xml",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        92
+      ],
+      "departureArea": "owner-hosted-arena",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "81cb63c6cadbc2250ae0b027e924c4d9634cd5a5"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "417de844007e18fa07da8adf369cd284f3fafe58"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "a102f692875d7509c78a4d0ef79ac2c2ad158bac"
+        }
+      }
+    },
+    {
+      "path": "translation/dest/arena/ru-RU.xml",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        90
+      ],
+      "departureArea": "owner-hosted-arena",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "80e11453f400b4d589fe2b31825968e210f4a099"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "14ca48accebb94531128f33951b3eb875c661512"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "dd61ca7d6e4d71c9130ff9c664b3c1c9c4b1926d"
+        }
+      }
+    },
+    {
+      "path": "translation/dest/arena/zh-CN.xml",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        92
+      ],
+      "departureArea": "owner-hosted-arena",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "58403d3788922260b9fa0467c5fd11c70966b3e5"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "bdb1c27fdc096db13660d2e0d93825262a1466ec"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "21a4f14a6a6da00ed0c66ff8a4789d09b8f51a4b"
+        }
+      }
+    },
+    {
+      "path": "ui/analyse/src/ctrl.ts",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        360
+      ],
+      "departureArea": "maia-analysis-and-review",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "643bb4a40075a435980c77bace0c88a99ed69c0c"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "2a0a0bf9347e3a4cad08e5f517fb8cfdc4c8fbff"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "4f2e84d287490c1cd591a158c08122bc6b1d58be"
+        }
+      }
+    },
+    {
+      "path": "ui/analyse/src/explorer/explorerCtrl.ts",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        175
+      ],
+      "departureArea": "maia-analysis-and-review",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "759c2fb2e8dd690b53561787b5ba53f22777255e"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "913c4e95ad5cff560b533db1578dcacf9cb6c539"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "01454da98894fd7b1fdb6b42c4e791e29defa570"
+        }
+      }
+    },
+    {
+      "path": "ui/analyse/src/local/localAnalysisDialog.tsx",
+      "kind": "content",
+      "textHunks": 2,
+      "markerStartLines": [
+        30,
+        45
+      ],
+      "departureArea": "maia-analysis-and-review",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "3a429c5ffa5a625852435893816ab6fc76de3191"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "e31b55d1d91cd7f2a85370b8934d4f5bbd902070"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "f0a51245f2799056de2a66b16060d5184d8d07e0"
+        }
+      }
+    },
+    {
+      "path": "ui/analyse/src/study/chapterNewForm.ts",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        283
+      ],
+      "departureArea": "maia-analysis-and-review",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "d3503c39376c651573356fc9f2d8c0c2708e2adb"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "3a9d858ff86c98b8b2a3b0c7249ef1868926704c"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "0d4422a3cb026d0025e24260788f24910b143a8b"
+        }
+      }
+    },
+    {
+      "path": "ui/analyse/src/view/roundTraining.ts",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        214
+      ],
+      "departureArea": "maia-analysis-and-review",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "99a8328fd27c2e670564a143d06795f848007e05"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "2ef2d47d5b87cebb34ebeeac8022f8414f845981"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "582e81c0060442e1d5155a7a10a7864d026bd1c2"
+        }
+      }
+    },
+    {
+      "path": "ui/insight/src/chart.ts",
+      "kind": "content",
+      "textHunks": 2,
+      "markerStartLines": [
+        24,
+        155
+      ],
+      "departureArea": "basic-insights-and-unsupported-navigation",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "d2c868a4fa10f39e824bec34f201163679bbfdbb"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "a560587a4d8f1be25f00fe15781f9beeda6b5601"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "38c0cfff4435ba878827ea35cdb1f18d0d5d51ac"
+        }
+      }
+    },
+    {
+      "path": "ui/insight/src/insight.ts",
+      "kind": "content",
+      "textHunks": 2,
+      "markerStartLines": [
+        1,
+        15
+      ],
+      "departureArea": "basic-insights-and-unsupported-navigation",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "7e8e42140e9bb501e86c922c457d06b88c638c22"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "c4ff37932c5f7a359238658ada7129001082c8b8"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "380a6f21bd157126ceb53cc25ea95bbcafd07809"
+        }
+      }
+    },
+    {
+      "path": "ui/insight/src/table.ts",
+      "kind": "content",
+      "textHunks": 2,
+      "markerStartLines": [
+        3,
+        18
+      ],
+      "departureArea": "basic-insights-and-unsupported-navigation",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "d058b0a49cd5b573c9149eab7a60afbeef243e4e"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "dfc1434dfeeab804438e5bbc12983f1513bd4453"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "ce62096f7e1915ef3caed7881983324f2daadd69"
+        }
+      }
+    },
+    {
+      "path": "ui/lib/src/ceval/ctrl.ts",
+      "kind": "content",
+      "textHunks": 2,
+      "markerStartLines": [
+        274,
+        291
+      ],
+      "departureArea": "maia-analysis-and-review",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "b00837dcc6fcf1a57077916e3393f1fc15748db8"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "e1737017b97b9eae69ddeb8f3b064c1434c81c8b"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "577a821a27803e46579e264a98d0cad9aece167b"
+        }
+      }
+    },
+    {
+      "path": "ui/lib/src/setup/view/timeControl.ts",
+      "kind": "content",
+      "textHunks": 3,
+      "markerStartLines": [
+        31,
+        158,
+        190
+      ],
+      "departureArea": "focused-feature-surface",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "4a8b9d1e1d4ef94e5c7f3d21de981b57f7ef2d97"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "e1bfc2190d024a60b2b27f3db75915867e235b37"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "4139415e0407441de5961e82ed31c3b285683585"
+        }
+      }
+    },
+    {
+      "path": "ui/lobby/src/ctrl.ts",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        1
+      ],
+      "departureArea": "focused-native-features",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "a8b22d7d492bdfcd06e2ba65b3034e28c9bf40b7"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "5c97615f15e3367019adeb3f2325e741bc211c25"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "302b09079248c0116baaaea042a6fe1ecca54490"
+        }
+      }
+    },
+    {
+      "path": "ui/lobby/src/setupCtrl.ts",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        186
+      ],
+      "departureArea": "focused-native-features",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "42d03af12b5234c639e218913746bcd263bc792f"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "932534a905efd681a35954b35ef00b7824d653be"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "50a8e220dcc936db46b8ab061746dfe79faf449d"
+        }
+      }
+    },
+    {
+      "path": "ui/lobby/src/view/setup/modal.ts",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        16
+      ],
+      "departureArea": "focused-native-features",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "3e5ae86312228576b088042a2daafd3eb75fe612"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "86f42ba35fa3e57bc845250f065e418e97e31c9d"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "4c5110b9d23594754c042548dbba2d6dcf06addf"
+        }
+      }
+    },
+    {
+      "path": "ui/lobby/src/view/table.ts",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        48
+      ],
+      "departureArea": "focused-native-features",
+      "indexStages": {
+        "base": {
+          "mode": "100644",
+          "blob": "9053e1a5e772fcd850f44c8c5db358a007984428"
+        },
+        "ours": {
+          "mode": "100644",
+          "blob": "a4d12dc0d03b0749f88265d4c18fd4020b8e9f32"
+        },
+        "theirs": {
+          "mode": "100644",
+          "blob": "ba1582c2c2fbec2e70ef3f91a679cc1c91176e50"
+        }
+      }
+    },
+    {
+      "path": "ui/puzzle/src/ctrl.ts",
+      "kind": "content",
+      "textHunks": 1,
+      "markerStartLines": [
+        150
+      ],
+      "departureArea": "maia-analysis-and-review",
+      "indexStages": {
+        "base": {
+          "mode": "100755",
+          "blob": "a1bcd99379c617277de0adb06d3a7254c9d0f527"
+        },
+        "ours": {
+          "mode": "100755",
+          "blob": "285d3e370bb312bdd65b1a8ee31228f1a77e25a0"
+        },
+        "theirs": {
+          "mode": "100755",
+          "blob": "9f749869cde47dfa19e50b1dd077e1a83b4086c5"
+        }
+      }
+    }
+  ],
+  "applicationFilesChangedOnBothSidesList": [
+    "app/Env.scala",
+    "app/Lila.scala",
+    "app/controllers/Account.scala",
+    "app/controllers/Api.scala",
+    "app/controllers/Auth.scala",
+    "app/controllers/Challenge.scala",
+    "app/controllers/Dasher.scala",
+    "app/controllers/Export.scala",
+    "app/controllers/I18n.scala",
+    "app/controllers/Importer.scala",
+    "app/controllers/Insight.scala",
+    "app/controllers/Main.scala",
+    "app/controllers/Plan.scala",
+    "app/controllers/Round.scala",
+    "app/controllers/Setup.scala",
+    "app/controllers/Study.scala",
+    "app/controllers/Tournament.scala",
+    "app/controllers/Tv.scala",
+    "app/controllers/User.scala",
+    "app/http/ErrorHandler.scala",
+    "app/http/HttpRequestHandler.scala",
+    "app/http/RequestContext.scala",
+    "app/views/analyse.scala",
+    "app/views/base/page.scala",
+    "app/views/insight.scala",
+    "app/views/lobby/home.scala",
+    "app/views/study.scala",
+    "app/views/ui.scala",
+    "app/views/user/show/page.scala",
+    "bin/package.json",
+    "build.sbt",
+    "conf/routes",
+    "modules/activity/src/main/ActivityUi.scala",
+    "modules/analyse/src/main/ui/AnalyseUi.scala",
+    "modules/bot/src/main/OnlineApiUsers.scala",
+    "modules/challenge/src/main/ui/ChallengeUi.scala",
+    "modules/chat/src/main/ChatApi.scala",
+    "modules/game/src/main/GameRepo.scala",
+    "modules/lobby/src/main/LobbySocket.scala",
+    "modules/markdown/src/main/MarkdownRender.scala",
+    "modules/perfStat/src/main/PerfStatUi.scala",
+    "modules/plan/src/main/PlanApi.scala",
+    "modules/pref/src/main/Theme.scala",
+    "modules/pref/src/main/ui/AccountPref.scala",
+    "modules/pref/src/main/ui/AccountUi.scala",
+    "modules/puzzle/src/main/ui/PuzzleUi.scala",
+    "modules/relay/src/main/RelayRoundForm.scala",
+    "modules/round/src/main/Env.scala",
+    "modules/round/src/main/RoundSocket.scala",
+    "modules/security/src/main/SecurityApi.scala",
+    "modules/security/src/main/ui/AccountSecurity.scala",
+    "modules/socket/src/main/RemoteSocket.scala",
+    "modules/study/src/main/ChapterMaker.scala",
+    "modules/study/src/main/StudyApi.scala",
+    "modules/study/src/main/ui/StudyListUi.scala",
+    "modules/tournament/src/main/Env.scala",
+    "modules/tournament/src/main/JsonView.scala",
+    "modules/tournament/src/main/Tournament.scala",
+    "modules/tournament/src/main/TournamentApi.scala",
+    "modules/tournament/src/main/TournamentRepo.scala",
+    "modules/tournament/src/main/ui/TournamentList.scala",
+    "modules/tv/src/main/TvUi.scala",
+    "modules/ublog/src/main/ui/UblogPostUi.scala",
+    "modules/ui/src/main/helper/Form3.scala",
+    "modules/ui/src/main/helper/GameHelper.scala",
+    "modules/user/src/main/UserRepo.scala",
+    "modules/user/src/main/ui/UserList.scala",
+    "modules/web/src/main/StaticContent.scala",
+    "modules/web/src/main/helper/AssetFullHelper.scala",
+    "modules/web/src/main/ui/layout.scala",
+    "modules/web/src/main/ui/openGraph.scala",
+    "modules/web/src/test/common/MarkdownTest.scala",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "translation/dest/arena/de-DE.xml",
+    "translation/dest/arena/es-ES.xml",
+    "translation/dest/arena/fr-FR.xml",
+    "translation/dest/arena/ja-JP.xml",
+    "translation/dest/arena/ko-KR.xml",
+    "translation/dest/arena/pt-BR.xml",
+    "translation/dest/arena/ru-RU.xml",
+    "translation/dest/arena/zh-CN.xml",
+    "translation/dest/site/de-DE.xml",
+    "translation/dest/site/es-ES.xml",
+    "translation/dest/site/fr-FR.xml",
+    "translation/dest/site/hi-IN.xml",
+    "translation/dest/site/ja-JP.xml",
+    "translation/dest/site/ko-KR.xml",
+    "translation/dest/site/pt-BR.xml",
+    "translation/dest/site/ru-RU.xml",
+    "translation/dest/site/zh-CN.xml",
+    "translation/source/site.xml",
+    "ui/@types/lichess/index.d.ts",
+    "ui/analyse/css/_analyse.free.scss",
+    "ui/analyse/src/analyse.gifDialog.ts",
+    "ui/analyse/src/autoShape.ts",
+    "ui/analyse/src/ctrl.ts",
+    "ui/analyse/src/explorer/explorerCtrl.ts",
+    "ui/analyse/src/interfaces.ts",
+    "ui/analyse/src/local/localAnalysisDialog.tsx",
+    "ui/analyse/src/local/localAnalysisEngine.ts",
+    "ui/analyse/src/serverSideUnderboard.ts",
+    "ui/analyse/src/study/chapterNewForm.ts",
+    "ui/analyse/src/study/studyCtrl.ts",
+    "ui/analyse/src/util.ts",
+    "ui/analyse/src/view/actionMenu.ts",
+    "ui/analyse/src/view/components.ts",
+    "ui/analyse/src/view/main.ts",
+    "ui/analyse/src/view/roundTraining.ts",
+    "ui/analyse/src/view/settingsView.ts",
+    "ui/editor/src/ctrl.ts",
+    "ui/editor/src/interfaces.ts",
+    "ui/editor/src/view.ts",
+    "ui/insight/src/chart.ts",
+    "ui/insight/src/insight.ts",
+    "ui/insight/src/table.ts",
+    "ui/lib/css/theme/board/_boards.scss",
+    "ui/lib/src/ceval/ctrl.ts",
+    "ui/lib/src/chat/discussion.ts",
+    "ui/lib/src/chat/interfaces.ts",
+    "ui/lib/src/setup/view/timeControl.ts",
+    "ui/lib/src/socket.ts",
+    "ui/lib/src/view/userComplete.ts",
+    "ui/lobby/src/ctrl.ts",
+    "ui/lobby/src/setupCtrl.ts",
+    "ui/lobby/src/view/setup/modal.ts",
+    "ui/lobby/src/view/table.ts",
+    "ui/puzzle/src/ctrl.ts",
+    "ui/puzzle/src/view/main.ts",
+    "ui/round/src/ctrl.ts",
+    "ui/round/src/keyboard.ts",
+    "ui/site/src/clinput.ts",
+    "ui/site/src/topBar.ts",
+    "ui/tournament/src/view/main.ts",
+    "ui/user/css/_account.scss",
+    "ui/user/src/user.account.ts",
+    "ui/user/src/user.ts"
+  ],
+  "gitHeadUnchanged": true,
+  "compiled": false,
+  "runtimeTested": false,
+  "deployed": false,
+  "automaticallyMergedOverlapFiles": [
+    "app/Env.scala",
+    "app/Lila.scala",
+    "app/controllers/Auth.scala",
+    "app/controllers/Dasher.scala",
+    "app/controllers/Export.scala",
+    "app/controllers/I18n.scala",
+    "app/controllers/Main.scala",
+    "app/controllers/Plan.scala",
+    "app/controllers/Round.scala",
+    "app/controllers/Setup.scala",
+    "app/controllers/Tv.scala",
+    "app/controllers/User.scala",
+    "app/views/analyse.scala",
+    "app/views/ui.scala",
+    "app/views/user/show/page.scala",
+    "build.sbt",
+    "conf/routes",
+    "modules/activity/src/main/ActivityUi.scala",
+    "modules/bot/src/main/OnlineApiUsers.scala",
+    "modules/challenge/src/main/ui/ChallengeUi.scala",
+    "modules/chat/src/main/ChatApi.scala",
+    "modules/game/src/main/GameRepo.scala",
+    "modules/lobby/src/main/LobbySocket.scala",
+    "modules/perfStat/src/main/PerfStatUi.scala",
+    "modules/plan/src/main/PlanApi.scala",
+    "modules/pref/src/main/Theme.scala",
+    "modules/pref/src/main/ui/AccountPref.scala",
+    "modules/pref/src/main/ui/AccountUi.scala",
+    "modules/puzzle/src/main/ui/PuzzleUi.scala",
+    "modules/round/src/main/Env.scala",
+    "modules/round/src/main/RoundSocket.scala",
+    "modules/security/src/main/SecurityApi.scala",
+    "modules/security/src/main/ui/AccountSecurity.scala",
+    "modules/socket/src/main/RemoteSocket.scala",
+    "modules/study/src/main/ChapterMaker.scala",
+    "modules/study/src/main/StudyApi.scala",
+    "modules/study/src/main/ui/StudyListUi.scala",
+    "modules/tournament/src/main/Env.scala",
+    "modules/tournament/src/main/JsonView.scala",
+    "modules/tournament/src/main/Tournament.scala",
+    "modules/tournament/src/main/TournamentRepo.scala",
+    "modules/tournament/src/main/ui/TournamentList.scala",
+    "modules/ui/src/main/helper/Form3.scala",
+    "modules/ui/src/main/helper/GameHelper.scala",
+    "modules/user/src/main/ui/UserList.scala",
+    "modules/web/src/main/helper/AssetFullHelper.scala",
+    "modules/web/src/test/common/MarkdownTest.scala",
+    "pnpm-workspace.yaml",
+    "translation/dest/arena/pt-BR.xml",
+    "translation/dest/site/de-DE.xml",
+    "translation/dest/site/es-ES.xml",
+    "translation/dest/site/fr-FR.xml",
+    "translation/dest/site/hi-IN.xml",
+    "translation/dest/site/ja-JP.xml",
+    "translation/dest/site/ko-KR.xml",
+    "translation/dest/site/pt-BR.xml",
+    "translation/dest/site/ru-RU.xml",
+    "translation/dest/site/zh-CN.xml",
+    "translation/source/site.xml",
+    "ui/@types/lichess/index.d.ts",
+    "ui/analyse/css/_analyse.free.scss",
+    "ui/analyse/src/analyse.gifDialog.ts",
+    "ui/analyse/src/autoShape.ts",
+    "ui/analyse/src/interfaces.ts",
+    "ui/analyse/src/local/localAnalysisEngine.ts",
+    "ui/analyse/src/serverSideUnderboard.ts",
+    "ui/analyse/src/study/studyCtrl.ts",
+    "ui/analyse/src/util.ts",
+    "ui/analyse/src/view/actionMenu.ts",
+    "ui/analyse/src/view/components.ts",
+    "ui/analyse/src/view/main.ts",
+    "ui/analyse/src/view/settingsView.ts",
+    "ui/editor/src/ctrl.ts",
+    "ui/editor/src/interfaces.ts",
+    "ui/editor/src/view.ts",
+    "ui/lib/css/theme/board/_boards.scss",
+    "ui/lib/src/chat/discussion.ts",
+    "ui/lib/src/chat/interfaces.ts",
+    "ui/lib/src/socket.ts",
+    "ui/lib/src/view/userComplete.ts",
+    "ui/puzzle/src/view/main.ts",
+    "ui/round/src/ctrl.ts",
+    "ui/round/src/keyboard.ts",
+    "ui/site/src/clinput.ts",
+    "ui/site/src/topBar.ts",
+    "ui/tournament/src/view/main.ts",
+    "ui/user/css/_account.scss",
+    "ui/user/src/user.account.ts",
+    "ui/user/src/user.ts"
+  ],
+  "securityFixAncestry": [
+    {
+      "commit": "34830b8316fea29a93c6b797236f79203ad021e8",
+      "advisory": "GHSA-2cpx-9573-5pwp",
+      "file": "modules/markdown/src/main/MarkdownRender.scala",
+      "fix": "Escape original Markdown on StackOverflowError with scalalib.StringUtils.escapeHtmlRaw.",
+      "ancestorOfChosenUpstream": true
+    },
+    {
+      "commit": "e71a2964ec3b3c6da7fa7c4ec6b53de53bba4326",
+      "advisory": "GHSA-2236-pwjw-m8m4",
+      "file": "app/controllers/Study.scala",
+      "fix": "Load study/chapter together and enforce native CanView for chapter config and divisionOnly; retain pinned unauthorized/forbidden continuations.",
+      "ancestorOfChosenUpstream": true
+    },
+    {
+      "commit": "8f583aaf9db9fe32aebdbe460a789dd5630f17f6",
+      "advisory": "GHSA-hr3c-7vww-ffrj",
+      "file": "app/controllers/Tournament.scala",
+      "fix": "All games/results/teams exports use WithVisibleTournament, retaining class-team and Arena owner-event restrictions. Pinned PGN rendering remains behind the guard.",
+      "ancestorOfChosenUpstream": true
+    },
+    {
+      "commit": "3cf8d5c524ebac6eb71d392bf45f4113128b8bdb",
+      "advisory": "GHSA-582f-w2m6-pr6m",
+      "file": "modules/relay/src/main/RelayRoundForm.scala",
+      "fix": "Resolve and validate source IPs using upstream production loopback/wildcard/link-local/site-local rejection, additional lichess.ovh blocklist; reuse Invalid source URL and omit debug URL logging.",
+      "ancestorOfChosenUpstream": true
+    },
+    {
+      "commit": "e6f4cf2f451e8c83dfeba207173b64dfd34c469b",
+      "advisory": "GHSA-5gjj-x225-jrr3",
+      "file": "modules/security/src/main/SecurityApi.scala",
+      "fix": "In production retain web:mod OAuth moderator roles only while the account has enrolled TOTP. Request-time filtering covers existing tokens; preserve upstream nonproduction behavior.",
+      "ancestorOfChosenUpstream": true
+    }
+  ],
+  "priorTrialComparison": {
+    "upstreamCommitUnchanged": true,
+    "conflictedFiles": 48,
+    "textConflictHunks": 69,
+    "countsUnchanged": true
+  },
+  "resolutionStatus": "No conflicts resolved; source merge is not buildable or validated",
+  "scope": "Text trial and documentation only; no runtime/pin/inventory/scheduler changes",
+  "mergeTreeCrossCheck": {
+    "exitCode": 1,
+    "conflictedPathSetMatchesIndex": true,
+    "conflictedFiles": 48,
+    "unresolvedMergeTree": "53f0585ee46810cc84e8d4be469fe0f44af3a88c",
+    "independentOfWorkingTree": true
+  }
+}

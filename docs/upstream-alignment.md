@@ -59,6 +59,9 @@ The register uses complete source paths within the [pinned native fork](https://
 
 ## Updating upstream
 
+The [23 November 2026 trial report](upstream-merge-2026-11-23.md) records the
+first fork-based conflict inventory and the unresolved integration gates for #365.
+
 1. Record old/new upstream commits and review intervening changes. Fast-forward the fork's untouched `master` mirror, then **merge** the selected upstream commit into native `main` through a reviewed PR. Never rebase or force-push native history. The owner selected a two-week cadence after the first upstream merge (#365); phase 1 performs no upstream merge or scheduling change.
 2. Resolve conflicts against each departure's documented reason, adopt native equivalents, and remove obsolete hooks. Record the reason when declining an upstream change. Keep new behavior in namespaced files and edits to upstream files small; avoid reformatting or whole-file rewrites. Urgent security backports use `git cherry-pick -x` so their provenance is retained.
 3. Run the fork's `mute.yml` native checks and affected integration checks. Exercise login, pairing, clocks, results/ratings, premoves, analysis, profiles and reconnect behavior as relevant. Preserve licenses and exact source provenance.
