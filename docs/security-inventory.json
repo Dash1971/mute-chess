@@ -113,7 +113,7 @@
       "onnxruntime": "1.31.1",
       "numpy": "2.5.4",
       "chess": "1.11.2",
-      "lock": "worker/requirements.txt"
+      "lock": "lila-adapter/requirements.txt"
     },
     "adapter": {
       "lock": "lila-adapter/package-lock.json",

@@ -197,7 +197,7 @@ are not independently board-verified. Gallery absence is the agreed negative
 reference within these represented games. The fixed ranking was expanded from
 200 to 1,000 games after partial results, without changing models or cutoffs.
 
-See [native review validation](brilliant-native-review-validation.md),
+See [native review validation](records/brilliant-native-review-validation.md),
 [compact result counts](../analysis/data/brilliants-selective-fast-2026-11-06.json)
 and the [published experiment](https://github.com/Dash1971/open-brilly-finder/blob/main/studies/brilliant-selective-2026-11-06/REPORT.md).
 These are automated native replays, not a browser interaction test across every

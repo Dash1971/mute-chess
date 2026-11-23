@@ -2,6 +2,9 @@
 
 # Private development server
 
+All relative prototype paths below are relative to `archive/node-prototype/`.
+The source packager remains at repository-root `scripts/package-source.py`.
+
 This increment is a private, unrated technical alpha. Read [architecture.md](architecture.md) for what is implemented and what still blocks the finished MVP. Use a dedicated Ubuntu host; do not apply these host-wide PostgreSQL settings to an existing shared database server.
 
 ## Installed layout
@@ -32,7 +35,7 @@ pnpm test
 # After installing in a path readable by the service user:
 sudo -u clubmaia env MAIA_MODEL=/srv/club-maia/models/maia3-79m.onnx \
   /opt/club-maia/venv/bin/python -m unittest discover -s /path/to/worker -v
-python3 scripts/package-source.py /tmp/club-maia-source.tar.gz
+python3 ../../scripts/package-source.py /tmp/club-maia-source.tar.gz
 bash deploy/install-release.sh "$PWD" /tmp/club-maia-source.tar.gz
 ```
 

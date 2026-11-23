@@ -1,602 +1,91 @@
-# Mute Chess implementation direction
-
-## Native source of truth: Lila fork (#362/#363/#364)
-
-Native application changes belong in `Dash1971/lila`, through pull requests
-against its `main` branch. Preserve the existing NoSweat namespaces and keep
-edits to upstream files to small hooks. The fork's `master` is an untouched,
-fast-forward-only upstream mirror; never commit to it. Merge upstream into
-native `main`, never rebase or force-push deployed history. Urgent upstream
-security fixes use `git cherry-pick -x`.
-
-Phase 1 merged in #368. The approved GitHub test file is metadata only.
-
-`deploy/lila/native-pin.json` pins the native fork commit and upstream base.
-Native PRs reference the Mute issue; companion PRs here bump that pin and carry
-adapter/documentation changes, closing the issue. Build directly from the fork;
-verify exact HEAD and clean status under the documented generated-file rules.
-Releases and fresh security verification identify native source with
-`nativeCommit` and `nativeTree`. The reviewed inventory records the same fork
-repository, commit and tree, retaining upstream pins and security backports.
-
-The owner approved one tree exception on November 23: the fork-only
-`.github/workflows/mute.yml` test file is repository metadata, excluded from the
-application-departure inventory. No other source path is exempt. See
-[the fork contract](docs/native-fork.md). No newer upstream update or native
-behavior change is authorized by the migration itself.
-
-## Next application release: fast-xml-parser (#318)
-
-Owner instruction, November 19, 2026: include #318's reviewed fast-xml-parser
-5.12.0 native manifest/lock upgrade in the next planned application release.
-Refresh the deployed security inventory and current verification records, then
-confirm OpenClaw inventory_verified=true using a fresh collection. Keep the
-live advisory visible until deployment; this draft is not installation evidence.
-
-## Required security verification after every deployment (owner policy, November 7, 2026)
-
-A deployment is not complete until the active release's security verification
-record has been refreshed and OpenClaw's existing daily-report classifier accepts
-it. This applies to every application deployment, including changes confined to
-UI/styles and releases that retain dependency versions. Match the actual active
-RELEASE.json commit, native fork commit/tree
-and inventory hash; verify the deployed
-libraries, browser sanitizer and running private runtime/backport fingerprints.
-Update docs/security-inventory.json when versions, pins, backports or advisory
-applicability change. An unchanged inventory alone does not verify a new release.
-
-Coordinate every planned RELEASE.json change with the existing host-monitor
-maintenance wrapper, declaring that exact path. After deployment, confirm the
-monitor's expected release fingerprint matches the verified active release and
-all other control hashes/isolation remain unchanged. A pre-existing mismatch
-requires explicit release/provenance verification and a scoped recorded approval
-of that release fingerprint; never reset unrelated baselines or suppress alerts.
-
-Preserve original build receipts and their commit IDs. Use the matching current
-release's real build evidence and observed runtime checks to produce a fresh
-SECURITY_VERIFICATION.json; publish the same current verification at the existing
-SECURITY279_BUILD.json reader path as documented in docs/security-maintenance.md.
-Never claim a rebuild or check that did not run. Confirm inventory_verified=true
-with a fresh collection using the existing classifier before declaring success;
-keep unresolved/new advisories visible. No report-rule weakening, unrelated monitor-baseline
-reset, scheduler change or new general tooling is authorized by this policy.
-
-## Required translations for user-facing text (November 4, 2026, #242)
-
-Every added or changed user-facing string must use the existing native i18n
-catalogs and be translated into all ten supported locales: en-GB, de-DE, es-ES,
-fr-FR, hi-IN, ja-JP, ko-KR, pt-BR, ru-RU and zh-CN. This includes help text,
-labels, titles, accessibility labels, errors and transient feedback. English
-fallback alone is not completion. Preserve whole-sentence placeholders and
-escaping, check catalog key/placeholder parity, and verify localized rendering
-before release. Reuse existing translation tools; this requirement does not
-authorize a new translation framework or general tooling.
-
-## Nostr identity help and forum contact (November 4, 2026, #239/#240)
-
-Keep small information buttons beside the human profile npub and permanent
-account handle, using the native accessible dialog for key/privacy explanations.
-Explain that the n-prefixed handle uses a shortened hex public key, while the
-full npub is the permanent public identity; legacy handles remain valid. Keep
-npub copying separate from the help, and never read or expose an nsec here.
-Link introductory Nostr mentions to nostr.org and use Primal as a social example.
-Remove Flotilla from the public UI; direct public questions and feedback to the
-native forum, retaining private Nostr contact for sensitive matters. Preserve
-authentication, keys, account IDs and normal forum behavior.
-
-## Mute-only brilliant experiment (owner request, November 2, 2026)
-
-Issue #221 authorizes a draft PR for more generous, transparent brilliant-move
-awards in Mute Chess. Keep Mobile Maia on the En Croissant rules. This supersedes
-EC fidelity only for Mute's `!!` eligibility: retain the independent EC references,
-other annotation rules, whole-window confirmation and native analysis contracts.
-Document the exact experimental gates in README and the source comparison in
-`docs/brilliant-moves.md`. No merge, deployment or general tooling change is
-authorized by this draft request.
-
-## Upstream alignment (owner decision, October 30, 2026)
-
-Read `docs/upstream-alignment.md` before changing native behavior. Stay as close
-as possible to Lichess/Lila: our defined departures are Maia integration,
-stacked premoves, bot-only quick pairing, limited feature exposure, branding
-and Nostr identity. Other specifically requested adapters must remain bounded
-and justified. Preserve native rules, clocks, ratings/provisional semantics,
-anti-abuse controls, completion, direct invitations and normal settings behavior.
-Prefer native services and small additive adapters over replacement subsystems.
-
-Maintain the exact-path register in `deploy/lila/upstream-departures.json` and
-feature documentation whenever a native departure changes. Explain the native
-contract retained, why the hook is necessary, and its verification/upstream-merge impact.
-CI checks coverage and pin consistency; it cannot substitute for semantic review.
-Remove obsolete patches when upstream provides an equivalent. Keep upstream
-merges separate from unrelated feature changes. See #75.
-
-The owner's confirmed direction is recorded in `docs/chess-foundation.md` (28 October 2026): desktop/browser only; Lichess/Lila is the base for all exposed chess play and analysis; Mobile Maia / En Croissant / maiachess.com add the specified analysis capabilities. Cyberpunk/cypherpunk is the wrapper and branding.
-
-Read that decision before changing architecture. The current Node/Fastify round implementation is an infrastructure prototype, not a decision to reimplement the Lichess chess experience. Do not expand a parallel custom rules/clock/premove/analysis-tree stack. Retain the native Lichess base and its tested behavior, adding clear adapters for Maia, Nostr and our supported human-versus-bot scope.
-
-The owner retired the Node/Fastify prototype on 28 October 2026. Its service is stopped and disabled; source, configuration and database are retained for rollback/reference. Do not restart or expand it by default. The separate native Lila development stack is the active foundation. Do not conflate inference-only benchmarks with complete-stack capacity. Preserve concurrent homepage work. No Mobile Maia app release/change is implied. The owner subsequently authorized deploying the completed native Maia/Nostr alpha; the Mute Chess domain cutover remains pending separate publication approval; see `deploy/public/README.md` and the dated private deployment handover. Preserve the separate public service/data boundary.
-
-Use confirmed bot identities/policies from issues #1/#2 rather than mockup names. Reuse the existing classification references and reliability safeguards; keep Stockfish evaluations, Maia likelihoods and classifier annotations semantically distinct. Preserve upstream licenses and exact-source provenance.
-
-
-## Owner follow-up: native Lichess experience first
-
-On 28 October the owner superseded the club landing page and manual bot challenge flow. Use the native Lichess homepage, quick-pair grid, custom time-control dialog, rounds and analysis. Anonymous games are casual; signed-in Nostr accounts start at native provisional 1500, then use native Glicko ratings. The server assigns an available bot within ±200 of the player's matching rating; no opponent chooser or direct challenges. Keep all existing Lichess styling/branding until the chosen Mute Chess logo is integrated. Branding work is limited to the logo concepts requested separately. Preserve NIP-07 as the recommended signer, with user-requested generated/imported browser keys as an alternative. Stacked premoves from Mobile Maia join the analysis/gameplay enhancement roadmap.
-
-
-## Release discipline
-
-The owner requires one permanent branch, `main`. Use short-lived feature branches and pull requests, review changes, pass checks, merge on GitHub, then deploy the merged main revision. Do not deploy unmerged or dirty code. Run `python3 deploy/public/verify-main.py` before preparing a release. Rebuild/verify the native source against that exact main pin. Record the main commit in RELEASE.json and verify the live revision. Delete merged feature branches; do not keep parallel release/development branches. This replaces the earlier deploy-before-push workflow.
-
-
-## Standard chess only (owner decision, 29 October 2026)
-
-Mute Chess supports standard chess only. Do not expose or add chess variants, including Chess960, Atomic, Crazyhouse, Antichess, Horde, Racing Kings, King of the Hill or Three-check. Standard-chess FEN positions, PGN imports and the board editor remain supported. Hide variant selectors and reject variant analysis URLs/imports. Keep upstream variant internals only where the native Lichess foundation needs them. Footer social links currently point only to the Mute Chess GitHub repository; there is no swag store.
-
-
-## Issue-to-release workflow (owner decision, 29 October 2026)
-
-For every new feature, create a GitHub issue first. Implement on a short-lived codex/ branch, create a PR referencing the issue with Closes/Fixes, review and pass required checks, merge on GitHub, verify the linked issue is closed, then deploy the verified main commit. Preserve one permanent main branch. Apply this to the active requested features as well; related fixes may share a PR with separate linked issues. Do not deploy unmerged code.
-
-
-## Native computer analysis restoration (owner decision, 29 October 2026)
-
-Restore the original Lichess computer-analysis chart, accuracy, judgments, review controls and analysis editor. Do not replace them with a custom full-game review, accuracy calculation, chart or classification dashboard. Stacked premoves, Maia integration and additive brilliant-move detection are the intended improvements. Preserve native judgment semantics and imported glyphs. Brilliant detection must use the validated Mobile Maia/En Croissant evidence without replacing native analysis. Until a dedicated fishnet service is configured, whole-game analysis uses Lichess’s native on-device Analysis editor; do not expose a server-analysis request that cannot complete.
-
-
-## Mute Chess rebrand (owner decision, 29 October 2026)
-
-The public brand is Mute Chess, the domain is mutechess.org and the repository
-is Dash1971/mute-chess. The owner authorized publishing the prepared local
-rebrand on 29 October 2026; the hosted repository has been renamed. Follow the
-normal issue/PR/check workflow for source publication. Domain routing and live
-deployment remain separate work. Preserve persisted identity stores,
-database/schema fields, internal protocol/configuration names, service accounts
-and deployment paths; a branding change must not reset data. Preserve the
-separate, ongoing Quiet Signal design implementation.
-
-
-## Quiet Signal brand (owner decision, 29 October 2026)
-
-The owner selected the Quiet Signal Mute Chess concept and authorized its implementation and PR. Use the interrupted knight, graphite/chalk/mint palette and moss board documented in `design/quiet-signal/README.md`. This supersedes the earlier logo-only styling restriction above. Preserve native Lichess layouts and controls. Keep internal NoSweat identifiers, existing browser identity keys, services, database paths and deployed origins intact; a domain migration requires its own deployment work. Easter egg ideas remain proposals.
-
-## Native community and learning (owner request, 29 October 2026)
-
-Enable native forum, Puzzle Storm/Streak, basics/coordinates/practice/studies,
-current human-versus-Maia games, and supported account preferences. Preserve native
-models, scoring, security, ownership and abuse controls. Practice lessons use the
-licensed, additive subset in `learning/`; never run upstream's destructive dev
-seeder. Do not reveal Maia suggestions during practice/gamebook solving. Remove
-blog/coaches and unsupported navigation. Footer socials now include GitHub and
-the owner's existing Flotilla room (see `docs/native-learning-community.md`).
-The owner deferred opening explorer after live testing confirmed Lichess now
-requires authentication. Keep #42 open; do not ship a secondary Lichess login or
-shared token setup without a renewed request.
-
-## Focused play surface (owner decision, October 29, 2026)
-
-The latest owner direction supersedes prominent community/learning navigation:
-keep the time-control grid, direct bot matching, profile/game history, analysis,
-Puzzles, Community, Tools and Donate. Hide Play, Learn and Watch menus, header social/search/notification
-controls (except the retained Friends and direct challenge controls) and homepage updates/puzzle/event/tournament panels. Keep native feature
-routes and implementation behind the focused surface. Remove lobby UI rather
-than simulating activity. Contact and legal pages use the official Nostr identity;
-do not invent an email, company or jurisdiction. See `docs/focused-play.md`.
-
-
-## Friends and invitation games (owner correction, October 29, 2026)
-
-Friends remain supported. Signed-in human players may challenge one another through
-native Lichess invitations. This supersedes the earlier human-versus-Maia-only
-restriction for direct invitations. Quick pairing and Custom Play remain exclusively
-Maia; no human pool or public lobby. Preserve challenge preferences, blocking and
-ownership; do not enable anonymous/open challenges, manual bot challenges, variants
-or API tokens. See `docs/focused-play.md` and #57.
-
-
-## Key-first sign-in (owner request, October 29, 2026)
-
-Lead with generating/saving a Nostr key and tell users to back up their nsec in a
-password manager. Existing nsec and browser signer paths must reuse the same
-identity. Retain recommended NIP-07 signing. Show authenticator/recovery-code input
-only after signed proof confirms 2FA is enabled, never as an initial field or an
-unauthenticated public-key probe. Preserve fresh signature-bound retries, recovery
-code replay protection and local encrypted-key storage. See #59.
-
-
-## Control-dependent human timing (owner request, October 30, 2026)
-
-Use Mobile Maia's complete timing implementation, including its 1+0 and
-2+1/3+0/3+2 tiers, selected from original clock configuration. Count inference
-inside the total target and preserve the low-clock added-wait cap. Version changes
-in frozen game policy; never replace an active game's timing silently. See
-`docs/bot-timing.md` and #60.
-
-## Analysis refinement (owner approval, October 30, 2026)
-
-Use two separate Maia cards side by side on the left, with independent leading
-probabilities and Others expansions. Click each Maia label to choose its rating
-in a button grid; no dropdown. Put expected score (win plus half draw, side to
-move) beside the model, and Moves by Rating across the full width below both
-cards. Keep Stockfish and the native move tree on the right. Preserve the native
-Lichess graph, overall accuracy, ACPL and Learn from your mistakes; omit phase
-accuracy. The owner now explicitly requests all validated Mobile Maia/En Croissant
-move classifications, superseding the earlier brilliant-only scope. Keep imported
-annotations and complete-window standout confirmation. Fast whole-game analysis
-is the default, with quality and advanced engine options behind Settings. Restore
-Play as a direct link to quick pairing, without a dropdown. See #62.
-
-For smoother premoves, follow Mobile Maia PR #111: never publish an intermediate
-real board between projected updates. Preserve legal server destinations, native
-clocks, sounds, committed history, cancellation, endings and single premoves. See
-#61. Do not add counts, strips or extra clear controls.
-
-## Analysis presentation polish (owner approval, October 30, 2026)
-
-Issue #65: keep summary columns bounded for long names; newly chosen/edited public
-names have a 20-character limit while existing longer names may remain unchanged.
-Unnamed Nostr accounts display a compact npub; canonical handles, keys and game
-history do not change. Candidate move colors use Maia platform's Stockfish
-win-rate-loss mapping (green <=5 percentage points, amber <=10, red above), with
-neutral missing evidence and independent raw Maia probabilities. Score circles
-identify White/Black perspective, not advantage. Remove spectator discussion and
-watcher furniture from replay/analysis, retaining compact native private Notes.
-
-## Upstream credit and donation priority (owner decision, October 30, 2026)
-
-Donate should encourage supporting Lichess first, especially for visitors who have
-not donated to Lichess or can afford to support only one project. Link directly
-to Lichess's patron page. Frame Mute Chess donations around its specific Maia
-integration with the Lichess experience. Keep clear, linked credits on About for
-Lichess/Lila, Maia, En Croissant, Mobile Maia and Stockfish, and link source and
-license notices. See #67.
-
-## Bot population and calibration boundaries (owner decision, October 30, 2026)
-
-Target a 10,000-identity roster shaped by Lichess's observed per-speed rating
-distributions. Sampling, move-history on/off, human timing on/off and one of five
-timing styles persist per bot. Preserve uniform selection within the supported
-rating window; do not add recent-opponent avoidance. Only the human clicking
-Rematch can request another game. Use native limited preset chat with brief bot
-replies in bot games (#70), retaining friend chat. Keep attributes transparent on
-profiles and methodology in GitHub.
-
-Implement scalable presence/rating lookup first (#72), retaining the current 44
-identities and earned ratings for that infrastructure release. The combined
-bot-versus-bot run must actually set/update native Glicko ratings while measuring
-full-stack capacity, but remains planning-only in #73: agree a bounded server
-pilot and compute/runtime budget before any calibration or load test. No run on
-the owner's Mac, unattended overnight job or capacity increase is authorized by
-the infrastructure work. Timezone availability, breaks and country-inspired
-personas are deferred in #71. See #69 and `docs/bot-population.md`.
-
-## Rating goal and initial trial timing (owner decision, October 30, 2026)
-
-An established human Mute Chess rating should roughly translate to established
-Lichess strength in the corresponding speed pool; this is an empirical project
-goal, not a claimed guarantee. Keep native Glicko-2 and validate the alignment.
-For the initial 44-bot Blitz/Rapid experiment in #73, disable added human-timing
-waits using a separately versioned study policy, retaining native clocks and
-fixed sampling/history settings. Do not change production personalities. The
-owner accepts setting clock-pressure concerns aside for this initial scope;
-1+0 Bullet timing is later validation. Record the run's agreed limits and
-execution status in #73; this documentation update does not start a job.
-Use matched Maia3 cross-speed evidence as provisional Bullet/Classical priors
-later, not as a universal offset or a reason to reset earned ratings. See #78.
-
-## Authorized public rating trial (owner correction, October 30, 2026)
-
-The owner authorized #73/#80 and corrected the separate-database assumption:
-the actual bot-versus-bot games must update the PUBLIC bots' native ratings and
-remain in their public histories. Preserve earned ratings, human results and
-native Glicko/provisional/safeguard behavior; qualification alone is isolated.
-The owner raised the target to ten concurrent games. Ramp 1 → 2 → 5 → 10, count
-human pool games in that ceiling, retain one game per bot, and keep the hard
-90-minute / 100-admitted-game budget with admissions ending at 75 minutes.
-No automatic extension or forced establishment. See `docs/native-bot-trial.md`.
-This explicitly supersedes the planning-only and no-capacity-increase limits
-above for this bounded, reviewed trial; other population/chat/timezone work
-remains separate.
-
-## Second capacity step (owner choice, October 30, 2026)
-
-After the unchanged first public batch, the owner selected a second bounded trial
-up to 22 concurrent games using the current 44 bots (#91). Use two pinned model
-workers under a four-core inference budget; ramp 10 → 15 → 20 → 22. Retain the
-90-minute / 100-admitted-game limit per run, one game per identity, ±200 matching
-and earned public ratings. Do not force 22 when eligible pairs are unavailable.
-No 50-game run or roster expansion is authorized by this choice.
-
-## Next calibration batch (owner authorization, October 30, 2026)
-
-The owner authorized one additional batch of 200 public games (#98), continuing
-from the earned results of the first 200. Use calibration-200-v1: hard ceiling
-200 admissions, up to 22 games, two workers/four logical CPU quota, 2,000 MiB
-worker-group memory, no added human waits, native Blitz/Rapid and Glicko.
-Keep the 90-minute deadline and stop admissions at 75 minutes. Preserve native
-perfs/history, one game per bot, ±200 matching and all safeguards. No automatic
-extension, forced establishment, roster expansion or normal-play cap change.
-Report how many bot-speed ratings meet the native provisional threshold.
-
-
-## Immediate forum posting (owner request, October 30, 2026)
-
-Issue #81 removes the two-day and completed-game forum qualification for signed-in
-human Mute Chess accounts. Preserve native bot denial, category permissions,
-moderation, captcha, spam protections and rate limits. This supersedes the earlier
-requirement to retain upstream age/game qualification; default upstream mode is
-unchanged. See `docs/native-learning-community.md`.
-
-
-## Friendly Nostr access and backup (owner request, October 30, 2026)
-
-Issue #94 is authorized for implementation and a PR stacked on #83 by the owner's
-subsequent chat request. Keep signer sign-in direct, guidance optional and backup
-exports explicit. Preserve the existing browser key-store name/schema, identities,
-NIP-07 and signed 2FA flow. No custom passphrase, local unlock or encrypted backup
-format. Browser persistence is optional and must not block sign-in. See
-`docs/nostr-sign-in-backup.md` for the UX, platform research and verification.
-
-
-## Accepted analysis presentation (owner approval, October 31, 2026)
-
-Implement the accepted full-screen mockup under #111, preserving the native
-three-column layout and controls. Compact fixed Maia frames, an inline rating
-legend, mirrored summary counts, chart actions above the plot and the tighter
-existing logo gap are approved. Remove Private Notes UI without deleting saved
-notes; this supersedes the earlier notes-only replay direction. Keep puzzle
-analysis separate and its Maia rows on one line. Use graded red blunder shades
-with the Maia platform's Stockfish ordering, never likelihood buckets. Opening
-names follow Mobile Maia (including ECO code, path/variation lookup and bounded
-long-name details), directly under the board. Add Mobile Maia's game-phase
-labels and boundaries to the native graph; keep native evaluation, accuracy,
-ACPL and learning semantics and continue to omit phase accuracy. Use American
-English in communication and product text. See docs/analysis-presentation.md.
-
-## October 31 account and analysis follow-up (#121/#122/#124/#125)
-
-Enable the existing post-game native computer-review flow on the standalone
-analysis board. Preserve its layout and editable moves; bind temporary review
-results to their exact mainline without creating public games. Restore native
-scroll-hiding header behavior and header player search, including public names.
-This supersedes the earlier hidden-search direction. Move profile npub furniture
-into an authenticated Nostr account section linked from the owner's profile and
-settings. Local nsec reveal/copy is explicitly requested, with matching-account
-checks, warnings and transient display; never transmit or publish private keys.
-Include optional Primal onboarding and the owner's existing official profile.
-
-The owner subsequently requested separate Import and Export tabs on the analysis
-board (#133), using native Lichess field/copy/download styling. Keep import
-drafts separate from read-only exports and preserve native parser/serialization
-behavior. Do not reintroduce the combined transfer tab or compact custom strip.
-
-## Continuous strength experiment (owner authorization, October 31, 2026)
-
-Issue #137 authorizes a bounded experiment predicting rating from conditioning,
-fixed history, temperature and top-p. Temperature/top-p are 0–1 inclusive, with
-zero endpoints deterministic. Preserve existing 44 identities/earned perfs;
-expand to 200 training configurations plus 50 held out, with #92 sci-fi naming.
-The eight-hour budget includes preparation: absolute stop October 31,
-10:34:39 UTC /19:34:39 JST, at most 3,000 public games. Retain 22-game ceiling,
-two workers/400% logical CPU/2,000 MiB, no added study human waits, native
-Glicko/rules/clocks/safeguards and +/-200 eligibility. Resolve/qualify #101 first.
-Follow issue/PR/check/GitHub merge/verified-main deployment. No extension or
-restart after failure; report partial/inconclusive evidence honestly. See
-`docs/strength-experiment.md`. This supersedes earlier planning-only/44-account
-limits only for the explicitly bounded experiment; no 10,000-account release
-or manufactured established ratings is authorized.
-
-
-## Bounded Moves by Rating and review polish (October 31, 2026)
-
-Issue #146 follows maiachess.com’s source for Moves by Rating only: complete
-candidate union, exact quality palettes and adaptive scale inside the existing
-compact native layout. Other analysis cards/panels remain unchanged. Discuss
-broader ideas before implementing them. Issue #148 separately requests the
-Mobile Maia cyan brilliant badge and En Croissant-inspired summary symbol/label
-spacing. Preserve classifications, counts, native metrics and navigation.
-
-
-## Native import controls correction (October 31, 2026)
-
-Issue #153: the owner explicitly rejects permanent Import FEN/PGN buttons.
-Restore pinned Lichess import markup/behavior: no FEN button, native validated
-FEN change flow, and the thin PGN bottom action revealed on focus. This
-supersedes earlier explicit-submit/blank-FEN adapters. Preserve separate tabs,
-PGN draft isolation, native parser/serialization and native export styling.
-
-## Explicit timing amendment (#147, October 31 at 07:04 UTC)
-
-The owner subsequently allowed finishing the intended 3,000 aggregate games by
-22:00 JST / 13:00 UTC October 31, with admissions ending 21:30 JST / 12:30 UTC.
-This supersedes only the overall eight-hour time limit above. Preserve the
-original live segment's immutable deadlines and evidence. A validation-only
-continuation requires normal predecessor completion, verified cleanup, no active
-games, reviewed/qualified merged-main source and the exact frozen primary
-snapshot/predictions. Never restart after failure, refit with held-out outcomes,
-increase the game cap or reset earned ratings. All other resource/scientific
-guards remain. See `docs/strength-validation-continuation.md`.
-
-## Native analysis-board export and initial Import (October 31, 2026)
-
-Issue #155: match existing post-game ReplayUi FEN/Image/Share/PGN layout and native
-copy controls on the standalone analysis board, including annotated/raw exports.
-Reuse native rendering, dialogs, serializers and pure PGN parsing; never create a
-public game to export an unsaved line. The owner selected the existing moss
-colors for image/GIF exports; preserve them through the documented native renderer
-theme extension. Keep public runtime/merge changes held until the experiment’s
-verified FINAL cleanup handoff; the extra renderer role must not enter #157’s
-continuation release. Issue #158 makes Import initially visible on standalone
-boards, retaining existing post-game defaults. The owner reconsidered #156 and
-chose to retain the current side-to-move score percentage; no favored-side display
-conversion ships.
-
-## Overnight rating establishment (new owner approval, October 31, #163)
-
-After the completed first study, the owner explicitly approved more games using
-the SAME250 bots, policies, Lichess-derived anchor and earned native Glicko perfs.
-Do not shrink the roster or replace the methodology. New run `r20261031n163`,
-profile `rating-establishment-v1`, has at most3,000 ADDITIONAL public games and
-an eight-hour preparation-inclusive window from13:30 to21:30UTC October31;
-admissions stop21:00UTC (November1 06:00JST), games stop06:30JST. Stop admissions
-early when all250 have native nonprovisional Blitz AND Rapid ratings, then drain.
-No forced flags/RD/counts, reseeding or another baseline subtraction. Retain22
-total managed games including humans, two server workers/400%CPU/2,000MiB,
-native±200/rules/clocks/ratings, no added study waits and no inference on the Mac.
-Keep the200/50split and fixed training-only V2 method, freeze after training
-establishment before new held-out games, and never tune with test outcomes.
-This is a NEWauthorization, not a restart of the old run/failed fixture; preserve
-all old evidence and timestamps. Pre-public preparation faults may be diagnosed
-and repaired within this budget; public driver/integrity failure stops with no
-automatic public retry. Follow the normal issue/PR/check/GitHubmerge/verified-main
-release and actual private qualification/backup/off-host/cleanup safeguards.
-The owner has supplied all required input and is sleeping; continue autonomously.
-See `docs/overnight-rating-establishment.md`.
-
-## Engine Analysis settings and stable underboard (November 1, 2026)
-
-The owner authorized #150/#151: one shared Engine Analysis screen for Maia count,
-retained ratings, Maia/Stockfish arrow colors/reset and Mobile Maia’s existing
-Fast/Balanced/Thorough review choices. Default second Maia on; one-engine game
-analysis fills both columns with eight raw-policy moves, while puzzle review
-just omits its second row. Puzzle labels open the existing rating grid. Preserve
-probabilities, classification colors, expected-score perspective and native
-Stockfish/solving gates. This supersedes the earlier idea-only status. #168 fixes
-long opening articles pushing the underboard away; bound/scroll the sidebar
-without hiding opening text or changing tabs. See docs/analysis-presentation.md.
-
-## Profile access and Maia conditioning (November 1, #173)
-
-Keep the current engine settings gears and expose the same Engine Analysis
-dialog from Profile & settings. Both Maia inputs must always use that channel’s
-selected rating, as in Mobile Maia review.dart; remove the opponent-input control
-and normalize old saved mismatches. Apply this to both analysis and puzzle review
-without replacing native account/settings behavior.
-
-
-## Calibrated 10,000-bot roster (owner approval, November1,2026, #172)
-
-The owner approved expanding to10,000 identities using measured Maia strength:
-approximately800–3000Blitz and800–2800Rapid, with Lichess-shaped per-speed
-allocation. The owner explicitly confirmed NEW bot ratings should be assigned
-nonprovisional, calibrated from measured policies. Initialize those new bot perfs
-with RD100, native volatility/default counts and truthful zero games; retain
-native Glicko/provisional thresholds and updates. This supersedes the earlier
-provisional-only initialization restriction for newcatalog identities. Preserve
-all250 existing perfs/history/settings and human rating semantics. Do not add
-calibration games, raise capacity, copy earned history, force permanent flags or
-change matching. Reference-derived Bullet/Classical priors and UltraBullet/
-Correspondence proxies must remain transparently identified. Use sci-fi and
-cyberpunk homages for strong bots; keep Wintermute and other earned identities.
-Only strong SignalTrain/Test placeholders receive public display-name aliases;
-canonical IDs/usernames/history remain unchanged. See docs/catalog-roster.md,
-source manifest and the exact-path departure register. Follow issue/PR/check/
-GitHubmerge/verified-main deployment and backup-preserving provisioning audit.
-## Playing Maia opponent conditioning (November 1, #176)
-
-For new human-versus-Maia games, use the human's native matching-speed rating as
-the opponent model input, clamped to600–2600; anonymous play matches the bot self
-input, assuming equal strength. Freeze signed-in human conditioning
-at admission under a new explicit policy version. Keep the bot self input and
-fixed sampling/history/timing, existing frozen games and study policies intact.
-This differs from analysis/puzzle Maia, where both inputs match each selected
-channel. Document engine choices in README and issue/PR. Fixed-input calibration
-does not establish the new dynamic-human policy's strength; preserve earned
-ratings and native matching/Glicko without rerating or starting research games.
-
-## Native Engine Analysis preferences page (owner correction, November 1, #180)
-
-Profile & settings must open Engine Analysis as a normal native account settings
-page, matching its sidebar, heading, section spacing and native controls. Do not
-open a modal from this settings-menu entry. Preserve existing analysis/puzzle
-gear dialogs and the shared browser-local preference storage and behavior.
-Keep the correction bounded; general tooling work requires separate discussion
-and explicit owner approval as recorded in the workspace instructions.
-
-## Homepage activity counters (owner correction, November 1, #181)
-
-Restore the native live players-online and games-in-progress counters below
-quick pairing. Preserve native counts, socket updates, number spreaders and
-links. Keep the focused Maia pairing surface; do not restore unrelated lobby
-buttons, feeds or navigation.
-
-## Readable opening article and 79M execution (November 1, #183/#184)
-
-Allow WikiBook to retain its natural article height and scroll within the fixed
-sidebar, preserving native collapse and underboard placement. The owner approved
-implementing a GPU-first79M browser path with CPU fallback for testing. Keep
-model bytes, input semantics, exact21chart samples, cancellation and deadlines
-unchanged. Reuse pinned runtime assets and existing preparation; no general
-benchmarking/deployment framework is part of this change.
-
-
-## Nostr public identity and editable unique names (November 2, #212/#217)
-
-The owner subsequently reversed the duplicate-name decision and explicitly
-authorized case-insensitively unique chosen names, remaining editable. Npub is
-the permanent official public identity; chosen names are not canonical account
-identifiers. Preserve atomic normalized name reservations and their unique index
-while retaining all native IDs, keys and history. No silent renaming, cooldown or
-account migration is authorized. Keep actual npub subtle and click-to-copy on
-public human profiles (#216) and linked visibly in native hovercards, with
-a shareable npub profile URL and full-key
-lookup. Preserve native internal user IDs and canonical foreign-key/history
-relationships; decode validated public npub input to the existing stored public
-key, not a new account. Native username parsing remains unchanged. Private nsec
-never belongs on a public profile or in search transport. Managed bots keep
-native names and BOT labels and have no Nostr identities. No bot keys, social
-publishing or account migrations are part of this work. Bot names and canonical
-handles participate in the same uniqueness reservation as chosen human names.
-
-
-## Owner-hosted Arenas (November 13, 2026, #311/#313)
-
-The owner authorized implementing native standard-chess Arenas in draft PR #313,
-without merging or deploying. Default to 120 minutes and 15+10; reserve ten
-existing bots with saved event-speed ratings of 1200–1700. Bots fill a target of
-ten active humans plus bots, while human entry remains unlimited. Use native
-pairing, scoring, clocks and results; finish ongoing games before releasing bot
-seats. Suppress only ordinary background bot games during preparation/event/drain,
-respect independent maintenance pauses, and retain the shared twenty-Maia-game
-cap. Follow docs/arena-plan.md and the exact-path departure register. No new
-scheduler, deployment tooling or infrastructure changes are authorized.
-
-
-## Distinctive legacy bot aliases (November 13, #322)
-
-The owner authorized replacing generic generated labels as well as every remaining SignalTrain/SignalTest
-public label using the existing alias mechanism, drawing on sci-fi, Metal Gear,
-other fitting games, early computing history, Wipeout and electronic music. Retain existing aliases and
-all canonical IDs, policies, ratings, games and history. Assign Elon Musk to an
-existing lower-rated identity, without changing its rating. Proper names remain
-untranslated. Keep this as a separate draft; no live writes, merge or deployment.
-
-## Configurable Arena fillers (November 13, #319)
-
-The owner approved a draft follow-up to merged #313: make Allow bot accounts
-authoritative for human-only events and expose each event’s bot rating range
-(default 1400–1700) and active participant target (default ten). Use the actual
-target in the Maia participation notice, preserve ongoing games and unlimited
-human entry, and translate all UI text into ten locales. Keep this follow-up
-draft; do not merge or deploy without further instruction.
-
-
-## Native Arena discovery (#324, November 13)
-
-The owner approved a draft PR for the native timeline and Finished/history views,
-Play → Arena tournaments, and an upper-left homepage Arena spotlight. Reuse native
-views and timing, retain public approved-host filtering and all Arena admission
-semantics, and verify all exposed copy in ten locales. Keep this draft unmerged
-and undeployed pending further instruction. No general tooling or infrastructure
-changes are authorized.
-
-
-## Compact Arena sidebar (#326, November 14)
-
-The owner approved the compact sidebar preview: native bot-details disclosure,
-full-height metadata, native chat breathing room and preparation feedback above
-chat. Preserve real entry requirements/refusals and every game/host/bot contract;
-translate all changed text in ten locales. Keep the PR draft, unmerged and
-undeployed for a future explicitly approved batch. Do not pause public games,
-stop public services or add release/infrastructure tooling for this UI change.
+# Mute Chess: current implementation rules
+
+Read the parent workspace `AGENTS.md` and the latest owner instructions first.
+Keep work bounded. New or redesigned general tooling, shared infrastructure or
+unrelated refactors require explicit approval before implementation. Do not
+expand a feature into deployment, backup or test orchestration.
+
+## Foundation and source
+
+- Native application changes belong in `Dash1971/lila` on `main`, through PRs.
+  Keep existing NoSweat namespaces and small hooks in upstream-owned files.
+  Never commit to native `master`, rebase or force-push deployed history.
+  Merge upstream regularly; urgent security fixes use `git cherry-pick -x`.
+- `deploy/lila/native-pin.json` is the application source authority. Preserve
+  exact native commit/tree provenance and the documented clean-source rules.
+  Only `.github/workflows/mute.yml` is excluded as approved metadata from the
+  application-departure inventory. Maintain the exact-path departure register.
+- The active website is native Lila with Maia, Nostr and Mute integrations.
+  The retired Fastify/PostgreSQL prototype is in `archive/node-prototype/`.
+  Do not restart it. Keep its history and reproducible source available.
+- Preserve native rules, clocks, ratings, provisional semantics, anti-abuse,
+  authentication, data and secret protection. Standard chess only. Preserve
+  our simplified UI, branding, Maia, Open Brilly Finder, stacked premoves,
+  Lightning patronage and owner Arenas. Follow [upstream policy](docs/upstream-alignment.md).
+- Keep this workspace lean; use the existing Mini build environment for bulky
+  work and archive historical checkouts/evidence at `/srv/macbook-archives`.
+  No per-task SDKs, model copies or unbounded build output.
+
+## Current product contracts
+
+- The site supports desktop/mobile browsers and the exposed features documented
+  in [the site manual](docs/site-manual.md). Historical 44-bot, two-game,
+  human-versus-bot-only and pre-Arena plans do not override the current site.
+- Preserve the 10,000 managed bot identities, policies, unique names, earned
+  ratings and histories. Human Nostr public keys and canonical key-derived
+  IDs stay stable while public names remain editable. Never transmit or publish
+  nsec; preserve the authorized local key backup/reveal controls.
+- Shared Maia capacity is twenty games. Background games top up to five total
+  games, counting humans. Native Arena fillers follow their configurable
+  participant target and rating range; unchecking bot accounts is human-only.
+  Preserve existing games, independent maintenance pauses and disconnect grace.
+- Analysis remains in the browser, using native game/tree/review behavior.
+  Maia probabilities, Stockfish evaluations and classifications are distinct.
+  Preserve current arrow behavior (including tapering), badges and engine
+  preferences unless the owner explicitly authorizes a change.
+- Do not restore hidden features or expose unsupported public routes because
+  upstream adds them. Unsupported links use the translated native notice.
+  Keep Learn limited to Chess basics and Practice.
+- Never start calibration, load tests, research games, migrations, social
+  publishing or service changes on the basis of old time-bounded approvals.
+
+## User-facing text
+
+Every added or changed user-facing string, including help, titles, accessibility,
+errors and transient feedback, must use native catalogs and ship translated in
+all ten locales: en-GB, de-DE, es-ES, fr-FR, hi-IN, ja-JP, ko-KR, pt-BR, ru-RU,
+zh-CN. English fallback is incomplete. Check keys, placeholders and localized
+rendering. Reuse the existing translation system; use American English in
+communication/product prose while retaining native locale identifiers.
+
+## Review and releases
+
+- Open an issue, use a short-lived `codex/` branch, create a focused PR, review
+  and pass checks. Native changes have a native PR and a Mute companion pin PR.
+  Keep one permanent `main` branch and remove merged branches. Do not deploy
+  dirty, unmerged or unverified source. Run the existing main/source checks.
+- The site is preproduction; routine brief downtime needs no extra approval.
+  Still obey explicit requests for draft-only work or delayed batch deployment.
+  Building or merging does not by itself authorize deployment.
+- Every deployment requires fresh security verification of the actual active
+  `RELEASE.json`, native commit/tree, inventory, libraries, sanitizer and running
+  private runtimes/backports. Preserve real original build receipts and IDs.
+- Use the existing host-monitor maintenance wrapper for the exact planned
+  `RELEASE.json` path. Verify the new expected fingerprint, unchanged unrelated
+  control hashes and isolation. Never reset unrelated baselines or hide alerts.
+- Publish matching current `SECURITY_VERIFICATION.json` and existing
+  `SECURITY279_BUILD.json` reader copies using real matching evidence. Update
+  OpenClaw's deployed/reference inventory only after runtime verification (the
+  repository inventory may describe an explicitly undeployed release target), then require a fresh
+  existing-classifier `inventory_verified=true`. No report predicate/schedule
+  changes. Follow [security maintenance](docs/security-maintenance.md).
+
+## Historical owner instructions
+
+Every section from the former long AGENTS.md is retained, with relative links
+adjusted for its new location, in the
+[decision records](docs/decisions/README.md). Consult the relevant topic before
+changing its behavior. These records preserve detailed constraints, provenance
+and research budgets; dated or superseded authorizations are not new permission.
+Latest owner instructions and the current rules above take precedence when
+older entries conflict.
