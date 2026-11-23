@@ -49,6 +49,8 @@ An index of the pages in this folder. New here? Start with the first four.
 
 ## Design and decisions
 
+- [Owner decision records](decisions/README.md): detailed historical instructions.
+
 - [Foundation decision: Lichess as the base](chess-foundation.md) (28 October 2026,
   with later corrections)
 - [Mute Chess: the club in 2097](design.md)

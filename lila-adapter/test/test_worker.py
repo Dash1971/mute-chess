@@ -29,7 +29,7 @@ class WorkerTests(unittest.TestCase):
         with self.assertRaises(ValueError):encode(['e2e5'])
     def test_reference_logits_and_promotion(self):
         engine=Engine(os.environ['MAIA_MODEL'])
-        refs=json.loads((pathlib.Path(__file__).resolve().parents[1]/'test/maia-reference.json').read_text())
+        refs=json.loads((pathlib.Path(__file__).resolve().parent/'maia-reference.json').read_text())
         for case in refs:
             b=chess.Board(case['fen']);tokens=np.concatenate([tokenize(b)]*8+[np.zeros((64,1),np.float32)],axis=1)[None]
             out=engine.session.run(None,{'tokens':tokens,'self_elo':np.array([case['selfElo']],np.int64),'opponent_elo':np.array([case['opponentElo']],np.int64)})

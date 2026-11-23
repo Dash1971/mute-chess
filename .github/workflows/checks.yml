@@ -37,8 +37,8 @@ jobs:
         with:
           python-version: '3.14'
           cache: pip
-          cache-dependency-path: worker/requirements.txt
-      - run: python -m pip install -r worker/requirements.txt
+          cache-dependency-path: lila-adapter/requirements.txt
+      - run: python -m pip install -r lila-adapter/requirements.txt
       - name: Encoder regression without external weights
         working-directory: lila-adapter
         run: PYTHONPATH=.:test python -m unittest test_worker.WorkerTests.test_history_and_black_orientation test_worker.WorkerTests.test_deterministic_temperature_and_top_p_zero_endpoints test_strength_predictor
