@@ -21,6 +21,7 @@ try {
     .replace(/^server\.listen\(29660,.*$/m, 'export { server };');
   assert.notEqual(fixture, source);
   await writeFile(join(root, 'gateway.mjs'), fixture);
+  await writeFile(join(root, 'public-surface.mjs'), await readFile(new URL('./public-surface.mjs', import.meta.url)));
   ({ server } = await import(join(root, 'gateway.mjs')));
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const origin = `http://127.0.0.1:${server.address().port}`;
