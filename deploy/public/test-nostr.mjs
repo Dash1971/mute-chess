@@ -6,8 +6,13 @@ import http from 'node:http';
 
 const root = await mkdtemp(join(tmpdir(), 'mutechess-gateway-'));
 let server, upstream;
+let websocketUpgrades = 0;
 try {
   upstream = http.createServer((req, res) => { res.writeHead(209); res.end(req.url); });
+  upstream.on('upgrade', (_req, socket) => {
+    websocketUpgrades++;
+    socket.end('HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n\r\n');
+  });
   await new Promise(resolve => upstream.listen(0, '127.0.0.1', resolve));
   await mkdir(join(root, 'lila/public/nosweat'), { recursive: true });
   await writeFile(join(root, 'RELEASE.json'), JSON.stringify({ gitCommit: 'test-revision' }));
@@ -18,6 +23,7 @@ try {
   // Change only deployment paths and the listen call; execute the real request handler.
   const fixture = source.replaceAll('/opt/nosweatchess/current', root)
     .replace('port: 29663', `port: ${upstream.address().port}`)
+    .replace('port: 29664', `port: ${upstream.address().port}`)
     .replace(/^server\.listen\(29660,.*$/m, 'export { server };');
   assert.notEqual(fixture, source);
   await writeFile(join(root, 'gateway.mjs'), fixture);
@@ -25,6 +31,24 @@ try {
   ({ server } = await import(join(root, 'gateway.mjs')));
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const origin = `http://127.0.0.1:${server.address().port}`;
+  const upgrade = path => new Promise((resolve, reject) => {
+    const req = http.request(origin + path, { headers: {
+      Host: 'mutechess.org', Origin: 'https://mutechess.org',
+      Connection: 'Upgrade', Upgrade: 'websocket', 'Sec-WebSocket-Version': '13',
+      'Sec-WebSocket-Key': 'dGhlIHNhbXBsZSBub25jZQ=='
+    } });
+    req.on('upgrade', (res, socket) => { socket.destroy(); resolve(res.statusCode); });
+    req.on('response', res => { res.resume(); resolve(res.statusCode); });
+    req.on('error', err => err.code === 'ECONNRESET' ? resolve('closed') : reject(err));
+    req.setTimeout(2000, () => req.destroy(new Error('Gateway upgrade test timed out')));
+    req.end();
+  });
+  // Exercise the actual upgrade handler: no Racer room may reach the shared room namespace.
+  for (const path of ['/racer/fixture?sri=security381', '/racer/fixture/socket/v5?sri=security381'])
+    assert.equal(await upgrade(path), 'closed');
+  assert.equal(websocketUpgrades, 0);
+  assert.equal(await upgrade('/analysis/socket/v5?sri=security381'), 101);
+  assert.equal(websocketUpgrades, 1);
   const request = (path, method = 'GET', host = 'mutechess.org', ip = '127.0.0.1') => new Promise((resolve, reject) => {
     const req = http.request(origin + path, { method, headers: { Host: host, Origin: 'https://primal.net', 'CF-Connecting-IP': ip } }, res => {
       const chunks = [];
@@ -90,6 +114,7 @@ try {
     ['/challenge','POST'], ['/rel/follow/friend','GET'], ['/rel/delete/friend','POST'],
     ['/about','POST'], ['/privacy','POST'], ['/account/preferences/engine-analysis','POST'], ['/account/preferences/network','GET'], ['/account/preferences/network','POST'], ['/account/passwd','POST'],
     ['/account/oauth/token','GET'], ['/api/account/preferences','GET'], ['/api/study','POST'],
+    ['/api/x/streamer/youtube-pubsub?hub.challenge=security381','GET'],
     ['/api/streak/27','POST'], ['/storm','DELETE'], ['/learn','DELETE'], ['/games/atomic','GET'], ['/club/internal/games','GET'],
   ]) assert.equal((await request(path, method)).status, 404, `${method} ${path}`);
   // Owner authorization remains native; supported Arena pages reach that controller.
