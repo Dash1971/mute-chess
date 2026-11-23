@@ -144,3 +144,20 @@ mode and retain upstream implementations otherwise. Moving the renderers does
 not change their active markup, labels, routes, translations or preferences.
 This limits future upstream conflicts to the entry hooks; independent Mute
 renderers still need comparison when upstream behavior changes.
+
+## Reviewed feature boundary (#366)
+
+`conf/noSweatFeatures.json` in the native fork lists reviewed method, path and
+native action triples. In Mute mode the existing HTTP request handler rejects
+unlisted named generated actions before execution. Upstream mode and native
+filters, fallback/errors and OPTIONS handling remain intact. A new upstream
+action does not become public merely by falling under an existing URL prefix.
+The existing gateway policy remains the outer boundary, including private-route
+blocks and translated notices for unsupported links.
+
+The companion's gateway-parity regression checks the reviewed native entries
+against `public-surface.mjs` and the pinned native route declarations, catching
+stale entries and disagreement. The gateway module is staged beside the gateway
+by the existing installer. These source checks are not runtime or browser-test
+evidence. Existing controller-level authentication, Arena owner checks and
+admission rules remain authoritative; the allowlist grants no permission itself.

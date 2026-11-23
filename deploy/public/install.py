@@ -130,6 +130,7 @@ subprocess.run([str(checker), str(payload / 'lila-adapter/stage-catalog.mjs'),
 subprocess.run([str(checker), str(payload / 'lila-adapter/stage-catalog.mjs'),
                 '--verify', str(release / 'lila')], check=True)
 shutil.copy(payload / 'gateway.mjs', release / 'gateway.mjs')
+shutil.copy(payload / 'deployment/public/public-surface.mjs', release / 'public-surface.mjs')
 shutil.copy(payload / 'RELEASE.json', release / 'RELEASE.json')
 (release / 'RELEASE.json').chmod(0o644)
 
