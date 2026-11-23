@@ -40,12 +40,15 @@ commit must match RELEASE.json. The source footer archive contains that Mute
 tree, `lila-native.tar` from the fork commit and the retained small patches.
 The payload includes
 the remaining small patches, adapter code with `npm ci --omit=dev`, the public club assets,
-gateway, installer, pinned Python requirements, BUILD.md, LICENSE,
+gateway, installer, pinned Python requirements (copy `lila-adapter/requirements.txt`
+to `PAYLOAD/requirements.txt`), BUILD.md, LICENSE,
 THIRD_PARTY.md, the complete `third-party` directory and deployment scripts.
 Include the pinned renderer artifact at `PAYLOAD/gif-renderer`, with official
 source, exact moss-theme overlay and verified build receipt described in
-[gif-renderer.md](gif-renderer.md). Its build and installation remain **HELD**
-during the active study; source integration is not evidence of live availability.
+[gif-renderer.md](gif-renderer.md). Keep the renderer build receipt with the matching release.
+Renderer build and installation follow the owner's current release authorization;
+this guide does not lift any active hold. The October 31 study restriction remains
+recorded in the [dated owner decision](../../docs/decisions/analysis-and-learning.md#native-analysis-board-export-and-initial-import-october-31-2026).
 Include `design/quiet-signal` and `design/logo-explorations/final` (excluding
 `node_modules` and Python environments). The installer checks for the brand sources
 before preparing a release and includes them with the corresponding-source archive.
@@ -144,19 +147,14 @@ not provide continuous disaster recovery.
 
 Read-only release rollback: stop app/WS/adapter/gateway, select the previous
 known-good `current` symlink, then restart. Review schema compatibility first.
-App or worker restarts void active games rather than fabricate results.
+Drain games before planned restarts. At application startup, unfinished managed
+Maia games are voided with `application_restart`; an unplanned restart therefore
+does not resume those games. Never fabricate results or reset game records.
 Inspect `journalctl -u nosweatchess-app` and the other units; HTTP request logging
 is disabled. The public source archive includes exact upstream trees and our
 patches, with build instructions and licenses, but no accounts, keys or backups.
 
-The default managed Maia pool has a two-game cap. The explicitly enabled [public bot activity mode](../../docs/public-bot-activity.md) shares ten Maia-driven games between human play and up to five rated spectator games, with authenticated manual pause/drain; Friend games retain their separate admission path. Anonymous games are casual. Nostr accounts start at native provisional 1500 and use native Glicko ratings; automatic pairing stays within ±200. The 44 bot priors remain estimates, with per-speed provisional seeds. Newly supported speed categories inherit blitz/rapid priors as explicit starting estimates. Existing speed ratings are never reset.
-Bot personalities now fix move history, human timing on/off and timing style per
-identity. Presence uses one expiring managed health lease, and pairing uses a
-derived native-rating index with admission-time validation. The roster remains 44
-for this infrastructure release; the 10,000-identity rollout and the run to set
-ratings/measure capacity remain staged. See `docs/bot-population.md` and #73;
-do not start self-play or a load test as a deployment check.
-NIP-07 is recommended. Generate/import browser keys are encrypted into IndexedDB with a non-extractable wrapping key; same-origin code can still use them, so an external signer provides better isolation. Keys never go to the server or relays. NIP-46 remains work. The selected Quiet Signal identity uses the MuteChess knight, graphite/mint palette and a native moss board theme. Existing board choices, internal identifiers, storage and deployment origins remain intact; see `design/quiet-signal/README.md`. Capacity calibration remains work; native premove and analysis extensions are described below.
+The deployed shared cap is twenty Maia-driven games. [Background activity](../../docs/public-bot-activity.md) fills up to five total games, counting human games, and stops creating new games during owner Arenas or maintenance pauses. Human-versus-human games retain native admission and pause checks without using Maia inference slots. Anonymous games are casual; Nostr accounts start at native provisional 1500 and use Glicko. Automatic pairing stays within ±200. The [10,000-bot catalog](../../docs/catalog-roster.md) preserves existing earned ratings/history and documents measured versus reference-derived starting priors. No rerating or new research games are authorized by this guide.
 
 ## Browser analysis assets
 
@@ -166,7 +164,7 @@ Stacked premoves are enabled by default in standard live rounds with native prem
 
 Post-game and standalone analysis retain the native Lichess tree, chart, accuracy, ACPL, judgments, review controls and on-device Analysis editor. Maia model/rating/history preferences live in Analysis Menu → Settings. Two native SF choices and the top move of each independently rated Maia channel share the board; agreement uses one composite arrow, and Maia widths never taper with likelihood. The left candidate panel exposes raw probabilities, bounded missing-candidate SF searches, native preview/return and optional rating samples. Each Maia line also shows its current-position expected score (win + half draw) for the side to move, independently of Stockfish evaluation and game accuracy.
 
-The native evaluation graph adds small persistent circles for its existing quality glyphs, using the Mobile Maia/En Croissant classification colors. Native blunder/mistake/inaccuracy semantics are unchanged. After the native review is saved, an optional worker checks material sacrifices and uses separate bounded, complete two-PV Stockfish searches plus stronger whole-window confirmation before adding an automatic `!!`. Existing imported quality annotations and native negative judgments take precedence. Cancellation, hidden pages and a changed mainline stop this pass while retaining the completed native analysis. Confirmed annotations are saved with the native browser review; no custom full-game dashboard or replacement accuracy formula is exposed. A partial/failed check never fabricates a brilliant. Capacity calibration remains work.
+The native evaluation graph adds small persistent circles for its existing quality glyphs, using the Mobile Maia/En Croissant classification colors. Native blunder/mistake/inaccuracy semantics are unchanged. After the native review is saved, an optional worker checks material sacrifices and uses separate bounded, complete two-PV Stockfish searches plus stronger whole-window confirmation before adding an automatic `!!`. Existing imported quality annotations and native negative judgments take precedence. Cancellation, hidden pages and a changed mainline stop this pass while retaining the completed native analysis. Confirmed annotations are saved with the native browser review; no custom full-game dashboard or replacement accuracy formula is exposed. A partial/failed check never fabricates a brilliant. The dated capacity/calibration records are historical evidence, not authorization to run more games.
 
 ## Native puzzles
 

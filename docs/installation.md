@@ -3,8 +3,12 @@
 To play, open [mutechess.org](https://mutechess.org/). There is no desktop app
 to install. This guide is for running your own local instance from source.
 
-The current helpers target **Ubuntu 24.04 on x86-64, with systemd**. Use a fresh
-machine or VM and a regular user with sudo access. The native build allows up to
+The maintained host runs **Ubuntu 26.04.1 LTS on x86-64, with systemd**, verified
+on 23 November 2026. These helpers are used on that existing host. A clean-room
+installation of all steps on a fresh machine has not been qualified. CI runs
+source/build tests on Ubuntu 24.04; that does not establish installer support
+for 24.04. For a new instance, use an isolated 26.04 VM and a regular sudo user,
+and verify each step rather than treating the recipe as a supported installer. The native build allows up to
 5 GiB of Java heap, in addition to the memory used by the OS and other services.
 Allow disk space for two source trees, dependencies, build output and models.
 macOS, Windows and ARM installation are not covered by these helpers.
@@ -62,7 +66,7 @@ java -version
 
 sudo python3 -m venv /opt/club-maia/venv
 sudo /opt/club-maia/venv/bin/python -m pip install \
-  -r "$MUTE_REPO/worker/requirements.txt"
+  -r "$MUTE_REPO/lila-adapter/requirements.txt"
 
 bash "$MUTE_REPO/deploy/lila/prepare-host.sh" "$MUTE_DEV"
 export PATH="$MUTE_DEV/tools/pnpm/node_modules/.bin:$PATH"
@@ -72,7 +76,7 @@ export PATH="$MUTE_DEV/tools/pnpm/node_modules/.bin:$PATH"
 installs the pinned pnpm and mongosh packages, and extracts the distribution's
 Redis packages into the local tools directory. It does not require a shared
 MongoDB or Redis service. Keep the Python dependency versions in
-[`worker/requirements.txt`](../worker/requirements.txt).
+[`lila-adapter/requirements.txt`](../lila-adapter/requirements.txt).
 
 ## 3. Fetch and verify the native fork; patch WebSockets
 

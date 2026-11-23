@@ -52,7 +52,7 @@ roster ranges, not forced endpoints for the estimation formula.
 New Bullet priors use the measured Blitz reference plus a conditioning-matched
 historical Lichess Bullet-minus-Blitz difference. Classical uses the corresponding
 Rapid-to-Classical difference. These reuse the dated reference/nearest reliable
-family rule documented in [the earlier mapping](bot-rating-adjustment.md).
+family rule documented in [the earlier mapping](records/bot-rating-adjustment.md).
 Unreliable upper families fall back to the nearest family with established
 ratings, RD at most110 and at least30 games in both source categories.
 

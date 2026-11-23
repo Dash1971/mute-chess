@@ -8,7 +8,8 @@ def include(info):
     if any(p in excluded for p in parts):return None
     if any((p=='.env' or p.startswith('.env.')) and p!='.env.example' for p in parts):return None
     if info.name.endswith(('.onnx','.pyc','source.tar.gz')):return None
-    if info.name in {'public/app.js','public/alpha.js','public/chessground.base.css','public/chessground.brown.css','public/chessground.cburnett.css'}:return None
+    name=info.name.removeprefix('archive/node-prototype/')
+    if name in {'public/app.js','public/alpha.js','public/chessground.base.css','public/chessground.brown.css','public/chessground.cburnett.css'}:return None
     return info
 with tarfile.open(out,'w:gz') as tar:
     for p in sorted(root.iterdir()):

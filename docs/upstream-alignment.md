@@ -96,13 +96,13 @@ the one-shot server supervisor bound execution. Qualification uses a disposable
 database, whereas the authorized run updates existing public perfs without
 reset/import. Post-merge verification must exercise both BOT seats, native rating
 writes after FinishGame, disabled/public/qualification scope checks, and normal
-human-pool admission while the flag is on. See [methodology](native-bot-trial.md).
+human-pool admission while the flag is on. See [methodology](records/native-bot-trial.md).
 
 ## Explicit one-time external rating anchor (#103, draft)
 
 The owner requested a draft operational correction for existing bots, including
 Bullet/Classical reference priors. This is isolated in `deploy/calibration/` and
-[its runbook](bot-rating-adjustment.md); no native source paths or Glicko formula
+[its runbook](records/bot-rating-adjustment.md); no native source paths or Glicko formula
 change is introduced. Preserve native perfs, histories, uncertainty/provisional
 rules and all subsequent native rating updates. The fixed-cohort migration is
 manual, audited and guarded by a maintenance window, exact snapshot/plan, backup,
@@ -128,7 +128,7 @@ continuation after normal predecessor cleanup. Its namespaced study profile and
 deadline branch retain the same native run records and aggregate admission cap;
 no upstream rating, round or matching behavior changes. Post-merge verification must
 also reject failed/incomplete predecessors, changed frozen evidence and admission
-3,001 across segments. See [the dated amendment](strength-validation-continuation.md).
+3,001 across segments. See [the dated amendment](records/strength-validation-continuation.md).
 
 Issue #163 separately authorizes an overnight establishment follow-up for the
 same250 bots and earned perfs. Its new namespaced profile only adds fixed
@@ -137,7 +137,7 @@ profiles remain unchanged. Native provisional flags determine establishment;
 the external scheduler prioritizes unsettled bot/speed pairs without writing
 ratings. Post-merge verification covers exact new public/private run IDs, fixed
 cutoffs, admission3000/3001 and unchanged native Glicko/shared human capacity.
-See [the bounded follow-up](overnight-rating-establishment.md).
+See [the bounded follow-up](records/overnight-rating-establishment.md).
 
 ## Shared Engine Analysis settings and bounded opening text (#150/#151/#168)
 

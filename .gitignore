@@ -9,12 +9,12 @@ node_modules/
 __pycache__/
 dist/
 coverage/
-public/app.js
-public/chessground.*.css
+archive/node-prototype/public/app.js
+archive/node-prototype/public/chessground.*.css
 source.tar.gz
 *.onnx
 
-public/alpha.js
+archive/node-prototype/public/alpha.js
 
 # Private operational material must never be published.
 .private-secrets/
