@@ -21,7 +21,7 @@ The piece attribution/license is recorded by upstream Lichess in its [COPYING.md
 
 The ONNX file is the existing Mobile Maia export, generated with `tool/export_maia3_onnx.py` from the released Maia3 architecture/checkpoint. The four legal-logit references in `test/maia-reference.json` were generated against the official source revision above and checkpoint SHA-256 `3fc6181d5db789b45a15305732148757ae74efa3e0028e81ba335b462dac45c2`; export parity is tested on this host. The export's source and recipe are available in [Mobile Maia Preview](https://github.com/Dash1971/maia-chess-android-preview), with that project's licenses preserved. No Mobile Maia application/release code was modified.
 
-The Node prototype incorporates Chessops and Chessground as pinned dependencies rather than detached source fragments. The native Lichess application uses the complete [Lila](https://github.com/lichess-org/lila) checkout at `b551752d2a0e7a63459d9812825d95a633a98737` and [lila-ws](https://github.com/lichess-org/lila-ws) at `5089b84b5fe2da3f3e9e69d29363115cfddfc758`, retaining their AGPL licenses and complete source/asset notices. The native Nostr/Maia and WebSocket bind patches and build instructions are in `deploy/lila/`; the public source archive includes both pinned upstream trees, our patches, the adapter, deployment scripts and these notices. No Lichess accounts, production databases or public chess services are reused. Native playing and analysis pages retain upstream presentation while the full club wrapper remains work.
+The Node prototype incorporates Chessops and Chessground as pinned dependencies rather than detached source fragments. The native Lichess application uses our [Lila fork](https://github.com/Dash1971/lila) of [Lichess](https://github.com/lichess-org/lila), at the commit and upstream base recorded in [`deploy/lila/native-pin.json`](deploy/lila/native-pin.json), and [lila-ws](https://github.com/lichess-org/lila-ws) at `5089b84b5fe2da3f3e9e69d29363115cfddfc758`, retaining their AGPL licenses and complete source/asset notices. The native Nostr/Maia changes are in that fork; the WebSocket bind patch and build instructions are in `deploy/lila/`; the public source archive includes both pinned upstream trees, our patches, the adapter, deployment scripts and these notices. No Lichess accounts, production databases or public chess services are reused. Native playing and analysis pages retain upstream presentation while the full club wrapper remains work.
 
 Other npm dependency sources, exact versions and integrity hashes are recorded in `pnpm-lock.yaml`; dependency distributions carry their license files. The runtime uses Fastify and plugins (MIT), node-postgres (MIT), nostr-tools (Unlicense), Zod (MIT), ONNX Runtime (MIT), NumPy (BSD-3-Clause), and python-chess (GPL-3.0-or-later). See those distributions for their complete notices.
 
@@ -59,7 +59,7 @@ license and provenance are retained in `third-party/maia-platform-quality/`.
 
 The CC0 opening table follows Mobile Maia's bundled dataset at
 `8563954429c2fb53ce0fe0e16c73c5d8a73ccfe0`, from lichess-org/chess-openings
-`4b8622759e7ae6f93f011cc6c83a3823401ab45e`. The native patch includes
+`4b8622759e7ae6f93f011cc6c83a3823401ab45e`. The native fork includes
 `public/nosweat/openings.json` and `OPENINGS_CC0.txt`. See
 [analysis presentation](docs/analysis-presentation.md) for reproduction and the
 AGPL Mobile Maia opening/phase presentation references.

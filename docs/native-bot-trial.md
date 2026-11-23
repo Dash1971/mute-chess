@@ -58,7 +58,7 @@ the public gateway blocks the whole `/club/internal/` prefix. No public bot API
 or bot challenge UI is enabled. Configuring another origin/database fails closed.
 
 The native source changes are registered in `deploy/lila/upstream-departures.json`.
-Rebases must preserve the reservation checks, shared admission lock, deadlines
+Upstream merges must preserve the reservation checks, shared admission lock, deadlines
 and `FinishGame` ordering after native perf persistence. No rating, round or
 clock implementation is patched for this experiment.
 

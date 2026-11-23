@@ -174,7 +174,7 @@ Mobile Maia at `8563954429c2fb53ce0fe0e16c73c5d8a73ccfe0` supplies the
 reference. The native namespaced ports preserve its position-path lookup, ECO
 format and phase rules. The 3,810 opening rows come from the same Mobile Maia
 CC0 TSV, generated from lichess-org/chess-openings
-`4b8622759e7ae6f93f011cc6c83a3823401ab45e`. The native patch retains the
+`4b8622759e7ae6f93f011cc6c83a3823401ab45e`. The native fork retains the
 compact data and CC0 license; `analysis/prepare-openings.py` reproduces them.
 See `docs/analysis-presentation.md` for the approved boundaries and verification.
 
@@ -203,7 +203,7 @@ overlay still prevent a promise of identical evaluations. See
 Issue #148 aligns the analysis brilliant tree/badge color with Mobile Maia’s
 `#15aabf`, and separates summary symbols/names using En Croissant’s grid principle.
 This is presentation only: native board SVG geometry and glyph navigation remain
-unchanged. See `docs/analysis-presentation.md` for source pins and rebase checks.
+unchanged. See `docs/analysis-presentation.md` for source pins and upstream-merge checks.
 
 
 ## Native standalone export parity (#155/#158)

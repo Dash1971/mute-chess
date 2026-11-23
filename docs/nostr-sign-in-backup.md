@@ -148,7 +148,7 @@ which is the URL used in the view. External links use `noopener noreferrer`.
 
 ## Boundaries and verification
 
-Only the existing namespaced login view and its CSS change in the native patch.
+Only the existing namespaced login view and its CSS change in the native fork.
 The adapter handles backup and storage requests; native sessions, server proof
 verification, challenge-bound retries, 2FA and signer ownership remain intact.
 Private keys are never added to request bodies, URLs, filenames, logs or analytics.

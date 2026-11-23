@@ -3,9 +3,14 @@
   "status": "native Lila/lila-ws with Nostr rated and anonymous casual bot play; stacked premoves, native Lichess review with additive verified brilliants, classified graph markers and Maia expected scores; calibration remains work",
   "lichess": {
     "repository": "https://github.com/lichess-org/lila",
-    "revision": "b551752d2a0e7a63459d9812825d95a633a98737",
+    "revision": "b071608bc4ce71b31cda36ffa493100e3dc3580f",
+    "updated_date": "2026-11-23",
+    "fork": {
+      "repository": "https://github.com/Dash1971/lila",
+      "pin": "deploy/lila/native-pin.json"
+    },
     "license": "AGPL-3.0-or-later, with component/asset notices in upstream COPYING.md",
-    "scalachess_dependency_version": "18.0.1",
+    "scalachess_dependency_version": "18.1.0",
     "paths": [
       "modules/round/src/main/MovePlayer.scala",
       "modules/round/src/main/Finisher.scala",

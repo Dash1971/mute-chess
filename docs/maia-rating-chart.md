@@ -103,7 +103,7 @@ castling normalization, expansion-independent shading, merged-root ordering,
 mate/Black parity, popup metrics/lifecycle, watchdog recovery and hover ownership. Independently reviewed by a second
 Codex agent; automated/browser evidence is not human acceptance testing.
 
-After rebasing, compare opt-in all-root screening with native worker handling,
+After an upstream merge, compare opt-in all-root screening with native worker handling,
 `ceval.hovering` ownership and key propagation. No private Maia API, remote
 inference, new dependency, rules, ratings or classification change is involved.
 

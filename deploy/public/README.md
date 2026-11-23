@@ -22,11 +22,10 @@ Use the existing host-monitor planned-maintenance wrapper for the cutover and de
 
 Run the existing OpenClaw collector/classifier against the active release and confirm `inventory_verified` is true before declaring deployment complete. A changed application revision requires fresh verification even when all security versions are unchanged; changed security inputs require an inventory/applicability update too. Do not alter report predicates, schedules or unrelated intrusion-monitor baselines to make this check pass. Keep original build provenance and unresolved advisories truthful.
 
-# Public native alpha
+# Public native deployment
 
-The native Maia/Nostr alpha has an existing public deployment. This checkout
-prepares the Mute Chess branding and `mutechess.org` cutover. The owner authorized
-source publication; deployment remains separate. See [the rebrand notes](../../docs/mute-chess-rebrand.md).
+The native Maia/Nostr application is deployed publicly at `mutechess.org`. See
+[the rebrand notes](../../docs/mute-chess-rebrand.md) for the cutover history.
 This is a separate runtime from the private development stack and the retired
 Node prototype. Codex assisted implementation and automated verification; no
 human manual acceptance or upstream contribution is claimed.

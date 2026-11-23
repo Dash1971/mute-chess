@@ -13,7 +13,7 @@ analysis, with a familiar interface for desktop and mobile browsers.
 - Play human-like bots in the pool the way you would play humans on Lichess.
 - Opponents that don't cheat, rage quit, or abuse you.
 - Aim for ratings that roughly match Lichess. See our
-  [rating goal](https://github.com/Dash1971/mute-chess#rating-goal).
+  [rating goal](#rating-goal).
 - Play like your YouTube heroes with brilliant moves and multiple stacked premoves.
   See [Open Brilly Finder](https://github.com/Dash1971/open-brilly-finder) for the
   work behind it.
@@ -37,7 +37,8 @@ domain requires additional configuration. The root Node app is a retired prototy
 ## Feature guide
 
 See the [feature and site behavior manual](docs/site-manual.md) for detailed
-rules, engine settings, bot pool behavior and reconnecting.
+rules, engine settings, bot pool behavior and reconnecting. Browse
+[all documentation](docs/README.md) for everything else.
 
 ### Your key, your chess identity
 
@@ -191,6 +192,23 @@ beside your name, whether you prefer circuitry, a neon fox or a mischievous ghos
 The screenshots above were captured from the real site on November 2 and 22, 2026;
 see [capture details](docs/screenshots/README.md).
 
+### Basic Chess Insights and unsupported features
+
+Basic Chess Insights groups game results, rating changes and opponent ratings by
+opening, color, time control and date. Engine-analysis statistics are unavailable;
+browser reviews are not uploaded for Insights. Unsupported inherited feature links
+show a translated not-yet-supported notice. See
+[scope and limitations](docs/basic-insights-and-unsupported-links.md).
+
+### Full Lichess puzzle catalog
+
+The puzzle importer supports the pinned full official CC0 export: 6,193,530
+puzzles, with Lichess's native randomized path generation, quality tiers and
+unchanged solver, ratings and replay behavior. Existing installations need an
+explicit full data import; the bundled 50,000 puzzles are the small CI/development
+fixture. Existing puzzle history, votes and earned ratings are preserved. See
+[puzzle provenance, import and native path refresh](puzzles/README.md) (#289).
+
 ## Rating goal
 
 We aim for established Mute Chess ratings to roughly match Lichess strength in
@@ -255,12 +273,13 @@ different browsers and devices, improve accessibility, work on analysis tools,
 or make the documentation clearer.
 
 - [Report a bug or suggest an improvement](https://github.com/Dash1971/mute-chess/issues).
-- [Explore the product roadmap](https://github.com/Dash1971/mute-chess/issues/3).
-- [Discuss bot identities](https://github.com/Dash1971/mute-chess/issues/1)
-  and [help with strength calibration](https://github.com/Dash1971/mute-chess/issues/2).
+- Read about the [bot roster](docs/catalog-roster.md) and
+  [help with strength calibration](https://github.com/Dash1971/mute-chess/issues/2).
 - Open a pull request, or fork the project and share what you build.
 - Read [how we maintain Mute Chess](docs/maintenance.md) and follow the
   [upstream maintenance policy](docs/upstream-alignment.md).
+- User-facing text must ship in all ten supported languages; see
+  [AGENTS.md](AGENTS.md).
 
 For substantial changes, open an issue first so we can discuss the approach.
 For bug reports, include what happened, what you expected, and your browser and
@@ -294,28 +313,3 @@ source versions, and reproduction references.
 
 For research, code and labeled data on brilliant-move classification, see
 [Open Brilly Finder](https://github.com/Dash1971/open-brilly-finder).
-
-## UI translations
-
-All new or changed user-facing text must use the native translation catalogs
-and ship in all ten supported languages, including help, accessibility labels,
-errors and copy feedback. English fallback alone is insufficient. Check key and
-placeholder parity and localized rendering before release; see [AGENTS.md](AGENTS.md).
-
-### Basic Chess Insights and unsupported features
-
-Basic Chess Insights groups game results, rating changes and opponent ratings by
-opening, color, time control and date. Engine-analysis statistics are unavailable;
-browser reviews are not uploaded for Insights. Unsupported inherited feature links
-show a translated not-yet-supported notice. See
-[scope and limitations](docs/basic-insights-and-unsupported-links.md).
-
-
-### Full Lichess puzzle catalog
-
-The puzzle importer supports the pinned full official CC0 export: 6,193,530
-puzzles, with Lichess's native randomized path generation, quality tiers and
-unchanged solver, ratings and replay behavior. Existing installations need an
-explicit full data import; the bundled 50,000 puzzles are the small CI/development
-fixture. Existing puzzle history, votes and earned ratings are preserved. See
-[puzzle provenance, import and native path refresh](puzzles/README.md) (#289).

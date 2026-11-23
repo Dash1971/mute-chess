@@ -16,8 +16,8 @@ public deployment is described in [../public](../public/README.md).
   it adds configurable `http.host`, preserving the upstream default.
   Verify the exact fork HEAD/tree and documented clean-source status before
   and after building. The remaining WebSocket patch is checked by `ws-source.py`.
-  The native fork and WebSocket patch retain `security-dependencies.sbt`: existing Netty modules resolve
-  to 4.2.19.Final and Jackson core/datatype modules to 2.18.11 (#232). These
+  The native fork and WebSocket patch retain `security-dependencies.sbt`: Lila's Netty modules resolve
+  to 4.2.21.Final, lila-ws's to 4.2.19.Final, and Jackson core/datatype modules to 2.18.11 (#232). These
   security overrides retain the existing dependency graph and native behavior;
   recheck the resolved/staged JARs and remove overrides once upstream selects
   equivalent patched versions. Ubuntu package updates do not replace bundled JARs.
@@ -118,5 +118,5 @@ only on its explicitly guarded development database. Run its Node and Python
 tests and `test/integration.mjs`; `--worker-failure` kills only that private
 worker and checks native failure handling. Live moves, both clocks/colors,
 reconnect, Nostr replay protection, resignation, PGN and crash recovery pass.
-The public alpha admits at most two games, one per browser/account. Anonymous games are casual; Nostr accounts use native provisional 1500 and Glicko updates. The native quick-pair grid and custom time controls assign an available opponent within ±200, with no manual challenges. Build `lila-adapter/browser/login.mjs` with `node build-browser.mjs /path/to/lila/public/nosweat/nostr.js` before packaging assets.
+The default configuration admits at most two games, one per browser/account. Anonymous games are casual; Nostr accounts use native provisional 1500 and Glicko updates. The native quick-pair grid and custom time controls assign an available opponent within ±200, with no manual challenges. Build `lila-adapter/browser/login.mjs` with `node build-browser.mjs /path/to/lila/public/nosweat/nostr.js` before packaging assets.
 The native stacked-premove and browser analysis extensions are documented in `../../analysis/PROVENANCE.md` and `../public/README.md`. Run `prepare-analysis.py` from the main repository to prepare pinned browser assets. Whole-game review uses the native Lichess Analysis editor, accuracy and persistence, with additive verified brilliants, classified graph circles and Maia current-position expected scores. Capacity calibration remains future work. No ten-game full-stack capacity claim is made.
