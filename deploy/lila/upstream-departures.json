@@ -4,7 +4,7 @@
     {
       "id": "lila",
       "repository": "https://github.com/lichess-org/lila",
-      "revision": "b551752d2a0e7a63459d9812825d95a633a98737",
+      "revision": "b071608bc4ce71b31cda36ffa493100e3dc3580f",
       "areas": [
         {
           "id": "application-wiring",
@@ -25,6 +25,7 @@
             "app/Env.scala",
             "app/Lila.scala",
             "app/NoSweatService.scala",
+            "app/UiEnv.scala",
             "app/controllers/NoSweat.scala",
             "app/http/HttpRequestHandler.scala",
             "conf/routes",
@@ -76,32 +77,32 @@
             "modules/user/src/main/JsonView.scala",
             "modules/user/src/main/LightUserApi.scala",
             "modules/user/src/main/NoSweatUserSearch.scala",
+            "modules/user/src/main/PublicNameKeys.scala",
             "modules/user/src/main/UserForm.scala",
             "modules/user/src/main/UserRepo.scala",
             "modules/user/src/main/ui/UserActionMenu.scala",
             "modules/user/src/main/ui/UserShow.scala",
+            "modules/user/src/test/NoSweatBotIdentityTest.scala",
+            "modules/user/src/test/NoSweatNostrIdentityTest.scala",
             "modules/user/src/test/NoSweatUserSearchTest.scala",
+            "modules/user/src/test/PublicNameKeysTest.scala",
             "modules/user/src/test/PublicNameTest.scala",
             "public/nosweat/nostr.css",
+            "src/test/scala/NoSweatSignupNameTest.scala",
             "ui/@types/lichess/index.d.ts",
             "ui/dasher/src/interfaces.ts",
             "ui/dasher/src/links.ts",
+            "ui/lib/css/component/_power-tip.scss",
             "ui/lib/src/game/interfaces.ts",
+            "ui/lib/src/nosweat/identity.ts",
             "ui/lib/src/view/userComplete.ts",
             "ui/lib/src/view/userLink.ts",
+            "ui/lib/tests/nostrIdentity.test.ts",
             "ui/lib/tests/publicNameSearch.test.ts",
             "ui/round/src/view/user.ts",
             "ui/site/src/clinput.ts",
-            "modules/user/src/test/NoSweatBotIdentityTest.scala",
-            "modules/user/src/test/NoSweatNostrIdentityTest.scala",
-            "src/test/scala/NoSweatSignupNameTest.scala",
             "ui/user/css/_header.scss",
-            "ui/lib/src/nosweat/identity.ts",
-            "ui/lib/tests/nostrIdentity.test.ts",
-            "ui/lib/css/component/_power-tip.scss",
-            "ui/user/src/user.ts",
-            "modules/user/src/main/PublicNameKeys.scala",
-            "modules/user/src/test/PublicNameKeysTest.scala"
+            "ui/user/src/user.ts"
           ]
         },
         {
@@ -117,33 +118,33 @@
             "Focused native setup regressions cover old/forced correspondence and unlimited values, authenticated friend and anonymous custom play, plus unchanged upstream choices. Gateway tests deny public import and correspondence leaderboard/distribution routes. Compile focused controller/insertion guards and retain clockless analysis/history; all changed UI messages ship in ten locales."
           ],
           "files": [
+            "app/NoSweatBotCatalog.scala",
             "app/controllers/Setup.scala",
+            "app/http/ErrorHandler.scala",
             "app/views/noSweatBot.scala",
             "modules/bot/src/main/ManagedPresence.scala",
             "modules/bot/src/main/OnlineApiUsers.scala",
             "modules/bot/src/main/PoolCatalog.scala",
+            "modules/bot/src/main/PublicBotActivity.scala",
             "modules/bot/src/test/ManagedPresenceTest.scala",
             "modules/bot/src/test/PoolCatalogTest.scala",
+            "modules/bot/src/test/PublicBotActivityTest.scala",
             "modules/core/src/main/socket.scala",
             "modules/game/src/main/Env.scala",
             "modules/game/src/main/GameRepo.scala",
+            "modules/game/src/main/NoSweatGameAdmission.scala",
+            "modules/game/src/test/NoSweatGameAdmissionTest.scala",
             "modules/lobby/src/main/Env.scala",
             "modules/lobby/src/main/LobbySocket.scala",
             "modules/socket/src/main/RemoteSocket.scala",
-            "public/nosweat-roster.json",
-            "app/NoSweatBotCatalog.scala",
-            "src/test/scala/NoSweatBotCatalogTest.scala",
             "public/nosweat-bot-aliases.json",
-            "modules/bot/src/main/PublicBotActivity.scala",
-            "modules/bot/src/test/PublicBotActivityTest.scala",
-            "modules/game/src/main/NoSweatGameAdmission.scala",
-            "modules/game/src/test/NoSweatGameAdmissionTest.scala",
-            "app/http/ErrorHandler.scala"
+            "public/nosweat-roster.json",
+            "src/test/scala/NoSweatBotCatalogTest.scala"
           ]
         },
         {
           "id": "maia-analysis-and-review",
-          "rationale": "Add Maia probabilities/expected scores, validated annotations and stacked analysis cards around the native analysis tree, Stockfish, graph, accuracy and learning flow. Keep engine settings bounded and optional and reject unsupported variants. Puzzle review retains compact, separate compact Maia rows with label spacing and independent raw-probability Other expansions; the richer game cards stay separate. Issue #111 implements the accepted compact fixed-frame presentation, ECO opening labels under the board, Mobile Maia phase annotations on the native graph, mirrored native summary and red severity ranks. Puzzle rows stay on one line with raw mass folded into Other as width requires. Private Notes UI is omitted without deleting stored notes; obsolete notes-only chat changes are removed. Issue #130 preserves Mobile Maia complete current/earlier MultiPV evidence in an isolated forward classification session, with unchanged native graph/accuracy inputs, per-mode whole-window checks and navigation cancellation. Issue #131 adds actual annotated PGN copy/download and separates import labeling; standard-only PGN imports preserve headers and annotations. Issue #133 separates Import and Export into their own native under-board tabs, reusing ReplayUi fen-pgn/copy-me markup and styling. Only the unsaved board needs local download/copy callbacks because it has no saved-game export URL. Import uses explicit native parser/controller actions with preserved drafts; the default upstream input path remains unchanged. Issue #135 accepts native fromPosition alongside standard when initializing the analysis extension, so standard FEN imports retain Maia and all three tabs without changing native routes or enabling variants. Issue #138 makes Maia sidebar mounting idempotent for the same native host when FEN-to-PGN import replaces the main view and reuses that host; native sidebar content remains intact. Issue #146 follows Maia\u2019s Moves by Rating candidate union, matched rating inputs, ranked quality shades, adaptive scale and shared tooltip within the existing compact frame. Native hover APIs preview moves without playing them; only this bounded chart queue requests three root PVs. Issue #148 separates review symbols/names and aligns the analysis tree/brilliant SVG circle with Mobile Maia cyan, preserving native badge geometry and all review semantics. Issue #153 removes custom permanent import buttons and restores pinned native FEN change handling/current-position value plus the thin focus-revealed PGN bottom action. Only the standalone blank PGN draft/isolated exports remain adapters; input geometry and styling stay native. Issue #155 gives the unsaved analysis board the native ReplayUi FEN/Image/Share/PGN rows, copy-me controls and annotated/raw actions without new CSS. Native position/embed routes describe only the current position; no saved-game URL is fabricated. A bounded pure PGN parse adapter feeds the existing native GifExport and renderer without persistence; existing image rate limits, streaming and saved-game behavior remain. The GIF dialog reuses its native controls with unsupported local-evidence toggles omitted. Issue #158 selects Import initially on standalone boards only. Issues #150/#151 share Engine Analysis settings across game analysis and puzzle review, persist a default-on second Maia with retained rating, configurable validated arrow palettes and the unchanged Mobile Maia review quality modes. Single-engine cards use two columns of four moves in the same frame; puzzle labels reuse the existing rating grid. Issue #168 bounds the opening article to the board-height sidebar so native underboard tabs remain positioned beneath the board. Issue #173 opens the same shared Engine Analysis dialog from the native Profile & settings account menu and conditions each Maia with matching self/opponent ratings, normalizing old independent opponent preferences. No new account route, server preferences or analysis engine is introduced. Issue #180 replaces account-menu modal access with a native account preferences page using the existing authenticated Pref.form route, AccountPage layout and browser-local bindings; board gear dialogs remain unchanged. Issue #183 lets WikiBook keep natural article height inside the existing scrollable sidebar. Issue #184 changes only the 79M browser inference execution backend: GPU-first with bounded multi-thread/single-thread CPU fallback; model/input/output and rating sampling semantics remain unchanged. Issue #190 follows Maia frontend325b85c3: all-legal-root staged screening/deepening replaces visible-only search, Others is presentation-only, and cards/chart/popup share the original ranked palettes and exact empirical color semantics. Candidate mate conversion and raw White-CP tie ordering match source; native whole-game classification is unchanged. The existing15s watchdog remains an explicit Mute adaptation, with complete-vector publication, stale/cancel protection and timed-out worker replacement. Issue #110 replaces core hard-coded labels with native catalog messages; English technical help remains a documented fallback, and stored engine preferences/values remain unchanged. Issue #219 places only owned split-color engine arrows in the existing lower custom-SVG plane, conditionally above pieces and beneath native glyphs; native rendering, geometry and classification remain unchanged, including asynchronous updates. Issue #221 introduces the explicit Mute-only mute-chess-brilliant-v1 experiment: near-best sacrifices without a uniqueness requirement, legal piece-offer exchanges, soundness and evaluated-safe-alternative gates, while preserving the original EC reference, native metrics/imported glyphs and complete-window corroboration. Mobile Maia is unchanged; no search budget or deployment tooling is added. Issue #225 moves the unchanged six-class review palette into a pure shared UI module and applies it only to the first native annotation background circle on Mute-branded documents. Native SVG geometry, white symbol paths, shadows, stacking, other glyphs and non-Mute output remain unchanged; no Chessground fork or classification change is introduced. Issue #227 replaces the Mute-only material-probe fallback with a legal non-pawn piece-offer requirement under mute-chess-brilliant-v2. Foregone promotion gains and quiet tactical defenses cannot create sacrifice-derived Brilliant or Interesting labels without an actual legal offer. The EC oracle/mode, imported glyphs, native metrics, confirmation and search budgets remain unchanged; pawn-only and delayed offers no longer qualify. Issue #229 adds EC material corroboration or an explicit winning-mate exception to Mute Brilliant eligibility only, reducing routine pawn-winning false awards; raw legal-offer safe-alternative semantics, EC mode and native accuracy remain unchanged. No extra searches. The source-frozen Mute v4 policy allows multiple winning options before an endgame/material conversion, accepts a bounded legal mate-in-one witness after profitable acceptance, and suppresses only proven checked continuations of unchanged offers. The existing worker and computed-glyph provenance select v4; native scores, accuracy, imported judgments, EC rules, search requests and cancellation stay unchanged. The current Mute Selective classifier selects v5 with the frozen 128-tree selective model (SHA-256 1a7150fbe52f440922d94d3ae2af337383d63f370b52d0379aeee22d581d056c), a 0.83 cutoff in both completed windows, and the existing soundness/legal-offer gates. It runs locally in the cancellable worker, with no training or external inference during play. Unknown physical probes withhold awards. Independent EC rules, native metrics, imported glyphs and engine search budgets remain unchanged. On 1,000 fresh Witty_Alien games under native SF19 Fast replay, it recognizes 774/1,234 reference Brilliants with 38/30,423 wrong awards, versus the older model plus the context fix at 725 and 58. Negatives use complete own-player gallery absence, not missing PGN annotations. The earlier 400-move SF18 comparison concerned the original 64-tree model and is historical evidence, not independent validation of this model. Issue #287 scopes the shared six-class review palette to both native column and inline move trees, including variations. Native annotation variables drive move text, selection and hover shading; unbranded trees and unrelated theme controls retain upstream colors. No classifications, search behavior or UI wording changes. Issue #337 adds one shared native Maia Lab dialog and translated rule-based descriptions to puzzle review, standalone and post-game analysis. Existing rating chart, quality, event, Stockfish and snapshot implementations move to lib/nosweat with compatibility re-exports, retaining their contracts. Opening Lab requests a bounded depth-12 all-root pass for complete descriptions; the ordinary screen stays at depth 10 and deeper scores are preserved. Native tree ownership, puzzle solving gates, arrows, badges, classifications, metrics and engine preferences remain unchanged. The rating slider is dialog-local; unknown evidence remains pending and no human forecast service is added. Issue #340 corrects presentation only: a subtle localized Maia Lab action, unmodified SAN casing, and an accessible dialog-local rating range below the graph with native text-input padding removed. Existing engine, probability and board contracts remain unchanged.",
+          "rationale": "Add Maia probabilities/expected scores, validated annotations and stacked analysis cards around the native analysis tree, Stockfish, graph, accuracy and learning flow. Keep engine settings bounded and optional and reject unsupported variants. Puzzle review retains compact, separate compact Maia rows with label spacing and independent raw-probability Other expansions; the richer game cards stay separate. Issue #111 implements the accepted compact fixed-frame presentation, ECO opening labels under the board, Mobile Maia phase annotations on the native graph, mirrored native summary and red severity ranks. Puzzle rows stay on one line with raw mass folded into Other as width requires. Private Notes UI is omitted without deleting stored notes; obsolete notes-only chat changes are removed. Issue #130 preserves Mobile Maia complete current/earlier MultiPV evidence in an isolated forward classification session, with unchanged native graph/accuracy inputs, per-mode whole-window checks and navigation cancellation. Issue #131 adds actual annotated PGN copy/download and separates import labeling; standard-only PGN imports preserve headers and annotations. Issue #133 separates Import and Export into their own native under-board tabs, reusing ReplayUi fen-pgn/copy-me markup and styling. Only the unsaved board needs local download/copy callbacks because it has no saved-game export URL. Import uses explicit native parser/controller actions with preserved drafts; the default upstream input path remains unchanged. Issue #135 accepts native fromPosition alongside standard when initializing the analysis extension, so standard FEN imports retain Maia and all three tabs without changing native routes or enabling variants. Issue #138 makes Maia sidebar mounting idempotent for the same native host when FEN-to-PGN import replaces the main view and reuses that host; native sidebar content remains intact. Issue #146 follows Maia\u2019s Moves by Rating candidate union, matched rating inputs, ranked quality shades, adaptive scale and shared tooltip within the existing compact frame. Native hover APIs preview moves without playing them; only this bounded chart queue requests three root PVs. Issue #148 separates review symbols/names and aligns the analysis tree/brilliant SVG circle with Mobile Maia cyan, preserving native badge geometry and all review semantics. Issue #153 removes custom permanent import buttons and restores pinned native FEN change handling/current-position value plus the thin focus-revealed PGN bottom action. Only the standalone blank PGN draft/isolated exports remain adapters; input geometry and styling stay native. Issue #155 gives the unsaved analysis board the native ReplayUi FEN/Image/Share/PGN rows, copy-me controls and annotated/raw actions without new CSS. Native position/embed routes describe only the current position; no saved-game URL is fabricated. A bounded pure PGN parse adapter feeds the existing native GifExport and renderer without persistence; existing image rate limits, streaming and saved-game behavior remain. The GIF dialog reuses its native controls with unsupported local-evidence toggles omitted. Issue #158 selects Import initially on standalone boards only. Issues #150/#151 share Engine Analysis settings across game analysis and puzzle review, persist a default-on second Maia with retained rating, configurable validated arrow palettes and the unchanged Mobile Maia review quality modes. Single-engine cards use two columns of four moves in the same frame; puzzle labels reuse the existing rating grid. Issue #168 bounds the opening article to the board-height sidebar so native underboard tabs remain positioned beneath the board. Issue #173 opens the same shared Engine Analysis dialog from the native Profile & settings account menu and conditions each Maia with matching self/opponent ratings, normalizing old independent opponent preferences. No new account route, server preferences or analysis engine is introduced. Issue #180 replaces account-menu modal access with a native account preferences page using the existing authenticated Pref.form route, AccountPage layout and browser-local bindings; board gear dialogs remain unchanged. Issue #183 lets WikiBook keep natural article height inside the existing scrollable sidebar. Issue #184 changes only the 79M browser inference execution backend: GPU-first with bounded multi-thread/single-thread CPU fallback; model/input/output and rating sampling semantics remain unchanged. Issue #190 follows Maia frontend325b85c3: all-legal-root staged screening/deepening replaces visible-only search, Others is presentation-only, and cards/chart/popup share the original ranked palettes and exact empirical color semantics. Candidate mate conversion and raw White-CP tie ordering match source; native whole-game classification is unchanged. The existing15s watchdog remains an explicit Mute adaptation, with complete-vector publication, stale/cancel protection and timed-out worker replacement. Issue #110 replaces core hard-coded labels with native catalog messages; English technical help remains a documented fallback, and stored engine preferences/values remain unchanged. Issue #219 places only owned split-color engine arrows in the existing lower custom-SVG plane, conditionally above pieces and beneath native glyphs; native rendering, geometry and classification remain unchanged, including asynchronous updates. Issue #221 introduces the explicit Mute-only mute-chess-brilliant-v1 experiment: near-best sacrifices without a uniqueness requirement, legal piece-offer exchanges, soundness and evaluated-safe-alternative gates, while preserving the original EC reference, native metrics/imported glyphs and complete-window corroboration. Mobile Maia is unchanged; no search budget or deployment tooling is added. Issue #225 moves the unchanged six-class review palette into a pure shared UI module and applies it only to the first native annotation background circle on Mute-branded documents. Native SVG geometry, white symbol paths, shadows, stacking, other glyphs and non-Mute output remain unchanged; no Chessground fork or classification change is introduced. Issue #227 replaces the Mute-only material-probe fallback with a legal non-pawn piece-offer requirement under mute-chess-brilliant-v2. Foregone promotion gains and quiet tactical defenses cannot create sacrifice-derived Brilliant or Interesting labels without an actual legal offer. The EC oracle/mode, imported glyphs, native metrics, confirmation and search budgets remain unchanged; pawn-only and delayed offers no longer qualify. Issue #229 adds EC material corroboration or an explicit winning-mate exception to Mute Brilliant eligibility only, reducing routine pawn-winning false awards; raw legal-offer safe-alternative semantics, EC mode and native accuracy remain unchanged. No extra searches. The source-frozen Mute v4 policy allows multiple winning options before an endgame/material conversion, accepts a bounded legal mate-in-one witness after profitable acceptance, and suppresses only proven checked continuations of unchanged offers. The existing worker and computed-glyph provenance select v4; native scores, accuracy, imported judgments, EC rules, search requests and cancellation stay unchanged. The current Mute Selective classifier selects v5 with the frozen 128-tree selective model (SHA-256 1a7150fbe52f440922d94d3ae2af337383d63f370b52d0379aeee22d581d056c), a 0.83 cutoff in both completed windows, and the existing soundness/legal-offer gates. It runs locally in the cancellable worker, with no training or external inference during play. Unknown physical probes withhold awards. Independent EC rules, native metrics, imported glyphs and engine search budgets remain unchanged. On 1,000 fresh Witty_Alien games under native SF19 Fast replay, it recognizes 774/1,234 reference Brilliants with 38/30,423 wrong awards, versus the older model plus the context fix at 725 and 58. Negatives use complete own-player gallery absence, not missing PGN annotations. The earlier 400-move SF18 comparison concerned the original 64-tree model and is historical evidence, not independent validation of this model. Issue #287 scopes the shared six-class review palette to both native column and inline move trees, including variations. Native annotation variables drive move text, selection and hover shading; unbranded trees and unrelated theme controls retain upstream colors. No classifications, search behavior or UI wording changes. Issue #337 adds one shared native Maia Lab dialog and translated rule-based descriptions to puzzle review, standalone and post-game analysis. Existing rating chart, quality, event, Stockfish and snapshot implementations move to lib/nosweat with compatibility re-exports, retaining their contracts. Opening Lab requests a bounded depth-12 all-root pass for complete descriptions; the ordinary screen stays at depth 10 and deeper scores are preserved. Native tree ownership, puzzle solving gates, arrows, badges, classifications, metrics and engine preferences remain unchanged. The rating slider is dialog-local; unknown evidence remains pending and no human forecast service is added. Issue #340 corrects presentation only: a subtle localized Maia Lab action, unmodified SAN casing, and an accessible dialog-local rating range below the graph with native text-input padding removed. Existing engine, probability and board contracts remain unchanged. #365 adapts native imperative dialogs and review-engine metadata, retains distinct-PV confirmation and disables the same external endpoints through UiEnv's new native AnalyseEndpoints handoff. The local-review JSON reader consumes the public nodesPerMove/version fields emitted by the browser and server writer, assigning server-owned unknown identity instead of requiring or trusting internal account/fishnet fields.",
           "verification": [
             "Native analyse/chart/lib tests and full UI build",
             "analysis/test-client.mjs",
@@ -184,18 +185,22 @@
             "Brilliant confirmation retains the available prior/before/after window, first-move fallback, six-search ceiling, cancellation and imported-annotation protection (#284/#285). Frozen selective artifact hash, both-window 0.83 cutoff and recorded positive/ordinary-move regressions; exact patch reconstruction and native test/build checks. Fresh 1,000-game SF19 Fast results, split exclusions and source-verification grades are recorded separately from development and historical SF18/En Croissant comparisons.",
             "Native analysis UI build and review/glyph regressions; rendered normal, active and hover states for all six classes in column/inline layouts, with unchanged unannotated/unbranded styles (#287).",
             "Shared Maia Lab model/dialog and standalone/post-game/puzzle integration tests; cancellation across ratings/navigation/visibility/model changes; complete finite legal depth-12 evidence; ten-locale key/placeholder/catalog-function checks; desktop/narrow localized browser render checks. Existing full native UI tests and build/type/style checks; source provenance and feature documentation (#337).",
-            "Maia Lab presentation: rendered SAN and computed text-transform, native header bounds across all ten locales, DOM/accessibility order and Home/End 600/2600 behavior with zero range padding at desktop/375px/320px widths; real native render functions and compiled styles with deterministic fixture inputs (#340)."
+            "Maia Lab presentation: rendered SAN and computed text-transform, native header bounds across all ten locales, DOM/accessibility order and Home/End 600/2600 behavior with zero range padding at desktop/375px/320px widths; real native render functions and compiled styles with deterministic fixture inputs (#340).",
+            "Native local-review JSON regression accepts public metadata, rejects malformed fields and ignores spoofed internal engine/account identity; run an actual post-game browser review."
           ],
           "files": [
             "app/controllers/Export.scala",
             "app/controllers/Pref.scala",
             "app/controllers/UserAnalysis.scala",
             "app/views/analyse.scala",
+            "modules/analyse/src/main/JsonView.scala",
             "modules/analyse/src/main/ui/AnalyseUi.scala",
+            "modules/analyse/src/test/NoSweatLocalAnalysisJsonTest.scala",
             "modules/game/src/main/NoSweatAnalysisGif.scala",
             "modules/game/src/test/NoSweatAnalysisGifTest.scala",
             "public/nosweat/OPENINGS_CC0.txt",
             "public/nosweat/openings.json",
+            "ui/analyse/css/_analyse.abstract.scss",
             "ui/analyse/css/_analyse.base.scss",
             "ui/analyse/css/_analyse.free.scss",
             "ui/analyse/css/_layout.scss",
@@ -253,8 +258,8 @@
             "ui/analyse/tests/candidateQuality.test.ts",
             "ui/analyse/tests/fixtures/noSweat/annotation-boundaries.json",
             "ui/analyse/tests/fixtures/noSweat/brilliant-v4.json",
-            "ui/analyse/tests/fixtures/noSweat/brilliant-v8.json",
             "ui/analyse/tests/fixtures/noSweat/brilliant-v5.json",
+            "ui/analyse/tests/fixtures/noSweat/brilliant-v8.json",
             "ui/analyse/tests/fixtures/noSweat/chesscom-brilliants.json",
             "ui/analyse/tests/fixtures/noSweat/maia-5m.json",
             "ui/analyse/tests/fixtures/noSweat/material-precision.json",
@@ -264,6 +269,7 @@
             "ui/analyse/tests/fixtures/noSweat/stockfish18-fast.json",
             "ui/analyse/tests/inlineAnalysis.test.ts",
             "ui/analyse/tests/localReviewStart.test.ts",
+            "ui/analyse/tests/maiaLabIntegration.test.ts",
             "ui/analyse/tests/maiaSingleEngine.test.ts",
             "ui/analyse/tests/moveTooltip.test.ts",
             "ui/analyse/tests/noSweat.test.ts",
@@ -291,6 +297,7 @@
             "ui/chart/tests/noSweatPhases.test.ts",
             "ui/lib/css/ceval/_engine-settings.scss",
             "ui/lib/css/ceval/_settings.scss",
+            "ui/lib/css/component/_maia-lab.scss",
             "ui/lib/css/theme/board/_chessground.scss",
             "ui/lib/src/ceval/ctrl.ts",
             "ui/lib/src/ceval/engines/stockfishWebEngine.ts",
@@ -298,21 +305,33 @@
             "ui/lib/src/ceval/types.ts",
             "ui/lib/src/game/glyphs.ts",
             "ui/lib/src/nosweat/arrows.ts",
+            "ui/lib/src/nosweat/candidateQuality.ts",
             "ui/lib/src/nosweat/core.ts",
             "ui/lib/src/nosweat/engineSettings.ts",
             "ui/lib/src/nosweat/expectedScore.ts",
+            "ui/lib/src/nosweat/maiaLab.ts",
+            "ui/lib/src/nosweat/maiaLabI18n.ts",
+            "ui/lib/src/nosweat/maiaLabModel.ts",
             "ui/lib/src/nosweat/moveClasses.ts",
             "ui/lib/src/nosweat/phases.ts",
             "ui/lib/src/nosweat/preferences.ts",
+            "ui/lib/src/nosweat/ratingChart.ts",
+            "ui/lib/src/nosweat/ratingChartQuality.ts",
+            "ui/lib/src/nosweat/reviewEvents.ts",
+            "ui/lib/src/nosweat/reviewFish.ts",
             "ui/lib/src/nosweat/reviewMaia.ts",
             "ui/lib/src/nosweat/reviewQuality.ts",
+            "ui/lib/src/nosweat/searchSnapshots.ts",
             "ui/lib/src/tree/types.ts",
             "ui/lib/tests/cevalProtocol.test.ts",
             "ui/lib/tests/gamePhases.test.ts",
             "ui/lib/tests/maiaExpectedScore.test.ts",
+            "ui/lib/tests/maiaLabDialog.test.ts",
+            "ui/lib/tests/maiaLabModel.test.ts",
             "ui/lib/tests/maiaSettings.test.ts",
             "ui/lib/tests/noSweatGlyphs.test.ts",
             "ui/lib/tests/noSweatReviewMaia.test.ts",
+            "ui/puzzle/css/_puzzle.scss",
             "ui/puzzle/css/_tools.scss",
             "ui/puzzle/src/autoShape.ts",
             "ui/puzzle/src/ctrl.ts",
@@ -323,22 +342,7 @@
             "ui/puzzle/src/view/side.ts",
             "ui/puzzle/tests/noSweatMaia.test.ts",
             "ui/user/css/_account.scss",
-            "ui/user/src/user.account.ts",
-            "ui/analyse/css/_analyse.abstract.scss",
-            "ui/analyse/tests/maiaLabIntegration.test.ts",
-            "ui/lib/css/component/_maia-lab.scss",
-            "ui/lib/src/nosweat/candidateQuality.ts",
-            "ui/lib/src/nosweat/maiaLab.ts",
-            "ui/lib/src/nosweat/maiaLabI18n.ts",
-            "ui/lib/src/nosweat/maiaLabModel.ts",
-            "ui/lib/src/nosweat/ratingChart.ts",
-            "ui/lib/src/nosweat/ratingChartQuality.ts",
-            "ui/lib/src/nosweat/reviewEvents.ts",
-            "ui/lib/src/nosweat/reviewFish.ts",
-            "ui/lib/src/nosweat/searchSnapshots.ts",
-            "ui/lib/tests/maiaLabDialog.test.ts",
-            "ui/lib/tests/maiaLabModel.test.ts",
-            "ui/puzzle/css/_puzzle.scss"
+            "ui/user/src/user.account.ts"
           ]
         },
         {
@@ -386,7 +390,7 @@
             "app/controllers/Importer.scala",
             "app/controllers/Main.scala",
             "app/controllers/Tv.scala",
-            "app/views/lobby/home.scala",
+            "app/views/home.scala",
             "app/views/noSweatInfo.scala",
             "app/views/ui.scala",
             "build.sbt",
@@ -409,7 +413,9 @@
             "modules/study/src/main/ChapterMaker.scala",
             "modules/study/src/main/StudyApi.scala",
             "modules/study/src/main/ui/StudyListUi.scala",
+            "modules/study/src/main/ui/StudyUi.scala",
             "modules/tv/src/main/TvUi.scala",
+            "modules/ublog/src/main/ui/UblogPostUi.scala",
             "modules/web/src/main/ui/BoardEditorUi.scala",
             "modules/web/src/main/ui/TopNav.scala",
             "modules/web/src/main/ui/bits.scala",
@@ -419,6 +425,7 @@
             "ui/editor/src/interfaces.ts",
             "ui/editor/src/view.ts",
             "ui/learn/src/view.ts",
+            "ui/lobby/css/_layout.scss",
             "ui/lobby/src/ctrl.ts",
             "ui/lobby/src/interfaces.ts",
             "ui/lobby/src/lobby.ts",
@@ -426,20 +433,18 @@
             "ui/lobby/src/view/setup/modal.ts",
             "ui/lobby/src/view/table.ts",
             "ui/lobby/src/view/tabs.ts",
-            "ui/puzzle/tests/noSweatCatalog.test.ts",
-            "ui/site/src/topBar.ts",
-            "ui/site/tests/topBar.test.ts",
-            "ui/site/tests/tsconfig.json",
-            "ui/lobby/css/_layout.scss",
             "ui/lobby/tests/maiaPoolBootstrap.test.ts",
-            "modules/ublog/src/main/ui/UblogPostUi.scala",
+            "ui/puzzle/tests/noSweatCatalog.test.ts",
             "ui/site/src/friends.ts",
-            "ui/site/tests/friends.test.ts"
+            "ui/site/src/topBar.ts",
+            "ui/site/tests/friends.test.ts",
+            "ui/site/tests/topBar.test.ts",
+            "ui/site/tests/tsconfig.json"
           ]
         },
         {
           "id": "branding-and-layout",
-          "rationale": "Apply the owner-approved Mute Chess identity and enhancement layout, keeping native components and upstream attribution/license notices. Issue #244 overrides the inherited Open Graph site identity only in the focused Mute renderer, replaces fallback Lichess artwork while preserving game/puzzle thumbnails, and makes root-relative preview images absolute. Asset URL joining retains one path slash. The native manifest endpoint reuses the existing Mute manifest, structured project identity omits inherited Lichess legal/social claims, and public puzzle/deleted-player/feed labels identify Mute. Native upstream mode, third-party app/resource references and all credits/licenses remain unchanged. New brand copy uses all ten native catalogs; there are no runtime or deployment changes. Issue #258 covers focused new-player welcome copy and supported destinations, the invitation heading, study help and forum metadata/body heading. Constructors default to upstream mode; focused study translations are passed only through its existing page-module options. Native routes, study/presence protocols, privacy/account guards and Lichess/source/CC0 attribution remain intact. Blocked kid/tournament/video invitations are omitted from the focused welcome instead of advertising unavailable features.",
+          "rationale": "Apply the owner-approved Mute Chess identity and enhancement layout, keeping native components and upstream attribution/license notices. Issue #244 overrides the inherited Open Graph site identity only in the focused Mute renderer, replaces fallback Lichess artwork while preserving game/puzzle thumbnails, and makes root-relative preview images absolute. Asset URL joining retains one path slash. The native manifest endpoint reuses the existing Mute manifest, structured project identity omits inherited Lichess legal/social claims, and public puzzle/deleted-player/feed labels identify Mute. Native upstream mode, third-party app/resource references and all credits/licenses remain unchanged. New brand copy uses all ten native catalogs; there are no runtime or deployment changes. Issue #258 covers focused new-player welcome copy and supported destinations, the invitation heading, study help and forum metadata/body heading. Constructors default to upstream mode; focused study translations are passed only through its existing page-module options. Native routes, study/presence protocols, privacy/account guards and Lichess/source/CC0 attribution remain intact. Blocked kid/tournament/video invitations are omitted from the focused welcome instead of advertising unavailable features. #365 ports the focused homepage and OpenGraph hook to upstream's new renderer paths, preserving the approved Mute surface and credits.",
           "verification": [
             "Full native UI build",
             "Automated browser layout checks",
@@ -449,7 +454,15 @@
           ],
           "files": [
             "app/views/base/page.scala",
+            "app/views/puzzle/ui.scala",
+            "app/views/study.scala",
+            "modules/challenge/src/main/ui/ChallengeUi.scala",
             "modules/pref/src/main/Theme.scala",
+            "modules/puzzle/src/main/ui/PuzzleUi.scala",
+            "modules/web/src/main/StaticContent.scala",
+            "modules/web/src/main/helper/AssetFullHelper.scala",
+            "modules/web/src/main/ui/OpenGraph.scala",
+            "modules/web/src/test/NoSweatBrandingTest.scala",
             "public/images/board/svg/quiet-signal.svg",
             "public/nosweat/app-icon-192.png",
             "public/nosweat/app-icon-512.png",
@@ -470,15 +483,7 @@
             "public/nosweat/wordmark-light.svg",
             "public/nosweat/wordmark.svg",
             "ui/lib/css/theme/board/_boards.scss",
-            "ui/lib/src/notification.ts",
-            "modules/web/src/main/ui/openGraph.scala",
-            "modules/web/src/main/helper/AssetFullHelper.scala",
-            "modules/web/src/main/StaticContent.scala",
-            "modules/web/src/test/NoSweatBrandingTest.scala",
-            "app/views/puzzle/ui.scala",
-            "modules/puzzle/src/main/ui/PuzzleUi.scala",
-            "modules/challenge/src/main/ui/ChallengeUi.scala",
-            "app/views/study.scala"
+            "ui/lib/src/notification.ts"
           ]
         },
         {
@@ -493,14 +498,14 @@
             "Patron browser regressions exercise unpaid dismissal, rejected/paid dismissal, persistence/renewal restoration, late verified receipts, and stale QR/expiry/pending/receipt callbacks. Native NoSweatDonationTest locks the atomic exact-account/exact-hash/unpaid selector. Recheck AuthBody + sameOrigin routing, no receipt dismissal filter, no wallet cancellation call, and all four new keys across ten locales (#260)."
           ],
           "files": [
+            "app/NoSweatDonation.scala",
             "app/controllers/Plan.scala",
             "app/views/noSweatPatron.scala",
             "modules/plan/src/main/PlanApi.scala",
+            "src/test/scala/NoSweatDonationTest.scala",
             "ui/bits/css/build/bits.patron.scss",
             "ui/bits/src/bits.qrcode.ts",
-            "ui/bits/tests/qrcode.test.ts",
-            "app/NoSweatDonation.scala",
-            "src/test/scala/NoSweatDonationTest.scala"
+            "ui/bits/tests/qrcode.test.ts"
           ]
         },
         {
@@ -517,9 +522,9 @@
           ],
           "files": [
             "app/NoSweatStudy.scala",
+            "app/NoSweatStudyPlan.scala",
             "modules/game/src/main/NoSweatStudyScope.scala",
             "modules/game/src/test/NoSweatStudyScopeTest.scala",
-            "app/NoSweatStudyPlan.scala",
             "src/test/scala/NoSweatStudyPlanTest.scala"
           ]
         },
@@ -535,12 +540,12 @@
           "files": [
             "app/views/user/list.scala",
             "app/views/user/ui.scala",
-            "modules/user/src/main/UserApi.scala",
+            "modules/perfStat/src/main/PerfStatUi.scala",
             "modules/user/src/main/NoSweatPlayerRatings.scala",
-            "modules/user/src/test/NoSweatPlayerRatingsTest.scala",
+            "modules/user/src/main/UserApi.scala",
             "modules/user/src/main/ui/UserBits.scala",
             "modules/user/src/main/ui/UserList.scala",
-            "modules/perfStat/src/main/PerfStatUi.scala",
+            "modules/user/src/test/NoSweatPlayerRatingsTest.scala",
             "ui/chart/src/chart.ratingDistribution.ts"
           ]
         },
@@ -584,9 +589,6 @@
             "app/http/RequestContext.scala",
             "modules/i18n/src/main/NoSweatLanguages.scala",
             "modules/i18n/src/test/NoSweatLanguagesTest.scala",
-            "ui/dasher/src/langs.ts",
-            "ui/lib/src/nosweat/i18n.ts",
-            "translation/source/site.xml",
             "translation/dest/site/de-DE.xml",
             "translation/dest/site/es-ES.xml",
             "translation/dest/site/fr-FR.xml",
@@ -595,7 +597,10 @@
             "translation/dest/site/ko-KR.xml",
             "translation/dest/site/pt-BR.xml",
             "translation/dest/site/ru-RU.xml",
-            "translation/dest/site/zh-CN.xml"
+            "translation/dest/site/zh-CN.xml",
+            "translation/source/site.xml",
+            "ui/dasher/src/langs.ts",
+            "ui/lib/src/nosweat/i18n.ts"
           ]
         },
         {
@@ -607,14 +612,14 @@
           ],
           "files": [
             "modules/ui/src/main/helper/Form3.scala",
-            "ui/bits/src/bits.flairPicker.ts",
-            "public/flair/list.txt",
             "public/flair/img/symbols.mute-circuit-knight.webp",
-            "public/flair/img/symbols.mute-synthetic-eye.webp",
-            "public/flair/img/symbols.mute-neural-chip.webp",
+            "public/flair/img/symbols.mute-ghost-terminal.webp",
             "public/flair/img/symbols.mute-neon-fox.webp",
+            "public/flair/img/symbols.mute-neural-chip.webp",
             "public/flair/img/symbols.mute-origami-crane.webp",
-            "public/flair/img/symbols.mute-ghost-terminal.webp"
+            "public/flair/img/symbols.mute-synthetic-eye.webp",
+            "public/flair/list.txt",
+            "ui/bits/src/bits.flairPicker.ts"
           ]
         },
         {
@@ -629,12 +634,12 @@
         },
         {
           "id": "security-dependency-alignment",
-          "rationale": "Issue #232 aligns existing Netty modules at 4.2.19.Final and the Jackson 2.x family at 2.18.11 to replace vulnerable transitive parser libraries. This changes build dependency selection only; upstream revisions, chess rules, authentication, protocols and data semantics are retained. Remove the overrides when the pinned upstream builds resolve equivalent patched versions. Lila also aligns its existing jsoup, Guava and Jakarta Mail dependencies to 1.23.2, 33.7.2-jre and 1.6.8; the browser/build graph uses exact security overrides and a regenerated native lock (#279). Issue #318 pins the existing translation-build parser to fast-xml-parser5.12.0 and updates only its required transitive subtree for GHSA-474x-hrwr-fgx4. Translation XML, parser options and native generation behavior are unchanged.",
+          "rationale": "Issue #232 aligns existing Netty modules at 4.2.19.Final and the Jackson 2.x family at 2.18.11 to replace vulnerable transitive parser libraries. This changes build dependency selection only; upstream revisions, chess rules, authentication, protocols and data semantics are retained. Remove the overrides when the pinned upstream builds resolve equivalent patched versions. Lila also aligns its existing jsoup, Guava and Jakarta Mail dependencies to 1.23.2, 33.7.2-jre and 1.6.8; the browser/build graph uses exact security overrides and a regenerated native lock (#279). Issue #318 pins the existing translation-build parser to fast-xml-parser5.12.0 and updates only its required transitive subtree for GHSA-474x-hrwr-fgx4. Translation XML, parser options and native generation behavior are unchanged. #365 aligns Lila Netty at upstream's newer 4.2.21.Final; the separately pinned WebSocket component remains on 4.2.19.Final. Staged Lila jars confirm uniform Netty4.2.21.Final, Jackson2.18.11, jsoup1.23.2, Guava33.7.2-jre and Jakarta Mail1.6.8. The browser/build graph and embedded sanitizer are exercised by the native UI suite.",
           "files": [
-            "security-dependencies.sbt",
             "bin/package.json",
-            "pnpm-workspace.yaml",
             "pnpm-lock.yaml",
+            "pnpm-workspace.yaml",
+            "security-dependencies.sbt",
             "ui/bits/patches/@toast-ui__editor.patch",
             "ui/bits/tests/editorSanitizer.test.ts"
           ],
@@ -656,16 +661,16 @@
             "Native studyEntryPoint menu regressions cover puzzle play/review under branded and upstream views, preserving display controls; native puzzle/analyse/editor build and Scala profile compilation. Source audit covers ordinary/post-game analysis, editor and profile guards. Restoration inventory lives in docs/real-time-feature-surface.md and issue #123."
           ],
           "files": [
-            "modules/user/src/main/ui/UserShowSide.scala",
-            "ui/lobby/tests/noSweatTimeControls.test.ts",
             "app/controllers/Challenge.scala",
-            "app/views/game/side.scala",
             "app/views/base/notFound.scala",
+            "app/views/game/side.scala",
+            "modules/user/src/main/ui/UserShowSide.scala",
             "ui/lib/src/setup/view/timeControl.ts",
-            "ui/round/tests/noSweatRematch.test.ts",
-            "ui/round/src/view/button.ts",
+            "ui/lobby/tests/noSweatTimeControls.test.ts",
             "ui/puzzle/src/view/boardMenu.ts",
-            "ui/puzzle/tests/studyEntryPoint.test.ts"
+            "ui/puzzle/tests/studyEntryPoint.test.ts",
+            "ui/round/src/view/button.ts",
+            "ui/round/tests/noSweatRematch.test.ts"
           ]
         },
         {
@@ -677,14 +682,14 @@
           "files": [
             "modules/chat/src/main/ChatJsonView.scala",
             "modules/chat/src/test/ChatPublicNameTest.scala",
-            "ui/lib/src/chat/interfaces.ts",
             "ui/lib/src/chat/discussion.ts",
+            "ui/lib/src/chat/interfaces.ts",
             "ui/lib/tests/chatPublicNames.test.ts"
           ]
         },
         {
           "id": "basic-insights-and-unsupported-navigation",
-          "rationale": "Restore native on-demand human game/result/rating analytics without enabling server engine analysis. Reuse native charts, aggregation, eligibility and sharing; restrict focused metric/dimension/filter requests and refresh ownership. Unsupported inherited feature GET/HEAD links proxy only a fixed translated native notice, with blocked writes/internal routes and genuine not-found handling retained. Native upstream behavior stays intact outside the focused site.",
+          "rationale": "Restore native on-demand human game/result/rating analytics without enabling server engine analysis. Reuse native charts, aggregation, eligibility and sharing; restrict focused metric/dimension/filter requests and refresh ownership. Unsupported inherited feature GET/HEAD links proxy only a fixed translated native notice, with blocked writes/internal routes and genuine not-found handling retained. Native upstream behavior stays intact outside the focused site. #365 moves the existing public names, translated client labels and own-account refresh control into native InsightUi; no parallel page renderer is retained.",
           "verification": [
             "Compile native views and controllers; root NoSweatInsightsTest checks the allowed game/rating queries and rejection of engine/variant queries.",
             "Build the native Insights client with localized labels, empty/failure states, presets and stable result colors. Verify all 52 catalog keys and placeholders in all ten locales.",
@@ -693,10 +698,11 @@
           ],
           "files": [
             "app/controllers/Insight.scala",
-            "app/views/insight.scala",
             "app/views/noSweatUnsupported.scala",
             "modules/insight/src/main/InsightChart.scala",
+            "modules/insight/src/main/InsightUi.scala",
             "modules/insight/src/main/NoSweatInsights.scala",
+            "src/test/scala/NoSweatInsightsLocaleTest.scala",
             "src/test/scala/NoSweatInsightsTest.scala",
             "ui/insight/src/axis.ts",
             "ui/insight/src/boards.ts",
@@ -708,15 +714,13 @@
             "ui/insight/src/presets.ts",
             "ui/insight/src/table.ts",
             "ui/insight/src/text.ts",
-            "ui/insight/src/view.ts",
-            "src/test/scala/NoSweatInsightsLocaleTest.scala"
+            "ui/insight/src/view.ts"
           ]
         },
         {
           "id": "markdown-parser-error-escaping",
-          "rationale": "Backport upstream 34830b8316fea29a93c6b797236f79203ad021e8 (GHSA-2cpx-9573-5pwp, #307) without rebasing the pinned Lila source. Escape the original text when the Markdown parser overflows, preserving ordinary native rendering and preventing fallback HTML injection. Remove the backport after an upstream pin includes the fix.",
+          "rationale": "Upstream b071608b includes the former 34830b8316fea29a93c6b797236f79203ad021e8 security backport (GHSA-2cpx-9573-5pwp). Production MarkdownRender now matches upstream. Retain only the deep-input HTML-escaping regression, accepting safe normal parsing or escaped fallback independent of JVM stack size.",
           "files": [
-            "modules/markdown/src/main/MarkdownRender.scala",
             "modules/web/src/test/common/MarkdownTest.scala"
           ],
           "verification": [
@@ -724,18 +728,8 @@
           ]
         },
         {
-          "id": "study-private-chapter-config",
-          "rationale": "Issue #309 backports upstream e71a2964ec3b3c6da7fa7c4ec6b53de53bba4326 (GHSA-2236-pwjw-m8m4). Load the study with its chapter and reuse native CanView, including both config/division responses. Adapt only the existing pinned controller error-continuation arguments; preserve public/member visibility and native unauthorized/forbidden handling. Remove after the upstream pin includes this fix.",
-          "files": [
-            "app/controllers/Study.scala"
-          ],
-          "verification": [
-            "Compile the exact native controller and run existing native source/format checks. After deployment, use an isolated temporary study/chapter fixture to verify public config succeeds and private anonymous config and divisionOnly are refused, then remove only that fixture."
-          ]
-        },
-        {
           "id": "owner-hosted-arena",
-          "rationale": "#311/#313 restores native owner-hosted standard Arenas. A namespaced managed-seat controller selects ten saved-rating 1200\u20131700 bots, reserves the event roster, reconciles human waiting/playing presence with a 60-second idle reconnect allowance and native standings, and withdraws/returns fillers without touching ongoing results. The existing admission sequencer freezes bot policies before native pairing insertion; human/human games retain native Arena pairing. Background-only suppression persists until event games drain, independently of the maintenance pause. Native clocks, scoring, ratings, deadlines, per-player identity and owner/CSRF checks remain authoritative. New host status/help/error text uses all ten native locales. Defaults are 15+10 and 120 minutes; no new service, scheduler or infrastructure is introduced. Focused Arena views hide native bulk-download controls while the affected tournament export APIs remain blocked; the optional view flag defaults to native enabled behavior outside Mute. Issue #314 also routes all tournament games/results/teams exports through this controller's existing WithVisibleTournament guard, preserving the Arena owner-event and native class-team membership checks. The older pinned game-export renderer remains a package-private Api helper after the visibility gate. Owner-approved follow-up #319 makes the native bot condition authoritative for human-only events and persists each event\u2019s saved-rating band and 1\u201320 filler target (defaults 1400\u20131700, ten). Prepared events lock roster-related configuration; native owner/CSRF checks, game cap and human entry remain unchanged. The participant notice uses the saved target and explains graceful bot withdrawal. All new controls, validation and notices use ten native locales. #321 also carries public display names separately from canonical IDs in the native Arena pairing banner and top-game packets. The shared spectator list uses the existing read-only native status API in bounded batches, renders labels as text, and retains canonical profile URLs; late responses cannot overwrite a newer crowd. Native chat behavior stays unchanged. The redundant host help paragraph below chat is removed. Visual verification also found the reused upstream Allow bot accounts label missing from all nine non-English catalogs; its existing arena translation key is now translated and checked in all ten locales. #324 restores native discovery (six-hour upcoming data, native three-hour finished timeline clipping, separate latest-20 results and paginated history/calendar) through a public approved-host-only selector. Native schedule/spotlight renderers and socket publication remain authoritative; a focused full-snapshot update avoids retaining unscheduled host events as stale team entries. Compact Play navigation and the existing homepage spotlight renderer restore upper-left discovery without changing quick pairing, event rules or managed-seat behavior. Private and foreign-host events never enter public lists, calendar, spotlight or socket payloads. #326 replaces the focused bot-warning card with a native collapsed details/summary inside event metadata. It reads saved rating/target settings, removes only the redundant accepted bots-allowed verdict, and moves unchanged host preparation actions/status before chat. Scoped layout lets metadata grow naturally and gives native chat a minimum usable height; focused views ignore obsolete whole-description collapse preferences while non-Mute views retain upstream behavior. Bot eligibility, entry refusals, pairing, chat permissions and lifecycle are unchanged.",
+          "rationale": "#311/#313 restores native owner-hosted standard Arenas. A namespaced managed-seat controller selects ten saved-rating 1200\u20131700 bots, reserves the event roster, reconciles human waiting/playing presence with a 60-second idle reconnect allowance and native standings, and withdraws/returns fillers without touching ongoing results. The existing admission sequencer freezes bot policies before native pairing insertion; human/human games retain native Arena pairing. Background-only suppression persists until event games drain, independently of the maintenance pause. Native clocks, scoring, ratings, deadlines, per-player identity and owner/CSRF checks remain authoritative. New host status/help/error text uses all ten native locales. Defaults are 15+10 and 120 minutes; no new service, scheduler or infrastructure is introduced. Focused Arena views hide native bulk-download controls while the affected tournament export APIs remain blocked; the optional view flag defaults to native enabled behavior outside Mute. Issue #314 also routes all tournament games/results/teams exports through this controller's existing WithVisibleTournament guard, preserving the Arena owner-event and native class-team membership checks. The older pinned game-export renderer remains a package-private Api helper after the visibility gate. Owner-approved follow-up #319 makes the native bot condition authoritative for human-only events and persists each event\u2019s saved-rating band and 1\u201320 filler target (defaults 1400\u20131700, ten). Prepared events lock roster-related configuration; native owner/CSRF checks, game cap and human entry remain unchanged. The participant notice uses the saved target and explains graceful bot withdrawal. All new controls, validation and notices use ten native locales. #321 also carries public display names separately from canonical IDs in the native Arena pairing banner and top-game packets. The shared spectator list uses the existing read-only native status API in bounded batches, renders labels as text, and retains canonical profile URLs; late responses cannot overwrite a newer crowd. Native chat behavior stays unchanged. The redundant host help paragraph below chat is removed. Visual verification also found the reused upstream Allow bot accounts label missing from all nine non-English catalogs; its existing arena translation key is now translated and checked in all ten locales. #324 restores native discovery (six-hour upcoming data, native three-hour finished timeline clipping, separate latest-20 results and paginated history/calendar) through a public approved-host-only selector. Native schedule/spotlight renderers and socket publication remain authoritative; a focused full-snapshot update avoids retaining unscheduled host events as stale team entries. Compact Play navigation and the existing homepage spotlight renderer restore upper-left discovery without changing quick pairing, event rules or managed-seat behavior. Private and foreign-host events never enter public lists, calendar, spotlight or socket payloads. #326 replaces the focused bot-warning card with a native collapsed details/summary inside event metadata. It reads saved rating/target settings, removes only the redundant accepted bots-allowed verdict, and moves unchanged host preparation actions/status before chat. Scoped layout lets metadata grow naturally and gives native chat a minimum usable height; focused views ignore obsolete whole-description collapse preferences while non-Mute views retain upstream behavior. Bot eligibility, entry refusals, pairing, chat permissions and lifecycle are unchanged. Review follow-up restores the seven accidentally divergent Arena catalogs exactly to upstream; the Hindi allowBotAccounts label remains intentional because upstream has no equivalent, maintaining the ten-locale form label.",
           "verification": [
             "Native NoSweatArenaTest, NoSweatArenaAdmissionTest, NoSweatArenaRosterTest and NoSweatArenaLocaleTest; native compile and formatting; existing admission and full adapter policy/gateway regressions.",
             "Before merge: isolated native browser verification of owner-only create/prepare/edit/cancel, human and bot pairings, waiting/reconnect transitions, deadline/drain restoration and all ten locale renders.",
@@ -750,51 +744,42 @@
             "app/views/tournament.scala",
             "modules/game/src/main/NoSweatArenaAdmission.scala",
             "modules/game/src/test/NoSweatArenaAdmissionTest.scala",
+            "modules/tournament/src/main/BSONHandlers.scala",
             "modules/tournament/src/main/Env.scala",
+            "modules/tournament/src/main/JsonView.scala",
             "modules/tournament/src/main/NoSweatArena.scala",
+            "modules/tournament/src/main/NoSweatArenaDiscovery.scala",
+            "modules/tournament/src/main/NoSweatArenaSettings.scala",
             "modules/tournament/src/main/StartedOrganizer.scala",
+            "modules/tournament/src/main/Tournament.scala",
             "modules/tournament/src/main/TournamentApi.scala",
+            "modules/tournament/src/main/TournamentFeaturing.scala",
             "modules/tournament/src/main/TournamentForm.scala",
+            "modules/tournament/src/main/TournamentRepo.scala",
             "modules/tournament/src/main/ui/TournamentForm.scala",
+            "modules/tournament/src/main/ui/TournamentList.scala",
             "modules/tournament/src/main/ui/TournamentShow.scala",
             "modules/tournament/src/test/NoSweatArenaTest.scala",
             "src/test/scala/NoSweatArenaLocaleTest.scala",
             "src/test/scala/NoSweatArenaRosterTest.scala",
-            "ui/tournament/src/interfaces.ts",
-            "ui/tournament/src/view/finished.ts",
-            "ui/tournament/src/view/util.ts",
-            "modules/tournament/src/main/NoSweatArenaSettings.scala",
-            "modules/tournament/src/main/Tournament.scala",
-            "modules/tournament/src/main/BSONHandlers.scala",
-            "modules/tournament/src/main/TournamentRepo.scala",
+            "translation/dest/arena/hi-IN.xml",
             "ui/bits/src/bits.tourForm.ts",
-            "modules/tournament/src/main/JsonView.scala",
             "ui/lib/src/view/watchers.ts",
             "ui/lib/tests/watchersPublicNames.test.ts",
-            "ui/tournament/src/view/started.ts",
-            "ui/tournament/src/view/table.ts",
-            "translation/dest/arena/de-DE.xml",
-            "translation/dest/arena/es-ES.xml",
-            "translation/dest/arena/fr-FR.xml",
-            "translation/dest/arena/hi-IN.xml",
-            "translation/dest/arena/ja-JP.xml",
-            "translation/dest/arena/ko-KR.xml",
-            "translation/dest/arena/pt-BR.xml",
-            "translation/dest/arena/ru-RU.xml",
-            "translation/dest/arena/zh-CN.xml",
-            "modules/tournament/src/main/NoSweatArenaDiscovery.scala",
-            "modules/tournament/src/main/TournamentFeaturing.scala",
-            "modules/tournament/src/main/ui/TournamentList.scala",
+            "ui/tournament/src/interfaces.ts",
             "ui/tournament/src/tournament.schedule.ts",
             "ui/tournament/src/view/calendarView.ts",
-            "ui/tournament/src/view/main.ts"
+            "ui/tournament/src/view/finished.ts",
+            "ui/tournament/src/view/main.ts",
+            "ui/tournament/src/view/started.ts",
+            "ui/tournament/src/view/table.ts",
+            "ui/tournament/src/view/util.ts"
           ]
         },
         {
           "id": "tournament-export-and-relay-security",
-          "rationale": "Issue #314 stacks on Arena #313 and backports upstream8f583aaf9db9fe32aebdbe460a789dd5630f17f6 and3cf8d5c524ebac6eb71d392bf45f4113128b8bdb. All export entry points use the existing Tournament visibility/owner-event guard; package-private Api rendering retains the pinned PGN options, concurrency controls and content type. Broadcast validation resolves the source address and applies upstream production address restrictions, with the existing generic Invalid source URL text and no debug URL logging. Tournament.scala and conf/routes retain their existing register entries. No API exposure, new authentication flow or upstream rebase.",
+          "rationale": "Upstream b071608b includes the former export-visibility and relay-IP security backports 8f583aaf9db9fe32aebdbe460a789dd5630f17f6 and 3cf8d5c524ebac6eb71d392bf45f4113128b8bdb. Export implementation now comes from upstream behind the separate registered Arena host/visibility gates. Relay departure retains package-private test access, the existing Invalid source URL error and URL-log privacy choices; its focused resolved-address rejection regression remains.",
           "files": [
-            "app/controllers/Api.scala",
             "modules/relay/src/main/RelayRoundForm.scala",
             "modules/relay/src/test/RelaySourceAddressTest.scala"
           ],
@@ -805,9 +790,8 @@
         },
         {
           "id": "moderator-oauth-totp",
-          "rationale": "Issue #316 backports upstream e6f4cf2f451e8c83dfeba207173b64dfd34c469b for GHSA-5gjj-x225-jrr3, retaining the pinned Lila revision. Use the exact upstream production TOTP condition at request-time so already-issued web:mod tokens cannot restore moderator roles without enrollment. Preserve ordinary role filtering, enrolled moderators, nonproduction behavior, gateway exposure and account/token data. Remove after the upstream pin includes this fix.",
+          "rationale": "Upstream b071608b includes the former e6f4cf2f451e8c83dfeba207173b64dfd34c469b backport for GHSA-5gjj-x225-jrr3. SecurityApi now matches upstream. Retain the focused regression that production web:mod tokens lose moderator roles without TOTP, including existing tokens, while preserving native nonproduction behavior.",
           "files": [
-            "modules/security/src/main/SecurityApi.scala",
             "modules/security/src/test/ModeratorOAuthTest.scala"
           ],
           "verification": [

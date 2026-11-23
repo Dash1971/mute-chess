@@ -1,47 +1,52 @@
 {
   "schemaVersion": 1,
   "kind": "release-targets",
-  "reviewedAt": "2026-11-21",
+  "reviewedAt": "2026-11-23",
   "deploymentIdentity": "Read RELEASE.json from the SAME current release. These targets are not proof of installation; compare with SECURITY279_BUILD.json and actual running versions. Recheck after every release or host/tool update.",
   "upstreamPins": {
     "lila": {
       "repository": "https://github.com/lichess-org/lila",
-      "commit": "b551752d2a0e7a63459d9812825d95a633a98737",
+      "commit": "b071608bc4ce71b31cda36ffa493100e3dc3580f",
       "fork": {
         "repository": "https://github.com/Dash1971/lila",
-        "commit": "335cc0ac04d3c7e5ad8a527c84c3551b206620a9",
-        "tree": "4e5bf5bb963f86c50451e03590f17eb9d3603658"
+        "commit": "e6ac5d25cffa6973545424c5a3f4babeb7c79679",
+        "tree": "8f2dcd5d6896bd6159e70edf6bc290ad89669061"
       },
       "securityBackports": [
         {
           "commit": "34830b8316fea29a93c6b797236f79203ad021e8",
           "advisory": "GHSA-2cpx-9573-5pwp",
           "file": "modules/markdown/src/main/MarkdownRender.scala",
-          "fix": "Escape original Markdown on StackOverflowError with scalalib.StringUtils.escapeHtmlRaw."
+          "fix": "Escape original Markdown on StackOverflowError with scalalib.StringUtils.escapeHtmlRaw.",
+          "provenance": "Included in upstream ancestry at b071608bc4ce71b31cda36ffa493100e3dc3580f; retained here for advisory traceability, not a separate local patch."
         },
         {
           "commit": "e71a2964ec3b3c6da7fa7c4ec6b53de53bba4326",
           "advisory": "GHSA-2236-pwjw-m8m4",
           "file": "app/controllers/Study.scala",
-          "fix": "Load study/chapter together and enforce native CanView for chapter config and divisionOnly; retain pinned unauthorized/forbidden continuations."
+          "fix": "Load study/chapter together and enforce native CanView for chapter config and divisionOnly; retain pinned unauthorized/forbidden continuations.",
+          "provenance": "Included in upstream ancestry at b071608bc4ce71b31cda36ffa493100e3dc3580f; retained here for advisory traceability, not a separate local patch."
         },
         {
           "commit": "8f583aaf9db9fe32aebdbe460a789dd5630f17f6",
           "advisory": "GHSA-hr3c-7vww-ffrj",
           "file": "app/controllers/Tournament.scala",
-          "fix": "All games/results/teams exports use WithVisibleTournament, retaining class-team and Arena owner-event restrictions. Pinned PGN rendering remains behind the guard."
+          "fix": "All games/results/teams exports use WithVisibleTournament, retaining class-team and Arena owner-event restrictions. Pinned PGN rendering remains behind the guard.",
+          "provenance": "Included in upstream ancestry at b071608bc4ce71b31cda36ffa493100e3dc3580f; retained here for advisory traceability, not a separate local patch."
         },
         {
           "commit": "3cf8d5c524ebac6eb71d392bf45f4113128b8bdb",
           "advisory": "GHSA-582f-w2m6-pr6m",
           "file": "modules/relay/src/main/RelayRoundForm.scala",
-          "fix": "Resolve and validate source IPs using upstream production loopback/wildcard/link-local/site-local rejection, additional lichess.ovh blocklist; reuse Invalid source URL and omit debug URL logging."
+          "fix": "Resolve and validate source IPs using upstream production loopback/wildcard/link-local/site-local rejection, additional lichess.ovh blocklist; reuse Invalid source URL and omit debug URL logging.",
+          "provenance": "Included in upstream ancestry at b071608bc4ce71b31cda36ffa493100e3dc3580f; retained here for advisory traceability, not a separate local patch."
         },
         {
           "commit": "e6f4cf2f451e8c83dfeba207173b64dfd34c469b",
           "advisory": "GHSA-5gjj-x225-jrr3",
           "file": "modules/security/src/main/SecurityApi.scala",
-          "fix": "In production retain web:mod OAuth moderator roles only while the account has enrolled TOTP. Request-time filtering covers existing tokens; preserve upstream nonproduction behavior."
+          "fix": "In production retain web:mod OAuth moderator roles only while the account has enrolled TOTP. Request-time filtering covers existing tokens; preserve upstream nonproduction behavior.",
+          "provenance": "Included in upstream ancestry at b071608bc4ce71b31cda36ffa493100e3dc3580f; retained here for advisory traceability, not a separate local patch."
         }
       ]
     },
@@ -63,7 +68,11 @@
       "kernelPackageVersion": "7.0.0-44.44",
       "python3-jwt": "2.10.1-4ubuntu1.4",
       "openjdk-21": "21.0.13.1+2-1~26.04.1",
-      "securityNotices": ["USN-9166-1", "USN-9177-1", "USN-9156-1"],
+      "securityNotices": [
+        "USN-9166-1",
+        "USN-9177-1",
+        "USN-9156-1"
+      ],
       "maintenance": "APT-managed host targets. Verify installed packages, the booted kernel and both running Java services; repository pocket labels alone do not identify every security fix. Current operational verification supplies installation evidence."
     },
     "node": {
@@ -92,12 +101,13 @@
       "maintenance": "Private binary, NOT updated by host apt upgrade."
     },
     "jvm": {
-      "Netty": "4.2.19.Final",
+      "Netty": "4.2.21.Final",
       "Jackson": "2.18.11",
       "org.jsoup:jsoup": "1.23.2",
       "com.google.guava:guava": "33.7.2-jre",
       "com.sun.mail:jakarta.mail": "1.6.8",
-      "source": "native security-dependencies.sbt; verify actual lila/lib and ws/lib jars"
+      "source": "Candidate Lila security-dependencies.sbt and staged jars select Netty 4.2.21.Final; unchanged separately pinned lila-ws selects 4.2.19.Final. Jackson and other listed targets apply to their existing components. Verify actual lila/lib and ws/lib jars separately at deployment.",
+      "lila-ws Netty": "4.2.19.Final"
     },
     "python": {
       "onnxruntime": "1.31.1",
@@ -114,7 +124,10 @@
       "observedAt": "2026-11-19",
       "embeddedOpenTelemetry": "1.47.0",
       "securityFix": {
-        "ids": ["CVE-2026-128085", "GHSA-q7gw-24fr-5p69"],
+        "ids": [
+          "CVE-2026-128085",
+          "GHSA-q7gw-24fr-5p69"
+        ],
         "commit": "1d50650b69dd95663e6d97c8dc9cba5dd17a788c",
         "evidence": "Cloudflared 2026.11.1 upgrades OpenTelemetry SDK/trace from 1.45.0 to 1.47.0, fixing attribute-value length-limit bypass and excess memory retention. Verify embedded modules and installed/running binary hashes; a public exploit path in this deployment has not been established."
       },
@@ -154,7 +167,9 @@
   },
   "knownAdvisoryDecisions": [
     {
-      "ids": ["GHSA-f5v5-272f-4q4f"],
+      "ids": [
+        "GHSA-f5v5-272f-4q4f"
+      ],
       "status": "fixed-in-pinned-source",
       "evidence": "Upstream fix016e06f188e05dc96a7c5a0ab2b548895f7ec44e is an ancestor of pin b551752d2a0e7a63459d9812825d95a633a98737. RequestPref no longer accepts bgImg from request parameters/session; the deployed source retains that removal and uses pref.bgImgUrl. Verify the deployed RequestPref class and retain this decision only with matching release/build/pin evidence."
     },
@@ -216,7 +231,7 @@
         "GHSA-2cpx-9573-5pwp"
       ],
       "status": "fixed-in-pinned-source",
-      "evidence": "Upstream34830b8316fea29a93c6b797236f79203ad021e8 backported in the recorded local native patch; actual parser-overflow test must pass before release."
+      "evidence": "Candidate upstream b071608bc4ce71b31cda36ffa493100e3dc3580f includes 34830b8316fea29a93c6b797236f79203ad021e8 in its ancestry. Escape original Markdown on StackOverflowError with scalalib.StringUtils.escapeHtmlRaw. Focused native tests cover this behavior; deployment must still verify the actual compiled runtime and refresh the active-release security record."
     },
     {
       "ids": [
@@ -248,28 +263,28 @@
         "GHSA-2236-pwjw-m8m4"
       ],
       "status": "fixed-in-pinned-source",
-      "evidence": "Upstream e71a2964ec3b3c6da7fa7c4ec6b53de53bba4326 backported in the local patch. Verify compiled controller and temporary-fixture HTTP public/private config and divisionOnly checks before release completion."
+      "evidence": "Candidate upstream b071608bc4ce71b31cda36ffa493100e3dc3580f includes e71a2964ec3b3c6da7fa7c4ec6b53de53bba4326 in its ancestry. Load study/chapter together and enforce native CanView for chapter config and divisionOnly; retain pinned unauthorized/forbidden continuations. Focused native tests cover this behavior; deployment must still verify the actual compiled runtime and refresh the active-release security record."
     },
     {
       "ids": [
         "GHSA-5gjj-x225-jrr3"
       ],
       "status": "fixed-in-pinned-source",
-      "evidence": "Backport upstream e6f4cf2f451e8c83dfeba207173b64dfd34c469b (#316). The request-time OAuth role filter now requires enrolled TOTP in production, including existing tokens. Actual private-filter regression covers production refusal, enrollment changes, enrolled moderators, non-web:mod tokens, nonproduction and ordinary accounts. Gateway token/moderator restrictions remain closed. The advisory metadata still lists no patched version; the upstream source commit is the fix evidence."
+      "evidence": "Candidate upstream b071608bc4ce71b31cda36ffa493100e3dc3580f includes e6f4cf2f451e8c83dfeba207173b64dfd34c469b in its ancestry. In production retain web:mod OAuth moderator roles only while the account has enrolled TOTP. Request-time filtering covers existing tokens; preserve upstream nonproduction behavior. Focused native tests cover this behavior; deployment must still verify the actual compiled runtime and refresh the active-release security record."
     },
     {
       "ids": [
         "GHSA-hr3c-7vww-ffrj"
       ],
       "status": "fixed-in-pinned-source",
-      "evidence": "Source target for stacked #314, not proof of live installation: 8f583aaf9db9fe32aebdbe460a789dd5630f17f6 locally backported. All games/results/teams exports use WithVisibleTournament, retaining class-team and Arena owner-event restrictions. Pinned PGN rendering remains behind the guard. Combined release must verify actual compiled artifacts and refresh current security records after both PRs merge."
+      "evidence": "Candidate upstream b071608bc4ce71b31cda36ffa493100e3dc3580f includes 8f583aaf9db9fe32aebdbe460a789dd5630f17f6 in its ancestry. All games/results/teams exports use WithVisibleTournament, retaining class-team and Arena owner-event restrictions. Pinned PGN rendering remains behind the guard. Focused native tests cover this behavior; deployment must still verify the actual compiled runtime and refresh the active-release security record."
     },
     {
       "ids": [
         "GHSA-582f-w2m6-pr6m"
       ],
       "status": "fixed-in-pinned-source",
-      "evidence": "Source target for stacked #314, not proof of live installation: 3cf8d5c524ebac6eb71d392bf45f4113128b8bdb locally backported. Resolve and validate source IPs using upstream production loopback/wildcard/link-local/site-local rejection, additional lichess.ovh blocklist; reuse Invalid source URL and omit debug URL logging. Combined release must verify actual compiled artifacts and refresh current security records after both PRs merge."
+      "evidence": "Candidate upstream b071608bc4ce71b31cda36ffa493100e3dc3580f includes 3cf8d5c524ebac6eb71d392bf45f4113128b8bdb in its ancestry. Resolve and validate source IPs using upstream production loopback/wildcard/link-local/site-local rejection, additional lichess.ovh blocklist; reuse Invalid source URL and omit debug URL logging. Focused native tests cover this behavior; deployment must still verify the actual compiled runtime and refresh the active-release security record."
     }
   ],
   "dailyReportRules": [

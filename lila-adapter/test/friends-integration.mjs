@@ -40,7 +40,7 @@ try {
   const a=new Client(),b=new Client(),stranger=new Client(),guest=new Client();
   await a.login('A');await b.login('B');await stranger.login('C');
   const home=await a.request('/',undefined,200,{Accept:'text/html'});
-  assert.match(home,/id="friend_box"/);assert.match(home,/id="challenge-toggle"/);assert.doesNotMatch(home,/id="notify-toggle"|id="clinput"/);
+  assert.match(home,/id="friend_box"/);assert.match(home,/id="challenge-toggle"/);assert.doesNotMatch(home,/id="notify-toggle"/);assert.match(home,/id="clinput"/);
   await a.request('/challenge');await b.request('/challenge');
   await a.request('/rel/follow/'+b.username,{});await b.request('/rel/follow/'+a.username,{});
   const following=await a.request('/@/'+a.username+'/following',undefined,200,{Accept:'text/html'});assert.match(following,new RegExp(b.username,'i'));
