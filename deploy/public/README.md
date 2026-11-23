@@ -40,12 +40,13 @@ commit must match RELEASE.json. The source footer archive contains that Mute
 tree, `lila-native.tar` from the fork commit and the retained small patches.
 The payload includes
 the remaining small patches, adapter code with `npm ci --omit=dev`, the public club assets,
-gateway, installer, pinned Python requirements, BUILD.md, LICENSE,
+gateway, installer, pinned Python requirements (copy `lila-adapter/requirements.txt`
+to `PAYLOAD/requirements.txt`), BUILD.md, LICENSE,
 THIRD_PARTY.md, the complete `third-party` directory and deployment scripts.
 Include the pinned renderer artifact at `PAYLOAD/gif-renderer`, with official
 source, exact moss-theme overlay and verified build receipt described in
-[gif-renderer.md](gif-renderer.md). Its build and installation remain **HELD**
-during the active study; source integration is not evidence of live availability.
+[gif-renderer.md](gif-renderer.md). Keep the renderer build receipt with the matching release; the original
+active-study hold is historical, not a current release restriction.
 Include `design/quiet-signal` and `design/logo-explorations/final` (excluding
 `node_modules` and Python environments). The installer checks for the brand sources
 before preparing a release and includes them with the corresponding-source archive.
@@ -144,7 +145,7 @@ not provide continuous disaster recovery.
 
 Read-only release rollback: stop app/WS/adapter/gateway, select the previous
 known-good `current` symlink, then restart. Review schema compatibility first.
-App or worker restarts void active games rather than fabricate results.
+Drain games before planned restarts; never fabricate results or reset game records.
 Inspect `journalctl -u nosweatchess-app` and the other units; HTTP request logging
 is disabled. The public source archive includes exact upstream trees and our
 patches, with build instructions and licenses, but no accounts, keys or backups.
