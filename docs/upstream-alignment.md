@@ -66,6 +66,7 @@ candidate and validation evidence.
 
 1. Record old/new upstream commits and review intervening changes. Fast-forward the fork's untouched `master` mirror, then **merge** the selected upstream commit into native `main` through a reviewed PR. Never rebase or force-push native history. The owner selected a two-week cadence after the first upstream merge (#365).
 2. Resolve conflicts against each departure's documented reason, adopt native equivalents, and remove obsolete hooks. Record the reason when declining an upstream change. Keep new behavior in namespaced files and edits to upstream files small; avoid reformatting or whole-file rewrites. Urgent security backports use `git cherry-pick -x` so their provenance is retained.
+   For registered `derivedCopies`, compare their `derivedFrom` source at the new upstream base, port applicable changes, and update `upstreamBlob` in the same PR; the departure check rejects an unreviewed upstream blob change.
 3. Run the fork's `mute.yml` native checks and affected integration checks. Exercise login, pairing, clocks, results/ratings, premoves, analysis, profiles and reconnect behavior as relevant. Preserve licenses and exact source provenance.
 4. Open the companion PR here to update `native-pin.json` and update the register/build documentation for an upstream-base change. Pass this repository's checks before merging. Build and deploy verified Mute `main` through the existing release procedure; release metadata records both upstream revisions and the native fork commit/tree.
 
