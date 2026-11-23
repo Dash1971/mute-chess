@@ -135,3 +135,12 @@ original/imported commit, tree and patch checksum. This is snapshot-level histor
 not a claim that mixed changes within old PRs were split into new feature commits.
 No current upstream merge, semantic refactor, data extraction, engine build or
 live release is part of this bootstrap.
+
+## Small rendering hooks (#366)
+
+The focused navigation, profile actions, homepage and Mute organization metadata
+live in NoSweat-owned renderers. Upstream entry points delegate to them in Mute
+mode and retain upstream implementations otherwise. Moving the renderers does
+not change their active markup, labels, routes, translations or preferences.
+This limits future upstream conflicts to the entry hooks; independent Mute
+renderers still need comparison when upstream behavior changes.
