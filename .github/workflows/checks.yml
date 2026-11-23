@@ -95,6 +95,12 @@ jobs:
           (cd ui/.build && pnpm install --frozen-lockfile)
           node "$GITHUB_WORKSPACE/puzzles/validate.mjs" /tmp/lila/node_modules/.pnpm/chessops@0.15.1/node_modules/chessops
           node ui/test
+          rm ui/@types/lichess/i18n.d.ts
+          ./ui/build --no-install site lobby analyse round editor dasher puzzle bits learn coordinateTrainer storm user insight tournament
+          python "$GITHUB_WORKSPACE/deploy/lila/native-fork.py" restore-i18n /tmp/lila
+          python "$GITHUB_WORKSPACE/deploy/lila/native-fork.py" verify /tmp/lila
+          # Regression: rebuild the same pin with a warm translation-JS cache.
+          rm ui/@types/lichess/i18n.d.ts
           ./ui/build --no-install site lobby analyse round editor dasher puzzle bits learn coordinateTrainer storm user insight tournament
           python "$GITHUB_WORKSPACE/deploy/lila/native-fork.py" restore-i18n /tmp/lila
           python "$GITHUB_WORKSPACE/deploy/lila/native-fork.py" verify /tmp/lila

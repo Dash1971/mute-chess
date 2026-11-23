@@ -13,6 +13,8 @@ case "$component" in
     cd "$task_root/sources/lila"
     pnpm install --frozen-lockfile
     (cd ui/.build && pnpm install --frozen-lockfile)
+    # The tracked bootstrap was restored after the previous build; bypass Lila's JS-cache shortcut.
+    rm ui/@types/lichess/i18n.d.ts
     ./ui/build --no-install
     mkdir -p "$task_root/logs"
     cp ui/@types/lichess/i18n.d.ts "$task_root/logs/generated-i18n.d.ts"
