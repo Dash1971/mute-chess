@@ -24,7 +24,7 @@ expected identity.
 | `study-http-check.py` | Critical | Anonymous private config/division refused, public allowed, missing refused; temporary fixture removed |
 | `counts.js` | Critical | Counts and sorted identity/rating/claim/second-factor hashes for a frozen continuity comparison |
 | `security-artifacts.py` | Critical | Expected commit/tree/inventory, real build/source archive provenance, every recorded class hash, deployed libraries/sanitizer/private runtimes and existing backports |
-| `monitor-check.py` | Critical | Existing monitor's release fingerprint, all control hashes/isolation, no containment or critical drift |
+| `monitor-check.py --expected-path PATH …` | Critical | Existing monitor's release fingerprint, all control hashes/isolation, no containment or critical drift |
 | `bot-live-state.py` | Critical | Admissions open and the **same existing real game** advances within 60 seconds; never starts a game |
 | `public-health.py advisory EXPECTED_MAIN` | Advisory | Existing stylesheet/content/Arena discovery checks; parses any homepage JSON-LD without requiring a block |
 | `account-auth-smoke.mjs --advisory-copy` | Advisory | Exact translated ja-JP rejection copy; independent of the critical signed guard |
@@ -77,7 +77,11 @@ python3 public-health.py advisory "$EXPECTED_MAIN"
 python3 about-locales.py
 ```
 
-On the controller: `python3 monitor-check.py`. Continue to use its existing
+On the controller: `python3 monitor-check.py --expected-path /opt/nosweatchess/current/RELEASE.json`.
+Repeat `--expected-path` for every additional path explicitly declared before
+maintenance; the actual and expected lists must match exactly (order does not
+matter). The release path remains required. Never derive the expected list from
+the observed monitor result during the window. Continue to use its existing
 `collect_host.py` and `reconcile.classify` for the completion collection, without
 changing their inputs/rules or sending a test scheduled report.
 
@@ -94,7 +98,13 @@ capture does not establish equality or prove an activation occurred.
 
 `security-artifacts.py` retains the existing deployed-artifact assertions, takes
 explicit release/evidence inputs instead of the deleted task directory, and
-verifies every build-receipt class hash. Its publication-only tail is omitted:
+verifies every build-receipt class hash. Version expectations come from that
+release's reviewed inventory, independently pinned by `--expected-inventory`,
+rather than a second set of version literals in the checker. Review candidate
+version changes in the normal inventory PR before maintenance, using the old
+release's inventory hash for its baseline and the candidate's approved hash after
+activation. Keep historical receipt identities and the known-bad sanitizer
+exclusion unchanged. Its publication-only tail is omitted:
 it does not write `SECURITY_VERIFICATION.json`, its legacy reader or `source.tar.gz`.
 Use the unchanged security completion procedure to publish actual observations
 against matching receipts after a deployment. The historical build flags remain
