@@ -232,6 +232,22 @@ occasional moments of brilliance are all still there.
 
 To keep human chess alive, they stopped playing humans.
 
+## Staying in sync with Lichess
+
+Mute Chess is a maintained fork of Lichess, not a rewrite. We keep Lichess's
+code wherever our own features do not need a change, and we merge new Lichess
+code about every two weeks. That way its fixes and security patches reach us
+by default.
+
+- **Our Lichess fork** lives in [Dash1971/lila](https://github.com/Dash1971/lila).
+  Its `master` branch is an untouched copy of Lichess; `main` adds Mute Chess.
+- **This repository** holds everything else: the Maia bot adapter, deployment,
+  documentation, and a pin to the exact fork commit each release is built from.
+- **Every difference from Lichess is listed** with its reason, and our checks
+  fail if an unlisted one appears.
+
+See [how we maintain Mute Chess](docs/maintenance.md) for the full approach.
+
 ## Contribute and fork
 
 Contributions and forks are welcome. Help improve the chess experience, test on
@@ -243,7 +259,8 @@ or make the documentation clearer.
 - [Discuss bot identities](https://github.com/Dash1971/mute-chess/issues/1)
   and [help with strength calibration](https://github.com/Dash1971/mute-chess/issues/2).
 - Open a pull request, or fork the project and share what you build.
-- Follow the [upstream maintenance policy](docs/upstream-alignment.md).
+- Read [how we maintain Mute Chess](docs/maintenance.md) and follow the
+  [upstream maintenance policy](docs/upstream-alignment.md).
 
 For substantial changes, open an issue first so we can discuss the approach.
 For bug reports, include what happened, what you expected, and your browser and
