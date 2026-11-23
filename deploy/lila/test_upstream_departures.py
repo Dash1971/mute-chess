@@ -17,12 +17,16 @@ class DepartureRegisterTests(unittest.TestCase):
         self.manifest = json.loads((HERE / "upstream-departures.json").read_text())
         # Test register errors without network access. CI separately checks the
         # real fork diff; test_native_fork exercises that Git operation directly.
-        paths = check.patch_files((HERE / "patches/lila-nostr-maia.patch").read_text())
+        paths = {"app/Hook.scala", "app/Service.scala", "modules/game/Guard.scala"}
+        self.manifest["repositories"][0]["areas"] = [
+            {"id": "hook", "rationale": "Native hook", "verification": ["native tests"], "files": ["app/Hook.scala", "app/Service.scala"]},
+            {"id": "guard", "rationale": "Admission guard", "verification": ["guard tests"], "files": ["modules/game/Guard.scala"]},
+        ]
         mock = patch.object(check, "native_files", return_value=paths)
         mock.start()
         self.addCleanup(mock.stop)
 
-    def test_current_register_covers_the_actual_native_patches(self):
+    def test_register_covers_fixture_and_remaining_websocket_patch(self):
         result = check.validate(self.manifest, ROOT)
         self.assertEqual(set(result), {"lila", "lila-ws"})
 

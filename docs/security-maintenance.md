@@ -97,29 +97,28 @@ The two reported Lichess fixes are already ancestors of our upstream pin. Three 
 Update the JSON when changing a runtime, upstream pin, local backport or dependency override. Confirm resolved locks and staged jars, compare actual running versions after activation, and retain the build receipt with the release. The standard installer already carries `docs/` in corresponding source. Keep version/patch evidence and source pins in the same release; do not overwrite a deployment record with merely planned versions. For packages not summarized here, use the complete deployed native lock, JVM jars, adapter production lock, Python environment and renderer Cargo lock. Keep secrets, user data and credentials out of inventory and reports.
 
 
-## Fork transition: Release A (#364)
+## Native fork identity (#364)
 
-Release A builds the pinned fork while retaining the unchanged classifier and
-`nativePatchSha256` check. Its real build receipt, RELEASE.json and both current
-verification readers additionally record `nativeCommit` and `nativeTree`.
-Verify those against the pinned checkout and its Git tree before staging, and
-include them unchanged in the fresh runtime verification. They do not replace
-the legacy patch check in this release. Historical receipts remain byte-for-byte
-unchanged. The later identity switch/removal is separately staged after A passes.
+Current releases and both current verification readers record `nativeCommit`
+and `nativeTree`. Require matching full IDs in the release, build verification
+and reviewed inventory's `upstreamPins.lila.fork`; retain the original upstream
+pin and all security-backport decisions. Verify the actual clean pinned checkout
+before staging. The source package includes native fork and Mute main Git
+archives plus the remaining small patches. Historical receipts stay byte-for-byte
+unchanged; the two-stage transition and external identity-only diff are recorded
+in [the fork contract](native-fork.md).
 
-The source package contains native fork and Mute main `git archive` outputs plus
-the remaining patches. The approved fork-only test file is repository metadata;
-application-tree equality excludes only that one file. See [the source contract](native-fork.md).
-This is a release target, not evidence that it has been installed: inspect the
-active RELEASE.json and fresh OpenClaw collection for actual installation.
+This is a verification contract, not installation evidence: inspect the active
+RELEASE.json and fresh OpenClaw collection for actual deployment. The identity
+migration authorizes no other predicate, advisory, scheduler or monitor change.
 
 ## Every deployment completion check
 
 Owner policy, November7,2026: refreshing security verification is required for **every** deployment, including UI/styles-only changes and unchanged dependency graphs. The deployment operator owns this step alongside the normal build, cutover and health checks. The release is not complete until the existing daily-report classifier returns `inventory_verified: true` for a fresh collection of the active release.
 
-1. Resolve `/opt/nosweatchess/current` once and read its RELEASE.json, reviewed inventory and real current build receipt. Confirm the pointer stays unchanged during collection. Record the active git commit, native fork commit/tree, transitional native patch fingerprint, inventory SHA256 and verification time.
+1. Resolve `/opt/nosweatchess/current` once and read its RELEASE.json, reviewed inventory and real current build receipt. Confirm the pointer stays unchanged during collection. Record the active git commit, native fork commit/tree, inventory SHA256 and verification time.
 2. Verify the security-sensitive staged/runtime artifacts: selected JVM versions with no obsolete duplicate jars, actual compiled DOMPurify and absence of the old embedded sanitizer code, relevant upstream source fixes, and private runtimes/backports including Redis file **and running-process** hashes. Use the matching current build receipt for rebuild claims. Record only checks actually performed. If evidence is unavailable or mismatched, leave verification pending and report the concrete gap.
-3. Preserve the original security build receipt byte-for-byte as `corresponding-source/SECURITY279_ORIGINAL_BUILD.json` (and in its original historical release). Write a **new** `corresponding-source/SECURITY_VERIFICATION.json` with `kind: current-release-security-verification`, `verifiedAtUTC`, `main`, `nativeCommit`, `nativeTree`, `nativePatchSha256`, `inventorySha256`, source-build filename/hash, original-security-build filename/hash, and observed checks. Keep real build provenance: a fresh verification is not a new build. Never invent successful rebuild flags for reused artifacts.
+3. Preserve the original security build receipt byte-for-byte as `corresponding-source/SECURITY279_ORIGINAL_BUILD.json` (and in its original historical release). Write a **new** `corresponding-source/SECURITY_VERIFICATION.json` with `kind: current-release-security-verification`, `verifiedAtUTC`, `main`, `nativeCommit`, `nativeTree`, `inventorySha256`, source-build filename/hash, original-security-build filename/hash, and observed checks. Keep real build provenance: a fresh verification is not a new build. Never invent successful rebuild flags for reused artifacts.
 4. The existing OpenClaw collector reads `corresponding-source/SECURITY279_BUILD.json`. For compatibility, publish the same new verification object at that existing path, with the legacy fields `fullBackendRebuildPassed`, `fullUiBuildPassed`, `redisVersion`, `redisBackport` and `redisServerSha256` supported by the actual matching build/runtime evidence. The preserved original remains separate; the legacy filename now carries explicitly labeled current verification. Keep both current copies identical and include the generated evidence in the existing corresponding-source archive. Do not change RELEASE.json merely to refresh this record.
 5. Use OpenClaw's existing `collect_host.py` and `reconcile.classify` on the fresh host collection and existing advisory scan. Require `inventory_verified: true`; unresolved or newly applicable findings remain visible. Do not send an extra scheduled report as a test. Do not edit reviewer reference inventory, bypass identity checks or reset intrusion-monitor baselines just to clear a warning. If reviewed security inputs changed, obtain the appropriate new applicability review and update the maintained inventory through the normal PR procedure.
 

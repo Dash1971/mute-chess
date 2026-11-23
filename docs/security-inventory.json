@@ -7,7 +7,11 @@
     "lila": {
       "repository": "https://github.com/lichess-org/lila",
       "commit": "b551752d2a0e7a63459d9812825d95a633a98737",
-      "localPatch": "deploy/lila/patches/lila-nostr-maia.patch",
+      "fork": {
+        "repository": "https://github.com/Dash1971/lila",
+        "commit": "335cc0ac04d3c7e5ad8a527c84c3551b206620a9",
+        "tree": "4e5bf5bb963f86c50451e03590f17eb9d3603658"
+      },
       "securityBackports": [
         {
           "commit": "34830b8316fea29a93c6b797236f79203ad021e8",

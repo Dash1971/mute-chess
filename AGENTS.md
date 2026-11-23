@@ -12,21 +12,18 @@ security fixes use `git cherry-pick -x`.
 Phase 1 merged in #368. The approved GitHub test file is metadata only.
 
 `deploy/lila/native-pin.json` pins the native fork commit and upstream base.
-`deploy/lila/patches/lila-nostr-maia.patch` is now a generated compatibility
-artifact: regenerate it with `python3 deploy/lila/export-patch.py --output
-deploy/lila/patches/lila-nostr-maia.patch`; never edit it by hand. Native PRs
-reference the Mute issue; the companion PR here bumps the pin, regenerates the
-patch and carries any adapter/documentation changes, closing the issue.
+Native PRs reference the Mute issue; companion PRs here bump that pin and carry
+adapter/documentation changes, closing the issue. Build directly from the fork;
+verify exact HEAD and clean status under the documented generated-file rules.
+Releases and fresh security verification identify native source with
+`nativeCommit` and `nativeTree`. The reviewed inventory records the same fork
+repository, commit and tree, retaining upstream pins and security backports.
 
-The owner approved one phase-1 tree exception on November 23: the fork-only
-`.github/workflows/mute.yml` test file is excluded from the application export.
-No other source path is exempt. Phase 1 preserves every application file and
-the exact patch bytes. Phase 2 Release A (#364) builds the same source from the
-fork and records `nativeCommit` plus `nativeTree` alongside `nativePatchSha256`.
-The existing classifier and patch comparison remain mandatory for that release;
-switching the identity check and removing the patch are subsequent work.
-See [the fork contract](docs/native-fork.md). No upstream update or deployment
-is authorized by the phase-1 migration alone.
+The owner approved one tree exception on November 23: the fork-only
+`.github/workflows/mute.yml` test file is repository metadata, excluded from the
+application-departure inventory. No other source path is exempt. See
+[the fork contract](docs/native-fork.md). No newer upstream update or native
+behavior change is authorized by the migration itself.
 
 ## Next application release: fast-xml-parser (#318)
 
@@ -42,7 +39,7 @@ A deployment is not complete until the active release's security verification
 record has been refreshed and OpenClaw's existing daily-report classifier accepts
 it. This applies to every application deployment, including changes confined to
 UI/styles and releases that retain dependency versions. Match the actual active
-RELEASE.json commit, native fork commit/tree, transitional native patch hash
+RELEASE.json commit, native fork commit/tree
 and inventory hash; verify the deployed
 libraries, browser sanitizer and running private runtime/backport fingerprints.
 Update docs/security-inventory.json when versions, pins, backports or advisory
@@ -130,7 +127,7 @@ On 28 October the owner superseded the club landing page and manual bot challeng
 
 ## Release discipline
 
-The owner requires one permanent branch, `main`. Use short-lived feature branches and pull requests, review changes, pass checks, merge on GitHub, then deploy the merged main revision. Do not deploy unmerged or dirty code. Run `python3 deploy/public/verify-main.py` before preparing a release. Rebuild/verify the native source against that exact main patch. Record the main commit in RELEASE.json and verify the live revision. Delete merged feature branches; do not keep parallel release/development branches. This replaces the earlier deploy-before-push workflow.
+The owner requires one permanent branch, `main`. Use short-lived feature branches and pull requests, review changes, pass checks, merge on GitHub, then deploy the merged main revision. Do not deploy unmerged or dirty code. Run `python3 deploy/public/verify-main.py` before preparing a release. Rebuild/verify the native source against that exact main pin. Record the main commit in RELEASE.json and verify the live revision. Delete merged feature branches; do not keep parallel release/development branches. This replaces the earlier deploy-before-push workflow.
 
 
 ## Standard chess only (owner decision, 29 October 2026)

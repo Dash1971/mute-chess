@@ -1,0 +1,14 @@
+--- a/reconcile.py
++++ b/reconcile.py
+@@ -9,7 +9,10 @@
+     except (OSError,ValueError):reference=None
+     valid=(inv==reference and inv.get('schemaVersion')==1 and inv.get('kind')=='release-targets'
+            and build.get('main')==release.get('gitCommit')==release.get('compiledBackendMain')
+-           and build.get('nativePatchSha256')==release.get('nativePatchSha256')
++           and isinstance(release.get('nativeCommit'),str) and re.fullmatch(r'[0-9a-f]{40}',release['nativeCommit']) is not None
++           and isinstance(release.get('nativeTree'),str) and re.fullmatch(r'[0-9a-f]{40}',release['nativeTree']) is not None
++           and build.get('nativeCommit')==release['nativeCommit']==inv.get('upstreamPins',{}).get('lila',{}).get('fork',{}).get('commit')
++           and build.get('nativeTree')==release['nativeTree']==inv.get('upstreamPins',{}).get('lila',{}).get('fork',{}).get('tree')
+            and context.get('inventory_sha256')==build.get('inventorySha256')
+            and build.get('fullBackendRebuildPassed') is True and build.get('fullUiBuildPassed') is True)
+     approved={}; notes=[]

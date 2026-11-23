@@ -5,14 +5,18 @@ For a first local installation, start with the [installation guide](../../docs/i
 Use one permanent branch: `main`. Open a short-lived PR, review it, pass GitHub checks, merge on GitHub, and only then deploy. Run `python3 deploy/public/verify-main.py` from a clean checkout of the current main commit. It rejects feature branches, dirty trees and main revisions without a successful push workflow. Check out the native commit in `deploy/lila/native-pin.json`, verify its clean
 source status, and rebuild the native app and full UI from that fork; partial UI builds do not update the asset manifest.
 
-A release must carry RELEASE.json with `gitCommit`, `branch: "main"`, and `sourceVerified: true`. For transition Release A, the installer verifies the pinned native HEAD/tree and
-clean working source, then independently exports and compares the retained
-compatibility patch against the main payload before activation. RELEASE.json
-records `nativeCommit`, `nativeTree` and the transitional `nativePatchSha256`. Preserve the merged commit and verification metadata in the public corresponding-source archive. Confirm the live X-NoSweat-Revision header after deployment. Delete merged feature branches. Never activate a feature branch and merge it later.
+A release must carry RELEASE.json with `gitCommit`, `branch: "main"`, and
+`sourceVerified: true`. The installer verifies the pinned native HEAD/tree and
+clean source status, the Mute archive's embedded main commit, and the complete
+browser/analysis asset pins before activation. RELEASE.json records
+`nativeCommit` and `nativeTree`. Preserve the merged commit and verification
+metadata in the public corresponding-source archive. Confirm the live
+X-NoSweat-Revision header after deployment. Delete merged feature branches.
+Never activate a feature branch and merge it later.
 
 ## Security verification is a release completion requirement
 
-Every deployment must refresh the current-release security verification, including UI/style-only changes with unchanged dependencies. After activation, verify the actual libraries, compiled sanitizer and private runtime/backport fingerprints against the maintained inventory and the matching real build receipt. Preserve historical receipts. Record the active commit, native fork commit/tree, transitional native patch hash, inventory hash, verification time and source evidence in `corresponding-source/SECURITY_VERIFICATION.json`, with the same current record at the existing `corresponding-source/SECURITY279_BUILD.json` report-reader path. Follow [the record format and completion check](../../docs/security-maintenance.md#every-deployment-completion-check).
+Every deployment must refresh the current-release security verification, including UI/style-only changes with unchanged dependencies. After activation, verify the actual libraries, compiled sanitizer and private runtime/backport fingerprints against the maintained inventory and the matching real build receipt. Preserve historical receipts. Record the active commit, native fork commit/tree, inventory hash, verification time and source evidence in `corresponding-source/SECURITY_VERIFICATION.json`, with the same current record at the existing `corresponding-source/SECURITY279_BUILD.json` report-reader path. Follow [the record format and completion check](../../docs/security-maintenance.md#every-deployment-completion-check).
 
 Use the existing host-monitor planned-maintenance wrapper for the cutover and declare `/opt/nosweatchess/current/RELEASE.json` as the expected change. Confirm its release fingerprint is accepted and no other control-file or isolation drift is present before completion. A missed earlier release must be verified against approved source/build/runtime evidence before a scoped release-only baseline approval; never reset unrelated intrusion baselines.
 
@@ -36,7 +40,7 @@ Prepare/build the pinned sources using `../lila/README.md`. Include
 commit must match RELEASE.json. The source footer archive contains that Mute
 tree, `lila-native.tar` from the fork commit and the retained small patches.
 The payload includes
-both patches, adapter code with `npm ci --omit=dev`, the public club assets,
+the remaining small patches, adapter code with `npm ci --omit=dev`, the public club assets,
 gateway, installer, pinned Python requirements, BUILD.md, LICENSE,
 THIRD_PARTY.md, the complete `third-party` directory and deployment scripts.
 Include the pinned renderer artifact at `PAYLOAD/gif-renderer`, with official
@@ -148,7 +152,7 @@ NIP-07 is recommended. Generate/import browser keys are encrypted into IndexedDB
 
 ## Browser analysis assets
 
-Run `python3 deploy/lila/prepare-analysis.py /path/to/lila` from the verified main checkout before the full UI/native build. It copies `analysis/browser` and verifies both Maia model exports plus ORT Wasm against the checked-in pins. Keep these generated downloads out of the native patch and Git. The release payload must include `analysis/`; the installer compares every built browser asset against the main source/download pins before activation, and distributes the analysis sources/references with corresponding source.
+Run `python3 deploy/lila/prepare-analysis.py /path/to/lila` from the verified main checkout before the full UI/native build. It copies `analysis/browser` and verifies both Maia model exports plus ORT Wasm against the checked-in pins. Keep these generated downloads out of native Git. The release payload must include `analysis/`; the installer compares every built browser asset against the main source/download pins before activation, and distributes the analysis sources/references with corresponding source.
 
 Stacked premoves are enabled by default in standard live rounds with native premoves enabled. As requested by the owner, feedback is confined to projected pieces and square tints; no enabled label, count, move strip or Clear button is added. Board menu offers native single premoves. The projected board never changes committed state. Escape and right-click cancel the queue; server reload/takeback, socket close/open, game end and leaving the page discard it. Promotion choices are retained per queued move; execution requires current server legal destinations.
 

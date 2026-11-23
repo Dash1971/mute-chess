@@ -5,7 +5,6 @@
       "id": "lila",
       "repository": "https://github.com/lichess-org/lila",
       "revision": "b551752d2a0e7a63459d9812825d95a633a98737",
-      "patch": "deploy/lila/patches/lila-nostr-maia.patch",
       "areas": [
         {
           "id": "application-wiring",
