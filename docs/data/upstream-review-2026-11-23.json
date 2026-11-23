@@ -1,0 +1,64 @@
+{
+  "nativeCommit": "e6ac5d25cffa6973545424c5a3f4babeb7c79679",
+  "artifacts": [
+    {
+      "file": "org.lichess.lila-4.0.jar",
+      "sha256": "64880e649e77a0032a34e0d17774dd2aba3da594668843fd28f135b23db37937",
+      "versionConf": "app.version.commit = \"e6ac5d25cffa6973545424c5a3f4babeb7c79679\"\napp.version.date = \"2026-11-23T05:24:51Z\""
+    },
+    {
+      "file": "org.lichess.analyse-4.0.jar",
+      "sha256": "24116a6f729f4a8a7d06324fcff349e4521559a81b9872af7f0421e4dc14773b",
+      "jsonViewClassSha256": "069735b29807e76e6e7c014f7258d32f47102882b72bb96a993de3e28b170328"
+    }
+  ],
+  "nativeTree": "8f2dcd5d6896bd6159e70edf6bc290ad89669061",
+  "verifiedAtUTC": "2026-11-23T05:36:58.027077+00:00",
+  "sourceClean": true,
+  "serverStagePassed": true,
+  "browserBuildPassed": true,
+  "embeddedVersionEqualsPin": true,
+  "runningVersionEqualsPin": true,
+  "runningVersionEvidence": "Nov 23 14:31:48 chess-host java[365021]: 14:31:48.599 [info] system - lila version: e6ac5d25cffa6973545424c5a3f4babeb7c79679 2026-11-23T05:24:51Z",
+  "liveReleaseUnchanged": "/opt/nosweatchess/releases/main-69839d81e228-335cc0ac",
+  "catalogsRestored": [
+    "de-DE",
+    "es-ES",
+    "fr-FR",
+    "ja-JP",
+    "ko-KR",
+    "ru-RU",
+    "zh-CN"
+  ],
+  "nativeCI": "https://github.com/Dash1971/lila/actions/runs/45117705317",
+  "browserChecks": {
+    "standalone": {
+      "freshRunCompleted": true,
+      "accuracy": [
+        99,
+        49
+      ],
+      "goodMoves": [
+        1,
+        0
+      ],
+      "blunders": [
+        0,
+        1
+      ]
+    },
+    "postGame": {
+      "freshRunCompleted": true,
+      "fixtureGame": "7z2zqscD",
+      "accuracy": [
+        99,
+        97
+      ],
+      "consoleErrors": 0
+    }
+  },
+  "captures": {
+    "standalone-review.jpg": "1f057c142f0ce1e660fe0fdf8fc5836c377aa11b6d54be11a0a62fdc3d120f17",
+    "post-game-review.jpg": "6f3eea2e34340f9c868412b20ead7613436f539d250a3a9bb2aad7a2a49f57f0"
+  }
+}

@@ -11,7 +11,7 @@ remain the historical record. All 48 conflicted paths / 69 hunks are now resolve
 The native merge commit has the real fork `335cc0ac…` and frozen upstream
 `b071608b…` as its two parents. Follow-up commits adapt tests and runtime startup.
 The companion [pin](../deploy/lila/native-pin.json) records the final candidate;
-[the departure register](../deploy/lila/upstream-departures.json) covers its 473
+[the departure register](../deploy/lila/upstream-departures.json) covers its 466
 application departures exactly. The native CI workflow remains the sole approved
 metadata exception. Rerere records were retained in the task archive.
 
@@ -64,7 +64,7 @@ The live release and its services were untouched.
 - Full browser TypeScript, CSS and bundle build: passed.
 - Browser unit suite:504 passed,0 failed across38 suites.
 - Adapter unit suite:133 passed,0 failed.
-- Exact departure-register check:473 Lila paths and7 WebSocket patch paths.
+- Exact departure-register check:466 Lila paths and7 WebSocket patch paths.
 - Private friends/challenge event regression: follow/block, ownership and native
   access rejection, real moves/clocks, resignation/PGN/history, mutual rematch,
   abort, decline and cancellation passed. Its stale assertion was corrected to
@@ -84,13 +84,47 @@ The private pages loaded successfully. Full local review completed on both a
 real disposable game and an imported standalone line; both native accuracy and
 the Mute six-class summary appeared.
 
-[Native CI for the pinned candidate](https://github.com/Dash1971/lila/actions/runs/45113729117)
+[Native CI for the pinned candidate](https://github.com/Dash1971/lila/actions/runs/45117705317)
 and [current companion checks](https://github.com/Dash1971/mute-chess/pull/372/checks)
 are the authoritative final check status. CI includes all ten locale rendering
 regressions, native security/access tests and the new local-review JSON tests.
 Both browser-build workflows perform a second build with warm translation caches.
-The private local stage was built from this source before its final commit;
-its embedded Git version was c3a31496, while the final candidate is 7b1a29a3 (the subsequent change is a test-fixture
-stub for upstream’s expanded TeamApi interface).
-The candidate must be rebuilt from the final pin for any later authorized release. No human acceptance testing, live donation payment, full puzzle-catalog
-performance run or deployment security verification is claimed by this document.
+The initial private stage reported `c3a31496`, but it was built with the
+`JsonView.scala` reader correction still uncommitted; that correction was committed
+as `c1f6f3a6`. The later `7b1a29a3` change was a test-fixture stub. Those initial
+captures demonstrate the working reader but did not establish an exact final-pin
+build identity.
+
+The review follow-up restores seven Arena catalogs byte-for-byte from upstream,
+removing those accidental departures. The intentional Hindi bot-account label
+remains because upstream has no equivalent. The follow-up private rebuild and
+standalone/post-game checks use the final pin `e6ac5d25…`; their exact build/runtime
+identity and fresh captures are recorded with the follow-up evidence below.
+
+Any later authorized deployment must rebuild the reviewed pin and refresh the
+normal active-release security verification. No human acceptance testing, live
+donation payment, full puzzle-catalog performance run or deployment security
+verification is claimed by this document.
+
+## Review follow-up: exact pinned build
+
+The fresh stage was built from clean commit
+`e6ac5d25cffa6973545424c5a3f4babeb7c79679` (tree
+`8f2dcd5d6896bd6159e70edf6bc290ad89669061`). The staged application JAR's
+`version.conf` and the running private app both report that exact commit.
+[Machine-readable proof](data/upstream-review-2026-11-23.json) records those
+observations, the application/analyse JAR hashes and the compiled JsonView class
+fingerprint. The full server stage and browser build passed from that source.
+
+Both review flows were rerun through their Analyze game controls and observed
+progress before Done. Standalone review produced a Good move and a Blunder plus
+accuracy/centipawn-loss summaries. A newly played ten-ply private game completed
+post-game review with the same native summary UI. No browser console errors were
+observed. The [fresh captures](screenshots/upstream-review-2026-11-23/README.md)
+cover these exact-pin checks; the older broad UI captures remain historical.
+
+The restored seven Arena XML files match upstream byte-for-byte, including
+`allowBotAccountsDescription` and upstream's bot-account labels. Only the
+intentional Hindi label remains as an Arena catalog departure. The exact-path
+register therefore falls from473 to466 application paths. Both PRs remain drafts,
+and no default branch or live service was changed.

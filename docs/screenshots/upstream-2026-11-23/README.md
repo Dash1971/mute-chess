@@ -1,5 +1,7 @@
 # Upstream integration browser checks
 
+These are the initial integration captures. See the [exact-pin review follow-up](../upstream-review-2026-11-23/README.md) for fresh standalone/post-game runs after the provenance review.
+
 Actual Chrome captures from the private native stack on23 November2026; no mockups.
 See [the integration report](../../upstream-integration-2026-11-23.md) for source,
 build/test scope and limitations. Default desktop viewport; explicit390×844 viewport
