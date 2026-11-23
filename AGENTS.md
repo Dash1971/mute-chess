@@ -75,7 +75,8 @@ communication/product prose while retaining native locale identifiers.
   control hashes and isolation. Never reset unrelated baselines or hide alerts.
 - Publish matching current `SECURITY_VERIFICATION.json` and existing
   `SECURITY279_BUILD.json` reader copies using real matching evidence. Update
-  reviewed inventory only after runtime verification, then require a fresh
+  OpenClaw's deployed/reference inventory only after runtime verification (the
+  repository inventory may describe an explicitly undeployed release target), then require a fresh
   existing-classifier `inventory_verified=true`. No report predicate/schedule
   changes. Follow [security maintenance](docs/security-maintenance.md).
 
