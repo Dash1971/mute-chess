@@ -1,6 +1,6 @@
 # Mute Chess implementation direction
 
-## Native source of truth: Lila fork (phase 1, #362/#363)
+## Native source of truth: Lila fork (#362/#363/#364)
 
 Native application changes belong in `Dash1971/lila`, through pull requests
 against its `main` branch. Preserve the existing NoSweat namespaces and keep
@@ -9,8 +9,7 @@ fast-forward-only upstream mirror; never commit to it. Merge upstream into
 native `main`, never rebase or force-push deployed history. Urgent upstream
 security fixes use `git cherry-pick -x`.
 
-Native application changes are frozen during the phase-1 bootstrap until #363's
-companion migration PR merges. The approved GitHub test file is metadata only.
+Phase 1 merged in #368. The approved GitHub test file is metadata only.
 
 `deploy/lila/native-pin.json` pins the native fork commit and upstream base.
 `deploy/lila/patches/lila-nostr-maia.patch` is now a generated compatibility
@@ -22,10 +21,12 @@ patch and carries any adapter/documentation changes, closing the issue.
 The owner approved one phase-1 tree exception on November 23: the fork-only
 `.github/workflows/mute.yml` test file is excluded from the application export.
 No other source path is exempt. Phase 1 preserves every application file and
-the exact patch bytes. Installation, release metadata, departure registration
-and host-monitor identity remain unchanged until separately reviewed phase 2.
+the exact patch bytes. Phase 2 Release A (#364) builds the same source from the
+fork and records `nativeCommit` plus `nativeTree` alongside `nativePatchSha256`.
+The existing classifier and patch comparison remain mandatory for that release;
+switching the identity check and removing the patch are subsequent work.
 See [the fork contract](docs/native-fork.md). No upstream update or deployment
-is authorized by this migration PR.
+is authorized by the phase-1 migration alone.
 
 ## Next application release: fast-xml-parser (#318)
 
@@ -41,7 +42,8 @@ A deployment is not complete until the active release's security verification
 record has been refreshed and OpenClaw's existing daily-report classifier accepts
 it. This applies to every application deployment, including changes confined to
 UI/styles and releases that retain dependency versions. Match the actual active
-RELEASE.json commit, native patch hash and inventory hash; verify the deployed
+RELEASE.json commit, native fork commit/tree, transitional native patch hash
+and inventory hash; verify the deployed
 libraries, browser sanitizer and running private runtime/backport fingerprints.
 Update docs/security-inventory.json when versions, pins, backports or advisory
 applicability change. An unchanged inventory alone does not verify a new release.

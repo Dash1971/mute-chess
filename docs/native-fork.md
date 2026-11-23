@@ -48,9 +48,49 @@ Checkout skips LFS smudging so a source export does not download engine networks
 CI exports the pinned fork and compares the output byte for byte with the
 committed patch before building/testing the native UI. The existing native
 Scala check continues to apply that generated compatibility patch in phase 1.
-The installer, release scripts, departure register, `RELEASE.json` and monitor
-identity are unchanged. A direct fork-based build/release contract is separately
-scoped in #364; this PR neither deploys nor changes the running application.
+In phase 1 (#368), the installer, release metadata and monitor identity stayed
+unchanged. The direct fork-based transition is described below and scoped in
+#364. The phase-1 import itself did not deploy or change the running application.
+
+## Phase 2: transition release A (#364)
+
+Builds now check out the pinned fork with `native-fork.py checkout`, rather than
+applying the large patch. `native-fork.py verify` requires that exact HEAD and
+rejects tracked, staged or untracked source changes. Git-ignored native build
+output remains governed by upstream's ignore rules. The only additional allowed
+status entries are:
+
+- Untracked `public/nosweat/nostr.js`, checked against the matching browser build.
+- Untracked files in `public/nosweat/analysis/`, checked by the existing complete
+  source/download-pin asset verifier.
+- The two downloaded standard-chess networks listed in `native-fork.py`, whose
+  contents must match the pinned commit's LFS SHA-256 and size. Other network
+  edits, staged network changes and symlink replacements fail.
+
+Generated `ui/@types/lichess/i18n.d.ts` is **not** an ignored source edit. The UI
+build retains its generated declaration as evidence, validates its Mute keys
+against the native source catalog and the unchanged bootstrap declarations, then
+restores that one generated file before source verification. Unexpected edits
+fail instead of being reset. The generated `conf/version.conf` is already ignored
+by upstream; runtime configuration and secrets remain outside Git/source archives.
+
+The installer checks the pin, clean source status and `nativeCommit`/`nativeTree`
+against release metadata. Release A also exports the old patch from that commit
+and requires the exact original bytes and `nativePatchSha256`. The unchanged
+daily-report classifier must accept a fresh collection after deployment.
+
+`nativeTree` is the fork commit's complete Git tree, including the approved CI
+file; application equality retains the single metadata exception described below.
+For this bootstrap those identities are fork tree
+`4e5bf5bb963f86c50451e03590f17eb9d3603658` and application tree
+`35f172f31e25747cd4c5370e0950c404f0be1632`.
+
+The departure inventory now reads the pinned base-to-fork Git diff, excluding
+only the approved workflow, while retaining every exact application path and
+rationale. The footer source package includes `git archive` output of the fork,
+the matching Mute main tree, and the retained small patches. Release A keeps
+all historical receipts and the compatibility patch. Patch removal and the
+collector/classifier identity change follow only after this release is verified.
 
 ## One explicit metadata exception
 

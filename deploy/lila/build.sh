@@ -4,12 +4,20 @@ task_root=${1:?Usage: build.sh /absolute/development/directory ui|lila|ws}
 component=${2:?Select ui, lila or ws}
 export PATH="/opt/club-maia/node-v24.22.1-linux-x64/bin:$task_root/tools/pnpm/node_modules/.bin:$PATH"
 export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+if [[ "$component" != ws ]]; then
+  python3 "$script_dir/native-fork.py" verify "$task_root/sources/lila"
+fi
 case "$component" in
   ui)
     cd "$task_root/sources/lila"
     pnpm install --frozen-lockfile
     (cd ui/.build && pnpm install --frozen-lockfile)
     ./ui/build --no-install
+    mkdir -p "$task_root/logs"
+    cp ui/@types/lichess/i18n.d.ts "$task_root/logs/generated-i18n.d.ts"
+    python3 "$script_dir/native-fork.py" restore-i18n "$task_root/sources/lila"
+    python3 "$script_dir/native-fork.py" verify "$task_root/sources/lila"
     ;;
   lila|ws)
     source_dir=lila

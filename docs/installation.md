@@ -34,9 +34,9 @@ mkdir -p "$MUTE_DEV/tools" "$MUTE_DEV/sources"
 git -C "$MUTE_REPO" rev-parse HEAD
 ```
 
-Keep the printed Mute Chess revision with your installation notes. Its native
-patches must be used with the upstream revisions below, not the latest Lila
-branches.
+Keep the printed Mute Chess revision with your installation notes. Use its
+pinned native fork commit and the matching small WebSocket patch, not the latest
+Lila branches.
 
 ## 2. Install the Node and Python runtimes
 
@@ -74,16 +74,10 @@ Redis packages into the local tools directory. It does not require a shared
 MongoDB or Redis service. Keep the Python dependency versions in
 [`worker/requirements.txt`](../worker/requirements.txt).
 
-## 3. Fetch and patch the native chess applications
+## 3. Fetch the pinned native fork and patch WebSockets
 
 ```bash
-git init "$MUTE_DEV/sources/lila"
-git -C "$MUTE_DEV/sources/lila" fetch --depth=1 \
-  https://github.com/lichess-org/lila.git \
-  b551752d2a0e7a63459d9812825d95a633a98737
-GIT_LFS_SKIP_SMUDGE=1 git -C "$MUTE_DEV/sources/lila" checkout --detach FETCH_HEAD
-git -C "$MUTE_DEV/sources/lila" apply \
-  "$MUTE_REPO/deploy/lila/patches/lila-nostr-maia.patch"
+python3 "$MUTE_REPO/deploy/lila/native-fork.py" checkout "$MUTE_DEV/sources/lila"
 
 git init "$MUTE_DEV/sources/lila-ws"
 git -C "$MUTE_DEV/sources/lila-ws" fetch --depth=1 \
@@ -136,7 +130,7 @@ bash "$MUTE_REPO/deploy/lila/build.sh" "$MUTE_DEV" ws
 
 Build the **complete UI**: a partial component build does not refresh every
 asset or the complete manifest. Keep the adapter's roster/configuration files
-and the matching native patch from the same Mute Chess revision.
+and the matching native pin from the same Mute Chess revision.
 
 ## 6. Start the local databases and import the bundled content
 

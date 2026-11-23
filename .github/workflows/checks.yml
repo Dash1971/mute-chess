@@ -77,15 +77,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Export the pinned fork and compare the generated native patch
         run: |
-          git init /tmp/lila
-          python - <<'PYCODE'
-          import json, subprocess
-          from pathlib import Path
-          pin = json.loads(Path('deploy/lila/native-pin.json').read_text())
-          subprocess.run(['git', '-C', '/tmp/lila', 'fetch', '--depth=1', pin['repository'],
-                          pin['commit'], pin['upstreamBase']], check=True)
-          subprocess.run(['git', '-C', '/tmp/lila', 'checkout', '--detach', pin['commit']], check=True)
-          PYCODE
+          python deploy/lila/native-fork.py checkout /tmp/lila
           python deploy/lila/export-patch.py --source /tmp/lila --output /tmp/lila-reconstructed.patch
           cmp /tmp/lila-reconstructed.patch "$GITHUB_WORKSPACE/deploy/lila/patches/lila-nostr-maia.patch"
           git init /tmp/lila-ws
@@ -106,6 +98,8 @@ jobs:
           node "$GITHUB_WORKSPACE/puzzles/validate.mjs" /tmp/lila/node_modules/.pnpm/chessops@0.15.1/node_modules/chessops
           node ui/test
           ./ui/build --no-install site lobby analyse round editor dasher puzzle bits learn coordinateTrainer storm user insight tournament
+          python "$GITHUB_WORKSPACE/deploy/lila/native-fork.py" restore-i18n /tmp/lila
+          python "$GITHUB_WORKSPACE/deploy/lila/native-fork.py" verify /tmp/lila
 
   native-forum:
     runs-on: ubuntu-24.04
@@ -116,16 +110,13 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Prepare the pinned native forum sources
         run: |
-          git init /tmp/lila
-          git -C /tmp/lila fetch --depth=1 https://github.com/lichess-org/lila.git b551752d2a0e7a63459d9812825d95a633a98737
-          git -C /tmp/lila checkout --detach FETCH_HEAD
-          git -C /tmp/lila apply "$GITHUB_WORKSPACE/deploy/lila/patches/lila-nostr-maia.patch"
+          python deploy/lila/native-fork.py checkout /tmp/lila
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
           java-version: '21'
           cache: sbt
-          cache-dependency-path: deploy/lila/patches/lila-nostr-maia.patch
+          cache-dependency-path: deploy/lila/native-pin.json
       - uses: sbt/setup-sbt@f9efdb0d6d5959d3e1510935d4ff64a65821a256 # v1
       - name: Check native Scala formatting, GIF parsing, study plan, forum permissions and user search
         working-directory: /tmp/lila

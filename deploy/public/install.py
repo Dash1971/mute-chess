@@ -32,10 +32,12 @@ release_info = json.loads((payload / 'RELEASE.json').read_text())
 if (release_info.get('branch') != 'main' or release_info.get('sourceVerified') is not True or
         not re.fullmatch(r'[0-9a-f]{40}', release_info.get('gitCommit', ''))):
     raise SystemExit('Release provenance must identify a verified, merged main commit')
-spec = importlib.util.spec_from_file_location('native_source', payload / 'deployment/public/native-source.py')
-source_checker = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(source_checker)
-for repository, field in (('lila', 'upstreamLila'), ('lila-ws', 'upstreamWs')):
+spec = importlib.util.spec_from_file_location('native_fork', payload / 'deployment/lila/native-fork.py')
+native_fork = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(native_fork)
+native_pin = native_fork.read_pin(payload / 'deployment/lila/native-pin.json')
+native_identity = native_fork.verify_release(dev / 'sources/lila', native_pin, release_info)
+for repository, field in (('lila-ws', 'upstreamWs'),):
     actual = subprocess.check_output(['git', '-c', f'safe.directory={dev}/sources/{repository}',
         '-C', str(dev / 'sources' / repository), 'rev-parse', 'HEAD'], text=True).strip()
     if actual != release_info.get(field):
@@ -46,10 +48,13 @@ for brand_source in ('design/quiet-signal/build.py', 'design/quiet-signal/render
         'design/logo-explorations/final/icon.svg', 'third-party/space-grotesk/OFL.txt'):
     if not (payload / brand_source).is_file():
         raise SystemExit('Release payload is missing Quiet Signal source: ' + brand_source)
-if source_checker.patch_for(dev / 'sources/lila') != expected_patch:
+exported_patch = subprocess.check_output(['python3', str(payload / 'deployment/lila/export-patch.py'),
+    '--pin', str(payload / 'deployment/lila/native-pin.json'), '--source', str(dev / 'sources/lila')])
+if exported_patch != expected_patch:
     raise SystemExit('Native build source differs from the merged main patch')
 if hashlib.sha256(expected_patch).hexdigest() != release_info.get('nativePatchSha256'):
     raise SystemExit('Native patch provenance hash mismatch')
+native_fork.verify_mute_archive(payload / 'mute-chess.tar', release_info['gitCommit'])
 analysis_spec = importlib.util.spec_from_file_location('analysis_assets', payload / 'deployment/public/analysis-assets.py')
 analysis_checker = importlib.util.module_from_spec(analysis_spec)
 analysis_spec.loader.exec_module(analysis_checker)
@@ -226,8 +231,10 @@ shutil.copy(release / 'gif/lila-gif-upstream.tar', source_dir / 'lila-gif-upstre
 shutil.copy(release / 'gif/lila-gif-moss.tar', source_dir / 'lila-gif-moss.tar')
 shutil.copy(release / 'gif/BUILD.json', source_dir / 'lila-gif-BUILD.json')
 for repository in ('lila', 'lila-ws'):
-    with (source_dir / f'{repository}-upstream.tar').open('wb') as output:
+    archive_name = 'lila-native.tar' if repository == 'lila' else 'lila-ws-upstream.tar'
+    with (source_dir / archive_name).open('wb') as output:
         subprocess.run(['git', '-c', f'safe.directory={dev}/sources/{repository}', '-C', str(dev / 'sources' / repository), 'archive', 'HEAD'], stdout=output, check=True)
+shutil.copyfile(payload / 'mute-chess.tar', source_dir / 'mute-chess.tar')
 for name in ('lila-nostr-maia.patch', 'lila-ws-bind-address.patch', 'BUILD.md', 'THIRD_PARTY.md', 'LICENSE', 'RELEASE.json'):
     shutil.copy(payload / name, source_dir / name)
 shutil.copytree(payload / 'third-party', source_dir / 'third-party')
