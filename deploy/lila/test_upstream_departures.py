@@ -3,6 +3,8 @@ import importlib.util
 import json
 from pathlib import Path
 import unittest
+import subprocess
+import tempfile
 from unittest.mock import patch
 
 HERE = Path(__file__).parent
@@ -60,6 +62,34 @@ class DepartureRegisterTests(unittest.TestCase):
                 check.relative_path(path)
         with self.assertRaisesRegex(ValueError, "renamed"):
             check.patch_files("diff --git a/old.scala b/new.scala\n")
+
+    def test_copied_functions_require_review_when_upstream_source_changes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            def git(*args):
+                return subprocess.check_output(["git", "-C", directory, *args], text=True).strip()
+            git("init", "--quiet")
+            source = root / "Source.scala"
+            source.write_text("original upstream function\n")
+            git("add", "Source.scala")
+            git("-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--quiet", "-m", "old")
+            old = git("rev-parse", "HEAD")
+            blob = git("rev-parse", "HEAD:Source.scala")
+            area = {"files": ["NoSweatCopy.scala"], "derivedCopies": {
+                "NoSweatCopy.scala": {"derivedFrom": "Source.scala", "upstreamBlob": blob}}}
+            repo = {"areas": [area]}
+            check.validate_derived_copies(repo, {"upstreamBase": old}, root)
+            source.write_text("upstream security fix\n")
+            git("add", "Source.scala")
+            git("-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--quiet", "-m", "new")
+            pin = {"upstreamBase": git("rev-parse", "HEAD")}
+            with self.assertRaisesRegex(ValueError, "Upstream source changed for NoSweatCopy"):
+                check.validate_derived_copies(repo, pin, root)
+            area["derivedCopies"]["NoSweatCopy.scala"]["upstreamBlob"] = git("rev-parse", "HEAD:Source.scala")
+            check.validate_derived_copies(repo, pin, root)
+            area["files"] = []
+            with self.assertRaisesRegex(ValueError, "Unregistered derived copy"):
+                check.validate_derived_copies(repo, pin, root)
 
 
 if __name__ == "__main__":

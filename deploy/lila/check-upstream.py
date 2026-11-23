@@ -46,6 +46,33 @@ def native_files(pin, source=None):
         return native_fork.changed_files(directory, pin)
 
 
+def validate_derived_copies(repo, pin, source=None):
+    copies = []
+    for area in repo["areas"]:
+        for copied, origin in area.get("derivedCopies", {}).items():
+            if relative_path(copied) not in area["files"]:
+                raise ValueError(f"Unregistered derived copy: {copied}")
+            upstream = relative_path(origin["derivedFrom"])
+            blob = origin["upstreamBlob"]
+            if not re.fullmatch(r"[0-9a-f]{40}", blob):
+                raise ValueError(f"Invalid reviewed upstream blob: {copied}")
+            copies.append((copied, upstream, blob))
+    if not copies:
+        return
+    if source is None:
+        with tempfile.TemporaryDirectory(prefix="mute-derived-") as directory:
+            subprocess.run(["git", "init", "--quiet", "--bare", directory], check=True)
+            subprocess.run(["git", "-C", directory, "fetch", "--quiet", "--depth=1",
+                            pin["repository"], pin["upstreamBase"]], check=True)
+            return validate_derived_copies(repo, pin, Path(directory))
+    for copied, upstream, reviewed in copies:
+        actual = subprocess.run(["git", "-C", str(source), "rev-parse", "--verify",
+                                 f'{pin["upstreamBase"]}:{upstream}'], capture_output=True, text=True)
+        if actual.returncode or actual.stdout.strip() != reviewed:
+            raise ValueError(f"Upstream source changed for {copied}: compare {upstream}, port applicable "
+                             "changes and update its reviewed upstreamBlob")
+
+
 def validate(manifest, root, native=None):
     if manifest.get("schemaVersion") != 1 or not manifest.get("repositories"):
         raise ValueError("Missing departure-register schema/repositories")
@@ -80,6 +107,8 @@ def validate(manifest, root, native=None):
         missing, stale = actual - declared, declared - actual
         if missing or stale:
             raise ValueError(f"{name}: undocumented native files={sorted(missing)}; stale entries={sorted(stale)}")
+        if name == "lila":
+            validate_derived_copies(repo, native_pin, native)
         summary[name] = {"revision": revision, "patchedFiles": len(actual), "areas": len(areas)}
     return summary
 
