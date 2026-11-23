@@ -634,7 +634,7 @@
         },
         {
           "id": "security-dependency-alignment",
-          "rationale": "Issue #232 aligns existing Netty modules at 4.2.19.Final and the Jackson 2.x family at 2.18.11 to replace vulnerable transitive parser libraries. This changes build dependency selection only; upstream revisions, chess rules, authentication, protocols and data semantics are retained. Remove the overrides when the pinned upstream builds resolve equivalent patched versions. Lila also aligns its existing jsoup, Guava and Jakarta Mail dependencies to 1.23.2, 33.7.2-jre and 1.6.8; the browser/build graph uses exact security overrides and a regenerated native lock (#279). Issue #318 pins the existing translation-build parser to fast-xml-parser5.12.0 and updates only its required transitive subtree for GHSA-474x-hrwr-fgx4. Translation XML, parser options and native generation behavior are unchanged. #365 aligns Lila Netty at upstream's newer 4.2.21.Final; the separately pinned WebSocket component remains on 4.2.19.Final. Other security overrides remain pending resolved-graph verification.",
+          "rationale": "Issue #232 aligns existing Netty modules at 4.2.19.Final and the Jackson 2.x family at 2.18.11 to replace vulnerable transitive parser libraries. This changes build dependency selection only; upstream revisions, chess rules, authentication, protocols and data semantics are retained. Remove the overrides when the pinned upstream builds resolve equivalent patched versions. Lila also aligns its existing jsoup, Guava and Jakarta Mail dependencies to 1.23.2, 33.7.2-jre and 1.6.8; the browser/build graph uses exact security overrides and a regenerated native lock (#279). Issue #318 pins the existing translation-build parser to fast-xml-parser5.12.0 and updates only its required transitive subtree for GHSA-474x-hrwr-fgx4. Translation XML, parser options and native generation behavior are unchanged. #365 aligns Lila Netty at upstream's newer 4.2.21.Final; the separately pinned WebSocket component remains on 4.2.19.Final. Staged Lila jars confirm uniform Netty4.2.21.Final, Jackson2.18.11, jsoup1.23.2, Guava33.7.2-jre and Jakarta Mail1.6.8. The browser/build graph and embedded sanitizer are exercised by the native UI suite.",
           "files": [
             "bin/package.json",
             "pnpm-lock.yaml",
@@ -719,7 +719,7 @@
         },
         {
           "id": "markdown-parser-error-escaping",
-          "rationale": "Backport upstream 34830b8316fea29a93c6b797236f79203ad021e8 (GHSA-2cpx-9573-5pwp, #307) without rebasing the pinned Lila source. Escape the original text when the Markdown parser overflows, preserving ordinary native rendering and preventing fallback HTML injection. Remove the backport after an upstream pin includes the fix.",
+          "rationale": "Upstream b071608b includes the former 34830b8316fea29a93c6b797236f79203ad021e8 security backport (GHSA-2cpx-9573-5pwp). Production MarkdownRender now matches upstream. Retain only the deep-input HTML-escaping regression, accepting safe normal parsing or escaped fallback independent of JVM stack size.",
           "files": [
             "modules/web/src/test/common/MarkdownTest.scala"
           ],
@@ -785,7 +785,7 @@
         },
         {
           "id": "tournament-export-and-relay-security",
-          "rationale": "Issue #314 stacks on Arena #313 and backports upstream8f583aaf9db9fe32aebdbe460a789dd5630f17f6 and3cf8d5c524ebac6eb71d392bf45f4113128b8bdb. All export entry points use the existing Tournament visibility/owner-event guard; package-private Api rendering retains the pinned PGN options, concurrency controls and content type. Broadcast validation resolves the source address and applies upstream production address restrictions, with the existing generic Invalid source URL text and no debug URL logging. Tournament.scala and conf/routes retain their existing register entries. No API exposure, new authentication flow or upstream rebase.",
+          "rationale": "Upstream b071608b includes the former export-visibility and relay-IP security backports 8f583aaf9db9fe32aebdbe460a789dd5630f17f6 and 3cf8d5c524ebac6eb71d392bf45f4113128b8bdb. Export implementation now comes from upstream behind the separate registered Arena host/visibility gates. Relay departure retains package-private test access, the existing Invalid source URL error and URL-log privacy choices; its focused resolved-address rejection regression remains.",
           "files": [
             "modules/relay/src/main/RelayRoundForm.scala",
             "modules/relay/src/test/RelaySourceAddressTest.scala"
@@ -797,7 +797,7 @@
         },
         {
           "id": "moderator-oauth-totp",
-          "rationale": "Issue #316 backports upstream e6f4cf2f451e8c83dfeba207173b64dfd34c469b for GHSA-5gjj-x225-jrr3, retaining the pinned Lila revision. Use the exact upstream production TOTP condition at request-time so already-issued web:mod tokens cannot restore moderator roles without enrollment. Preserve ordinary role filtering, enrolled moderators, nonproduction behavior, gateway exposure and account/token data. Remove after the upstream pin includes this fix.",
+          "rationale": "Upstream b071608b includes the former e6f4cf2f451e8c83dfeba207173b64dfd34c469b backport for GHSA-5gjj-x225-jrr3. SecurityApi now matches upstream. Retain the focused regression that production web:mod tokens lose moderator roles without TOTP, including existing tokens, while preserving native nonproduction behavior.",
           "files": [
             "modules/security/src/test/ModeratorOAuthTest.scala"
           ],

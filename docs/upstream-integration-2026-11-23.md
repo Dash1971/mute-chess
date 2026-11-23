@@ -84,12 +84,13 @@ The private pages loaded successfully. Full local review completed on both a
 real disposable game and an imported standalone line; both native accuracy and
 the Mute six-class summary appeared.
 
-[Native CI for the pinned candidate](https://github.com/Dash1971/lila/actions/runs/45112756403)
+[Native CI for the pinned candidate](https://github.com/Dash1971/lila/actions/runs/45113729117)
 and [current companion checks](https://github.com/Dash1971/mute-chess/pull/372/checks)
 are the authoritative final check status. CI includes all ten locale rendering
 regressions, native security/access tests and the new local-review JSON tests.
 Both browser-build workflows perform a second build with warm translation caches.
 The private local stage was built from this source before its final commit;
-its embedded Git version was c3a31496, while the committed source is c1f6f3a6.
+its embedded Git version was c3a31496, while the final candidate is 7b1a29a3 (the subsequent change is a test-fixture
+stub for upstream’s expanded TeamApi interface).
 The candidate must be rebuilt from the final pin for any later authorized release. No human acceptance testing, live donation payment, full puzzle-catalog
 performance run or deployment security verification is claimed by this document.
