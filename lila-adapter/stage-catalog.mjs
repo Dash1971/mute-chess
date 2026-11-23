@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
@@ -16,13 +16,19 @@ export async function stageCatalog(root, verify = false) {
     'nosweat-roster.json': Buffer.from(JSON.stringify(roster, null, 2) + '\n'),
     'nosweat-bot-aliases.json': Buffer.from(JSON.stringify(aliases, null, 2) + '\n'),
   };
-  if (!verify) await mkdir(resolve(root, 'public'), { recursive: true });
+  if (!verify) {
+    await mkdir(resolve(root, 'public'), { recursive: true });
+    await chmod(resolve(root, 'public'), 0o755);
+  }
   const hashes = {};
   for (const [name, data] of Object.entries(files)) {
     const destination = resolve(root, 'public', name);
     if (verify) {
       if (!(await readFile(destination)).equals(data)) throw Error('Staged catalog differs from adapter: ' + name);
-    } else await writeFile(destination, data);
+    } else {
+      await writeFile(destination, data);
+      await chmod(destination, 0o644); // Public runtime data must remain readable under the installer's umask.
+    }
     hashes[name] = createHash('sha256').update(data).digest('hex');
   }
   return { population: roster.length, aliases: Object.keys(aliases).length, hashes };
