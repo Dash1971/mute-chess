@@ -33,7 +33,7 @@ part of this maintenance.
 
 ## Required in the next application release: fast-xml-parser (#318)
 
-The draft native patch pins bin/package.json and the frozen pnpm-lock.yaml to
+The native fork pins bin/package.json and the frozen pnpm-lock.yaml to
 fast-xml-parser 5.12.0, the fixed release for GHSA-474x-hrwr-fgx4 /
 CVE-2026-126066. Only its required parser dependency subtree changes. Retain the
 existing translation generator and options; no stopNodes option is introduced.
@@ -136,7 +136,7 @@ If an earlier deployment missed this step, first verify the active commit agains
 
 MongoDB's private runtime moves from8.0.34 to8.0.38 on the same release branch. Vendor8.0.37 fixes the newly reviewed8.0 advisories;8.0.38 is its packaging follow-up. Preserve the existing standalone data directory and loopback/UID isolation. The MongoDB9.0-only notices remain not applicable to8.0.
 
-The Lila pin remains unchanged. Its local patch backports upstream34830b8316fea29a93c6b797236f79203ad021e8 for GHSA-2cpx-9573-5pwp: HTML-escape the original Markdown when parsing raises StackOverflowError. The native Markdown suite includes a long reference-link regression that exercises this fallback. No new user-facing strings.
+At that release the Lila pin was unchanged and a local backport carried upstream34830b8316fea29a93c6b797236f79203ad021e8 for GHSA-2cpx-9573-5pwp: HTML-escape the original Markdown when parsing raises StackOverflowError. Since the 23 November 2026 upstream merge (#365), this fix comes from upstream itself. The native Markdown suite includes a long reference-link regression that exercises this fallback. No new user-facing strings.
 
 Keep deepmerge unresolved. fast-xml-parser5.11.1 remains an affected version in translation-generation tooling, but the inspected invocation does not enable the required stopNodes option. Do not silently classify these as patched. Refresh actual runtime checks/current-release evidence and the reviewed reference inventory after deployment. Classifier changes require the owner's separately scoped approval; preserve fail-closed identity checks and schedules.
 

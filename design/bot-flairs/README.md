@@ -2,7 +2,7 @@
 
 Original raster artwork generated with Codex’s built-in image-generation tool on 2 November 2026, at the owner’s request for cyberpunk profile flairs. Released as part of this AGPL-3.0-only project. Existing Lichess flairs retain their upstream attribution and licensing.
 
-The six original transparent PNGs are in `originals/`. `manifest.json` records original SHA-256 values and the native IDs. The native patch contains lossless 60×60 WebP derivatives; only resizing/format conversion was applied, preserving transparency. Native flair selection, validation and display are retained. The **Bot flairs** category is available to human profiles as well as assigned bots.
+The six original transparent PNGs are in `originals/`. `manifest.json` records original SHA-256 values and the native IDs. The native fork contains lossless 60×60 WebP derivatives; only resizing/format conversion was applied, preserving transparency. Native flair selection, validation and display are retained. The **Bot flairs** category is available to human profiles as well as assigned bots.
 
 ## Prompt set (built-in mode)
 

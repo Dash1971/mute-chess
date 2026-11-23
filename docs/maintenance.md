@@ -110,3 +110,4 @@ Details: [Security maintenance](security-maintenance.md).
 | Fork history, pinned builds, release identity | [native-fork.md](native-fork.md) |
 | Advisories, versions, verification | [security-maintenance.md](security-maintenance.md) |
 | Running your own instance | [installation.md](installation.md) |
+| Every other page | [documentation index](README.md) |

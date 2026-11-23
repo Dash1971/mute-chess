@@ -52,7 +52,7 @@ so category buttons, reply forms and both POST controllers agree. No moderation
 roles or user records change. The category denial message reports unavailable
 posting without promising an age-based unlock; the FAQ explains immediate posting.
 
-After an upstream rebase, run `forum/testOnly lila.forum.ForumAccessTest` and the
+After an upstream merge, run `forum/testOnly lila.forum.ForumAccessTest` and the
 private `lila-adapter/test/native-community-integration.mjs` qualification. Verify
 new-account topic/reply submission before playing, invalid captcha rejection,
 anonymous/bot denial, team/category ACLs and the default upstream qualification.

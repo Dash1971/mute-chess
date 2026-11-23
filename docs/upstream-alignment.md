@@ -22,7 +22,7 @@ Redis and GIF patches remain patches.
 - Multiple stacked premoves around native move handling.
 - Managed Maia opponents in quick pairing; native direct friend invitations remain supported.
 - A focused feature surface: no Watch navigation or opening explorer; Learn contains only Chess basics and Practice, standard chess only, and the previously approved Puzzles, Community, Tools and profile functions. Hidden upstream implementation can remain; do not delete large native subsystems merely to hide a feature.
-- Owner-hosted native Arenas with managed Maia filler seats, as implemented in #313/#320 and described in [the Arena guide](arena-plan.md). Draft #324 restores native discovery and spotlight presentation around the approved-host event filter.
+- Owner-hosted native Arenas with managed Maia filler seats, as implemented in #313/#320 and described in [the Arena guide](arena-plan.md). Issue #324 restores native discovery and spotlight presentation around the approved-host event filter.
 - Mute Chess branding, with clear upstream credits and licenses.
 - Nostr login, public names and the approved account/security integration.
 
@@ -64,12 +64,12 @@ initial fork-based conflict inventory for #365. Those conflicts are now resolved
 see the [integration report](upstream-integration-2026-11-23.md) for the current
 candidate and validation evidence.
 
-1. Record old/new upstream commits and review intervening changes. Fast-forward the fork's untouched `master` mirror, then **merge** the selected upstream commit into native `main` through a reviewed PR. Never rebase or force-push native history. The owner selected a two-week cadence after the first upstream merge (#365); phase 1 performs no upstream merge or scheduling change.
+1. Record old/new upstream commits and review intervening changes. Fast-forward the fork's untouched `master` mirror, then **merge** the selected upstream commit into native `main` through a reviewed PR. Never rebase or force-push native history. The owner selected a two-week cadence after the first upstream merge (#365).
 2. Resolve conflicts against each departure's documented reason, adopt native equivalents, and remove obsolete hooks. Record the reason when declining an upstream change. Keep new behavior in namespaced files and edits to upstream files small; avoid reformatting or whole-file rewrites. Urgent security backports use `git cherry-pick -x` so their provenance is retained.
 3. Run the fork's `mute.yml` native checks and affected integration checks. Exercise login, pairing, clocks, results/ratings, premoves, analysis, profiles and reconnect behavior as relevant. Preserve licenses and exact source provenance.
 4. Open the companion PR here to update `native-pin.json` and update the register/build documentation for an upstream-base change. Pass this repository's checks before merging. Build and deploy verified Mute `main` through the existing release procedure; release metadata records both upstream revisions and the native fork commit/tree.
 
-An upstream update is its own reviewed change. Do not mix a broad upstream rebase into an unrelated feature PR.
+An upstream update is its own reviewed change. Do not mix a broad upstream merge into an unrelated feature PR.
 
 ## Bounded native bot trial (#80)
 
@@ -85,7 +85,7 @@ rules, clocks, rating mathematics and anti-abuse checks are unchanged.
 The study flag defaults off; native deadlines, heartbeat failure handling and
 the one-shot server supervisor bound execution. Qualification uses a disposable
 database, whereas the authorized run updates existing public perfs without
-reset/import. Rebase verification must exercise both BOT seats, native rating
+reset/import. Post-merge verification must exercise both BOT seats, native rating
 writes after FinishGame, disabled/public/qualification scope checks, and normal
 human-pool admission while the flag is on. See [methodology](native-bot-trial.md).
 
@@ -93,7 +93,7 @@ human-pool admission while the flag is on. See [methodology](native-bot-trial.md
 
 The owner requested a draft operational correction for existing bots, including
 Bullet/Classical reference priors. This is isolated in `deploy/calibration/` and
-[its runbook](bot-rating-adjustment.md); no native patch paths or Glicko formula
+[its runbook](bot-rating-adjustment.md); no native source paths or Glicko formula
 change is introduced. Preserve native perfs, histories, uncertainty/provisional
 rules and all subsequent native rating updates. The fixed-cohort migration is
 manual, audited and guarded by a maintenance window, exact snapshot/plan, backup,
@@ -109,7 +109,7 @@ from that same concatenation. The only new native control is a study-plan entry
 and explicit absolute admission/deadline bounds in NoSweatStudy; normal play,
 matchmaking selection, rules, clocks, perfs and native Glicko/provisional semantics
 remain upstream. All model fitting/evaluation is separate Python research tooling
-and cannot write ratings. Rebase verification checks exact roster agreement,
+and cannot write ratings. Post-merge verification checks exact roster agreement,
 blocked held-out admission before prediction freeze, original-policy hashes,
 native3000th/3001st admission boundaries, deadline/heartbeat cleanup and existing
 human admission. See strength-experiment.md and the exact-path register.
@@ -117,7 +117,7 @@ human admission. See strength-experiment.md and the exact-path register.
 The owner's later timing amendment (#147) permits a conditional validation-only
 continuation after normal predecessor cleanup. Its namespaced study profile and
 deadline branch retain the same native run records and aggregate admission cap;
-no upstream rating, round or matching behavior changes. Rebase verification must
+no upstream rating, round or matching behavior changes. Post-merge verification must
 also reject failed/incomplete predecessors, changed frozen evidence and admission
 3,001 across segments. See [the dated amendment](strength-validation-continuation.md).
 
@@ -126,7 +126,7 @@ same250 bots and earned perfs. Its new namespaced profile only adds fixed
 13:30–21:30UTC scope/deadline guards and a3,000-new-admission/22-game plan; old
 profiles remain unchanged. Native provisional flags determine establishment;
 the external scheduler prioritizes unsettled bot/speed pairs without writing
-ratings. Rebase verification covers exact new public/private run IDs, fixed
+ratings. Post-merge verification covers exact new public/private run IDs, fixed
 cutoffs, admission3000/3001 and unchanged native Glicko/shared human capacity.
 See [the bounded follow-up](overnight-rating-establishment.md).
 
@@ -138,7 +138,7 @@ Fast/Balanced/Thorough modes. Native analysis settings retain a small link to it
 puzzle review labels reuse the game-analysis rating grid. No server settings,
 rules, review/classification math or account preferences are replaced. Native
 Stockfish advanced controls remain native. Colors are validated before SVG and
-presentation changes do not invalidate inference. Rebase checks must cover both
+presentation changes do not invalidate inference. Post-merge checks must cover both
 analysis and puzzle call sites, old saved preferences, two-column single-engine
 probabilities and review assistance gates.
 
@@ -168,7 +168,7 @@ Explicit six-speed seeds retain measured/inferred provenance. Whole-roster
 identity validation, fresh-account marker checks and one-time default-only
 public-name aliases prevent collisions or reseeding. Native zero-game display
 uses its existing latest/Perf contract. Profiles add one Research-seeded basis
-row. Rebase tests cover explicit priors, truthfulnb0, native nonprovisional
+row. Post-merge tests cover explicit priors, truthfulnb0, native nonprovisional
 status, collision refusal, legacy fallback and display-only aliases. The shared
 presence/index/±200 matching and normal2-game cap stay unchanged. See
 [catalog methodology and reproducible manifest](catalog-roster.md).
@@ -179,7 +179,7 @@ native matching-speed rating to the private adapter; no extra rating lookup or
 rating formula is introduced. The adapter clamps and freezes the opponent input
 under a separate version. Bot profiles describe the actual rule instead of two
 fixed inputs. Native game creation, matching, clocks, ratings, completion, old
-frozen games and study policies remain unchanged. Rebase checks must verify the
+frozen games and study policies remain unchanged. Post-merge checks must verify the
 perf key/default at admission, authenticated freeze forwarding, input bounds,
 versioned compatibility and unchanged self/history/sampling/timing controls.
 

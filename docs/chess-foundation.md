@@ -1,3 +1,11 @@
+> **Status, 23 November 2026:** this page records the 28 October 2026 foundation
+> decision and its later corrections. Some limits below have since been lifted by
+> owner decisions: the site supports desktop and mobile browsers, the pool has grown
+> from 44 to [10,000 opponents](catalog-roster.md), and a forum and
+> [Arenas](arena-plan.md) are available. For the current product see the
+> [README](../README.md) and [site manual](site-manual.md); for how the code is
+> maintained see [how we maintain Mute Chess](maintenance.md).
+
 > **October 29 correction (#57):** retain native friends and allow direct invitations between signed-in human players. Quick pairing remains Maia-only, without a public human pool. This supersedes earlier human-versus-Maia-only restrictions for invitation games.
 
 > **28 October follow-up:** restore the native Lichess homepage and interaction model. Defer the retro wrapper. Replace only the logo after the owner chooses a concept. Anonymous play is casual; Nostr accounts use provisional 1500 and native rating updates. Pair automatically with a random available opponent within ±200, using the native quick-pair controls and custom dialog. Keep NIP-07 recommended and add generated/imported browser keys. This overrides earlier unrated/manual-opponent alpha UX below.
@@ -158,7 +166,7 @@ promotion, sounds, legality and single premoves remain authoritative.
 
 Stay as close as possible to native Lichess/Lila outside the defined product
 departures. Maintain the rationale, exact native file inventory, verification
-and rebase instructions in [upstream-alignment.md](upstream-alignment.md) and
+and upstream-merge instructions in [upstream-alignment.md](upstream-alignment.md) and
 `deploy/lila/upstream-departures.json`. Prefer native configuration and small
 adapter hooks; preserve rules, clocks, ratings, completion, ownership and abuse
 controls. Register coverage is a maintenance check, not evidence that a behavior
@@ -198,7 +206,7 @@ remain unchanged; Maia assistance is still withheld while solving, hidden,
 in threat mode or with the engine disabled. Full game-analysis cards retain
 their richer layout.
 
-Rebase checks: puzzle channel DOM interactions, empty/pending states, native
+Post-merge checks: puzzle channel DOM interactions, empty/pending states, native
 review gating tests, narrow and desktop browser layout, native UI formatting,
 lint, type checking and build. The presentation hook remains in the existing
 namespaced puzzle adapter and puzzle stylesheet; no native controller behavior

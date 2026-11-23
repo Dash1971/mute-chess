@@ -78,13 +78,13 @@ Puzzle analysis remains a separate compact surface. Each row stays on one line;
 when width requires fewer leading previews, their unchanged raw probability joins
 Other. Its expansion still contains every legal move with its original probability.
 
-## Verification and rebase
+## Verification and upstream merges
 
 Run native analyse/chart/lib/puzzle tests, full native UI type/build/format/lint
 checks, and the departure-register checks. Browser checks must cover move/loading
 frame stability, long opening names and details, variation lookup, summary jumps,
 phase labels, chart actions above the plot, rating selection, Others, and narrow
-puzzle rows. Rebase the small view/underboard/chart hooks against upstream;
+puzzle rows. After an upstream merge, recheck the small view/underboard/chart hooks;
 namespaced opening and phase modules own the added behavior. No rules, clocks,
 ratings, bot policy, identity or saved-note migration is part of this change.
 

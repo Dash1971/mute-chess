@@ -8,7 +8,7 @@ The source snapshots used here are Mute Chess
 [`f1b93b9`](https://github.com/Dash1971/mute-chess/commit/f1b93b9703296ca0681cb53afa857dca9dcc1789)
 and Mobile Maia
 [`be6b97c`](https://github.com/Dash1971/maia-chess-android/commit/be6b97cd5ec0c1386233fbd824183c4fbb9c6efd).
-Mute's helper is stored in its existing native patch as
+Mute's helper is stored in the native fork as
 `ui/lib/src/nosweat/arrows.ts`. Mobile's selection and agreement code is in
 [`review.dart`](https://github.com/Dash1971/maia-chess-android/blob/be6b97cd5ec0c1386233fbd824183c4fbb9c6efd/lib/src/review.dart#L1838),
 with its later overlay in
