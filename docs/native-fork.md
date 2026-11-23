@@ -149,8 +149,9 @@ renderers still need comparison when upstream behavior changes.
 
 `conf/noSweatFeatures.json` in the native fork lists reviewed method, path and
 native action triples. In Mute mode the existing HTTP request handler rejects
-unlisted named generated actions before execution. Upstream mode and native
-filters, fallback/errors and OPTIONS handling remain intact. A new upstream
+unlisted actions before execution. Missing metadata also fails closed, except
+for the handler-owned signup redirects, pool-only refusals and OPTIONS responses.
+Denials retain native error pages and filters; upstream mode remains intact. A new upstream
 action does not become public merely by falling under an existing URL prefix.
 The existing gateway policy remains the outer boundary, including private-route
 blocks and translated notices for unsupported links.
