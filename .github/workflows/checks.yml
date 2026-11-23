@@ -28,6 +28,8 @@ jobs:
           node --check deploy/public/gateway.mjs
           node --check deploy/public/public-surface.mjs
           node --check deploy/calibration/database.js
+          node --check deploy/public/live-checks/counts.js
+          node --check deploy/public/live-checks/account-auth-smoke.mjs
           node deploy/public/test-nostr.mjs
           node --check lila-adapter/server.mjs
           node --check lila-adapter/study.mjs

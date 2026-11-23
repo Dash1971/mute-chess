@@ -67,6 +67,16 @@ communication/product prose while retaining native locale identifiers.
 - The site is preproduction; routine brief downtime needs no extra approval.
   Still obey explicit requests for draft-only work or delayed batch deployment.
   Building or merging does not by itself authorize deployment.
+- Commit and merge all live acceptance checks before maintenance; never add or
+  change checks during the window. Baseline the same checks on the serving
+  release before pausing, with each expected pass/fix-specific fail written down.
+- Critical: service health, sign-in, authorization, data continuity, real game
+  progress and deployed commit/tree/class hashes. All other checks are advisory.
+  Reopen games when critical gates pass; finish non-disruptive security record
+  publication/classifier collection with games open. Advisory failures never
+  hold admissions or trigger rollback. Rollback requires a named critical
+  application failure and evidence excluding a checker defect. Follow the
+  [live-check sequence and scope](deploy/public/live-checks/README.md).
 - Every deployment requires fresh security verification of the actual active
   `RELEASE.json`, native commit/tree, inventory, libraries, sanitizer and running
   private runtimes/backports. Preserve real original build receipts and IDs.
