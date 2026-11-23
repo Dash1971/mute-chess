@@ -73,18 +73,21 @@ An index of the pages in this folder. New here? Start with the first four.
 These describe dated studies. Their numbers apply to the date and setup stated
 on each page.
 
-- [Brilliant detection with the site's engine](brilliant-native-review-validation.md)
-- [Sampling evidence and the original rating priors](sampling-reference-audit.md)
-- [Native bot rating and capacity trial](native-bot-trial.md)
-- [One-time p95 anchor correction and cross-speed priors](bot-rating-adjustment.md)
-- [Overnight bot rating establishment](overnight-rating-establishment.md)
-- [Continuous Maia strength experiment](strength-experiment.md), its
-  [secondary analysis](strength-secondary-analysis.md) and
-  [validation continuation](strength-validation-continuation.md)
-- [Budget VPS sizing](vps-sizing.md)
-- Trial and reference data: [`data/`](data/)
+- [Brilliant detection with the site's engine](records/brilliant-native-review-validation.md)
+- [Sampling evidence and the original rating priors](records/sampling-reference-audit.md)
+- [Native bot rating and capacity trial](records/native-bot-trial.md)
+- [One-time p95 anchor correction and cross-speed priors](records/bot-rating-adjustment.md)
+- [Overnight bot rating establishment](records/overnight-rating-establishment.md)
+- [Continuous Maia strength experiment](records/strength-experiment.md), its
+  [secondary analysis](records/strength-secondary-analysis.md) and
+  [validation continuation](records/strength-validation-continuation.md)
+- [Budget VPS sizing](records/vps-sizing.md)
+- Trial and reference data: [`data/`](data)
 
 ## Dated records
+
+- [Research and dated-record index](records/README.md)
+- [Original foundation history](records/foundation-2026-10-28.md)
 
 Kept as written; they are evidence, not current instructions.
 
@@ -92,7 +95,7 @@ Kept as written; they are evidence, not current instructions.
 - [Upstream merge trial, 23 November 2026](upstream-merge-2026-11-23.md)
 - [Lichess integration, 23 November 2026](upstream-integration-2026-11-23.md)
 - [README feature captures](screenshots/README.md) and other
-  [screenshots](screenshots/)
+  [screenshots](screenshots)
 
 ## Retired prototype
 
@@ -100,3 +103,39 @@ The first Node/Fastify prototype is stopped and is not the current site.
 
 - [Prototype architecture](architecture.md)
 - [Prototype runbook](operations.md)
+
+## Additional reference pages
+
+These include preserved links to moved records and detailed comparison or decision pages.
+
+- [Source combinations 00–07](arrow-behavior/agreements-1.md)
+- [Source combinations 08–15](arrow-behavior/agreements-2.md)
+- [Source combinations 16–23](arrow-behavior/agreements-3.md)
+- [Source combinations 24–31](arrow-behavior/agreements-4.md)
+- [Matching-piece geometry and tapering examples](arrow-behavior/geometry.md)
+- [Capture and input QC](arrow-behavior/qc-review.md)
+- [Original Qh6 overlap and badge palette examples](arrow-behavior/reported-and-badges.md)
+- [Existing Mute preferences and native hand-offs](arrow-behavior/settings.md)
+- [Qh5 below the Qh6 agreement](arrow-behavior/shorter-maia.md)
+- [One-time p95 anchor correction and cross-speed priors](bot-rating-adjustment.md)
+- [Brilliant detection with the site's engine](brilliant-native-review-validation.md)
+- [First public bot trial — October 30, 2026](data/bot-trials/r20261030a/README.md)
+- [Second public bot trial — October 30, 2026](data/bot-trials/r20261030b/README.md)
+- [Third public bot trial — October 30, 2026](data/bot-trials/r20261030c/README.md)
+- [Applied bot rating anchor correction](data/rating-anchor-applied-2026-10-30/README.md)
+- [Draft rating-adjustment preview — October 30, 2026](data/rating-anchor-draft-2026-10-30/README.md)
+- [October31 strength experiment qualification](data/strength-experiment-2026-10-31/README.md)
+- [Owner decision record: analysis and learning](decisions/analysis-and-learning.md)
+- [Owner decision record: arenas](decisions/arenas.md)
+- [Owner decision record: bot pool and research](decisions/bot-pool-and-research.md)
+- [Owner decision record: identity and interface](decisions/identity-and-interface.md)
+- [Owner decision record: native and release](decisions/native-and-release.md)
+- [Native bot rating and capacity trial](native-bot-trial.md)
+- [Overnight bot rating establishment (#163)](overnight-rating-establishment.md)
+- [Sampling evidence and the original rating priors](sampling-reference-audit.md)
+- [Upstream integration browser checks](screenshots/upstream-2026-11-23/README.md)
+- [Exact-pin review captures](screenshots/upstream-review-2026-11-23/README.md)
+- [Continuous Maia strength experiment (#137)](strength-experiment.md)
+- [Pre-registered effective-configuration CV correction (#144)](strength-secondary-analysis.md)
+- [Validation continuation timing amendment (#147)](strength-validation-continuation.md)
+- [Budget VPS sizing — October 30, 2026](vps-sizing.md)
