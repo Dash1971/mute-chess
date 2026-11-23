@@ -25,7 +25,7 @@ repository, commit and tree, retaining upstream pins and security backports.
 The owner approved one tree exception on November 23: the fork-only
 `.github/workflows/mute.yml` test file is repository metadata, excluded from the
 application-departure inventory. No other source path is exempt. See
-[the fork contract](../../docs/native-fork.md). No newer upstream update or native
+[the fork contract](../native-fork.md). No newer upstream update or native
 behavior change is authorized by the migration itself.
 
 ## Next application release: fast-xml-parser (#318)

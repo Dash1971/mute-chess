@@ -29,10 +29,10 @@ analysis, with a familiar interface for desktop and mobile browsers.
 is needed.
 
 **Want to run your own instance?** Follow the [installation guide](docs/installation.md)
-for a fresh Ubuntu 24.04 x86-64 machine: prerequisites, pinned Lichess sources,
+for an Ubuntu x86-64 host (the maintained host runs 26.04.1): prerequisites, pinned Lichess sources,
 Maia models, configuration, build commands, local services and verification.
 The current helpers use systemd and a few fixed paths; public hosting on your own
-domain requires additional configuration. The root Node app is a retired prototype.
+domain requires additional configuration. The retired Node prototype is kept under `archive/node-prototype/`.
 
 ## Feature guide
 

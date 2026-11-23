@@ -3,8 +3,12 @@
 To play, open [mutechess.org](https://mutechess.org/). There is no desktop app
 to install. This guide is for running your own local instance from source.
 
-The current helpers target **Ubuntu 24.04 on x86-64, with systemd**. Use a fresh
-machine or VM and a regular user with sudo access. The native build allows up to
+The maintained host runs **Ubuntu 26.04.1 LTS on x86-64, with systemd**, verified
+on 23 November 2026. These helpers are used on that existing host. A clean-room
+installation of all steps on a fresh machine has not been qualified. CI runs
+source/build tests on Ubuntu 24.04; that does not establish installer support
+for 24.04. For a new instance, use an isolated 26.04 VM and a regular sudo user,
+and verify each step rather than treating the recipe as a supported installer. The native build allows up to
 5 GiB of Java heap, in addition to the memory used by the OS and other services.
 Allow disk space for two source trees, dependencies, build output and models.
 macOS, Windows and ARM installation are not covered by these helpers.
