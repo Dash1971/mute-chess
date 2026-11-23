@@ -43,7 +43,7 @@ export function classifyPublicPath(method, path) {
   // Known inherited feature links get a translated native notice, never their blocked controller.
   const unsupportedFeature = (
     /^\/(?:blog|ublog|coach|tournament|simul|team|teams|broadcast|tv|racer|tutor|video|streamer|mobile|paste|import|report|inbox|page)(?:\.atom$|\/|$)/.test(path) ||
-    /^\/@\/[A-Za-z0-9_-]{1,30}\/blog(?:\.atom$|\/|$)/.test(path) ||
+    /^\/@\/[^/?#]+\/blog(?:\.atom$|\/|$)/.test(path) ||
     /^\/(?:forum|study|games)\/search(?:\/|$)/.test(path) ||
     /^\/player\/(?:bots|top\/correspondence)$/.test(path) ||
     /^\/stat\/rating\/distribution\/correspondence$/.test(path)

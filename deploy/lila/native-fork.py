@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import tarfile
 import xml.etree.ElementTree as ET
 
 PIN = Path(__file__).with_name("native-pin.json")
@@ -72,11 +73,17 @@ def verify_release(root, pin, release):
     return identity
 
 
-def verify_mute_archive(path, main):
+def verify_mute_archive(path, main, payload_files=None):
     with Path(path).open("rb") as file:
         commit = subprocess.check_output(["git", "get-tar-commit-id"], stdin=file, text=True).strip()
     if commit != main:
         raise ValueError("Mute source archive differs from the verified main release")
+    if payload_files:
+        with tarfile.open(path) as archive:
+            for source, payload in payload_files.items():
+                member = archive.getmember(source)
+                if not member.isfile() or archive.extractfile(member).read() != Path(payload).read_bytes():
+                    raise ValueError(f"Payload file differs from verified Mute source: {source}")
 
 
 def checkout(root, pin, source=None):

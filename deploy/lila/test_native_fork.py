@@ -76,6 +76,22 @@ class NativeForkTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "archive differs"):
             fork.verify_mute_archive(path, self.base)
 
+    def test_gateway_and_imported_module_must_match_the_same_source_commit(self):
+        self.write("deploy/public/gateway.mjs", "import './public-surface.mjs';\n")
+        self.write("deploy/public/public-surface.mjs", "export const policy = 1;\n")
+        head = self.commit("Gateway fixture")
+        archive = Path(self.temp.name) / "source.tar"
+        archive.write_bytes(subprocess.check_output(["git", "-C", str(self.root), "archive", "--format=tar", head]))
+        files = {name: self.root / name for name in (
+            "deploy/public/gateway.mjs", "deploy/public/public-surface.mjs")}
+        fork.verify_mute_archive(archive, head, files)
+        for name, path in files.items():
+            original = path.read_text()
+            path.write_text("different commit\n")
+            with self.assertRaisesRegex(ValueError, "Payload file differs"):
+                fork.verify_mute_archive(archive, head, files)
+            path.write_text(original)
+
     def test_rejects_tracked_staged_and_untracked_source_changes(self):
         self.write("app/source.scala", "unexpected\n")
         with self.assertRaisesRegex(ValueError, "unapproved changes"):

@@ -51,7 +51,10 @@ ws_spec = importlib.util.spec_from_file_location('ws_source', payload / 'deploym
 ws_source = importlib.util.module_from_spec(ws_spec)
 ws_spec.loader.exec_module(ws_source)
 ws_source.verify(dev / 'sources/lila-ws', payload / 'lila-ws-bind-address.patch')
-native_fork.verify_mute_archive(payload / 'mute-chess.tar', release_info['gitCommit'])
+native_fork.verify_mute_archive(payload / 'mute-chess.tar', release_info['gitCommit'], {
+    'deploy/public/gateway.mjs': payload / 'gateway.mjs',
+    'deploy/public/public-surface.mjs': payload / 'deployment/public/public-surface.mjs',
+})
 analysis_spec = importlib.util.spec_from_file_location('analysis_assets', payload / 'deployment/public/analysis-assets.py')
 analysis_checker = importlib.util.module_from_spec(analysis_spec)
 analysis_spec.loader.exec_module(analysis_checker)
@@ -77,7 +80,7 @@ gif_receipt = gif_renderer.verify(gif_artifact)
 checker = base / 'tools/node'
 if not checker.exists():
     checker = Path('/opt/club-maia/node-v24.22.1-linux-x64/bin/node')
-for script in ('gateway.mjs', 'lila-adapter/server.mjs', 'lila-adapter/policy.mjs', 'lila-adapter/personality.mjs', 'nosweat/nostr.js'):
+for script in ('gateway.mjs', 'deployment/public/public-surface.mjs', 'lila-adapter/server.mjs', 'lila-adapter/policy.mjs', 'lila-adapter/personality.mjs', 'nosweat/nostr.js'):
     subprocess.run([str(checker), '--check', str(payload / script)], check=True)
 isolation_spec = importlib.util.spec_from_file_location('service_isolation', payload / 'deployment/public/service-isolation.py')
 isolation = importlib.util.module_from_spec(isolation_spec)
