@@ -104,7 +104,13 @@
             "ui/site/src/clinput.ts",
             "ui/user/css/_header.scss",
             "ui/user/src/user.ts"
-          ]
+          ],
+          "derivedCopies": {
+            "modules/user/src/main/ui/NoSweatUserActionMenu.scala": {
+              "derivedFrom": "modules/user/src/main/ui/UserActionMenu.scala",
+              "upstreamBlob": "55cb8a74f980af32b8b84d27263d2933b30ac870"
+            }
+          }
         },
         {
           "id": "maia-bot-pool",
@@ -442,7 +448,17 @@
             "ui/site/tests/friends.test.ts",
             "ui/site/tests/topBar.test.ts",
             "ui/site/tests/tsconfig.json"
-          ]
+          ],
+          "derivedCopies": {
+            "app/views/NoSweatHome.scala": {
+              "derivedFrom": "app/views/home.scala",
+              "upstreamBlob": "27fc52375e1e4c775c66a930da6433575fe6edbf"
+            },
+            "modules/web/src/main/ui/NoSweatTopNav.scala": {
+              "derivedFrom": "modules/web/src/main/ui/TopNav.scala",
+              "upstreamBlob": "4d9306be7aff66ef390f3842122a77162c55579e"
+            }
+          }
         },
         {
           "id": "branding-and-layout",
