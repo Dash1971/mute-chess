@@ -9,8 +9,8 @@
       "commit": "b071608bc4ce71b31cda36ffa493100e3dc3580f",
       "fork": {
         "repository": "https://github.com/Dash1971/lila",
-        "commit": "1041045b5664a07de102437fd167198935e1cea3",
-        "tree": "bbc7c24235523b17672ed8dccb685dab2b0036d5"
+        "commit": "a372615f8a1fe3f6d48ba60913c44d7b6b40da48",
+        "tree": "8ca5466297355f02cd67ec71726bb8abcc498839"
       },
       "securityBackports": [
         {
@@ -59,8 +59,8 @@
           "commit": "1aa437dc5ae7983aad537cb7ead0c69ce381352b",
           "advisory": "GHSA-gj2c-24vm-2v39",
           "file": "modules/ui/src/main/ui/bits.scala",
-          "fix": "Use native escaped script content for structured data and disable Ublog structured data. Retain the Mute organization renderer with the new Frag return type.",
-          "provenance": "Cherry-picked with -x for #381; the existing Mute StaticContent hook and renderer retain branding. Verify actual compiled structured-data and Ublog classes."
+          "fix": "Escape script tag-openers in native serialized JSON, preserving parseable metadata, and retain disabled Ublog structured data. Keep the Mute organization renderer with the new Frag return type.",
+          "provenance": "Cherry-picked with -x for #381; the Mute StaticContent hook and renderer retain branding. A bounded follow-up retains the helper API and uses native Json.stringify with JSON Unicode escaping for HTML tag-openers; context: upstream safe JSON script rendering 44695041c92372a2a4ec33f153a37e1df48af943. Verify actual compiled classes and JSON round-trip regressions."
         }
       ]
     },
@@ -319,7 +319,7 @@
         "GHSA-gj2c-24vm-2v39"
       ],
       "status": "fixed-in-pinned-source",
-      "evidence": "Release target cherry-picks 1aa437dc5ae7983aad537cb7ead0c69ce381352b with -x. NoSweatStructuredDataTest checks actual rendered markup cannot close its script element; NoSweatBrandingTest retains Mute organization identity. Ublog publishing and the supporting streamer challenge endpoint remain blocked. Actual deployment and class hashes must be verified before treating this target as installed."
+      "evidence": "Release target cherry-picks 1aa437dc5ae7983aad537cb7ead0c69ce381352b with -x, followed by a bounded valid-JSON correction. NoSweatStructuredDataTest parses actual rendered script content: malicious text round-trips unchanged without creating a script element, and ordinary organization metadata remains valid JSON. NoSweatBrandingTest retains Mute identity. Ublog publishing and the supporting streamer challenge endpoint remain blocked. Verify actual deployed classes and matching build evidence before treating this target as installed."
     },
     {
       "ids": [

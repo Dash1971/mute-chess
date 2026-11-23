@@ -7,8 +7,13 @@ The release target backports Lichess commits
 and `1aa437dc5ae7983aad537cb7ead0c69ce381352b` (GHSA-gj2c-24vm-2v39)
 with `cherry-pick -x` provenance. Ordinary local room moderation cannot emit
 cross-chat deletion events. Native moderator and broadcast-moderator audit and
-new-timeout deletion behavior remain intact. Structured metadata uses the
-upstream escaped renderer, Ublog structured data stays disabled, and the Mute
+new-timeout deletion behavior remain intact. The shared metadata helper retains native JSON serialization and escapes HTML
+tag-openers as JSON Unicode escapes, keeping its script content inert and valid
+JSON. This corrects the intermediate patch's HTML-entity encoding, which the
+round-trip tests reproduced as two JSON parsing failures. The implementation
+retains the helper API; upstream follow-up
+`44695041c92372a2a4ec33f153a37e1df48af943` provides the safe JSON rendering
+context. Ublog structured data stays disabled, and the Mute
 organization metadata hook retains its branding with the upstream `Frag` type.
 No user-facing copy, feature exposure or translation keys change.
 

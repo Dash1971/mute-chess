@@ -829,10 +829,11 @@
         },
         {
           "id": "chat-and-structured-data-security381",
-          "rationale": "Backport upstream security fixes fb5dcea873881c84909bd4aceb8d0f516e6f3454 and 1aa437dc5ae7983aad537cb7ead0c69ce381352b with cherry-pick provenance. Ordinary room moderation must not propagate cross-chat deletion; structured data must not inject executable markup. Existing ChatApi and Mute metadata hook departures remain registered in their original areas. No new UI strings, feature exposure or infrastructure.",
+          "rationale": "Backport upstream security fixes fb5dcea873881c84909bd4aceb8d0f516e6f3454 and 1aa437dc5ae7983aad537cb7ead0c69ce381352b with cherry-pick provenance. Ordinary room moderation must not propagate cross-chat deletion; structured data must not inject executable markup. Existing ChatApi and Mute metadata hook departures remain registered in their original areas. No new UI strings, feature exposure or infrastructure. A bounded follow-up keeps structured JSON parseable by Unicode-escaping HTML tag-openers after native Json.stringify, retaining the helper API and disabled Ublog structured data; context is upstream safe JSON script rendering 44695041c92372a2a4ec33f153a37e1df48af943.",
           "verification": [
             "NoSweatChatTimeoutTest observes actual production Bus messages for ordinary room owners, moderator/broadcast roles, repeated timeouts and unrelated roles; reproduce expected failures under old logic, then pass with the fix.",
-            "NoSweatStructuredDataTest renders malicious closing-script content and ordinary metadata; NoSweatBrandingTest retains Mute and upstream branding. Native compile/format and full release verification match actual class hashes."
+            "NoSweatStructuredDataTest renders malicious closing-script content and ordinary metadata; NoSweatBrandingTest retains Mute and upstream branding. Native compile/format and full release verification match actual class hashes.",
+            "Actual script content must parse as JSON and preserve malicious and ordinary field values exactly; reproduce the intermediate HTML-entity parsing failure before the correction."
           ],
           "files": [
             "modules/chat/src/test/NoSweatChatTimeoutTest.scala",
