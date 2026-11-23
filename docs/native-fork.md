@@ -65,6 +65,15 @@ missing identities fail. The collector already carries complete metadata and
 needs no code change. All other classifier predicates, advisory decisions,
 schedules, control hashes and isolation remain unchanged.
 
+The #366 catalog extraction stages `public/nosweat-roster.json` and
+`public/nosweat-bot-aliases.json` from the adapter into the assembled release,
+after native source verification. They are runtime data, not native Git source.
+The installer uses `lila-adapter/stage-catalog.mjs` and verifies both outputs
+against the canonical adapter inputs. The existing native source guard gains
+no additional exceptions. For private tests running directly from a checkout,
+stage these two files after building and verifying source, then remove the
+generated files after stopping the fixture stack before verifying source again.
+
 `nativeTree` is the fork commit's complete Git tree, including the approved CI
 file; application equality retains the single metadata exception described below.
 For this bootstrap those identities are fork tree
