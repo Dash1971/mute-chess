@@ -471,7 +471,7 @@
         },
         {
           "id": "branding-and-layout",
-          "rationale": "Apply the owner-approved Mute Chess identity and enhancement layout, keeping native components and upstream attribution/license notices. Issue #244 overrides the inherited Open Graph site identity only in the focused Mute renderer, replaces fallback Lichess artwork while preserving game/puzzle thumbnails, and makes root-relative preview images absolute. Asset URL joining retains one path slash. The native manifest endpoint reuses the existing Mute manifest, structured project identity omits inherited Lichess legal/social claims, and public puzzle/deleted-player/feed labels identify Mute. Native upstream mode, third-party app/resource references and all credits/licenses remain unchanged. New brand copy uses all ten native catalogs; there are no runtime or deployment changes. Issue #258 covers focused new-player welcome copy and supported destinations, the invitation heading, study help and forum metadata/body heading. Constructors default to upstream mode; focused study translations are passed only through its existing page-module options. Native routes, study/presence protocols, privacy/account guards and Lichess/source/CC0 attribution remain intact. Blocked kid/tournament/video invitations are omitted from the focused welcome instead of advertising unavailable features. #365 ports the focused homepage and OpenGraph hook to upstream's new renderer paths, preserving the approved Mute surface and credits. #366 keeps this Mute renderer in a NoSweat-owned file, with a small delegation from the upstream entry point; active Mute markup and labels are preserved.",
+          "rationale": "Apply the owner-approved Mute Chess identity and enhancement layout, keeping native components and upstream attribution/license notices. Issue #244 overrides the inherited Open Graph site identity only in the focused Mute renderer, replaces fallback Lichess artwork while preserving game/puzzle thumbnails, and makes root-relative preview images absolute. Asset URL joining retains one path slash. The native manifest endpoint reuses the existing Mute manifest, structured project identity omits inherited Lichess legal/social claims, and public puzzle/deleted-player/feed labels identify Mute. Native upstream mode, third-party app/resource references and all credits/licenses remain unchanged. New brand copy uses all ten native catalogs; there are no runtime or deployment changes. Issue #258 covers focused new-player welcome copy and supported destinations, the invitation heading, study help and forum metadata/body heading. Constructors default to upstream mode; focused study translations are passed only through its existing page-module options. Native routes, study/presence protocols, privacy/account guards and Lichess/source/CC0 attribution remain intact. Blocked kid/tournament/video invitations are omitted from the focused welcome instead of advertising unavailable features. #365 ports the focused homepage and OpenGraph hook to upstream's new renderer paths, preserving the approved Mute surface and credits. #366 keeps this Mute renderer in a NoSweat-owned file, with a small delegation from the upstream entry point; active Mute markup and labels are preserved. #381 preserves the organization metadata hook and Mute renderer while adapting RawFrag to Frag for the upstream structured-data escaping fix.",
           "verification": [
             "Full native UI build",
             "Automated browser layout checks",
@@ -590,7 +590,7 @@
         },
         {
           "id": "maia-preset-chat",
-          "rationale": "Issue #70 enables native restricted player chat only for persisted admitted human-versus-Maia records. Both registered identity and anonymous color are checked against the native game and admission record. A small accepted-write result retains native filtering, timeout, flood, persistence and publication; only accepted non-troll human messages can claim a persisted, duplicate-safe two-reply-per-phase allowance. Bot replies use their own native identity, without engine work, capacity ownership or rematches. Friend and spectator chat paths retain upstream behavior.",
+          "rationale": "Issue #70 enables native restricted player chat only for persisted admitted human-versus-Maia records. Both registered identity and anonymous color are checked against the native game and admission record. A small accepted-write result retains native filtering, timeout, flood, persistence and publication; only accepted non-troll human messages can claim a persisted, duplicate-safe two-reply-per-phase allowance. Bot replies use their own native identity, without engine work, capacity ownership or rematches. Friend and spectator chat paths retain upstream behavior. #381 cherry-picks the native chat-timeout permission fix; the unchanged event publication is extracted into a private method so regression tests can observe its real Bus messages without a database or expanded production visibility.",
           "verification": [
             "Native NoSweatPresetChatTest covers signed/anonymous authorization, phase boundaries, rejected writes, duplicate/cap suppression and finished-game replies; native round UI/build and friend-chat fallback inspection."
           ],
@@ -825,6 +825,21 @@
           "verification": [
             "Run security/testOnly lila.security.ModeratorOAuthTest lila.security.PermissionTest against the actual private role filter without expanding production visibility; cover production no-TOTP refusal, enrollment changes for existing tokens, enrolled moderator retention, missing scope, nonproduction and no privilege creation.",
             "Compile and stage exact merged main; match the deployed SecurityApi.class to its real build receipt and verify the source condition. Keep public OAuth/moderator routes blocked. Refresh current release verification and confirm the unchanged OpenClaw classifier accepts the reviewed backport."
+          ]
+        },
+        {
+          "id": "chat-and-structured-data-security381",
+          "rationale": "Backport upstream security fixes fb5dcea873881c84909bd4aceb8d0f516e6f3454 and 1aa437dc5ae7983aad537cb7ead0c69ce381352b with cherry-pick provenance. Ordinary room moderation must not propagate cross-chat deletion; structured data must not inject executable markup. Existing ChatApi and Mute metadata hook departures remain registered in their original areas. No new UI strings, feature exposure or infrastructure. A bounded follow-up keeps structured JSON parseable by Unicode-escaping HTML tag-openers after native Json.stringify, retaining the helper API and disabled Ublog structured data; context is upstream safe JSON script rendering 44695041c92372a2a4ec33f153a37e1df48af943.",
+          "verification": [
+            "NoSweatChatTimeoutTest observes actual production Bus messages for ordinary room owners, moderator/broadcast roles, repeated timeouts and unrelated roles; reproduce expected failures under old logic, then pass with the fix.",
+            "NoSweatStructuredDataTest renders malicious closing-script content and ordinary metadata; NoSweatBrandingTest retains Mute and upstream branding. Native compile/format and full release verification match actual class hashes.",
+            "Actual script content must parse as JSON and preserve malicious and ordinary field values exactly; reproduce the intermediate HTML-entity parsing failure before the correction."
+          ],
+          "files": [
+            "modules/chat/src/test/NoSweatChatTimeoutTest.scala",
+            "modules/ui/src/main/ui/bits.scala",
+            "modules/ublog/src/main/ui/UblogStructuredData.scala",
+            "modules/web/src/test/NoSweatStructuredDataTest.scala"
           ]
         }
       ]

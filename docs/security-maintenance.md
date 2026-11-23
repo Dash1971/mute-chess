@@ -1,5 +1,43 @@
 # Security versions and advisory review
 
+## November 23 chat and structured-data fixes (#381)
+
+The release target backports Lichess commits
+`fb5dcea873881c84909bd4aceb8d0f516e6f3454` (GHSA-m2c6-9p38-6473)
+and `1aa437dc5ae7983aad537cb7ead0c69ce381352b` (GHSA-gj2c-24vm-2v39)
+with `cherry-pick -x` provenance. Ordinary local room moderation cannot emit
+cross-chat deletion events. Native moderator and broadcast-moderator audit and
+new-timeout deletion behavior remain intact. The shared metadata helper retains native JSON serialization and escapes HTML
+tag-openers as JSON Unicode escapes, keeping its script content inert and valid
+JSON. This corrects the intermediate patch's HTML-entity encoding, which the
+round-trip tests reproduced as two JSON parsing failures. The implementation
+retains the helper API; upstream follow-up
+`44695041c92372a2a4ec33f153a37e1df48af943` provides the safe JSON rendering
+context. Ublog structured data stays disabled, and the Mute
+organization metadata hook retains its branding with the upstream `Frag` type.
+No user-facing copy, feature exposure or translation keys change.
+
+Regression evidence must show assertion failures with the old behavior and
+passes with the fixed production event publication and rendered markup. Run
+`chat/testOnly lila.chat.NoSweatChatTimeoutTest` and
+`web/testOnly lila.web.NoSweatStructuredDataTest lila.web.NoSweatBrandingTest`.
+The chat test observes actual Bus events through the private production
+publication method; it does not require a database, new test dependency or
+public test hook. Preserve the real build receipts and verify the deployed chat,
+structured-data, blog and Mute metadata class hashes before updating the
+reviewed inventory. A source target is not proof of deployment.
+
+The other two newly published flags have distinct statuses. The Fishnet key
+disclosure fix `aadc0f01b401caee91d7b1cb645c84a31d6b2cff` is already in our
+native ancestry; the active analysis JSON writer selects only `nodesPerMove`
+and `version`, excluding `fishnetKey`. The Puzzle Racer advisory concerns the
+separate WebSocket service. Its vulnerable public upgrade endpoint is blocked
+by the gateway; this is a mitigation, not a claim that the WebSocket pin is
+patched. The real gateway test rejects both Racer URL forms before forwarding
+and retains a successful analysis upgrade. Keep that raw flag visible with its
+documented mitigation under the unchanged classifier. Blog publishing and the
+supporting streamer endpoint also remain blocked.
+
 ## November 21 OS security maintenance (#355)
 
 Apply the pending Ubuntu packages through the existing weekly-update procedure,

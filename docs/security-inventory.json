@@ -9,8 +9,8 @@
       "commit": "b071608bc4ce71b31cda36ffa493100e3dc3580f",
       "fork": {
         "repository": "https://github.com/Dash1971/lila",
-        "commit": "2499fbc8971679eabcfa308cfeda51e3ec2afae3",
-        "tree": "c4fed962b68d51abd40c005c066426bea8eeacd0"
+        "commit": "a372615f8a1fe3f6d48ba60913c44d7b6b40da48",
+        "tree": "8ca5466297355f02cd67ec71726bb8abcc498839"
       },
       "securityBackports": [
         {
@@ -47,6 +47,20 @@
           "file": "modules/security/src/main/SecurityApi.scala",
           "fix": "In production retain web:mod OAuth moderator roles only while the account has enrolled TOTP. Request-time filtering covers existing tokens; preserve upstream nonproduction behavior.",
           "provenance": "Included in upstream ancestry at b071608bc4ce71b31cda36ffa493100e3dc3580f; retained here for advisory traceability, not a separate local patch."
+        },
+        {
+          "commit": "fb5dcea873881c84909bd4aceb8d0f516e6f3454",
+          "advisory": "GHSA-m2c6-9p38-6473",
+          "file": "modules/chat/src/main/ChatApi.scala",
+          "fix": "Publish DeletePublicChats only inside the native ChatTimeout/BroadcastTimeout permission gate; ordinary local room moderation remains local.",
+          "provenance": "Cherry-picked with -x for #381; the private publication boundary is extracted only for direct event regression testing. Verify the exact deployed class and matching full build receipt."
+        },
+        {
+          "commit": "1aa437dc5ae7983aad537cb7ead0c69ce381352b",
+          "advisory": "GHSA-gj2c-24vm-2v39",
+          "file": "modules/ui/src/main/ui/bits.scala",
+          "fix": "Escape script tag-openers in native serialized JSON, preserving parseable metadata, and retain disabled Ublog structured data. Keep the Mute organization renderer with the new Frag return type.",
+          "provenance": "Cherry-picked with -x for #381; the Mute StaticContent hook and renderer retain branding. A bounded follow-up retains the helper API and uses native Json.stringify with JSON Unicode escaping for HTML tag-openers; context: upstream safe JSON script rendering 44695041c92372a2a4ec33f153a37e1df48af943. Verify actual compiled classes and JSON round-trip regressions."
         }
       ]
     },
@@ -285,6 +299,34 @@
       ],
       "status": "fixed-in-pinned-source",
       "evidence": "Candidate upstream b071608bc4ce71b31cda36ffa493100e3dc3580f includes 3cf8d5c524ebac6eb71d392bf45f4113128b8bdb in its ancestry. Resolve and validate source IPs using upstream production loopback/wildcard/link-local/site-local rejection, additional lichess.ovh blocklist; reuse Invalid source URL and omit debug URL logging. Focused native tests cover this behavior; deployment must still verify the actual compiled runtime and refresh the active-release security record."
+    },
+    {
+      "ids": [
+        "GHSA-x554-vrpx-4q8m"
+      ],
+      "status": "fixed-in-pinned-source",
+      "evidence": "Upstream fix aadc0f01b401caee91d7b1cb645c84a31d6b2cff is an ancestor of the native pin. The active modules/analyse/src/main/JsonView.scala Engine writer selects only nodesPerMove and version; it does not serialize fishnetKey. Verify source and JsonView class against the matching build receipt, not just advisory publication time."
+    },
+    {
+      "ids": [
+        "GHSA-m2c6-9p38-6473"
+      ],
+      "status": "fixed-in-pinned-source",
+      "evidence": "Release target cherry-picks fb5dcea873881c84909bd4aceb8d0f516e6f3454 with -x. NoSweatChatTimeoutTest observes the actual production Bus publication for ordinary room owners, ChatTimeout and BroadcastTimeout roles, repeated timeouts and unrelated roles. Only privileged new timeouts emit DeletePublicChats; preserve the audit behavior. Actual deployment and class hashes must be verified before treating this target as installed."
+    },
+    {
+      "ids": [
+        "GHSA-gj2c-24vm-2v39"
+      ],
+      "status": "fixed-in-pinned-source",
+      "evidence": "Release target cherry-picks 1aa437dc5ae7983aad537cb7ead0c69ce381352b with -x, followed by a bounded valid-JSON correction. NoSweatStructuredDataTest parses actual rendered script content: malicious text round-trips unchanged without creating a script element, and ordinary organization metadata remains valid JSON. NoSweatBrandingTest retains Mute identity. Ublog publishing and the supporting streamer challenge endpoint remain blocked. Verify actual deployed classes and matching build evidence before treating this target as installed."
+    },
+    {
+      "ids": [
+        "GHSA-2rpf-mmrc-v68p"
+      ],
+      "status": "mitigated-blocked-public-route",
+      "evidence": "The separately pinned lila-ws is not claimed patched by the Lila commit listed in the advisory. Its Racer WebSocket endpoint is excluded by the public gateway websocketPaths allowlist. The real gateway regression attempts both Racer upgrade URL forms, asserts neither reaches upstream, and checks the supported analysis upgrade still works. Recheck on gateway or WebSocket changes; retain the raw pending advisory with the unchanged classifier."
     }
   ],
   "dailyReportRules": [
