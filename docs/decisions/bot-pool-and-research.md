@@ -1,6 +1,6 @@
 # Owner decision record: bot pool and research
 
-Historical instructions retained from AGENTS.md. Read the [current rules](../../AGENTS.md)
+Historical instructions retained from AGENTS.md (relative links adjusted). Read the [current rules](../../AGENTS.md)
 first; later owner instructions supersede earlier conflicting entries.
 
 ## Control-dependent human timing (owner request, October 30, 2026)
@@ -166,4 +166,3 @@ other fitting games, early computing history, Wipeout and electronic music. Reta
 all canonical IDs, policies, ratings, games and history. Assign Elon Musk to an
 existing lower-rated identity, without changing its rating. Proper names remain
 untranslated. Keep this as a separate draft; no live writes, merge or deployment.
-

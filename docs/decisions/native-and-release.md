@@ -1,6 +1,6 @@
 # Owner decision record: native and release
 
-Historical instructions retained from AGENTS.md. Read the [current rules](../../AGENTS.md)
+Historical instructions retained from AGENTS.md (relative links adjusted). Read the [current rules](../../AGENTS.md)
 first; later owner instructions supersede earlier conflicting entries.
 
 ## Native source of truth: Lila fork (#362/#363/#364)
@@ -162,4 +162,3 @@ Restore the native live players-online and games-in-progress counters below
 quick pairing. Preserve native counts, socket updates, number spreaders and
 links. Keep the focused Maia pairing surface; do not restore unrelated lobby
 buttons, feeds or navigation.
-

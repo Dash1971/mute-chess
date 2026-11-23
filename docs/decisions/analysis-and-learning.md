@@ -1,6 +1,6 @@
 # Owner decision record: analysis and learning
 
-Historical instructions retained from AGENTS.md. Read the [current rules](../../AGENTS.md)
+Historical instructions retained from AGENTS.md (relative links adjusted). Read the [current rules](../../AGENTS.md)
 first; later owner instructions supersede earlier conflicting entries.
 
 ## Mute-only brilliant experiment (owner request, November 2, 2026)
@@ -140,5 +140,3 @@ implementing a GPU-first79M browser path with CPU fallback for testing. Keep
 model bytes, input semantics, exact21chart samples, cancellation and deadlines
 unchanged. Reuse pinned runtime assets and existing preparation; no general
 benchmarking/deployment framework is part of this change.
-
-

@@ -1,6 +1,6 @@
 # Owner decision record: arenas
 
-Historical instructions retained from AGENTS.md. Read the [current rules](../../AGENTS.md)
+Historical instructions retained from AGENTS.md (relative links adjusted). Read the [current rules](../../AGENTS.md)
 first; later owner instructions supersede earlier conflicting entries.
 
 ## Owner-hosted Arenas (November 13, 2026, #311/#313)

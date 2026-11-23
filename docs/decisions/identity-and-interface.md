@@ -1,6 +1,6 @@
 # Owner decision record: identity and interface
 
-Historical instructions retained from AGENTS.md. Read the [current rules](../../AGENTS.md)
+Historical instructions retained from AGENTS.md (relative links adjusted). Read the [current rules](../../AGENTS.md)
 first; later owner instructions supersede earlier conflicting entries.
 
 ## Required translations for user-facing text (November 4, 2026, #242)
@@ -97,5 +97,3 @@ never belongs on a public profile or in search transport. Managed bots keep
 native names and BOT labels and have no Nostr identities. No bot keys, social
 publishing or account migrations are part of this work. Bot names and canonical
 handles participate in the same uniqueness reservation as chosen human names.
-
-

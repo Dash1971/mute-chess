@@ -81,7 +81,8 @@ communication/product prose while retaining native locale identifiers.
 
 ## Historical owner instructions
 
-Every section from the former long AGENTS.md is retained verbatim in the
+Every section from the former long AGENTS.md is retained, with relative links
+adjusted for its new location, in the
 [decision records](docs/decisions/README.md). Consult the relevant topic before
 changing its behavior. These records preserve detailed constraints, provenance
 and research budgets; dated or superseded authorizations are not new permission.
