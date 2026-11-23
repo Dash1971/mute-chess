@@ -11,7 +11,7 @@ remain the historical record. All 48 conflicted paths / 69 hunks are now resolve
 The native merge commit has the real fork `335cc0ac…` and frozen upstream
 `b071608b…` as its two parents. Follow-up commits adapt tests and runtime startup.
 The companion [pin](../deploy/lila/native-pin.json) records the final candidate;
-[the departure register](../deploy/lila/upstream-departures.json) covers its 471
+[the departure register](../deploy/lila/upstream-departures.json) covers its 473
 application departures exactly. The native CI workflow remains the sole approved
 metadata exception. Rerere records were retained in the task archive.
 
@@ -43,6 +43,10 @@ metadata exception. Rerere records were retained in the task archive.
   Native authorization, SSRF and Markdown escaping remain. The deep Markdown
   input regression checks escaped HTML on either normal parsing or stack-overflow
   fallback, because the path taken depends on JVM stack size.
+- Adapted the public local-review JSON reader to its existing browser/writer
+  contract (`nodesPerMove` and `version`). It assigns server-owned unknown
+  identity; client-supplied account/fishnet fields are ignored. Three native
+  regressions cover valid review, malformed metadata and identity spoofing.
 - Staged Lila Netty modules resolve uniformly to4.2.21.Final. Jackson2.18.11,
   jsoup1.23.2, Guava33.7.2-jre and Jakarta Mail1.6.8 remain. The separately pinned
   WebSocket component stays on Netty4.2.19.Final. Inventory changes describe the
@@ -60,12 +64,17 @@ The live release and its services were untouched.
 - Full browser TypeScript, CSS and bundle build: passed.
 - Browser unit suite:504 passed,0 failed across38 suites.
 - Adapter unit suite:133 passed,0 failed.
-- Exact departure-register check:471 Lila paths and7 WebSocket patch paths.
+- Exact departure-register check:473 Lila paths and7 WebSocket patch paths.
 - Private friends/challenge event regression: follow/block, ownership and native
   access rejection, real moves/clocks, resignation/PGN/history, mutual rematch,
   abort, decline and cancellation passed. Its stale assertion was corrected to
   retain the search box already present in the deployed baseline; notifications
   remain hidden.
+
+Private native forum creation/replies, invalid form validation, human–Maia moves
+and replies, watcher permissions, private player-URL isolation and finished-game
+removal also passed, using the current supported subset of the older community
+fixture (which still contained retired study functionality).
 
 Final native CI, browser captures and private-page results are recorded below when
 complete. CI links identify the exact tested commit rather than an earlier green
