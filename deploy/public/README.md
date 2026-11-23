@@ -2,13 +2,17 @@
 
 For a first local installation, start with the [installation guide](../../docs/installation.md). This document describes the existing host-specific public deployment.
 
-Use one permanent branch: `main`. Open a short-lived PR, review it, pass GitHub checks, merge on GitHub, and only then deploy. Run `python3 deploy/public/verify-main.py` from a clean checkout of the current main commit. It rejects feature branches, dirty trees and main revisions without a successful push workflow. Rebuild the native app and full UI from the verified main patch; partial UI builds do not update the asset manifest.
+Use one permanent branch: `main`. Open a short-lived PR, review it, pass GitHub checks, merge on GitHub, and only then deploy. Run `python3 deploy/public/verify-main.py` from a clean checkout of the current main commit. It rejects feature branches, dirty trees and main revisions without a successful push workflow. Check out the native commit in `deploy/lila/native-pin.json`, verify its clean
+source status, and rebuild the native app and full UI from that fork; partial UI builds do not update the asset manifest.
 
-A release must carry RELEASE.json with `gitCommit`, `branch: "main"`, and `sourceVerified: true`. The installer verifies the native working source patch against the main payload before activation. Preserve the merged commit and verification metadata in the public corresponding-source archive. Confirm the live X-NoSweat-Revision header after deployment. Delete merged feature branches. Never activate a feature branch and merge it later.
+A release must carry RELEASE.json with `gitCommit`, `branch: "main"`, and `sourceVerified: true`. For transition Release A, the installer verifies the pinned native HEAD/tree and
+clean working source, then independently exports and compares the retained
+compatibility patch against the main payload before activation. RELEASE.json
+records `nativeCommit`, `nativeTree` and the transitional `nativePatchSha256`. Preserve the merged commit and verification metadata in the public corresponding-source archive. Confirm the live X-NoSweat-Revision header after deployment. Delete merged feature branches. Never activate a feature branch and merge it later.
 
 ## Security verification is a release completion requirement
 
-Every deployment must refresh the current-release security verification, including UI/style-only changes with unchanged dependencies. After activation, verify the actual libraries, compiled sanitizer and private runtime/backport fingerprints against the maintained inventory and the matching real build receipt. Preserve historical receipts. Record the active commit, native patch hash, inventory hash, verification time and source evidence in `corresponding-source/SECURITY_VERIFICATION.json`, with the same current record at the existing `corresponding-source/SECURITY279_BUILD.json` report-reader path. Follow [the record format and completion check](../../docs/security-maintenance.md#every-deployment-completion-check).
+Every deployment must refresh the current-release security verification, including UI/style-only changes with unchanged dependencies. After activation, verify the actual libraries, compiled sanitizer and private runtime/backport fingerprints against the maintained inventory and the matching real build receipt. Preserve historical receipts. Record the active commit, native fork commit/tree, transitional native patch hash, inventory hash, verification time and source evidence in `corresponding-source/SECURITY_VERIFICATION.json`, with the same current record at the existing `corresponding-source/SECURITY279_BUILD.json` report-reader path. Follow [the record format and completion check](../../docs/security-maintenance.md#every-deployment-completion-check).
 
 Use the existing host-monitor planned-maintenance wrapper for the cutover and declare `/opt/nosweatchess/current/RELEASE.json` as the expected change. Confirm its release fingerprint is accepted and no other control-file or isolation drift is present before completion. A missed earlier release must be verified against approved source/build/runtime evidence before a scoped release-only baseline approval; never reset unrelated intrusion baselines.
 
@@ -27,7 +31,11 @@ human manual acceptance or upstream contribution is claimed.
 separate `nosweat-{gateway,app,ws,adapter,mongo,redis,gif}` service accounts,
 root-owned releases under `/opt/nosweatchess`,
 separate secrets under `/etc/nosweatchess`, and data under `/srv/nosweatchess`.
-Prepare/build the pinned sources using `../lila/README.md`. The payload includes
+Prepare/build the pinned sources using `../lila/README.md`. Include
+`mute-chess.tar` from `git archive --format=tar <verified-main>`; its embedded
+commit must match RELEASE.json. The source footer archive contains that Mute
+tree, `lila-native.tar` from the fork commit and the retained small patches.
+The payload includes
 both patches, adapter code with `npm ci --omit=dev`, the public club assets,
 gateway, installer, pinned Python requirements, BUILD.md, LICENSE,
 THIRD_PARTY.md, the complete `third-party` directory and deployment scripts.

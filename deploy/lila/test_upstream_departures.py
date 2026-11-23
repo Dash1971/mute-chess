@@ -3,6 +3,7 @@ import importlib.util
 import json
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 HERE = Path(__file__).parent
 ROOT = HERE.parents[1]
@@ -14,6 +15,12 @@ spec.loader.exec_module(check)
 class DepartureRegisterTests(unittest.TestCase):
     def setUp(self):
         self.manifest = json.loads((HERE / "upstream-departures.json").read_text())
+        # Test register errors without network access. CI separately checks the
+        # real fork diff; test_native_fork exercises that Git operation directly.
+        paths = check.patch_files((HERE / "patches/lila-nostr-maia.patch").read_text())
+        mock = patch.object(check, "native_files", return_value=paths)
+        mock.start()
+        self.addCleanup(mock.stop)
 
     def test_current_register_covers_the_actual_native_patches(self):
         result = check.validate(self.manifest, ROOT)

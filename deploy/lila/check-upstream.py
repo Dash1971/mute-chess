@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
 """Require an explicit, current rationale for every file in our native patches."""
+import argparse
+import importlib.util
 import json
 from pathlib import Path, PurePosixPath
 import re
 import sys
+import subprocess
+import tempfile
+
+spec = importlib.util.spec_from_file_location("native_fork", Path(__file__).with_name("native-fork.py"))
+native_fork = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(native_fork)
 
 
 def relative_path(value):
@@ -28,11 +36,22 @@ def patch_files(text):
     return set(paths)
 
 
-def validate(manifest, root):
+def native_files(pin, source=None):
+    if source is not None:
+        return native_fork.changed_files(source, pin)
+    with tempfile.TemporaryDirectory(prefix="mute-departures-") as directory:
+        subprocess.run(["git", "init", "--quiet", "--bare", directory], check=True)
+        subprocess.run(["git", "-C", directory, "fetch", "--quiet", "--depth=1",
+                        pin["repository"], pin["commit"], pin["upstreamBase"]], check=True)
+        return native_fork.changed_files(directory, pin)
+
+
+def validate(manifest, root, native=None):
     if manifest.get("schemaVersion") != 1 or not manifest.get("repositories"):
         raise ValueError("Missing departure-register schema/repositories")
     pins = (root / ".github/workflows/checks.yml").read_text()
     build = (root / "deploy/lila/README.md").read_text()
+    native_pin = native_fork.read_pin(root / "deploy/lila/native-pin.json")
     repositories = set()
     summary = {}
     for repo in manifest["repositories"]:
@@ -41,9 +60,10 @@ def validate(manifest, root):
             raise ValueError(f"Duplicate repository: {name}")
         repositories.add(name)
         revision = repo["revision"]
-        if not re.fullmatch(r"[0-9a-f]{40}", revision) or revision not in pins or revision not in build:
+        valid_pin = revision == native_pin["upstreamBase"] if name == "lila" else revision in pins and revision in build
+        if not re.fullmatch(r"[0-9a-f]{40}", revision) or not valid_pin:
             raise ValueError(f"Upstream pin disagrees with CI/build documentation: {name}")
-        actual = patch_files((root / relative_path(repo["patch"])).read_text())
+        actual = native_files(native_pin, native) if name == "lila" else patch_files((root / relative_path(repo["patch"])).read_text())
         declared = set()
         areas = set()
         for area in repo["areas"]:
@@ -65,9 +85,12 @@ def validate(manifest, root):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--native", type=Path, help="Already fetched native Git repository")
+    args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     try:
-        result = validate(json.loads((root / "deploy/lila/upstream-departures.json").read_text()), root)
+        result = validate(json.loads((root / "deploy/lila/upstream-departures.json").read_text()), root, args.native)
     except (ValueError, KeyError, TypeError) as error:
         sys.exit(str(error))
     print(json.dumps(result, indent=2))

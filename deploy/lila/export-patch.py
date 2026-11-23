@@ -2,10 +2,8 @@
 """Export the pinned native application with the existing patch serializer."""
 import argparse
 import importlib.util
-import json
 import os
 from pathlib import Path
-import re
 import subprocess
 import sys
 import tempfile
@@ -13,23 +11,15 @@ import tempfile
 
 PIN = Path(__file__).with_name("native-pin.json")
 WORKFLOW = ".github/workflows/mute.yml"
+PIN_SPEC = importlib.util.spec_from_file_location("native_fork", Path(__file__).with_name("native-fork.py"))
+native_fork = importlib.util.module_from_spec(PIN_SPEC)
+PIN_SPEC.loader.exec_module(native_fork)
+read_pin = native_fork.read_pin
 SPEC = importlib.util.spec_from_file_location(
     "native_source", Path(__file__).parents[1] / "public/native-source.py"
 )
 native_source = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(native_source)
-
-
-def read_pin(path):
-    pin = json.loads(Path(path).read_text())
-    if set(pin) != {"repository", "commit", "upstreamBase"}:
-        raise ValueError("Native pin must contain repository, commit and upstreamBase")
-    if not isinstance(pin["repository"], str) or not pin["repository"].startswith("https://github.com/"):
-        raise ValueError("Native repository must be a GitHub HTTPS URL")
-    for name in ("commit", "upstreamBase"):
-        if not isinstance(pin[name], str) or not re.fullmatch(r"[0-9a-f]{40}", pin[name]):
-            raise ValueError(f"Native {name} must be a full commit SHA")
-    return pin
 
 
 def export_patch(pin, source=None):

@@ -9,13 +9,14 @@ public deployment is described in [../public](../public/README.md).
 
 ## Sources and tools
 
-- Lila: `lichess-org/lila` at `b551752d2a0e7a63459d9812825d95a633a98737`.
+- Lila: the fork repository, commit and upstream base in [`native-pin.json`](native-pin.json).
 - WebSockets: `lichess-org/lila-ws` at `5089b84b5fe2da3f3e9e69d29363115cfddfc758`.
-- Apply `patches/lila-nostr-maia.patch` to Lila and
-  `patches/lila-ws-bind-address.patch` to lila-ws. The first adds the club, native
-  Nostr accounts/sessions, reserved human-versus-Maia admission and bot moves.
-  The second adds configurable `http.host`, preserving the upstream default.
-  Both patches also add `security-dependencies.sbt`: existing Netty modules resolve
+- Check out native Lila with `python3 native-fork.py checkout SOURCE_DIRECTORY`.
+  Apply only `patches/lila-ws-bind-address.patch` to the pinned lila-ws source;
+  it adds configurable `http.host`, preserving the upstream default.
+  Release A retains the generated Lila compatibility patch as an independent
+  comparison, not as the build source.
+  The native fork and WebSocket patch retain `security-dependencies.sbt`: existing Netty modules resolve
   to 4.2.19.Final and Jackson core/datatype modules to 2.18.11 (#232). These
   security overrides retain the existing dependency graph and native behavior;
   recheck the resolved/staged JARs and remove overrides once upstream selects
@@ -44,8 +45,9 @@ Node runtime at `/opt/club-maia/node-v24.22.1-linux-x64/bin` without modifying i
 The host needs Java 21 JDK, curl, Git, Python 3, tar, dpkg, xz and unzip. Installing
 the JDK and unzip is the only required host package change for this increment.
 
-Keep the two upstream checkouts in an `implementation-sources` directory. Apply
-both patches once if starting with unmodified checkouts. Package with
+Keep the two upstream checkouts in an `implementation-sources` directory. Use
+`native-fork.py checkout` for Lila and apply only the small WebSocket patch once.
+Package with
 `package-sources.sh SOURCE_DIRECTORY ARCHIVE_PATH`, then extract that archive
 into `DEVELOPMENT_DIRECTORY/sources`. The packaging helper suppresses macOS
 AppleDouble metadata, which otherwise looks like source files on Linux.
