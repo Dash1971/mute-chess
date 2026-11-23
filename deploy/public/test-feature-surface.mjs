@@ -30,4 +30,16 @@ assert.equal(classifyPublicPath('GET', '/paste'), 'unsupported');
 assert.equal(classifyPublicPath('GET', '/tournament/abcdefgh'), 'allow');
 assert.equal(classifyPublicPath('POST', '/tournament/abcdefgh/join'), 'allow');
 assert.equal(classifyPublicPath('POST', '/tournament/abcdefgh/export'), 'deny');
+for (const [method, path, action] of [
+  ...['display','chess-clock','game-behavior','privacy','notification','engine-analysis']
+    .map(c => ['GET', '/account/preferences/' + c, 'Pref.form']),
+  ['POST', '/rel/block/alice', 'Relation.bcAction'],
+  ['POST', '/rel/unblock/alice', 'Relation.bcAction'],
+  ['GET', '/tournament/history/unique', 'Tournament.history'],
+  ['GET', '/games/best/replacement/01234567', 'Tv.gameChannelReplacement'],
+]) {
+  assert.equal(classifyPublicPath(method, path), 'allow', path);
+  assert(policy.routes.some(r => r.method === method && r.action === action && new RegExp(r.pattern).test(path)),
+    'Existing UI route missing from native allowlist: ' + path);
+}
 console.log(JSON.stringify({ nativeRoutes: unique.size, gatewayParity: 'pass' }));
