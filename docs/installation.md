@@ -74,10 +74,11 @@ Redis packages into the local tools directory. It does not require a shared
 MongoDB or Redis service. Keep the Python dependency versions in
 [`worker/requirements.txt`](../worker/requirements.txt).
 
-## 3. Fetch the pinned native fork and patch WebSockets
+## 3. Fetch and verify the native fork; patch WebSockets
 
 ```bash
 python3 "$MUTE_REPO/deploy/lila/native-fork.py" checkout "$MUTE_DEV/sources/lila"
+python3 "$MUTE_REPO/deploy/lila/native-fork.py" verify "$MUTE_DEV/sources/lila"
 
 git init "$MUTE_DEV/sources/lila-ws"
 git -C "$MUTE_DEV/sources/lila-ws" fetch --depth=1 \

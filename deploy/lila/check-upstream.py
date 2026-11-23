@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Require an explicit, current rationale for every file in our native patches."""
+"""Require an explicit, current rationale for every native fork departure and remaining patch file."""
 import argparse
 import importlib.util
 import json

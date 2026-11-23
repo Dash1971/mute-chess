@@ -6,14 +6,12 @@ Owner decision, October 30, 2026: Mute Chess is a maintained adaptation of Liche
 
 The native source of truth is [Dash1971/lila](https://github.com/Dash1971/lila),
 pinned by [`native-pin.json`](../deploy/lila/native-pin.json). Native changes
-are reviewed there; the companion PR here bumps the pin and regenerates the
-compatibility patch using `deploy/lila/export-patch.py`. Never hand-edit that
-generated patch. The adapter, deployment and feature documentation stay here.
+are reviewed there; the companion PR here bumps the pin and records the fork commit/tree. The adapter, deployment and feature documentation stay here.
 
-Phase 1 changes how the source is carried, without changing application files,
-the installer, release metadata or the departure register. The sole approved
+The migration changes how source is carried and verified, without changing
+application files. The sole approved
 tree exception is the fork's GitHub test file, `.github/workflows/mute.yml`;
-it is omitted from the application export. See [history, equality evidence and
+it is omitted from the application-departure inventory. See [history, equality evidence and
 the development workflow](native-fork.md). The existing small WebSocket,
 Redis and GIF patches remain patches.
 
@@ -34,7 +32,7 @@ Native chess rules, legal destinations, clocks, game completion, Glicko calculat
 
 ## Maintained departure register
 
-[`upstream-departures.json`](../deploy/lila/upstream-departures.json) records the exact Lila and lila-ws revisions, every file in our native patches, each area's rationale and its verification. This is an inventory of the existing footprint, not proof that every hunk is already the smallest possible change.
+[`upstream-departures.json`](../deploy/lila/upstream-departures.json) records the exact Lila and lila-ws revisions, every native fork departure and remaining WebSocket patch file, each area's rationale and its verification. This is an inventory of the existing footprint, not proof that every hunk is already the smallest possible change.
 
 Run:
 
@@ -57,14 +55,14 @@ Every PR must update the affected register entry and supporting feature document
 | `modules/core/src/main/socket.scala` and `modules/socket/src/main/RemoteSocket.scala` | A small roster-presence event bridge, with transition-only native presence announcements and reannouncement after a WebSocket restart. | Existing WebSocket protocol and ordinary user/API-bot handling. No lila-ws protocol fork. |
 | `app/views/noSweatBot.scala` and the native profile header | Disclose the bot's actual fixed settings and link the methodology. | Existing native profiles, game history and account identity. |
 
-The register uses complete source paths within the [native patch](../deploy/lila/patches/lila-nostr-maia.patch). The separate lila-ws patch makes its listener bind address configurable for the loopback gateway deployment. Both native patches also align existing transitive Netty/Jackson runtime dependencies to patched versions through `security-dependencies.sbt` (#232); remove those overrides when the pinned upstream builds select equivalent safe versions. These build-only overrides do not change chess or messaging semantics. [Bot methodology](bot-population.md) documents assignment, timing and calibration limits.
+The register uses complete source paths within the [pinned native fork](https://github.com/Dash1971/lila). The separate lila-ws patch makes its listener bind address configurable for the loopback gateway deployment. The native fork and WebSocket patch also align existing transitive Netty/Jackson runtime dependencies to patched versions through `security-dependencies.sbt` (#232); remove those overrides when the pinned upstream builds select equivalent safe versions. These build-only overrides do not change chess or messaging semantics. [Bot methodology](bot-population.md) documents assignment, timing and calibration limits.
 
 ## Updating upstream
 
 1. Record old/new upstream commits and review intervening changes. Fast-forward the fork's untouched `master` mirror, then **merge** the selected upstream commit into native `main` through a reviewed PR. Never rebase or force-push native history. The owner selected a two-week cadence after the first upstream merge (#365); phase 1 performs no upstream merge or scheduling change.
 2. Resolve conflicts against each departure's documented reason, adopt native equivalents, and remove obsolete hooks. Record the reason when declining an upstream change. Keep new behavior in namespaced files and edits to upstream files small; avoid reformatting or whole-file rewrites. Urgent security backports use `git cherry-pick -x` so their provenance is retained.
 3. Run the fork's `mute.yml` native checks and affected integration checks. Exercise login, pairing, clocks, results/ratings, premoves, analysis, profiles and reconnect behavior as relevant. Preserve licenses and exact source provenance.
-4. Open the companion PR here to update `native-pin.json`, regenerate the compatibility patch, and update the register/build documentation for an upstream-base change. Pass this repository's checks before merging. Build and deploy verified Mute `main` through the existing release procedure; phase 1 retains both upstream revisions and the native patch hash in release metadata.
+4. Open the companion PR here to update `native-pin.json` and update the register/build documentation for an upstream-base change. Pass this repository's checks before merging. Build and deploy verified Mute `main` through the existing release procedure; release metadata records both upstream revisions and the native fork commit/tree.
 
 An upstream update is its own reviewed change. Do not mix a broad upstream rebase into an unrelated feature PR.
 

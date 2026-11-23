@@ -42,18 +42,15 @@ for repository, field in (('lila-ws', 'upstreamWs'),):
         '-C', str(dev / 'sources' / repository), 'rev-parse', 'HEAD'], text=True).strip()
     if actual != release_info.get(field):
         raise SystemExit('Native upstream revision differs from the verified main release: ' + repository)
-expected_patch = (payload / 'lila-nostr-maia.patch').read_bytes()
 for brand_source in ('design/quiet-signal/build.py', 'design/quiet-signal/render.mjs',
         'design/quiet-signal/quiet-signal.css', 'design/quiet-signal/board.svg',
         'design/logo-explorations/final/icon.svg', 'third-party/space-grotesk/OFL.txt'):
     if not (payload / brand_source).is_file():
         raise SystemExit('Release payload is missing Quiet Signal source: ' + brand_source)
-exported_patch = subprocess.check_output(['python3', str(payload / 'deployment/lila/export-patch.py'),
-    '--pin', str(payload / 'deployment/lila/native-pin.json'), '--source', str(dev / 'sources/lila')])
-if exported_patch != expected_patch:
-    raise SystemExit('Native build source differs from the merged main patch')
-if hashlib.sha256(expected_patch).hexdigest() != release_info.get('nativePatchSha256'):
-    raise SystemExit('Native patch provenance hash mismatch')
+ws_spec = importlib.util.spec_from_file_location('ws_source', payload / 'deployment/lila/ws-source.py')
+ws_source = importlib.util.module_from_spec(ws_spec)
+ws_spec.loader.exec_module(ws_source)
+ws_source.verify(dev / 'sources/lila-ws', payload / 'lila-ws-bind-address.patch')
 native_fork.verify_mute_archive(payload / 'mute-chess.tar', release_info['gitCommit'])
 analysis_spec = importlib.util.spec_from_file_location('analysis_assets', payload / 'deployment/public/analysis-assets.py')
 analysis_checker = importlib.util.module_from_spec(analysis_spec)
@@ -102,7 +99,7 @@ etc.chmod(0o711)
 os.chown(etc, 0, 0)
 
 digest = hashlib.sha256()
-for name in ('lila-nostr-maia.patch', 'gateway.mjs', 'install.py', 'lila-adapter/server.mjs', 'RELEASE.json'):
+for name in ('gateway.mjs', 'install.py', 'lila-adapter/server.mjs', 'RELEASE.json'):
     digest.update((payload / name).read_bytes())
 digest.update(json.dumps(gif_receipt, sort_keys=True).encode())
 release_id = 'main-' + release_info['gitCommit'][:12] + '-' + digest.hexdigest()[:8]
@@ -235,7 +232,7 @@ for repository in ('lila', 'lila-ws'):
     with (source_dir / archive_name).open('wb') as output:
         subprocess.run(['git', '-c', f'safe.directory={dev}/sources/{repository}', '-C', str(dev / 'sources' / repository), 'archive', 'HEAD'], stdout=output, check=True)
 shutil.copyfile(payload / 'mute-chess.tar', source_dir / 'mute-chess.tar')
-for name in ('lila-nostr-maia.patch', 'lila-ws-bind-address.patch', 'BUILD.md', 'THIRD_PARTY.md', 'LICENSE', 'RELEASE.json'):
+for name in ('lila-ws-bind-address.patch', 'BUILD.md', 'THIRD_PARTY.md', 'LICENSE', 'RELEASE.json'):
     shutil.copy(payload / name, source_dir / name)
 shutil.copytree(payload / 'third-party', source_dir / 'third-party')
 for brand_directory in ('quiet-signal', 'logo-explorations/final'):

@@ -89,7 +89,7 @@ more generous at lower ratings; this training data cannot teach that.
 
 The native module is `ui/analyse/src/noSweatBrilliantExchange.ts`, with weights
 in `noSweatBrilliantExchangeModel.json`, carried by the
-[Lila patch](../deploy/lila/patches/lila-nostr-maia.patch). The worker selects
+[native source](https://github.com/Dash1971/lila/tree/main/ui/analyse/src). The worker selects
 `mute-brilliant-v8`.
 
 **Candidate test.** Exchanges are evaluated with fully legal captures on one
@@ -235,7 +235,7 @@ The [published selective study](https://github.com/Dash1971/open-brilly-finder/t
 provides the frozen model, training procedure and validation evidence. The native adapter is
 `ui/analyse/src/noSweatBrilliantForest.ts`, with static weights in
 `noSweatBrilliantForestModel.json`, carried by the
-[Lila patch](../deploy/lila/patches/lila-nostr-maia.patch). The worker selected v5 until Mute Exchange replaced it.
+[native source](https://github.com/Dash1971/lila/tree/main/ui/analyse/src). The worker selected v5 until Mute Exchange replaced it.
 The internal v4 reference branch is not exposed as a review-mode choice.
 
 The forest has **128 trees and 75 semantic features**, plus a missingness indicator

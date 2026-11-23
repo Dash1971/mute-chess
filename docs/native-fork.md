@@ -20,39 +20,21 @@ native application changes from an opaque patch into normal Git history in
 
 For a native feature, open an issue here and a native PR against the fork's
 `main`, referencing that issue. After native review/checks/merge, open the
-companion PR here to bump `deploy/lila/native-pin.json`, regenerate the patch,
-and carry integration/documentation changes. The companion PR closes the issue.
+companion PR here to bump `deploy/lila/native-pin.json` and carry integration/documentation changes. The companion PR closes the issue.
 Adapter-only changes still need only a PR here.
 
 The fork improves three-way merging and review; conflicts still need human
 decisions. `cherry-pick -x` records a fix's source, rather than guaranteeing a
 conflict-free later merge. Upstream changes remain separate reviewed work.
 
-## The phase-1 compatibility patch
+## Pinned builds and releases (#364)
 
-The three pin fields are `repository`, `commit` and `upstreamBase`, with full
-commit SHAs. Generate the committed compatibility artifact with:
-
-```sh
-python3 deploy/lila/export-patch.py \
-  --output deploy/lila/patches/lila-nostr-maia.patch
-```
-
-The exporter checks out the pinned commit in a temporary directory, resets only
-that disposable checkout's index to the upstream base, and calls the existing
-`native-source.patch_for` serializer. It does not reset or modify the caller's
-checkout. `--source /path/to/native/repository` reuses commits fetched by CI or
-an offline check; that repository must contain both pinned commits.
-Checkout skips LFS smudging so a source export does not download engine networks.
-
-CI exports the pinned fork and compares the output byte for byte with the
-committed patch before building/testing the native UI. The existing native
-Scala check continues to apply that generated compatibility patch in phase 1.
-In phase 1 (#368), the installer, release metadata and monitor identity stayed
-unchanged. The direct fork-based transition is described below and scoped in
-#364. The phase-1 import itself did not deploy or change the running application.
-
-## Phase 2: transition release A (#364)
+The pin contains exactly `repository`, `commit` and `upstreamBase`, with full
+commit SHAs. Build directly from that fork commit. Current release metadata,
+build evidence and both security verification readers identify native source
+with `nativeCommit` and `nativeTree`. The reviewed security inventory records
+the fork repository/commit/tree alongside the original upstream base and
+unchanged backport decisions.
 
 Builds now check out the pinned fork with `native-fork.py checkout`, rather than
 applying the large patch. `native-fork.py verify` requires that exact HEAD and
@@ -75,9 +57,11 @@ fail instead of being reset. The generated `conf/version.conf` is already ignore
 by upstream; runtime configuration and secrets remain outside Git/source archives.
 
 The installer checks the pin, clean source status and `nativeCommit`/`nativeTree`
-against release metadata. Release A also exports the old patch from that commit
-and requires the exact original bytes and `nativePatchSha256`. The unchanged
-daily-report classifier must accept a fresh collection after deployment.
+against release metadata. The security classifier requires matching full commit
+and tree IDs in the release, real build verification and reviewed inventory;
+missing identities fail. The collector already carries complete metadata and
+needs no code change. All other classifier predicates, advisory decisions,
+schedules, control hashes and isolation remain unchanged.
 
 `nativeTree` is the fork commit's complete Git tree, including the approved CI
 file; application equality retains the single metadata exception described below.
@@ -89,8 +73,18 @@ The departure inventory now reads the pinned base-to-fork Git diff, excluding
 only the approved workflow, while retaining every exact application path and
 rationale. The footer source package includes `git archive` output of the fork,
 the matching Mute main tree, and the retained small patches. Release A keeps
-all historical receipts and the compatibility patch. Patch removal and the
-collector/classifier identity change follow only after this release is verified.
+all historical receipts. Git history retains the bootstrap compatibility
+artifact; current builds and release verification use the fork identity.
+
+### Staged migration evidence
+
+Release A was deliberately built from the fork with both identities, retaining
+the original comparison and unchanged classifier. Before retiring that check,
+run the old and new identity checks on the **same deployed Release A**, with
+matching reviewed inventory and fresh verification. Release B then drops the
+retired field and artifact. Both deployments require normal source/build,
+runtime and monitor verification. The [identity-only classifier diff](data/native-fork-phase2-2026-11-23/identity.diff)
+records the bounded external change; its collector remains unchanged.
 
 ## One explicit metadata exception
 
@@ -98,9 +92,8 @@ The owner approved adding `.github/workflows/mute.yml` while preserving every
 application file. A repository containing that extra file necessarily has a
 different overall Git tree hash. For application equality, remove **only that
 path from a temporary Git index**, then compare the resulting tree hash with
-the original application tree. The exporter omits exactly that test file;
-other `.github` files remain part of the comparison. It refuses the exception
-if a future upstream base already owns the same path.
+the original application tree. The departure inventory omits exactly that test file;
+other `.github` files remain part of the comparison. Review the exception if a future upstream base owns the same path.
 
 The fork workflow retains the existing native UI and Scala checks. Its pinned
 Mute companion snapshot supplies the adapter roster and puzzle validator; it
@@ -123,7 +116,7 @@ The last imported application commit is
 `752d6a9161368be8cfab44d0bb40a68e542bc498`. Its tree is exactly
 `35f172f31e25747cd4c5370e0950c404f0be1632`, independently matching the original
 pinned Lila plus the patch. The subsequent bootstrap commit adds only the
-approved test file. The exported patch must retain SHA-256
+approved test file. The phase-1 exported artifact retained SHA-256
 `916d236030f7ec0467fe27b90485d0d8a8c73bcc2d7cd302d8e32cb1e7cbe2a5`.
 
 The [snapshot mapping](data/native-fork-phase1-2026-11-23.json) records every

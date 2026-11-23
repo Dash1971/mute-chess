@@ -75,11 +75,9 @@ jobs:
       GIT_LFS_SKIP_SMUDGE: '1'
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - name: Export the pinned fork and compare the generated native patch
+      - name: Check the pinned native fork and remaining WebSocket patch
         run: |
           python deploy/lila/native-fork.py checkout /tmp/lila
-          python deploy/lila/export-patch.py --source /tmp/lila --output /tmp/lila-reconstructed.patch
-          cmp /tmp/lila-reconstructed.patch "$GITHUB_WORKSPACE/deploy/lila/patches/lila-nostr-maia.patch"
           git init /tmp/lila-ws
           git -C /tmp/lila-ws fetch --depth=1 https://github.com/lichess-org/lila-ws.git 5089b84b5fe2da3f3e9e69d29363115cfddfc758
           git -C /tmp/lila-ws checkout --detach FETCH_HEAD

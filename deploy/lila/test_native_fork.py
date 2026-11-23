@@ -58,6 +58,17 @@ class NativeForkTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "HEAD differs"):
             fork.verify_checkout(self.root, dict(self.pin, commit=self.base))
 
+    def test_pin_requires_full_commits_and_exact_fields(self):
+        import json
+        path = Path(self.temp.name) / "pin.json"
+        path.write_text(json.dumps(self.pin))
+        self.assertEqual(fork.read_pin(path), self.pin)
+        for bad in [dict(self.pin, commit="main"), dict(self.pin, upstreamBase=None),
+                    {"commit": self.head}, dict(self.pin, ignored="not allowed")]:
+            path.write_text(json.dumps(bad))
+            with self.assertRaises(ValueError):
+                fork.read_pin(path)
+
     def test_source_archive_must_identify_the_verified_mute_commit(self):
         path = Path(self.temp.name) / "source.tar"
         path.write_bytes(subprocess.check_output(["git", "-C", str(self.root), "archive", "--format=tar", self.head]))

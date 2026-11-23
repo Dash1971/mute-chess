@@ -19,7 +19,7 @@ New users receive the moss board as a native board theme. Existing saved choices
 
 ## Source and reproduction
 
-`build.py` generates the original SVG mark and outlined lockups. `board.svg` and `quiet-signal.css` are the authoritative board/theme sources. Final exported assets are under `../logo-explorations/final/`; deployed copies are carried in `deploy/lila/patches/lila-nostr-maia.patch`.
+`build.py` generates the original SVG mark and outlined lockups. `board.svg` and `quiet-signal.css` are the authoritative board/theme sources. Final exported assets are under `../logo-explorations/final/`; deployed copies are tracked in the [native fork](https://github.com/Dash1971/lila).
 
 From the repository root, with Python 3 and Node 24:
 
@@ -29,7 +29,7 @@ python3 -m venv .venv-brand
 .venv-brand/bin/python design/quiet-signal/build.py --native-dir /path/to/patched/lila
 npm ci --ignore-scripts --prefix design/quiet-signal
 node design/quiet-signal/render.mjs --native-dir /path/to/patched/lila
-python3 deploy/public/native-source.py /path/to/patched/lila > deploy/lila/patches/lila-nostr-maia.patch
+git -C /path/to/patched/lila diff # review and commit assets in the native fork
 ```
 
 Omit `--native-dir` to update only the exported design assets. The renderer creates PNG app icons, the social card, the fallback favicon and a web app manifest. Font source/license/checksums are in `../../third-party/space-grotesk/`. Sharp is a pinned development dependency only.

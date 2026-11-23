@@ -14,8 +14,8 @@ public deployment is described in [../public](../public/README.md).
 - Check out native Lila with `python3 native-fork.py checkout SOURCE_DIRECTORY`.
   Apply only `patches/lila-ws-bind-address.patch` to the pinned lila-ws source;
   it adds configurable `http.host`, preserving the upstream default.
-  Release A retains the generated Lila compatibility patch as an independent
-  comparison, not as the build source.
+  Verify the exact fork HEAD/tree and documented clean-source status before
+  and after building. The remaining WebSocket patch is checked by `ws-source.py`.
   The native fork and WebSocket patch retain `security-dependencies.sbt`: existing Netty modules resolve
   to 4.2.19.Final and Jackson core/datatype modules to 2.18.11 (#232). These
   security overrides retain the existing dependency graph and native behavior;
