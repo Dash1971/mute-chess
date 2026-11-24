@@ -11,6 +11,11 @@ An index of the pages in this folder. New here? Start with the first four.
 - [How we maintain Mute Chess](maintenance.md): the two repositories, regular
   Lichess merges and security fixes.
 
+- [Architecture](architecture.md): services, source authority and directory map.
+- [Contributing](../CONTRIBUTING.md) and [adapter development](../lila-adapter/README.md).
+- [Security reporting](../SECURITY.md), [operations](operations.md),
+  [verified releases](releases.md) and [technical names](glossary.md).
+
 ## Features
 
 - [Nostr sign-in and key backup](nostr-sign-in-backup.md)
@@ -46,6 +51,12 @@ An index of the pages in this folder. New here? Start with the first four.
   [analysis source provenance](../analysis/PROVENANCE.md).
 - [Native development environment](../deploy/lila/README.md) and
   [release and public deployment](../deploy/public/README.md).
+
+- [Committed release gates](../deploy/public/live-checks/README.md).
+- [Image/GIF renderer](../deploy/public/gif-renderer.md).
+- [Learning content](../learning/README.md) and [puzzle validation](../puzzles/VALIDATION.md).
+- [Quiet Signal design](../design/quiet-signal/README.md) and
+  [verification](../design/quiet-signal/VERIFICATION.md).
 
 ## Design and decisions
 
@@ -91,6 +102,8 @@ on each page.
 
 Kept as written; they are evidence, not current instructions.
 
+- [Security release delay, 23 November 2026](records/rca-2026-11-23-security-release-delay.md)
+- [Documentation review evidence, 24 November 2026](records/documentation-review-evidence-2026-11-24.md)
 - [Missing frontend manifest, 2 November 2026](rca-2026-11-02-missing-frontend-manifest.md)
 - [Upstream merge trial, 23 November 2026](upstream-merge-2026-11-23.md)
 - [Lichess integration, 23 November 2026](upstream-integration-2026-11-23.md)
@@ -101,8 +114,9 @@ Kept as written; they are evidence, not current instructions.
 
 The first Node/Fastify prototype is stopped and is not the current site.
 
-- [Prototype architecture](architecture.md)
-- [Prototype runbook](operations.md)
+- [Prototype source and history](../archive/node-prototype/README.md)
+- [Prototype architecture](../archive/node-prototype/architecture.md)
+- [Prototype runbook](../archive/node-prototype/operations.md)
 
 ## Additional reference pages
 

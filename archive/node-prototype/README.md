@@ -14,3 +14,6 @@ The active adapter has its own unchanged Python pins in
 The historical legal-logit reference fixture remains here and is also used by
 the adapter's explicitly model-dependent reference regression. No historical
 worker or app source is silently substituted for the live adapter.
+
+The original [architecture](architecture.md) and [operations runbook](operations.md)
+are preserved here as historical documents, not instructions for the active site.
