@@ -2,7 +2,7 @@
 
 Owner-authorized scope: issue #392. Cloudflared was upgraded from 2026.11.1
 to 2026.11.2, and libsqlite3-0 from 3.46.1-9ubuntu0.3 to 3.46.1-9ubuntu0.4.
-Only the tunnel restarted; application process IDs were unchanged. No reboot
+The tunnel and fwupd restarted; application process IDs were unchanged. No reboot
 was required. SQLite includes the vendor WAL-reset corruption-race fix (LP2171337).
 Cloudflared contains x/crypto 0.59.0 and x/net 0.62.0; installed and running
 executable SHA256 is 56f13335143ec0e22772963290683a84a04114a35ec64cbc794a4d39ff9bb8cf.
