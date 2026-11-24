@@ -1,7 +1,7 @@
 # Native source in the Lila fork
 
 [Architecture proposal #362](https://github.com/Dash1971/mute-chess/issues/362)
-and [phase 1 #363](https://github.com/Dash1971/mute-chess/issues/363) move our
+and [phase 1 #363](https://github.com/Dash1971/mute-chess/issues/363) moved our
 native application changes from an opaque patch into normal Git history in
 [Dash1971/lila](https://github.com/Dash1971/lila). Product behavior and the
 [upstream policy](upstream-alignment.md) stay the same.
@@ -89,13 +89,16 @@ artifact; current builds and release verification use the fork identity.
 
 ### Staged migration evidence
 
-Release A was deliberately built from the fork with both identities, retaining
-the original comparison and unchanged classifier. Before retiring that check,
-run the old and new identity checks on the **same deployed Release A**, with
-matching reviewed inventory and fresh verification. Release B then drops the
-retired field and artifact. Both deployments require normal source/build,
-runtime and monitor verification. The [identity-only classifier diff](data/native-fork-phase2-2026-11-23/identity.diff)
-records the bounded external change; its collector remains unchanged.
+The November 23, 2026 migration used a compatibility release (Release A) with
+both identities, followed by Release B using native commit/tree identity only.
+The active release checked on November 24 contains `nativeCommit` and
+`nativeTree`, with no retired patch identity. Its matching security verification
+is recorded in the [documentation review evidence](records/documentation-review-evidence-2026-11-24.md).
+Historical receipts remain unchanged. The
+[identity-only classifier diff](data/native-fork-phase2-2026-11-23/identity.diff)
+records the bounded external change; its collector remained unchanged. The
+normal runtime, monitor and security verification requirements still apply to
+all subsequent releases.
 
 ## One explicit metadata exception
 

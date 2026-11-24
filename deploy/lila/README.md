@@ -42,8 +42,10 @@ testing; no upstream contribution or claim of human testing is implied.
 
 The scripts target the existing dedicated Ubuntu mini. They use its existing
 Node runtime at `/opt/club-maia/node-v24.22.1-linux-x64/bin` without modifying it.
-The host needs Java 21 JDK, curl, Git, Python 3, tar, dpkg, xz and unzip. Installing
-the JDK and unzip is the only required host package change for this increment.
+The host needs Java 21 JDK, curl, Git, Python 3 with venv, tar, xz, unzip and
+zstd, plus `build-essential`, `pkg-config` and `libssl-dev` for the private Redis
+source build with TLS. Use the complete prerequisite list in the
+[installation guide](../../docs/installation.md#1-install-host-prerequisites-and-clone-the-project).
 
 Keep the two upstream checkouts in an `implementation-sources` directory. Use
 `native-fork.py checkout` for Lila and apply only the small WebSocket patch once.

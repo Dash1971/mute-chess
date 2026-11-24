@@ -1,6 +1,6 @@
 # Public bot names
 
-The owner-approved draft for #322 replaces the remaining 181 generic
+The public-name update for #322 replaces the remaining 181 generic
 `SignalTrain` / `SignalTest` labels with distinctive public aliases. The 12
 existing aliases remain, bringing the legacy alias table to 193 entries. A further
 157 existing generated-name bots receive aliases, for **350 distinctive aliases**
@@ -38,4 +38,7 @@ lower-rated account (Rapid 835 in the frozen October 2026 reference snapshot).
 This assigns a name to a recorded rating; it does not lower or reset a live rating.
 Current earned ratings can differ from that historical snapshot.
 
-Keep the change draft. No live account writes or deployment are part of this PR.
+The alias mapping is included in the deployed source. A read-only check on
+November 24, 2026 confirmed the representative `SignalTrain029` profile displays
+Elon Musk; see the [documentation review evidence](records/documentation-review-evidence-2026-11-24.md).
+This documentation does not reapply aliases or modify accounts.

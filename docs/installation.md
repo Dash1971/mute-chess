@@ -15,8 +15,9 @@ macOS, Windows and ARM installation are not covered by these helpers.
 
 The running application consists of Lichess/Lila, lila-ws, MongoDB, Redis and the
 Node/Python Maia adapter. Stockfish and Maia analysis run in the browser; the
-server runs Maia3 79M for opponents. The repository's root Node/PostgreSQL app is
-a retired prototype: `pnpm dev` at the root does not start the current site.
+server runs Maia3 79M for opponents. The retired Node/PostgreSQL prototype is
+in [`archive/node-prototype/`](../archive/node-prototype/README.md); it is not
+the current application.
 
 ## 1. Install host prerequisites and clone the project
 
@@ -28,7 +29,7 @@ only commands explicitly prefixed with `sudo` need root.
 sudo apt-get update
 sudo apt-get install -y \
   ca-certificates curl git git-lfs openjdk-21-jdk-headless \
-  python3 python3-venv build-essential pkg-config unzip xz-utils \
+  python3 python3-venv build-essential libssl-dev pkg-config unzip xz-utils zstd \
   libatomic1 libgomp1 libjemalloc2 liblua5.1-0 liblzf1
 
 git clone https://github.com/Dash1971/mute-chess.git "$HOME/mute-chess"
@@ -73,8 +74,8 @@ export PATH="$MUTE_DEV/tools/pnpm/node_modules/.bin:$PATH"
 ```
 
 `prepare-host.sh` downloads the checked sbt launcher and MongoDB archive,
-installs the pinned pnpm and mongosh packages, and extracts the distribution's
-Redis packages into the local tools directory. It does not require a shared
+installs the pinned pnpm and mongosh packages, and builds the pinned Redis
+source with its recorded Lua metadata backport into the local tools directory. It does not require a shared
 MongoDB or Redis service. Keep the Python dependency versions in
 [`lila-adapter/requirements.txt`](../lila-adapter/requirements.txt).
 
@@ -131,11 +132,20 @@ node build-browser.mjs "$MUTE_DEV/sources/lila/public/nosweat/nostr.js"
 bash "$MUTE_REPO/deploy/lila/build.sh" "$MUTE_DEV" ui
 bash "$MUTE_REPO/deploy/lila/build.sh" "$MUTE_DEV" lila
 bash "$MUTE_REPO/deploy/lila/build.sh" "$MUTE_DEV" ws
+
+# Stage runtime data after the clean native build/source checks.
+node "$MUTE_REPO/lila-adapter/stage-catalog.mjs" "$MUTE_DEV/sources/lila"
+node "$MUTE_REPO/lila-adapter/stage-catalog.mjs" --verify "$MUTE_DEV/sources/lila"
 ```
 
 Build the **complete UI**: a partial component build does not refresh every
 asset or the complete manifest. Keep the adapter's roster/configuration files
-and the matching native pin from the same Mute Chess revision.
+and the matching native pin from the same Mute Chess revision. The native loader
+requires both staged catalog files before bot initialization. Stop the private
+stack and remove only `public/nosweat-roster.json` and
+`public/nosweat-bot-aliases.json` before the next clean-source verification;
+restage them after building. Release packaging stages them outside the source
+checkout instead.
 
 ## 6. Start the local databases and import the bundled content
 

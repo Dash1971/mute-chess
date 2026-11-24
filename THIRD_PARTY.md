@@ -21,9 +21,23 @@ The piece attribution/license is recorded by upstream Lichess in its [COPYING.md
 
 The ONNX file is the existing Mobile Maia export, generated with `tool/export_maia3_onnx.py` from the released Maia3 architecture/checkpoint. The four legal-logit references in `lila-adapter/test/maia-reference.json` were generated against the official source revision above and checkpoint SHA-256 `3fc6181d5db789b45a15305732148757ae74efa3e0028e81ba335b462dac45c2`; export parity is tested on this host. The export's source and recipe are available in [Mobile Maia Preview](https://github.com/Dash1971/maia-chess-android-preview), with that project's licenses preserved. No Mobile Maia application/release code was modified.
 
-The Node prototype incorporates Chessops and Chessground as pinned dependencies rather than detached source fragments. The native Lichess application uses our [Lila fork](https://github.com/Dash1971/lila) of [Lichess](https://github.com/lichess-org/lila), at the commit and upstream base recorded in [`deploy/lila/native-pin.json`](deploy/lila/native-pin.json), and [lila-ws](https://github.com/lichess-org/lila-ws) at `5089b84b5fe2da3f3e9e69d29363115cfddfc758`, retaining their AGPL licenses and complete source/asset notices. The native Nostr/Maia changes are in that fork; the WebSocket bind patch and build instructions are in `deploy/lila/`; the public source archive includes both pinned upstream trees, our patches, the adapter, deployment scripts and these notices. No Lichess accounts, production databases or public chess services are reused. Native playing and analysis pages retain upstream presentation while the full club wrapper remains work.
+The native application uses our [Lila fork](https://github.com/Dash1971/lila) of
+[Lichess](https://github.com/lichess-org/lila), at the commit and upstream base in
+[`deploy/lila/native-pin.json`](deploy/lila/native-pin.json), and lila-ws at
+`5089b84b5fe2da3f3e9e69d29363115cfddfc758`. Their AGPL licenses and complete
+source/asset notices are retained. The corresponding-source archive includes
+the pinned native fork, matching Mute source and remaining small patches. No
+Lichess accounts or production databases are reused.
 
-Other npm dependency sources, exact versions and integrity hashes are recorded in `pnpm-lock.yaml`; dependency distributions carry their license files. The runtime uses Fastify and plugins (MIT), node-postgres (MIT), nostr-tools (Unlicense), Zod (MIT), ONNX Runtime (MIT), NumPy (BSD-3-Clause), and python-chess (GPL-3.0-or-later). See those distributions for their complete notices.
+The active Node adapter uses the exact npm sources, versions and integrity hashes
+in [`lila-adapter/package-lock.json`](lila-adapter/package-lock.json), including
+nostr-tools (Unlicense) and its cryptography dependencies. Python inference uses
+ONNX Runtime (MIT), NumPy (BSD-3-Clause) and python-chess (GPL-3.0-or-later), pinned
+in [`lila-adapter/requirements.txt`](lila-adapter/requirements.txt). Dependency
+distributions carry their complete notices. Fastify, node-postgres, Zod and the
+prototype's Chessops/Chessground integration belong to the retired
+[`archive/node-prototype/`](archive/node-prototype/README.md); its npm integrity
+records are in that directory's `pnpm-lock.yaml`.
 
 The Mute Chess Quiet Signal knight and board are original, Codex-assisted SVG artwork. Its outlined wordmark uses unmodified Space Grotesk, SIL OFL 1.1; the font, license, checksum and pinned source are retained in `third-party/space-grotesk/`. Reproduction instructions and the AI-assisted design provenance are in `design/quiet-signal/README.md`. These assets are for this independent fork, not an upstream Lichess contribution. The earlier cyber-rook concept used Oxanium (Severin Meyer), SIL OFL 1.1; its font and notices remain in `third-party/oxanium/` for the archived exploration.
 

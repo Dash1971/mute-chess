@@ -28,7 +28,7 @@ Redis and GIF patches remain patches.
 
 Other explicitly requested adapters, such as Lightning patronage and fixed bot personalities, are documented departures too. Their approval is not permission to redesign unrelated native behavior. New differences need a concrete product reason and a documented maintenance cost.
 
-Native chess rules, legal destinations, clocks, game completion, Glicko calculations and provisional criteria, anti-abuse checks, analysis-tree ownership, direct invitations and normal account/preferences behavior remain upstream responsibilities. Prefer native controls, events and services over new implementations. Do not weaken those contracts to simplify an experiment. The bot rating/capacity run in #73 is still planning-only.
+Native chess rules, legal destinations, clocks, game completion, Glicko calculations and provisional criteria, anti-abuse checks, analysis-tree ownership, direct invitations and normal account/preferences behavior remain upstream responsibilities. Prefer native controls, events and services over new implementations. Do not weaken those contracts to simplify an experiment. The completed bot rating/capacity run in #73 is historical evidence, not authorization to start more games.
 
 ## Maintained departure register
 
@@ -61,8 +61,7 @@ The register uses complete source paths within the [pinned native fork](https://
 
 The [23 November 2026 trial report](upstream-merge-2026-11-23.md) records the
 initial fork-based conflict inventory for #365. Those conflicts are now resolved;
-see the [integration report](upstream-integration-2026-11-23.md) for the current
-candidate and validation evidence.
+see the [integration report](upstream-integration-2026-11-23.md) for the resolved integration and its dated validation evidence.
 
 1. Record old/new upstream commits and review intervening changes. Fast-forward the fork's untouched `master` mirror, then **merge** the selected upstream commit into native `main` through a reviewed PR. Never rebase or force-push native history. The owner selected a two-week cadence after the first upstream merge (#365).
 2. Resolve conflicts against each departure's documented reason, adopt native equivalents, and remove obsolete hooks. Record the reason when declining an upstream change. Keep new behavior in namespaced files and edits to upstream files small; avoid reformatting or whole-file rewrites. Urgent security backports use `git cherry-pick -x` so their provenance is retained.
@@ -98,21 +97,21 @@ reset/import. Post-merge verification must exercise both BOT seats, native ratin
 writes after FinishGame, disabled/public/qualification scope checks, and normal
 human-pool admission while the flag is on. See [methodology](records/native-bot-trial.md).
 
-## Explicit one-time external rating anchor (#103, draft)
+## Applied one-time external rating anchor (#103)
 
-The owner requested a draft operational correction for existing bots, including
+The owner-approved correction was applied on October 30, 2026, including
 Bullet/Classical reference priors. This is isolated in `deploy/calibration/` and
 [its runbook](records/bot-rating-adjustment.md); no native source paths or Glicko formula
 change is introduced. Preserve native perfs, histories, uncertainty/provisional
 rules and all subsequent native rating updates. The fixed-cohort migration is
 manual, audited and guarded by a maintenance window, exact snapshot/plan, backup,
 compare-and-set recovery and normal native cache/index rebuild. It never runs as
-part of app startup or deployment, and draft authorization does not apply it.
+part of app startup or deployment. The [completion receipt](data/rating-anchor-applied-2026-10-30/README.md) records the operation; it must not be repeated.
 
 ## Continuous strength study (#137)
 
-The owner authorized 250 total identities and a dated, bounded3000-game experiment
-on October31. Keep the original44 file and perfs unchanged; the namespaced adapter
+The owner authorized 250 total identities and a dated, bounded 3000-game experiment
+on October 31. Keep the original 44 file and perfs unchanged; the namespaced adapter
 loads an additive configuration file and the native public roster is generated
 from that same concatenation. The only new native control is a study-plan entry
 and explicit absolute admission/deadline bounds in NoSweatStudy; normal play,
@@ -120,7 +119,7 @@ matchmaking selection, rules, clocks, perfs and native Glicko/provisional semant
 remain upstream. All model fitting/evaluation is separate Python research tooling
 and cannot write ratings. Post-merge verification checks exact roster agreement,
 blocked held-out admission before prediction freeze, original-policy hashes,
-native3000th/3001st admission boundaries, deadline/heartbeat cleanup and existing
+native 3000th/3001st admission boundaries, deadline/heartbeat cleanup and existing
 human admission. See strength-experiment.md and the exact-path register.
 
 The owner's later timing amendment (#147) permits a conditional validation-only
@@ -131,12 +130,12 @@ also reject failed/incomplete predecessors, changed frozen evidence and admissio
 3,001 across segments. See [the dated amendment](records/strength-validation-continuation.md).
 
 Issue #163 separately authorizes an overnight establishment follow-up for the
-same250 bots and earned perfs. Its new namespaced profile only adds fixed
-13:30–21:30UTC scope/deadline guards and a3,000-new-admission/22-game plan; old
+same 250 bots and earned perfs. Its new namespaced profile only adds fixed
+13:30–21:30 UTC scope/deadline guards and a 3,000-new-admission/22-game plan; old
 profiles remain unchanged. Native provisional flags determine establishment;
 the external scheduler prioritizes unsettled bot/speed pairs without writing
 ratings. Post-merge verification covers exact new public/private run IDs, fixed
-cutoffs, admission3000/3001 and unchanged native Glicko/shared human capacity.
+cutoffs, admission 3000/3001 and unchanged native Glicko/shared human capacity.
 See [the bounded follow-up](records/overnight-rating-establishment.md).
 
 ## Shared Engine Analysis settings and bounded opening text (#150/#151/#168)
@@ -169,17 +168,17 @@ analysis and puzzle channels.
 
 ## Assigned bot catalog initialization (#172)
 
-The owner-approved10,000-identity catalog adds configuration-backed policy
+The owner-approved 10,000-identity catalog adds configuration-backed policy
 references and a narrow initialization helper. New catalog accounts alone receive
-RD100/zero-game assigned ratings; existing native Glicko formulas, RD110
+RD 100/zero-game assigned ratings; existing native Glicko formulas, RD 110
 provisional threshold, earned perfs and all human accounts remain unchanged.
 Explicit six-speed seeds retain measured/inferred provenance. Whole-roster
 identity validation, fresh-account marker checks and one-time default-only
 public-name aliases prevent collisions or reseeding. Native zero-game display
 uses its existing latest/Perf contract. Profiles add one Research-seeded basis
-row. Post-merge tests cover explicit priors, truthfulnb0, native nonprovisional
+row. Post-merge tests cover explicit priors, truthful nb=0, native nonprovisional
 status, collision refusal, legacy fallback and display-only aliases. The shared
-presence/index/±200 matching and normal2-game cap stay unchanged. See
+presence/index/±200 matching and current shared twenty-game Maia cap stay unchanged. See
 [catalog methodology and reproducible manifest](catalog-roster.md).
 ## Human-game Maia conditioning (#176)
 
