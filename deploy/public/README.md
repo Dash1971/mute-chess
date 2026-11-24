@@ -145,6 +145,31 @@ Never overwrite the live database during a restore test. Regular backup copying
 and restore drills require ongoing operations; an initial snapshot alone does
 not provide continuous disaster recovery.
 
+### Live release gates and rollback
+
+All live checks that can accept or reject a release must be committed and merged
+**before** maintenance. Never add or change a check during the window. Before
+pausing admissions, run the same checks against the currently serving release,
+with an expected pass or fix-specific fail written down for each. Resolve an
+unexpected baseline result before opening the window; do not drop a required
+security check to proceed.
+
+**Critical:** app/WebSocket/adapter/gateway health, sign-in, authorization matrix,
+data continuity, a real game advancing, and deployed commit/tree/class hashes.
+**Advisory:** all other checks, including page content and metadata. Record and
+resolve advisory failures after the window; they cannot hold admissions or
+trigger rollback. Reopen admissions as soon as the critical gates pass. Complete
+non-disruptive security verification publication and the fresh
+`inventory_verified=true` collection with games open. The release is complete
+only when those security requirements also pass.
+
+Use the [committed checks and baseline instructions](live-checks/README.md).
+For a globally drained site, game progress is confirmed immediately after
+reopening; it is not a reason to wait for a game while admissions are closed.
+Before rollback, name the failed critical check and record evidence that the
+application is at fault, excluding a checker defect. Never roll back a security
+release for an advisory failure or a suspected test defect.
+
 Read-only release rollback: stop app/WS/adapter/gateway, select the previous
 known-good `current` symlink, then restart. Review schema compatibility first.
 Drain games before planned restarts. At application startup, unfinished managed

@@ -13,6 +13,7 @@ authorize new runs or override the current [site manual](../site-manual.md).
 - [strength secondary analysis](strength-secondary-analysis.md)
 - [strength validation continuation](strength-validation-continuation.md)
 - [vps sizing](vps-sizing.md)
+- [23 November security release delay RCA](rca-2026-11-23-security-release-delay.md)
 
 The following immutable evidence retains its original path and bytes, preserving
 existing citations and relative links:
