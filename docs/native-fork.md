@@ -83,8 +83,8 @@ For this bootstrap those identities are fork tree
 The departure inventory now reads the pinned base-to-fork Git diff, excluding
 only the approved workflow, while retaining every exact application path and
 rationale. The footer source package includes `git archive` output of the fork,
-the matching Mute main tree, and the retained small patches. Release A keeps
-all historical receipts. Git history retains the bootstrap compatibility
+the matching Mute main tree, and the retained small patches. Historical releases keep
+all original receipts. Git history retains the bootstrap compatibility
 artifact; current builds and release verification use the fork identity.
 
 ### Staged migration evidence

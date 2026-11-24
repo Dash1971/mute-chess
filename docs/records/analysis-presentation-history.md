@@ -1,0 +1,379 @@
+> Historical implementation notes preserved from `18fe4e7` on November 24, 2026.
+> These statements describe their original work and do not authorize operations.
+
+# Accepted analysis presentation (#111)
+
+The owner accepted the full-screen mockup on October 31, 2026. Preserve the native
+three-column analysis layout, board artwork, orientation, engine controls, tree,
+graph, accuracy, ACPL, glyph navigation and Learn from your mistakes. The changes
+below are presentation adapters, not replacement chess or review systems.
+
+The two Maia cards reserve their header, four candidate slots and Others footer
+during loading, terminal positions, errors and move changes. Explicit Others
+expansion scrolls inside the same card; each model's rating grid remains separate.
+The fixed-height rating chart retains the 600–2600 rating range, keyboard
+selection and raw probabilities. Issue #146 supersedes the fixed 0–100% scale
+with Maia’s adaptive 60%/100% scale; see [the source audit](../maia-rating-chart.md). Its move legend sits beside the heading. The
+redundant Maia heading and expandable probability matrix are removed. The Maia cards stay compact. The desktop sidebar is bounded to the board height;
+opening articles scroll in the remaining space so they cannot push the bottom
+panel down the page (#168). Explicitly expanded candidates scroll in their
+existing card. Native chart actions occupy a toolbar above its canvas.
+
+White counts, centered classification labels and Black counts mirror Mobile Maia.
+Only their arrangement changes: native accuracy/ACPL values and glyph-jump/learning
+callbacks remain authoritative. Private Notes and spectator chat are omitted from
+post-game analysis; stored notes and the native note service are untouched. The
+obsolete notes-only chat fork is removed. The existing knight and wordmark retain
+their artwork and size; their gap is two pixels.
+
+## Opening name and ECO
+
+Mobile Maia `lib/src/openings.dart` and `ReviewOpeningName` at
+`8563954429c2fb53ce0fe0e16c73c5d8a73ccfe0` are the reference. Read the viewed move
+path backward and match the latest recognized position, including variations and
+legal en-passant normalization. Display `C00 · Opening name` under the board,
+above the analysis tabs, centered as in Mobile Maia. The opening sits immediately
+beneath the board: omit the native under-board margin and compensate for the empty
+keyboard row in the three-column layout (#115). In the two-column layout, explicitly
+collapse that unused grid track only when keyboard input is absent (#117). Keep the 28px row, placing its extra
+vertical space below the name. Reserve that row even when no opening is known. Long
+names stay on one line with an ellipsis and expose their full text by native
+tooltip and a keyboard/click-accessible dialog, without moving other panels. Truncation is remeasured after fonts finish loading
+as well as when its available width changes. The lower native player strip is
+observed for size changes; reserve its width plus 8px on both sides of the opening
+row (#119). This keeps the name centered and at the accepted vertical position
+while leaving captured material and clocks unobstructed. Native strip rendering
+and clock/material semantics are unchanged.
+
+The same 3,810 CC0 Lichess opening rows bundled by Mobile Maia are reduced to
+EPD/ECO/name in `public/nosweat/openings.json`. Their upstream source is
+lichess-org/chess-openings `4b8622759e7ae6f93f011cc6c83a3823401ab45e`.
+`OPENINGS_CC0.txt` accompanies the generated table. Reproduce it with:
+
+```
+python3 analysis/prepare-openings.py /path/to/mobile-maia/assets/openings/lichess_openings.tsv /path/to/lila
+```
+
+The table loads once from this site's own static assets. It adds no external
+opening-explorer dependency or authentication flow. While unavailable, a native
+game-opening fallback is shown only when its defining node belongs to the viewed
+path. Missing information leaves the reserved row empty.
+
+## Phase lines and red grades
+
+The native evaluation chart receives a small Chart.js drawing plugin. Mobile
+Maia's `GamePhaseDetector` / `AnalysisGraphPainter` at the same revision supply
+the material, sparse-back-rank and mixedness rules. Dashed boundaries and horizontal
+Opening/Middlegame/Endgame labels describe only phases actually reached. Imported
+endgames begin with Endgame. Short neighboring labels use separate text lanes.
+Native graph data, scale, selection, tooltip, classifications, stored division and
+accuracy calculations are unchanged; phase accuracy is still omitted.
+
+Current-position colors follow the audited Maia full-root mapping described in
+[the source audit](../maia-rating-chart.md). All legal roots participate before ranked
+shading; Others does not trigger evaluation. Cards and chart use the same original
+Maia palettes, including their pale-to-dark blunder shades. Natural deeper engine
+evidence can update colors. Move-hover details expose the same probability,
+White-perspective SF evaluation, mover win rate and CP loss as Maia. Whole-game
+classification and its Mobile Maia/En Croissant palette remain separate.
+
+Puzzle analysis remains a separate compact surface. Each row stays on one line;
+when width requires fewer leading previews, their unchanged raw probability joins
+Other. Its expansion still contains every legal move with its original probability.
+
+## Verification and upstream merges
+
+Run native analyse/chart/lib/puzzle tests, full native UI type/build/format/lint
+checks, and the departure-register checks. Browser checks must cover move/loading
+frame stability, long opening names and details, variation lookup, summary jumps,
+phase labels, chart actions above the plot, rating selection, Others, and narrow
+puzzle rows. After an upstream merge, recheck the small view/underboard/chart hooks;
+namespaced opening and phase modules own the added behavior. No rules, clocks,
+ratings, bot policy, identity or saved-note migration is part of this change.
+
+## Standalone analysis board (#121)
+
+The free standard analysis board exposes the same Analyze game action, native
+local-review engine, evaluation chart, overall accuracy/ACPL, classifications and
+Learn from your mistakes used after games. Computer analysis, Import, and Export
+have separate tabs. Opening labels stay under the board.
+A line needs at least one move. A FEN-only position retains selected-position
+Stockfish/Maia analysis and asks the user to add moves for a sequence review.
+
+These lines do not have a public game export. Their review omits optional native
+division input; overall native accuracy/judgments are unchanged and the existing
+chart plugin provides visual phase boundaries. Results stay in memory and are
+keyed to the exact root/plies/FENs/moves. Edited/replaced mainlines cannot display
+an old summary or receive a completed stale review. Clearing review preserves
+entered moves and user/imported glyphs. No public game, identity or rating is
+created or changed. Reloading an unsaved board does not persist its review.
+
+## Brilliant evidence and actual exports (#130/#131)
+
+Full-game classifications now retain Mobile Maia's complete current/earlier
+two-PV evidence in a fresh, forward, single-thread session. The native graph,
+accuracy and ACPL keep their original review scores. Every mode uses the full
+decision-window policy; stable awards need no additional search, while uncertain
+awards share the same six-search allowance as Mobile Maia PR #64. A tab switch
+does not silently cancel classification; stop, navigation and stale-line guards
+still release its workers. See `analysis/PROVENANCE.md` for source commits,
+independent reference coverage and actual SF19 browser-replay evidence. Counts
+are determined by evidence, not a named-game special case.
+
+Export offers PGN download/copy and FEN copying. The file/clipboard export uses
+Chessops' PGN serializer over the current tree, including variations, comments,
+judgment NAGs, evaluations, original headers and starting FEN. Draft import text
+is never mistaken for the exported game. Standard Mute Chess PGN imports retain
+their headers and imported annotations. Export remains an explicit local action;
+the unsaved board review still has no account/server persistence.
+
+## Native Import and Export tabs (#133)
+
+Import and Export are separate tabs alongside Computer analysis. Import uses native FEN/PGN fields. FEN starts with the current position and
+applies valid edits through the native change event (normally on blur), without
+a separate button. PGN starts blank and uses the native thin action below its
+textarea, visible on focus; desktop Enter also uses the native PGN path. Drafts
+survive tab switches, and Export serializes the actual board. Other upstream
+analysis contexts keep their original editable input behavior. Issue #153
+supersedes the earlier permanent explicit import buttons and blank FEN field.
+
+Export follows native Lichess `ReplayUi`'s `fen-pgn` layout and `copy-me`
+components: a read-only FEN row, native Image and Share rows, separate annotated/raw
+PGN download/copy controls, and selectable annotated PGN text (#155). Native clipboard/checkmark feedback, metal buttons, field sizes and
+spacing replace the compact custom button strip and explanatory furniture.
+The only local adapter is the clipboard/blob callback required by an unsaved
+line without a public game-export URL. There are no new colors or component
+styles; import padding is scoped to the new under-board import panel.
+
+The live FEN journey also uses native Lila's `fromPosition` key for a standard
+chess starting position (#135). Extension initialization accepts that key as well
+as `standard`, retaining Maia and all three tabs after native FEN navigation.
+This does not enable chess variants or alter the FEN parser, route or move rules.
+
+When a FEN-to-PGN import replaces the native main view, Lila reuses its sidebar
+element. Maia mounting is idempotent for that host (#138), keeping a single live
+panel and the native sidebar contents rather than prepending a second panel.
+
+
+## Review spacing and brilliant color (#148)
+
+The summary gives glyphs their own fixed-width column and an explicit gap before
+left-aligned category names, following En Croissant’s separate symbol/name grid.
+Modest row padding retains the compact native panel. White/Black count buttons,
+glyph jumps, overall accuracy and ACPL keep their existing behavior.
+
+Mobile Maia’s brilliant color is cyan `#15aabf`. The native tree’s brilliant token
+and Chessground 10.5’s inline green brilliant-badge circle are overridden only
+inside the Mute Chess analysis surface. Badge paths, stacking and placement stay
+native. No classification thresholds, imported glyphs or award counts change.
+The original brilliant-only CSS selector remains as a compatibility fallback;
+the shared palette below now colors all six board badges. En Croissant’s reference
+is `ReportPanel.tsx` at
+`6f2d2628f0fbe11cb62a7dd2f9c102bb52907d53`; Mobile Maia’s is
+`review_widgets.dart` at `8563954429c2fb53ce0fe0e16c73c5d8a73ccfe0`.
+
+## Shared board and summary classification colors (#225)
+
+The unchanged six-class array lives in `ui/lib/src/nosweat/moveClasses.ts`, shared
+by the review summary and native board annotation hook. On Mute-branded documents,
+only the first native SVG background circle is recolored: brilliant cyan
+`#15aabf`, good teal `#12b886`, interesting lime `#82c91e`, dubious amber `#fab005`,
+mistake orange `#fd7e14` and blunder red `#fa5252`. White symbol paths, geometry,
+shadows, badge stacking, arrow layers and classification rules stay native.
+
+Other glyphs and non-Mute/unbranded rendering retain the exact upstream SVG.
+Actual Chessground SVG tests cover every class at all four stack positions and
+verify that only the background fill changes. Recheck that first-circle contract
+when updating Chessground; no dependency fork is introduced.
+
+
+## Import control correction (#153)
+
+Compare pinned Lila `ui/analyse/src/view/components.ts::renderInputs` and
+`ui/analyse/css/_analyse.free.scss` at
+`b551752d2a0e7a63459d9812825d95a633a98737`. The FEN row has only its label and
+flexible input; PGN uses `button-thin bottom-item bottom-action text`, absolutely
+positioned below the textarea at the inline end. Native focus/active/focus-visible
+selectors control its visibility. Reuse those classes and layout unchanged;
+never add an adjacent full-sized import action. Existing import-panel padding
+and separate export `fen-pgn`/`copy-me` rows remain unchanged.
+
+FEN validation and navigation use the native parser/controller change path.
+Blank PGN drafts remain isolated from serialized exports. Actual-DOM regressions
+check valid/invalid FEN changes, preserved drafts and actual-tree exports;
+browser checks must verify equal input/textarea edges, no FEN button, and the
+thin PGN action hidden at rest and aligned below the textarea on focus. This is
+an explicit correction toward upstream, not a new component design.
+
+
+Local verification for #153: all 358 UI tests and the full UI build pass;
+targeted formatting/typed lint and all five departure-register tests pass.
+In the actual native browser, FEN and PGN share left/right edges and a 499.14px
+field width. The PGN action is hidden at rest, visible on focus, 18.24px high,
+and aligned exactly to the textarea’s right edge/bottom. Clicking it imports
+`1. d4 d5 2. c4` into the actual tree; Export then serializes that line and its
+correct FEN. Lichess’s live analysis page returned maintenance/502 during this
+check; comparison used the pinned source and owner screenshots. Evidence is
+retained locally in `native-import-controls-2026-10-31/`. Deployment remains held
+for the experiment’s verified final cleanup; no public data/configuration changed.
+
+
+## Native export parity and initial tab (#155/#158)
+
+See [the exact-source export adapter](../analysis-export.md). The standalone board
+uses the native post-game rows and components, while its local data stays
+unsaved. Import is the initial tab so visitors can immediately paste a position
+or game. Explicit tab switching, draft isolation and post-game defaults remain.
+The existing expected-score header remains side-to-move after the owner
+reconsidered the proposed Mobile Maia favored-side conversion (#156 canceled).
+
+The Maia platform has an opening-score display exception: its
+[pinned analysis page](https://github.com/csslab/maia-platform-frontend/blob/325b85c3b6427f2e8e691e1dcf4ab9d4dbf94ec3/src/pages/analysis/%5B...id%5D.tsx#L1196)
+uses Stockfish centipawns converted to win rate for the first ten plies. In the
+Halloween Gambit example, the displayed -1.84-pawn evaluation maps to 40.1% White there; Mute Chess's 48.5%
+Black remains the actual Maia79M expected score, `win + 0.5 × draw`. Outside that
+opening override, the platform uses the same expected-score formula. The owner
+chose to retain Mute Chess's Maia values and side-to-move headers. This metric
+difference does not establish either method's calibration; investigation is
+tracked in [#194](https://github.com/Dash1971/mute-chess/issues/194).
+
+## Engine Analysis settings (#150/#151, November 1, 2026)
+
+A shared **Engine Analysis** dialog opens from the small settings control next to
+Moves by Rating, the native Analysis Menu → Settings, and the puzzle-review Maia
+heading. **Enable a second Maia for analysis** defaults on for missing settings,
+while existing explicit preferences are respected. The primary/secondary ratings
+remain independent; disabling the second retains its rating. One-engine game
+analysis uses the same184px card across the full sidebar width, with eight
+leading moves in two columns of four. Others retains the exact remaining raw
+probability mass and expands all legal moves. Puzzle review simply removes the
+second compact row. Both puzzle model labels now open the existing600–2600
+button grid; a primary selection matches the two primary rating inputs.
+
+The second-engine switch and persistence follow Mobile Maia Preview
+`lib/src/play.dart` at `dd4e041db6f4d2a84e9b8af91d6e8563ff2b1026`. Mute Chess
+intentionally defaults the switch on. The same revision’s
+`lib/src/stockfish.dart` defines Fast(depth12/500ms), Balanced(depth14/1000ms)
+and Thorough(depth16/1500ms). These existing Mute Chess modes now live in the
+shared dialog, retaining `nosweat.gameReview.quality` and the native local-review
+consumer; choosing a mode applies to the next explicit review. Advanced native
+Stockfish controls remain available. Maia model/history options are
+under Advanced Maia settings.
+
+Four native color inputs independently configure the two Stockfish arrows and
+each Maia channel, with Reset arrow colors. Existing defaults, split agreements,
+arrow geometry, widths and visibility semantics are retained. Only strict six-hex
+RGB values from saved browser settings reach custom SVG; missing/invalid values
+fall back per channel. Model labels match their arrow color. Move quality, graph
+classification, expected-score perspective and raw probabilities never use this
+palette. Arrow color/visibility changes redraw without clearing/recomputing
+policy; hiding Maia arrows leaves its puzzle results/settings accessible.
+
+All settings remain browser-local in the existing v2 preference key. No backend,
+account identity, public game, rating, inference service or security-policy change
+is required. Puzzle solving/visibility/threat/engine gates still withhold Maia
+assistance. Tests cover these contracts plus native UI compilation and desktop
+browser component acceptance.
+
+## Account-menu access and matched inputs (#173)
+
+Profile & settings includes an **Engine Analysis** menu entry. Following the
+owner correction in #180, it navigates to `/account/preferences/engine-analysis`
+inside the native account settings layout, with the normal sidebar, heading,
+section spacing and radio controls. The existing analysis/puzzle gear dialogs
+remain available. Both presentations share the same preference bindings and
+browser-local key; changing the page presentation adds no account writes.
+
+Mobile Maia `lib/src/review.dart` at
+`dd4e041db6f4d2a84e9b8af91d6e8563ff2b1026` sends `selfElo: elo` and
+`opponentElo: elo` for each channel (both mainline and variation review). Match
+this exactly: primary Maia1600 uses1600/1600, second Maia2600 uses2600/2600.
+Remove the separate opponent control; normalize any legacy saved mismatch to
+the primary rating. Actual inference code enforces matching inputs independently
+of stored preferences, including post-puzzle review. The matched rating chart,
+raw policy, expected-score perspective, review gates and engine visibility remain
+unchanged.
+
+## Readable WikiBook and 79M browser acceleration (#183/#184)
+
+The WikiBook article retains its natural height in the existing board-height
+sidebar. Scroll the sidebar to read the whole article; its native collapse
+control and the underboard position remain unchanged.
+
+The 79M browser worker tries ONNX Runtime WebGPU first when the browser exposes
+WebGPU. It falls back to up to four WASM CPU threads when cross-origin isolation
+is available, then to one thread if threaded initialization or execution fails.
+The 5M bounded one-thread path remains unchanged. GPU/runtime failure retries
+the same request without resetting its original watchdog. Model bytes, history,
+matched rating inputs, policy/value heads and the exact 21-point rating sweep
+are unchanged. Runtime diagnostics record the selected backend and thread count.
+Pinned GPU runtime assets are served from Mute Chess's existing asset path.
+This is backend selection, not a measured speedup claim on every device.
+
+## Inline browser computer analysis (#208)
+
+Whole-game analysis on Mute's standalone and post-game boards runs inside the
+existing Computer analysis panel, without opening the native analysis-editor
+dialog. This follows Mobile Maia's `_graphTab` in `lib/src/review.dart`: show
+evaluation progress and Stop in the tab, retain the graph and accuracy once
+evaluation completes, then show classification progress beside the same graph.
+
+The existing `LocalAnalysisDialog` job state and `LocalAnalysisEngine` still
+perform the same searches, native review, first save/merge, optional brilliant
+verification and final save/merge. The inline host only presents that state and
+handles Stop, repeated starts, downloads, errors and leaving the page. Each
+controller owns one running job, including asset loading. Stable child graph
+hosts prevent native graph creation from removing the progress controls; changing
+underboard tabs does not cancel the job. Stopping classification retains the
+completed native review. Standalone results remain temporary, and post-game
+results retain their existing browser-local persistence.
+
+Intentional advanced Stockfish settings remain available; starting analysis there
+hands off to the inline panel. Native non-Mute and study editor behavior is
+retained. Engine settings, search budgets, accuracy, glyph classification and
+server review semantics are unchanged. Focused regressions cover both existing
+graph ownership and job preparation, progress, completion, retry and cancellation.
+
+## Arrow and annotation layering (#219)
+
+Native Lichess arrows use a lower SVG layer than move-annotation badges. Mute's
+split-color engine arrows retain their custom geometry but now use Chessground's
+existing lower custom-SVG plane. Only a plane containing our owned engine arrows
+is raised above pieces to layer 3; native classification badges remain at layer 4.
+This keeps badges readable even when engine arrows arrive asynchronously or are
+replaced, without relying on retained SVG sibling order. Analysis and puzzle
+review share the same arrow helper and board stylesheet.
+
+Native lower brush/variation shapes remain in their separate layer. On upstream
+updates, check for any new custom SVG producers using the lower custom plane:
+they would share layer 3 while our engine arrows are present. Arrow geometry,
+split heads, colors, visibility settings and classification rules are unchanged.
+
+
+## Move-tree classification palette (#287)
+
+Column and inline Mute analysis trees set native annotation color variables from
+`ui/lib/src/nosweat/moveClasses.ts`, the same six-class palette used by board
+badges and the review summary. This includes variations and maps the native
+`inaccuracy` class to our Dubious (`?!`) amber. Native move text, selected
+backgrounds and hover shading consume those scoped variables, keeping native
+opacity, selection text and navigation behavior. The tree theme adds no new
+wording or classifications. Unannotated moves, upstream/unbranded trees, other
+page controls and Maia probability/quality palettes retain their existing styles.
+The same document-brand guard as the board badges applies this independently of
+engine availability, including practice views.
+
+## Arrow behavior reference (#328)
+
+The [arrow behavior feature page](../arrow-behavior.md) documents each app's current
+overlap order, Mute's retained Lichess tapering and classification-badge layering.
+The accompanying comparison captures use matching pieces and legal inputs. This
+is documentation only; it does not change either application's rendering policy.
+
+## Maia Lab (#337/#340)
+
+The **Maia Lab** action beside **Moves by Rating** opens the shared rating chart,
+Move map, candidate comparison and rule-based position descriptions. It is
+available on standalone and post-game analysis boards and in puzzle review.
+See the [Maia Lab guide](../maia-lab.md) for the current controls, metric explanations,
+browser-only evidence requirements and shared-component implementation notes.

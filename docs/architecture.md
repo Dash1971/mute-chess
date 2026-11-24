@@ -64,3 +64,20 @@ listed in [deployment](../deploy/public/README.md); development uses the separat
 ports in [native development](../deploy/lila/README.md#runtime-and-access).
 For setup and routine work, use [installation](installation.md) and
 [operations](operations.md).
+
+<details>
+<summary>Preserved earlier section URLs</summary>
+
+<a id="private-server-alpha-initial-reuse-decision"></a>
+- [Private server alpha: initial reuse decision](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/architecture.md#private-server-alpha-initial-reuse-decision)
+
+<a id="running-implementation"></a>
+- [Running implementation](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/architecture.md#running-implementation)
+
+<a id="not-shipped-in-this-increment"></a>
+- [Not shipped in this increment](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/architecture.md#not-shipped-in-this-increment)
+
+<a id="failure-boundaries"></a>
+- [Failure boundaries](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/architecture.md#failure-boundaries)
+
+</details>

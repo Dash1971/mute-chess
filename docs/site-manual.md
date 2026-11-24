@@ -261,7 +261,7 @@ no-claim rule do not gain automatic disconnect claims. See
 
 ## Community Arenas
 
-[Weekly community Arenas](arena-plan.md) use native Arena pairing, clocks, scores
+[Weekly community Arenas](arenas.md) use native Arena pairing, clocks, scores
 and results. Approved hosts can configure human-only events or managed Maia
 fillers (default saved-rating range 1400–1700, target ten active participants).
 Human entry remains unlimited. See the guide for setup and bot behavior.
@@ -294,7 +294,7 @@ The native chat writer adds the existing optional LightUser display name for bot
 
 The canonical `u` field, stored UserLine serialization, profile hrefs, ownership/mention checks, moderation and blocking remain unchanged. Names are resolved for presentation rather than written into historical chat records; this makes renamed users readable under their current name. Older clients ignore the optional field and retain their canonical labels. Anonymous player-color/system lines are untouched.
 
-No interface strings are introduced. Two actual-renderer DOM regressions verify label updates, canonical links, injection-safe text, old/empty fallback and BOT labels. The native JSON/storage regression is added to the existing CI test invocation. No merge or deployment is part of this PR preparation.
+No interface strings are introduced. Two actual-renderer DOM regressions verify label updates, canonical links, injection-safe text, old/empty fallback and BOT labels. The native JSON/storage regression is added to the existing CI test invocation.
 
 
 ## Key-copy feedback (#268)

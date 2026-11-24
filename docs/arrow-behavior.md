@@ -1,8 +1,6 @@
 # Engine arrows and classification badges
 
 This page documents the existing behavior of **Mute Chess and Mobile Maia**.
-The documentation PR changes neither app's arrows, engine logic nor badges.
-No application build, service restart or deployment is needed for these docs.
 
 The source snapshots used here are Mute Chess
 [`f1b93b9`](https://github.com/Dash1971/mute-chess/commit/f1b93b9703296ca0681cb53afa857dca9dcc1789)
@@ -155,9 +153,9 @@ These are board-renderer/surface-path fixtures, not full application navigation,
 physical-device screenshots or engine-strength tests. Mobile's headless captures
 use its actual Chessground widget and overlay painter; a temporary explicit
 Roboto font family makes unspecified badge text readable instead of test-runner
-Ahem squares. That capture-only override is absent from the PR and app source.
+Ahem squares. That capture-only override is absent from app source.
 Mute uses its actual helper, native surface selectors, board CSS, Cburnett pieces
-and badge SVGs. No executable capture framework or tests are added by this PR.
+and badge SVGs. The linked captures are retained evidence, not a new executable capture framework.
 
 [Fixture inputs](arrow-behavior/fixtures.json) ·
 [Current capture record](arrow-behavior/validation.json) ·
