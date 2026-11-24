@@ -275,7 +275,8 @@ or make the documentation clearer.
 - [Report a bug or suggest an improvement](https://github.com/Dash1971/mute-chess/issues).
 - Read about the [bot roster](docs/catalog-roster.md) and
   [help with strength calibration](https://github.com/Dash1971/mute-chess/issues/2).
-- Open a pull request, or fork the project and share what you build.
+- Read the [contributor guide](CONTRIBUTING.md), then open a pull request or share your fork.
+- [Report security vulnerabilities privately](SECURITY.md).
 - Read [how we maintain Mute Chess](docs/maintenance.md) and follow the
   [upstream maintenance policy](docs/upstream-alignment.md).
 - User-facing text must ship in all ten supported languages; see
