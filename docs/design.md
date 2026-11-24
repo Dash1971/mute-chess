@@ -18,3 +18,23 @@ The managed opponent pool contains 10,000 identities.
 
 The original exploration is historical; its fixed desktop width, 44-bot roster
 and signer-only/unrated restrictions do not describe the current site.
+
+<details>
+<summary>Preserved earlier section URLs</summary>
+
+<a id="mute-chess-the-club-in-2097"></a>
+- [Mute Chess: the club in 2097](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/design.md#mute-chess-the-club-in-2097)
+
+<a id="the-setting"></a>
+- [The setting](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/design.md#the-setting)
+
+<a id="interface"></a>
+- [Interface](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/design.md#interface)
+
+<a id="chess-foundation-and-wrapper-boundary"></a>
+- [Chess foundation and wrapper boundary](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/design.md#chess-foundation-and-wrapper-boundary)
+
+<a id="exploratory-mockup"></a>
+- [Exploratory mockup](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/design.md#exploratory-mockup)
+
+</details>

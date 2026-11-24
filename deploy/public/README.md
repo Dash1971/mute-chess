@@ -220,3 +220,14 @@ isolated fixture; it is not a command to test an existing public account.
 ## Security version inventory
 
 At release preparation, update `docs/security-inventory.json` for changed runtimes, pins or overrides, and verify it against staged jars/locks and the running services after activation. OpenClaw reads the deployed copy at `/opt/nosweatchess/current/corresponding-source/docs/security-inventory.json` together with the active `RELEASE.json`. Follow [the advisory review instructions](../../docs/security-maintenance.md); private Redis and Python environments are maintained separately from host APT.
+
+<details>
+<summary>Preserved earlier section URLs</summary>
+
+<a id="nostr-account-settings"></a>
+- [Nostr account settings](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/deploy/public/README.md#nostr-account-settings)
+
+<a id="lightning-patrons"></a>
+- [Lightning patrons](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/deploy/public/README.md#lightning-patrons)
+
+</details>

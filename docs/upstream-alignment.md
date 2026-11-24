@@ -111,3 +111,11 @@ they do not authorize new jobs or rating writes.
 - [Human-game Maia conditioning (#176)](records/upstream-integration-history.md#human-game-maia-conditioning-176)
 
 </details>
+
+<details>
+<summary>Preserved earlier section URLs</summary>
+
+<a id="explicit-one-time-external-rating-anchor-103-draft"></a>
+- [Explicit one-time external rating anchor (#103, draft)](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/upstream-alignment.md#explicit-one-time-external-rating-anchor-103-draft)
+
+</details>

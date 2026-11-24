@@ -174,3 +174,14 @@ including character homages, game references, computing pioneers, Wipeout and el
 [public bot name guide](bot-names.md). This uses the existing alias mechanism and
 preserves canonical identities, all policies and earned history. It includes 157 display aliases for existing generated-name catalog accounts.
 No canonical account identity is renamed or regenerated.
+
+<details>
+<summary>Preserved earlier section URLs</summary>
+
+<a id="the-strongest20-names"></a>
+- [The strongest20 names](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/catalog-roster.md#the-strongest20-names)
+
+<a id="legacy-public-name-follow-up-322-draft"></a>
+- [Legacy public-name follow-up (#322, draft)](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/catalog-roster.md#legacy-public-name-follow-up-322-draft)
+
+</details>

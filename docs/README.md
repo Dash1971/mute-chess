@@ -62,3 +62,32 @@ Compatibility pages remain available at old URLs but are not listed as guides.
 - [Retired prototype](../archive/node-prototype/README.md), its
   [architecture](../archive/node-prototype/architecture.md) and
   [runbook](../archive/node-prototype/operations.md).
+
+<details>
+<summary>Preserved earlier section URLs</summary>
+
+<a id="features"></a>
+- [Features](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/README.md#features)
+
+<a id="maintenance-security-and-upstream"></a>
+- [Maintenance, security and upstream](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/README.md#maintenance-security-and-upstream)
+
+<a id="design-and-decisions"></a>
+- [Design and decisions](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/README.md#design-and-decisions)
+
+<a id="implementation-notes"></a>
+- [Implementation notes](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/README.md#implementation-notes)
+
+<a id="research-and-experiments"></a>
+- [Research and experiments](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/README.md#research-and-experiments)
+
+<a id="dated-records"></a>
+- [Dated records](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/README.md#dated-records)
+
+<a id="retired-prototype"></a>
+- [Retired prototype](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/README.md#retired-prototype)
+
+<a id="additional-reference-pages"></a>
+- [Additional reference pages](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/README.md#additional-reference-pages)
+
+</details>

@@ -193,3 +193,17 @@ This feature does not recalibrate, reseed or launch another study. Bot profiles
 disclose the new rule. Analysis and puzzle-review channels continue to use their
 selected rating for both inputs, as documented in
 [site manual](site-manual.md#engine-settings).
+
+<details>
+<summary>Preserved earlier section URLs</summary>
+
+<a id="population-distribution-and-ratingcapacity-work"></a>
+- [Population distribution and rating/capacity work](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/bot-population.md#population-distribution-and-ratingcapacity-work)
+
+<a id="proposed-external-anchor-and-cross-speed-prior-update"></a>
+- [Proposed external anchor and cross-speed prior update](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/bot-population.md#proposed-external-anchor-and-cross-speed-prior-update)
+
+<a id="applied-anchor-correction--october-30-2026"></a>
+- [Applied anchor correction — October 30, 2026](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/bot-population.md#applied-anchor-correction--october-30-2026)
+
+</details>

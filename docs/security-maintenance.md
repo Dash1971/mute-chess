@@ -111,3 +111,17 @@ is supplied here.
 - [Moderator OAuth/TOTP backport (#316)](records/security-maintenance-log-2026-11-24.md#moderator-oauthtotp-backport-316)
 
 </details>
+
+<details>
+<summary>Preserved earlier section URLs</summary>
+
+<a id="required-in-the-next-application-release-fast-xml-parser-318"></a>
+- [Required in the next application release: fast-xml-parser (#318)](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/security-maintenance.md#required-in-the-next-application-release-fast-xml-parser-318)
+
+<a id="draft-arena-exposure-review-313"></a>
+- [Draft Arena exposure review (#313)](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/security-maintenance.md#draft-arena-exposure-review-313)
+
+<a id="stacked-tournamentbroadcast-backports-314-depends-on-arena-313"></a>
+- [Stacked tournament/broadcast backports (#314, depends on Arena #313)](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/security-maintenance.md#stacked-tournamentbroadcast-backports-314-depends-on-arena-313)
+
+</details>

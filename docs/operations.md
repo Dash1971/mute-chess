@@ -46,3 +46,26 @@ The release operator assembles the payload during an authorized build.
 No secrets, keys, account data or backups belong in the public source package.
 See [verified release history](releases.md) for dated release identities and
 [terminology](glossary.md) for historical names.
+
+<details>
+<summary>Preserved earlier section URLs</summary>
+
+<a id="private-development-server"></a>
+- [Private development server](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/operations.md#private-development-server)
+
+<a id="installed-layout"></a>
+- [Installed layout](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/operations.md#installed-layout)
+
+<a id="bootstrap-a-fresh-dedicated-host"></a>
+- [Bootstrap a fresh dedicated host](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/operations.md#bootstrap-a-fresh-dedicated-host)
+
+<a id="after-installing-in-a-path-readable-by-the-service-user"></a>
+- [After installing in a path readable by the service user:](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/operations.md#after-installing-in-a-path-readable-by-the-service-user)
+
+<a id="access-without-a-domain-or-cloudflare"></a>
+- [Access without a domain or Cloudflare](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/operations.md#access-without-a-domain-or-cloudflare)
+
+<a id="checks-and-tests"></a>
+- [Checks and tests](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/operations.md#checks-and-tests)
+
+</details>
