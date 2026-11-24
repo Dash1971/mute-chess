@@ -876,7 +876,7 @@
         },
         {
           "id": "friend-public-names",
-          "rationale": "Issue #259 adds profile.displayName to the existing friend-data projection and mirrors LightUser.publicName nonempty/canonical fallback. Initial Onlines adds a displayNames map keyed by canonical user ID; Enters adds a displayName field. Existing d/titleName strings, IDs, presence/playing events, BOT labels and patron color fields remain byte-compatible for older clients. No identity migration, lookup endpoint or per-friend HTTP calls. The native ten-minute friend-data cache is retained. Issue #264 puts the required string directly in Json.obj; the upstream add extension accepts only Boolean or Option values.",
+          "rationale": "Issue #259 adds profile.displayName to the existing friend-data projection and mirrors LightUser.publicName nonempty/canonical fallback. Initial Onlines adds a displayNames map keyed by canonical user ID; Enters adds a displayName field. Existing d/titleName strings, IDs, presence/playing events, BOT labels and patron color fields remain byte-compatible for older clients. No identity migration, lookup endpoint or per-friend HTTP calls. The native ten-minute friend-data cache is retained. Issue #264 puts the required string directly in Json.obj; the upstream add extension accepts only Boolean or Option values. Issue #393 also adds the existing Racer cache-marker lookup here; see racer-room-existence393 for its guard and validation.",
           "verification": [
             "Apply/reconstruct the exact pinned WS patch and Scala formatting; inspect both serialization paths. Native friends UI regressions consume both optional metadata forms. Existing automatic CI applies/checks this WS patch but does not compile/test lila-ws; no local full build or release qualification is claimed.",
             "Compile/test exact WS source before release; FriendPayloadTest checks initial/live JSON, canonical IDs/playing IDs, punctuation and missing/empty chosen-name fallback."
@@ -886,6 +886,16 @@
             "src/main/scala/Mongo.scala",
             "src/main/scala/ipc/ClientIn.scala",
             "src/test/scala/FriendPayloadTest.scala"
+          ]
+        },
+        {
+          "id": "racer-room-existence393",
+          "rationale": "Backport upstream lila-ws 257e811ea70e1f39fe9ec0d01f08caca363f1674 for GHSA-2rpf-mmrc-v68p: check the existing Mongo cache marker before Racer endpoint creation, preventing arbitrary room IDs from aliasing private rooms. The paired Lila marker commit 1f25f6ae91088627103f1e3b6da76fa78e78ff8d is already in the native upstream pin. No route exposure or access-control changes.",
+          "verification": [
+            "Compile the exact retained WS patch; existing FriendPayloadTest passes (two tests). No Racer live integration test or deployment is claimed by the draft. Before release verify missing room, valid marker, marker expiry, cache failure and unchanged normal socket authentication; retain gateway Racer denial."
+          ],
+          "files": [
+            "src/main/scala/Controller.scala"
           ]
         }
       ]
