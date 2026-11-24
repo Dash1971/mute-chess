@@ -68,6 +68,8 @@ If an earlier deployment missed this step, first verify the active commit agains
 
 ## Current evidence and open findings
 
+The [November 25 runtime maintenance](records/runtime-security-2026-11-25.md)
+records the Cloudflared/SQLite update and two already-pinned advisory fixes.
 The [November 24 evidence review](records/documentation-review-evidence-2026-11-24.md)
 identifies the observed active release and retained verification, including the
 installed translation-generation parser 5.12.0 and deployed native security fixes.

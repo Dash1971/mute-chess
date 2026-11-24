@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "release-targets",
-  "reviewedAt": "2026-11-23",
+  "reviewedAt": "2026-11-25",
   "deploymentIdentity": "Read RELEASE.json from the SAME current release. These targets are not proof of installation; compare with SECURITY279_BUILD.json and actual running versions. Recheck after every release or host/tool update.",
   "upstreamPins": {
     "lila": {
@@ -87,7 +87,8 @@
         "USN-9177-1",
         "USN-9156-1"
       ],
-      "maintenance": "APT-managed host targets. Verify installed packages, the booted kernel and both running Java services; repository pocket labels alone do not identify every security fix. Current operational verification supplies installation evidence."
+      "maintenance": "APT-managed host targets. Verify installed packages, the booted kernel and both running Java services; repository pocket labels alone do not identify every security fix. Current operational verification supplies installation evidence.",
+      "libsqlite3-0": "3.46.1-9ubuntu0.4"
     },
     "node": {
       "version": "24.22.1",
@@ -134,8 +135,8 @@
       "note": "Installed with production dependencies only; assess advisory ranges against this graph, not the retired archive/node-prototype application."
     },
     "cloudflared": {
-      "observedVersion": "2026.11.1",
-      "observedAt": "2026-11-19",
+      "observedVersion": "2026.11.2",
+      "observedAt": "2026-11-25",
       "embeddedOpenTelemetry": "1.47.0",
       "securityFix": {
         "ids": [
@@ -145,7 +146,20 @@
         "commit": "1d50650b69dd95663e6d97c8dc9cba5dd17a788c",
         "evidence": "Cloudflared 2026.11.1 upgrades OpenTelemetry SDK/trace from 1.45.0 to 1.47.0, fixing attribute-value length-limit bypass and excess memory retention. Verify embedded modules and installed/running binary hashes; a public exploit path in this deployment has not been established."
       },
-      "maintenance": "APT managed; read actual cloudflared --version, not a frozen assumption."
+      "maintenance": "APT managed; read actual cloudflared --version, not a frozen assumption.",
+      "embeddedGoModules": {
+        "golang.org/x/crypto": "v0.59.0",
+        "golang.org/x/net": "v0.62.0"
+      },
+      "goSecurityFix": {
+        "ids": [
+          "CVE-2026-78661",
+          "CVE-2026-97045",
+          "GO-2026-5932"
+        ],
+        "commit": "40553f3b6d8e0adc62c5a3c9f4f2ca41978259cc",
+        "evidence": "Cloudflared 2026.11.2 upgrades x/crypto 0.58.0 to 0.59.0 and x/net 0.61.0 to 0.62.0. Verify actual embedded modules and matching installed/running executable hashes; preserve the earlier OpenTelemetry fix."
+      }
     }
   },
   "browser": {
@@ -327,6 +341,20 @@
       ],
       "status": "mitigated-blocked-public-route",
       "evidence": "The separately pinned lila-ws is not claimed patched by the Lila commit listed in the advisory. Its Racer WebSocket endpoint is excluded by the public gateway websocketPaths allowlist. The real gateway regression attempts both Racer upgrade URL forms, asserts neither reaches upstream, and checks the supported analysis upgrade still works. Recheck on gateway or WebSocket changes; retain the raw pending advisory with the unchanged classifier."
+    },
+    {
+      "ids": [
+        "GHSA-x2f3-xq9c-mcfq"
+      ],
+      "status": "fixed-in-pinned-source",
+      "evidence": "Upstream fix 3eb8cb1fbe7532449c2d323ffe0004b26f73ffa3 is an ancestor of pinned b071608bc4ce71b31cda36ffa493100e3dc3580f. Deployed MarkdownRender.scala restricts timestamp width and catches rendering exceptions. Match the compiled MarkdownRender.class against SECURITY381_BUILD.json; no forum write or denial-of-service test is claimed."
+    },
+    {
+      "ids": [
+        "GHSA-gx5m-2j8r-9jwf"
+      ],
+      "status": "fixed-in-pinned-source",
+      "evidence": "Upstream fix 6a5a37a660524254cfb838608775ffe5ef59584a is an ancestor of pinned b071608bc4ce71b31cda36ffa493100e3dc3580f. Deployed Auth.loginWithToken renders tokenLoginConfirmation using the supplied token without renewing it. Match deployed Auth.class against the real build receipt; no valid account token is generated or exposed during verification."
     }
   ],
   "dailyReportRules": [
