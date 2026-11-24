@@ -26,10 +26,10 @@ From the repository root, with Python 3 and Node 24:
 ```sh
 python3 -m venv .venv-brand
 .venv-brand/bin/pip install -r design/quiet-signal/requirements.txt
-.venv-brand/bin/python design/quiet-signal/build.py --native-dir /path/to/patched/lila
+.venv-brand/bin/python design/quiet-signal/build.py --native-dir /path/to/lila
 npm ci --ignore-scripts --prefix design/quiet-signal
-node design/quiet-signal/render.mjs --native-dir /path/to/patched/lila
-git -C /path/to/patched/lila diff # review and commit assets in the native fork
+node design/quiet-signal/render.mjs --native-dir /path/to/lila
+git -C /path/to/lila diff # review and commit assets in the native fork
 ```
 
 Omit `--native-dir` to update only the exported design assets. The renderer creates PNG app icons, the social card, the fallback favicon and a web app manifest. Font source/license/checksums are in `../../third-party/space-grotesk/`. Sharp is a pinned development dependency only.

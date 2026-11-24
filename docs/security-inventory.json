@@ -131,7 +131,7 @@
     },
     "adapter": {
       "lock": "lila-adapter/package-lock.json",
-      "note": "Installed with production dependencies only; assess advisory ranges against this graph, not the retired root Node prototype."
+      "note": "Installed with production dependencies only; assess advisory ranges against this graph, not the retired archive/node-prototype application."
     },
     "cloudflared": {
       "observedVersion": "2026.11.1",
@@ -175,8 +175,8 @@
     "fast-xml-parser": {
       "version": "5.12.0",
       "advisory": "GHSA-474x-hrwr-fgx4",
-      "status": "fixed-version-targeted; verify actual deployment",
-      "context": "Issue #318 pins bin/package.json and the native frozen lock to fixed version5.12.0. Translation generation retains its existing options without stopNodes. These are source release targets, not evidence the live dependency is upgraded; keep the live advisory visible until actual deployed lock/version and current verification are refreshed."
+      "status": "fixed-installed-build-dependency; verified release evidence 2026-11-23",
+      "context": "Issue #318 pins bin/package.json and the native frozen lock to fixed version 5.12.0. The active bc226308e6b7c77801dc3d120b5b34872a8fa0c9 release verification records the installed translation-generation build dependency, frozen install and package/manifest/lock hashes. Read-only evidence checked on 2026-11-24; see docs/records/documentation-review-evidence-2026-11-24.md. This is build tooling, not a runtime service. Translation options remain unchanged without stopNodes. Future releases still require actual matching verification; this documentation correction does not refresh host records or suppress advisories."
     }
   },
   "knownAdvisoryDecisions": [
@@ -339,7 +339,7 @@
     "Keep unresolved items such as deepmerge visible. This inventory is not an exhaustive security audit or permission to update/restart services."
   ],
   "outOfScopeSources": {
-    "retiredRootPrototype": "Root package.json/pnpm-lock.yaml describe the stopped Node prototype; do not conflate with the active native service.",
+    "retiredRootPrototype": "archive/node-prototype/package.json and archive/node-prototype/pnpm-lock.yaml describe the stopped Node prototype; do not conflate with the active native service.",
     "fullNativeBrowserLock": "current/lila/pnpm-lock.yaml",
     "allJVMArtifacts": "current/lila/lib and current/ws/lib",
     "pythonInstalled": "/opt/nosweatchess/venv/bin/python -m pip list --format=json",

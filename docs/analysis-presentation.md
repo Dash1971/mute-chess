@@ -48,7 +48,7 @@ lichess-org/chess-openings `4b8622759e7ae6f93f011cc6c83a3823401ab45e`.
 `OPENINGS_CC0.txt` accompanies the generated table. Reproduce it with:
 
 ```
-python3 analysis/prepare-openings.py /path/to/mobile-maia/assets/openings/lichess_openings.tsv /path/to/patched-lila
+python3 analysis/prepare-openings.py /path/to/mobile-maia/assets/openings/lichess_openings.tsv /path/to/lila
 ```
 
 The table loads once from this site's own static assets. It adds no external

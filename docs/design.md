@@ -1,57 +1,20 @@
-# Mute Chess: the club in 2097
+# Mute Chess design
 
-The public name is **Mute Chess** and the domain is `mutechess.org`.
-The repository is `Dash1971/mute-chess`, renamed on 29 October 2026 after the
-owner authorized publication. The local rebrand checkout is `mute-chess`. The
-domain cutover requires a separate deployment.
-Infrastructure names, system users, database names, browser identity stores and
-deployed paths retain their current names for compatibility with existing data.
+Mute Chess uses the **Quiet Signal** design: an interrupted knight, graphite and
+chalk surfaces, mint accents and a moss-colored board. The cyberpunk setting
+supports a readable chess interface on desktop and mobile browsers.
 
-## The setting
+The native Lichess layout and interactions remain the foundation. Branding does
+not replace chess rules, clocks, analysis controls or accessibility behavior.
+Nostr sign-in supports generated/saved keys and browser signers. Anonymous games
+are casual; signed-in accounts can play rated games and invite human friends.
+The managed opponent pool contains 10,000 identities.
 
-In the fictional year 2097, ubiquitous neural implants offer Stockfish 99 at 4750
-Elo. A group of nonchippers create the Mute Chess Club to preserve imperfect
-human chess by playing bots trained on games from the before times, 2023.
+- [Quiet Signal artwork, licenses and reproduction](../design/quiet-signal/README.md)
+- [Design verification](../design/quiet-signal/VERIFICATION.md)
+- [Analysis presentation](analysis-presentation.md)
+- [Feature and site manual](site-manual.md)
+- [Original club-in-2097 exploration](records/design-2026-10-29.md)
 
-**Stay human. Play bots.**
-
-The club chooses an early-1990s desktop/browser aesthetic as a refuge from its
-present. Nostalgia, belonging, and relief from constant optimization matter more
-than futuristic spectacle. Keep the alienation in the story; make the club warm.
-
-## Interface
-
-- The homepage is the actual chess room. Board, clocks, new-game controls,
-  scoresheet, and history come before promotional content.
-- A fixed desktop composition, around 1136 pixels wide. No mobile application or
-  mobile-specific chess layout. Narrow windows show a desktop notice and retain
-  horizontal scrolling; no device fingerprinting or user-agent blocking.
-- Warm paper, putty-gray UI chrome, forest-green title bars, a muted green board.
-- Restrained serif headings, ordinary system controls, monospace status labels,
-  fine rules, and subtle beveled borders. No fake operating-system chrome,
-  animated scan lines, autoplay sounds, fake chat, or fabricated activity counts.
-- House rules and a pinned notice give the club a human voice. Club fiction is
-  clearly separated from current technical capabilities.
-- Original branding only. No racing-game names, graphics, fonts, or assets.
-  Chessground's existing Cburnett pieces retain their upstream attribution.
-
-The real alpha uses Maia3, has uncalibrated bots, requires a NIP-07 browser signer,
-and is unrated. The 2023-only dataset, neural chips, Stockfish 99, and Elo 4750 are
-fictional, not model or service claims. No real-time chat or human opponents.
-
-## Chess foundation and wrapper boundary
-
-The confirmed architecture uses Lichess/Lila for all supported chess play and
-analysis. This design controls the surrounding club layout and branding. It
-preserves Lichess chess interaction, clocks, navigation and analysis behavior;
-the analysis additions are specified in [the foundation decision](chess-foundation.md).
-
-## Exploratory mockup
-
-![Exploratory desktop chess-room mockup](homepage-mockup.png)
-
-This is a design proposal, not a deployed Lichess release. Its illustrative
-opponent and controls do not replace the confirmed 44-name roster in issue #1,
-prove ratings, or establish that analysis features are implemented. Prototype
-and preview code remain separate work in progress; this documentation publication
-does not publish or deploy that code.
+The original exploration is historical; its fixed desktop width, 44-bot roster
+and signer-only/unrated restrictions do not describe the current site.

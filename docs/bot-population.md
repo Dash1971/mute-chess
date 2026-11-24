@@ -78,53 +78,25 @@ Lichess publishes separate [Bullet](https://lichess.org/stat/rating/distribution
 
 ## Speed-specific priors
 
-The roster already has distinct initial Blitz and Rapid ratings, based on the October 28, 2026 Lichess Maia3 reference snapshot rounded to 50-point seeds, followed by the existing sampling-profile adjustments. Forty of the 44 identities have different initial Blitz and Rapid values. Examples from the Full sampling profile:
+The [current catalog policy](catalog-roster.md#other-time-controls) distinguishes
+measured Blitz/Rapid references from inferred Bullet/Classical priors.
+UltraBullet uses a Blitz proxy and Correspondence a Rapid proxy; neither is
+validated cross-speed calibration. Existing earned ratings and histories are
+preserved, and native Glicko continues updating them after games.
 
-| Bot | Initial Blitz | Initial Rapid |
-| --- | ---: | ---: |
-| Pixel Moth | 900 | 950 |
-| Cobalt Mist | 1300 | 1250 |
-| Neon Rook | 1500 | 1650 |
-| Ghost Relay | 1800 | 1700 |
+For the original 44 bots, the owner-approved one-time −75 anchor correction and
+unplayed Bullet/Classical priors were applied on October 30, 2026. Earned Bullet
+results were preserved with the common translation. Unplayed priors use the
+conditioning-matched historical reference differences, with broad uncertainty
+where reference evidence is weak. The operation is complete and must not run
+again. See the [exact before/after table and receipt](data/rating-anchor-applied-2026-10-30/README.md)
+and [historical methodology](records/bot-rating-adjustment.md).
 
-These are original configuration seeds; earned live ratings can differ. Core initial RD is 200, while the experimental upper settings use 300 or the larger source RD. Native initialization never resets existing earned ratings.
-
-Bullet currently inherits the initial Blitz prior, and Classical inherits the initial Rapid prior. These are temporary starting estimates, **not yet observed cross-speed transfers**. UltraBullet also inherits Blitz and Correspondence inherits Rapid; neither should be silently equated to the later Bullet/Classical calibration.
-
-The planned next step is to use the same Maia3 reference accounts' observed speed differences to seed Bullet/Classical after the Blitz/Rapid trial:
-
-```text
-Bullet prior    ≈ calibrated Blitz + reference(Bullet − Blitz)
-Classical prior ≈ calibrated Rapid + reference(Classical − Rapid)
-```
-
-Use differences from the matching model/conditioning family and nearby supported strength bands, with uncertainty for sampling/history/timing differences. A single universal offset is not assumed. The [dated reference data](data/lichess-maia-speed-reference-2026-10-28.json) preserves ratings, RD, game counts and provisional status for all eleven Maia3-79M accounts. For the 600–2000 reference accounts, observed Bullet-minus-Blitz differences range from +247 to +514, and Classical-minus-Rapid from +23 to +304. Sparse/provisional upper accounts cannot support equally confident transfers. These are historical observations, not current account ratings or measurements of our exact deployment policies.
-
-Cross-speed transfers remain provisional priors with separate uncertainty; do not copy an established Blitz/Rapid RD into an unvalidated speed or alter native provisional rules. Refresh the source data when implementing the mapping, then validate Bullet (including 1+0 timing) and Classical through actual games and human/reference evidence. No speed-mapping or live-rating changes are made by this documentation update.
-
-Maia's current move selector has no clock input or time-dependent search. With added waits disabled, Blitz and Rapid self-play can therefore have very similar relative-strength evidence when clocks do not decide games. The external speed-specific priors remain important because human opposition differs across the Lichess pools. Do not expect a closed bot pool alone to reproduce all of those human-facing differences.
-
-Public profiles link here for methodology. Historical game policy details retain their own version; a current profile describes the current policy.
-
-## Proposed external anchor and cross-speed prior update
-
-[#103](https://github.com/Dash1971/mute-chess/issues/103) prepares a **draft-only**
-one-time −75 earned-rating translation and matched Bullet/Classical priors.
-[Scope, dated references, before/after preview and recovery procedure](records/bot-rating-adjustment.md)
-are public for review. Nothing is applied by merging/deploying the source;
-original seeds, histories and native Glicko remain intact. Publish a non-secret
-completion receipt and actual before/after table here after any separately
-approved execution rather than presenting this draft as completed calibration.
-
-
-## Applied anchor correction — October 30, 2026
-
-The owner-approved one-time −75 correction and unplayed Bullet/Classical priors
-were applied to the existing 44 bots. Native Glicko continues unchanged from the
-corrected stored ratings; original seeds and past game/history ratings remain
-historical values. [Exact before/after table, reference data and verification
-receipt](data/rating-anchor-applied-2026-10-30/README.md). This operation started
-no new calibration games.
+Original roster seeds are historical inputs, not today's stored ratings. Model
+conditioning is not measured human Elo. Bot self-play does not establish an
+absolute Lichess rating scale; human/reference validation remains necessary.
+Public profiles describe current policies, while historical games retain their
+frozen policy versions.
 
 ## Continuous experiment and Easter egg identities (#137/#92)
 

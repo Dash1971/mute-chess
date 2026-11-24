@@ -4,18 +4,16 @@ Owner decision, October 29, 2026 (#55/#56). The visible flow is Nostr login,
 choose a time control, play Maia, browse games on your profile, and analyze.
 Keep the native quick-pair grid and Custom dialog. Pair directly through the
 existing bot pool; no lobby listing, opponent picker, invented availability or
-fake activity. Anonymous games remain casual. Keep Puzzles, Community, Tools (analysis, editor, PGN
-import), Donate, profile and settings in the header. Hide Play, Learn and Watch menus,
-notification icons, updates, daily puzzles, events and
-tournament promotions. Previously enabled native features remain accessible by
-their URLs; this decision supersedes their prominent navigation treatment.
+fake activity. Anonymous games remain casual. Keep Puzzles, Community, Tools, Donate, profile and settings. Play includes
+Arena tournaments, and Learn is limited to Chess basics and Practice. Approved
+public host Arenas can appear in the native homepage spotlight. Watch and
+unsupported feeds remain hidden. See the [site manual](site-manual.md) for the
+current navigation and [Arena guide](arena-plan.md) for event discovery.
 
-Moves by Rating belongs on the analysis board: a fixed 0–100% chart of the leading
-three raw Maia policies across 600–2600 at 100-point intervals. Hold opponent
-conditioning fixed. Reuse bounded browser inference/cache; invalidate data on
-position/history/opponent/model changes and cancel stale sampling. Expand the
-probability table for exact values. The native analysis toggle is the only on/off
-control; remove the extra Pause button and the explanatory boilerplate.
+Moves by Rating belongs on the analysis board and uses the audited candidate
+union and adaptive scale in [the source guide](maia-rating-chart.md). It retains
+raw Maia probabilities, bounded browser inference and cancellation on context
+changes. [Maia Lab](maia-lab.md) offers the expanded comparison view.
 
 The donation page needs a visible close link to the home grid, concise copy and
 properly spaced form/QR/actions. Payment matching, invoices and receipt validation

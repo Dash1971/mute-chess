@@ -176,8 +176,9 @@ Drain games before planned restarts. At application startup, unfinished managed
 Maia games are voided with `application_restart`; an unplanned restart therefore
 does not resume those games. Never fabricate results or reset game records.
 Inspect `journalctl -u nosweatchess-app` and the other units; HTTP request logging
-is disabled. The public source archive includes exact upstream trees and our
-patches, with build instructions and licenses, but no accounts, keys or backups.
+is disabled. The public source archive includes the exact native fork and Mute Git trees,
+remaining small patches, build instructions and licenses, but no accounts,
+keys or backups.
 
 The deployed shared cap is twenty Maia-driven games. [Background activity](../../docs/public-bot-activity.md) fills up to five total games, counting human games, and stops creating new games during owner Arenas or maintenance pauses. Human-versus-human games retain native admission and pause checks without using Maia inference slots. Anonymous games are casual; Nostr accounts start at native provisional 1500 and use Glicko. Automatic pairing stays within ±200. The [10,000-bot catalog](../../docs/catalog-roster.md) preserves existing earned ratings/history and documents measured versus reference-derived starting priors. No rerating or new research games are authorized by this guide.
 
@@ -185,11 +186,11 @@ The deployed shared cap is twenty Maia-driven games. [Background activity](../..
 
 Run `python3 deploy/lila/prepare-analysis.py /path/to/lila` from the verified main checkout before the full UI/native build. It copies `analysis/browser` and verifies both Maia model exports plus ORT Wasm against the checked-in pins. Keep these generated downloads out of native Git. The release payload must include `analysis/`; the installer compares every built browser asset against the main source/download pins before activation, and distributes the analysis sources/references with corresponding source.
 
-Stacked premoves are enabled by default in standard live rounds with native premoves enabled. As requested by the owner, feedback is confined to projected pieces and square tints; no enabled label, count, move strip or Clear button is added. Board menu offers native single premoves. The projected board never changes committed state. Escape and right-click cancel the queue; server reload/takeback, socket close/open, game end and leaving the page discard it. Promotion choices are retained per queued move; execution requires current server legal destinations.
-
-Post-game and standalone analysis retain the native Lichess tree, chart, accuracy, ACPL, judgments, review controls and on-device Analysis editor. Maia model/rating/history preferences live in Analysis Menu → Settings. Two native SF choices and the top move of each independently rated Maia channel share the board; agreement uses one composite arrow, and Maia widths never taper with likelihood. The left candidate panel exposes raw probabilities, bounded missing-candidate SF searches, native preview/return and optional rating samples. Each Maia line also shows its current-position expected score (win + half draw) for the side to move, independently of Stockfish evaluation and game accuracy.
-
-The native evaluation graph adds small persistent circles for its existing quality glyphs, using the Mobile Maia/En Croissant classification colors. Native blunder/mistake/inaccuracy semantics are unchanged. After the native review is saved, an optional worker checks material sacrifices and uses separate bounded, complete two-PV Stockfish searches plus stronger whole-window confirmation before adding an automatic `!!`. Existing imported quality annotations and native negative judgments take precedence. Cancellation, hidden pages and a changed mainline stop this pass while retaining the completed native analysis. Confirmed annotations are saved with the native browser review; no custom full-game dashboard or replacement accuracy formula is exposed. A partial/failed check never fabricates a brilliant. The dated capacity/calibration records are historical evidence, not authorization to run more games.
+For user-facing behavior, see the [site manual](../../docs/site-manual.md),
+[analysis settings](../../docs/analysis-presentation.md),
+[arrows](../../docs/arrow-behavior.md) and
+[Brilliant detection](../../docs/brilliant-moves.md). These are the maintained
+feature descriptions; this deployment guide does not define a separate policy.
 
 ## Native puzzles
 

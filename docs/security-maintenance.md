@@ -1,8 +1,13 @@
 # Security versions and advisory review
 
+Dated entries describe their stated release or maintenance operation. They do
+not override the latest [verified release evidence](records/documentation-review-evidence-2026-11-24.md)
+or authorize another operation. Source targets and verified deployments are
+distinct; issue closure alone proves neither installation nor runtime safety.
+
 ## November 23 chat and structured-data fixes (#381)
 
-The release target backports Lichess commits
+The deployed November 23 release backports Lichess commits
 `fb5dcea873881c84909bd4aceb8d0f516e6f3454` (GHSA-m2c6-9p38-6473)
 and `1aa437dc5ae7983aad537cb7ead0c69ce381352b` (GHSA-gj2c-24vm-2v39)
 with `cherry-pick -x` provenance. Ordinary local room moderation cannot emit
@@ -40,13 +45,13 @@ supporting streamer endpoint also remain blocked.
 
 ## November 21 OS security maintenance (#355)
 
-Apply the pending Ubuntu packages through the existing weekly-update procedure,
+The November 21 OS update completed as recorded in [PR #356](https://github.com/Dash1971/mute-chess/pull/356). Apply later Ubuntu updates through the existing weekly-update procedure,
 which drains all games before a required reboot and reopens admissions after
 healthy startup. The kernel target is 7.0.0-44.44 (running 7.0.0-44-generic),
 covered by USN-9166-1 even though its APT candidate is labelled updates rather
 than security. PyJWT's system package target is 2.10.1-4ubuntu1.4 for
 CVE-2026-102269 / USN-9177-1; it is absent from the application's Python venv.
-OpenJDK21.0.13.1 was already installed automatically on November20 for
+OpenJDK 21.0.13.1 was already installed automatically on November 20 for
 USN-9156-1. Confirm both running Java services use that patched runtime.
 
 GHSA-f5v5-272f-4q4f is already fixed in the unchanged Lila pin: upstream commit
@@ -69,26 +74,22 @@ enabled. Correcting the optional opening requests is a separate bounded
 follow-up; no limit increase, warning suppression or monitoring redesign is
 part of this maintenance.
 
-## Required in the next application release: fast-xml-parser (#318)
+## Verified translation-parser upgrade (#318)
 
-The native fork pins bin/package.json and the frozen pnpm-lock.yaml to
-fast-xml-parser 5.12.0, the fixed release for GHSA-474x-hrwr-fgx4 /
-CVE-2026-126066. Only its required parser dependency subtree changes. Retain the
-existing translation generator and options; no stopNodes option is introduced.
-Bundle this fix with the next planned application deployment, rather than a
-separate outage. The checked-in inventory describes the proposed release target;
-the live version remains affected until that release is actually deployed.
+The native fork pins `bin/package.json` and the frozen lock to fast-xml-parser
+5.12.0, fixing GHSA-474x-hrwr-fgx4 / CVE-2026-126066. The upgrade retains existing
+translation options without `stopNodes`; PR #344 records identical parsed content
+across 460 XML files and byte-identical generated Scala keys.
 
-Before merging, verify the frozen install, native translation generation and UI
-build. Compare generated Scala keys and parsed source/translated XML against
-5.11.1 for all ten supported locales. At deployment, inspect the actual native
-lock and installed bin dependency, preserve real build receipts and refresh
-SECURITY_VERIFICATION.json plus the identical SECURITY279_BUILD.json reader.
-Update OpenClaw's reviewed inventory only after deployment/runtime verification,
-and require inventory_verified=true with a fresh host collection and advisory
-scan. The previous fast-xml-parser match should disappear because the installed
-version is fixed; do not suppress it or alter classifier predicates. Keep any
-other unresolved or newly applicable advisory visible.
+The November 23 deployed release verification records the installed 5.12.0 build
+dependency, frozen install and package/manifest/lock hashes. Those records were
+read again on November 24; see the
+[release evidence](records/documentation-review-evidence-2026-11-24.md).
+This is translation-generation tooling, not a running application service.
+The old instruction to wait for a future deployment is superseded. Each later
+release still requires its own actual build/runtime verification; issue closure
+alone is not deployment evidence. This documentation update does not modify the
+host's reviewed inventory, classifier or advisory decisions.
 
 ## November 19 runtime maintenance (#342)
 
@@ -118,17 +119,17 @@ reset is part of this work. Fast-xml-parser #318 remains pending for the next
 application build. Node PR67069 is a tracing feature, not a vulnerability fix;
 its keyword match may remain visible until separately recorded by the reviewer.
 
-The maintained release targets are [security-inventory.json](security-inventory.json). Read the actual active `/opt/nosweatchess/current/RELEASE.json` first, then `/opt/nosweatchess/current/corresponding-source/docs/security-inventory.json`. This follows the active release automatically. The original November5 `SECURITY279_BUILD.json` is historical build evidence. Every later deployment must supply current-release verification as described below; the review date alone is not evidence of freshness.
+The maintained release targets are [security-inventory.json](security-inventory.json). Read the actual active `/opt/nosweatchess/current/RELEASE.json` first, then `/opt/nosweatchess/current/corresponding-source/docs/security-inventory.json`. This follows the active release automatically. The original November 5 `SECURITY279_BUILD.json` is historical build evidence. Every later deployment must supply current-release verification as described below; the review date alone is not evidence of freshness.
 
 OpenClaw can read these files using its existing authorized host access as part of its existing daily report. No extra scanner, scheduler or broader access is introduced. Compare advisory affected ranges with the actual runtime versions, upstream pins **and local patches**, and label browser, service-runtime and build/installation-tooling findings separately. Do not report upstream security keyword matches, resolved advisories or CI-only changes as new server vulnerabilities. Do report inventory drift and unresolved applicability rather than guessing.
 
 ## November 5 maintenance (#279)
 
-Lila retains its exact upstream revision while dependency overrides select jsoup1.23.2, Guava33.7.2-jre and Jakarta Mail1.6.8. The #365 candidate aligns Lila Netty at4.2.21.Final; the separately pinned WebSocket component retains4.2.19.Final. Jackson2.18.11 alignment remains. Inventory targets describe each component separately; verify the actual staged/runtime jars at release time. The native browser/build lock selects patched DOMPurify, Undici, YAML, source-map, URI, UUID and glob packages. Toast UI embeds DOMPurify2.3.3 in its ESM distribution: its existing package patch now imports DOMPurify3.4.17, rather than relying on an ineffective transitive override alone. Security and ordinary-content tests exercise the actual editor viewer.
+Lila retains its exact upstream revision while dependency overrides select jsoup 1.23.2, Guava 33.7.2-jre and Jakarta Mail 1.6.8. The #365 candidate aligns Lila Netty at 4.2.21.Final; the separately pinned WebSocket component retains 4.2.19.Final. Jackson 2.18.11 alignment remains. Inventory targets describe each component separately; verify the actual staged/runtime jars at release time. The native browser/build lock selects patched DOMPurify, Undici, YAML, source-map, URI, UUID and glob packages. Toast UI embeds DOMPurify 2.3.3 in its ESM distribution: its existing package patch now imports DOMPurify 3.4.17, rather than relying on an ineffective transitive override alone. Security and ordinary-content tests exercise the actual editor viewer.
 
-Redis is updated from the private Ubuntu8.0.5 extraction to upstream8.2.11 with the exact upstream Lua metadata fix `e4eb89782d70c26b07a29b956472004cb8a78b80` applied. This is deliberate:8.0.6's older general error-reply fix is not evidence that this later metadata-parsing fix is present. The source tarball and backport have pinned hashes in the inventory. Build with `build-essential` and `libssl-dev`, `make -j2 BUILD_TLS=yes`, without optional modules. The existing host preparation script applies the same patch. Keep the current loopback service/configuration and data unchanged; normal APT upgrades do not update this private binary. The app Python environment uses pip26.2.0.
+Redis is updated from the private Ubuntu 8.0.5 extraction to upstream 8.2.11 with the exact upstream Lua metadata fix `e4eb89782d70c26b07a29b956472004cb8a78b80` applied. This is deliberate:8.0.6's older general error-reply fix is not evidence that this later metadata-parsing fix is present. The source tarball and backport have pinned hashes in the inventory. Build with `build-essential` and `libssl-dev`, `make -j2 BUILD_TLS=yes`, without optional modules. The existing host preparation script applies the same patch. Keep the current loopback service/configuration and data unchanged; normal APT upgrades do not update this private binary. The app Python environment uses pip 26.2.0.
 
-The two reported Lichess fixes are already ancestors of our upstream pin. Three MongoDB notices stop at versions below8.0.34; two concern other release branches. These decisions are recorded with exact IDs and must be revisited if pins or deployment change. The deepmerge4.3.1 advisory remains visible: no fixed release was listed, and inspected Shepherd tour options are code-defined. An affected package version with no demonstrated input path is not a clean bill of health.
+The two reported Lichess fixes are already ancestors of our upstream pin. Three MongoDB notices stop at versions below 8.0.34; two concern other release branches. These decisions are recorded with exact IDs and must be revisited if pins or deployment change. The deepmerge 4.3.1 advisory remains visible: no fixed release was listed, and inspected Shepherd tour options are code-defined. An affected package version with no demonstrated input path is not a clean bill of health.
 
 ## At each release or private runtime update
 
@@ -152,7 +153,7 @@ migration authorizes no other predicate, advisory, scheduler or monitor change.
 
 ## Every deployment completion check
 
-Owner policy, November7,2026: refreshing security verification is required for **every** deployment, including UI/styles-only changes and unchanged dependency graphs. The deployment operator owns this step alongside the normal build, cutover and health checks. The release is not complete until the existing daily-report classifier returns `inventory_verified: true` for a fresh collection of the active release.
+Owner policy, November 7,2026: refreshing security verification is required for **every** deployment, including UI/styles-only changes and unchanged dependency graphs. The deployment operator owns this step alongside the normal build, cutover and health checks. The release is not complete until the existing daily-report classifier returns `inventory_verified: true` for a fresh collection of the active release.
 
 Before maintenance, commit and merge every live acceptance check. No check is
 added or changed during the window. Write down each expected old-release result
@@ -188,35 +189,36 @@ If an earlier deployment missed this step, first verify the active commit agains
 
 ## November 11 maintenance (#307)
 
-MongoDB's private runtime moves from8.0.34 to8.0.38 on the same release branch. Vendor8.0.37 fixes the newly reviewed8.0 advisories;8.0.38 is its packaging follow-up. Preserve the existing standalone data directory and loopback/UID isolation. The MongoDB9.0-only notices remain not applicable to8.0.
+MongoDB's private runtime moves from 8.0.34 to 8.0.38 on the same release branch. Vendor 8.0.37 fixes the newly reviewed 8.0 advisories; 8.0.38 is its packaging follow-up. Preserve the existing standalone data directory and loopback/UID isolation. The MongoDB9.0-only notices remain not applicable to 8.0.
 
-At that release the Lila pin was unchanged and a local backport carried upstream34830b8316fea29a93c6b797236f79203ad021e8 for GHSA-2cpx-9573-5pwp: HTML-escape the original Markdown when parsing raises StackOverflowError. Since the 23 November 2026 upstream merge (#365), this fix comes from upstream itself. The native Markdown suite includes a long reference-link regression that exercises this fallback. No new user-facing strings.
+At that release the Lila pin was unchanged and a local backport carried upstream 34830b8316fea29a93c6b797236f79203ad021e8 for GHSA-2cpx-9573-5pwp: HTML-escape the original Markdown when parsing raises StackOverflowError. Since the 23 November 2026 upstream merge (#365), this fix comes from upstream itself. The native Markdown suite includes a long reference-link regression that exercises this fallback. No new user-facing strings.
 
-Keep deepmerge unresolved. fast-xml-parser5.11.1 remains an affected version in translation-generation tooling, but the inspected invocation does not enable the required stopNodes option. Do not silently classify these as patched. Refresh actual runtime checks/current-release evidence and the reviewed reference inventory after deployment. Classifier changes require the owner's separately scoped approval; preserve fail-closed identity checks and schedules.
+Keep deepmerge unresolved. fast-xml-parser 5.11.1 remains an affected version in translation-generation tooling, but the inspected invocation does not enable the required stopNodes option. Do not silently classify these as patched. Refresh actual runtime checks/current-release evidence and the reviewed reference inventory after deployment. Classifier changes require the owner's separately scoped approval; preserve fail-closed identity checks and schedules.
 
 
 ## November 13 maintenance (#309)
 
 Backport upstream e71a2964ec3b3c6da7fa7c4ec6b53de53bba4326 (GHSA-2236-pwjw-m8m4) on the unchanged Lila pin. Chapter configuration loads the study and chapter together, enforces native CanView for both config and divisionOnly, and retains the pinned controller's native unauthorized/forbidden continuations. Validate with a temporary isolated HTTP fixture: public config allowed; anonymous private config and division refused; missing fixture refused. Remove the test fixture afterward. No new user-facing strings.
 
-Cloudflared moves from2026.10.7 to2026.11.0 through the existing APT repository. Record the actual installed and running version/hash with the fresh current-release security verification. Keep tunnel credentials, units and isolation unchanged.
+Cloudflared moves from 2026.10.7 to 2026.11.0 through the existing APT repository. Record the actual installed and running version/hash with the fresh current-release security verification. Keep tunnel credentials, units and isolation unchanged.
 
 The moderator-token, tournament and broadcast advisories remain visible. The current gateway blocks their public attack paths; that is not a source-level fix or permission to enable those routes without review. The two existing low-severity dependency findings also remain visible. No classifier predicate or schedule changes are part of this release.
 
 
-## Draft Arena exposure review (#313)
+## Arena exposure and subsequent visibility fix (#313/#314)
 
-GHSA-hr3c-7vww-ffrj concerns the anonymous tournament API games/results/teams exports, which bypass class-team visibility. The draft exposes only owner-hosted native web Arenas, keeps `WithVisibleTournament` on event reads/actions, and retains gateway denial of all `/api/tournament` paths and team-battle management. Executable gateway regressions cover those three read endpoints. The advisory remains `public-path-blocked-not-patched`; this is not a backport or a claim that the underlying API is fixed. Moderator-token and broadcast exposure is unchanged. No release or monitor baseline is changed by this draft.
+The original Arena exposure review retained gateway denial of tournament API
+exports. The subsequent #314 backport routes games/results/teams exports through
+the existing tournament visibility guard, including Mute's owner-event gate.
+The broadcast backport validates source addresses using upstream's production
+exclusions. Neither change opens a public API route or claims comprehensive
+DNS-rebinding protection; existing containment remains required.
 
-
-## Stacked tournament/broadcast backports (#314, depends on Arena #313)
-
-Source targets only; this PR is not deployed. Backport upstream8f583aaf9db9fe32aebdbe460a789dd5630f17f6 for GHSA-hr3c-7vww-ffrj and3cf8d5c524ebac6eb71d392bf45f4113128b8bdb for GHSA-582f-w2m6-pr6m on the same Lila pin. All tournament export routes now enter the existing Tournament visibility guard, including the Arena owner-event restriction. Because this pin predates upstream's game-export relocation, Api retains only a package-private renderer called after that guard, preserving native PGN flags, content type and throttling. Gateway exposure and the hidden bulk-export UI remain exactly as in #313.
-
-Broadcast validation resolves the destination before applying upstream's production address exclusions. Reuse the existing generic Invalid source URL message and omit the upstream debug URL print; no new user-facing strings. This is the reviewed upstream advisory backport, not an assertion of comprehensive DNS-rebinding or redirect protection. Existing network containment remains required.
-
-Merge Arena #313 first, then this follow-up, and deploy the final verified main once using the existing release procedure. Refresh the actual active release/build/native-patch/inventory evidence for OpenClaw, preserve historical receipts and confirm inventory_verified=true. Do not copy this source-target inventory into the live reviewed reference or claim deployment before that verification. The moderator-token advisory GHSA-5gjj-x225-jrr3 and the two existing low-severity dependency findings remain visible. No report predicates, schedules, deployment frameworks or live configuration change in this PR.
-
+The active November 23 release verification records
+`tournamentExportVisibilityVerified` and `relayAddressValidationVerified` as true.
+See the [read-only evidence review](records/documentation-review-evidence-2026-11-24.md).
+The old draft/source-target status is superseded. Gateway mitigation and source
+fixes remain distinct, and later releases must verify their actual artifacts.
 
 ## Moderator OAuth/TOTP backport (#316)
 

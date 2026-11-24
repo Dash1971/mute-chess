@@ -26,7 +26,7 @@ moves in those games were used to fit the model.
 
 Both rows use the same engine output: the **Stockfish 19 1MB Fast review
 snapshots** archived by the Mute Selective study for these games. Mute Exchange
-was run through this patch's `classify()` on those saved windows.
+was run through the native worker's `classify()` on those saved windows.
 
 | Classifier | Brilliants found (of 416) | False vs gallery | False by Chess.com's review today as well |
 | --- | ---: | ---: | ---: |
@@ -147,7 +147,7 @@ Anthropic Claude assistance.
 ## Previous classifier: Mute Selective (v5)
 
 The remainder of this page records the classifier that Mute Exchange replaced.
-Its code and model remain in the patch as the `mute-brilliant-v5` policy.
+Its code and model remain in the native fork as the `mute-brilliant-v5` policy.
 
 For **Mute Selective**, we trained a small model on chess moves labeled by
 Chess.com and combined it with basic soundness and legal-piece-offer checks.
