@@ -354,7 +354,7 @@
         "GHSA-gx5m-2j8r-9jwf"
       ],
       "status": "fixed-in-pinned-source",
-      "evidence": "Upstream fix 6a5a37a660524254cfb838608775ffe5ef59584a is an ancestor of pinned b071608bc4ce71b31cda36ffa493100e3dc3580f. Deployed Auth.loginWithToken renders tokenLoginConfirmation using the supplied token without renewing it. Match deployed Auth.class against the real build receipt; no valid account token is generated or exposed during verification."
+      "evidence": "Upstream fix 6a5a37a660524254cfb838608775ffe5ef59584a is an ancestor of pinned b071608bc4ce71b31cda36ffa493100e3dc3580f. Deployed Auth.loginWithToken renders tokenLoginConfirmation using the supplied token without renewing it. Verify deployed Auth bytecode against this source and record its observed class fingerprint alongside the unchanged full-build receipt; no valid account token is generated or exposed during verification."
     }
   ],
   "dailyReportRules": [
