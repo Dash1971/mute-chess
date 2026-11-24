@@ -1,4 +1,6 @@
-# Release order
+# Public native deployment
+
+## Release order
 
 For a first local installation, start with the [installation guide](../../docs/installation.md). This document describes the existing host-specific public deployment.
 
@@ -22,10 +24,10 @@ Use the existing host-monitor planned-maintenance wrapper for the cutover and de
 
 Run the existing OpenClaw collector/classifier against the active release and confirm `inventory_verified` is true before declaring deployment complete. A changed application revision requires fresh verification even when all security versions are unchanged; changed security inputs require an inventory/applicability update too. Do not alter report predicates, schedules or unrelated intrusion-monitor baselines to make this check pass. Keep original build provenance and unresolved advisories truthful.
 
-# Public native deployment
+## Runtime and payload
 
 The native Maia/Nostr application is deployed publicly at `mutechess.org`. See
-[the rebrand notes](../../docs/mute-chess-rebrand.md) for the cutover history.
+[the rebrand notes](../../docs/records/mute-chess-rebrand-2026-10-29.md) for the cutover history.
 This is a separate runtime from the private development stack and the retired
 Node prototype. Codex assisted implementation and automated verification; no
 human manual acceptance or upstream contribution is claimed.
@@ -180,7 +182,8 @@ is disabled. The public source archive includes the exact native fork and Mute G
 remaining small patches, build instructions and licenses, but no accounts,
 keys or backups.
 
-The deployed shared cap is twenty Maia-driven games. [Background activity](../../docs/public-bot-activity.md) fills up to five total games, counting human games, and stops creating new games during owner Arenas or maintenance pauses. Human-versus-human games retain native admission and pause checks without using Maia inference slots. Anonymous games are casual; Nostr accounts start at native provisional 1500 and use Glicko. Automatic pairing stays within ±200. The [10,000-bot catalog](../../docs/catalog-roster.md) preserves existing earned ratings/history and documents measured versus reference-derived starting priors. No rerating or new research games are authorized by this guide.
+For product behavior and current capacity, see the [site manual](../../docs/site-manual.md)
+and [bot activity guide](../../docs/public-bot-activity.md).
 
 ## Browser analysis assets
 
@@ -207,18 +210,12 @@ The native web training, theme, history and difficulty routes are exposed;
 unrelated mobile-batch, coordinate and embedded-frame surfaces remain outside
 the public boundary. Review assistance remains gated until solving has ended.
 
-## Nostr account settings
+## Feature references
 
-Edit profile includes an optional public name, editable after signup. Canonical handles and Nostr identities stay stable. The native header, profile links and game-player views display the public name while using the handle for navigation.
-
-`/club/security` enrolls or disables authenticator 2FA with a fresh action-bound Nostr signature. Login requires a second factor whenever native TOTP is present. Authenticator counters and hashed recovery codes are consumed atomically; five factor attempts are permitted per account per minute. Enrollment/disable revoke existing sessions and establish a new current session. The browser generates the setup secret locally, displays a local QR/manual key, then submits the signed secret and authenticator confirmation. Recovery codes appear once and require the Nostr key to use.
-
-Native session management is available at `/account/security`; password/email and API-token management remain unavailable. Run `node lila-adapter/test/account-security.mjs` against the isolated private stack for disposable-account qualification; `ACCOUNT_TEST_ORIGIN` selects a different origin. The script never uses an existing account and prints no keys, secrets, cookies or recovery codes.
-
-## Lightning patrons
-
-The header Donate link uses the owner-confirmed Wallet of Satoshi address and official Mute Chess npub. Signed-in donors can choose sats/USD and generate a NIP-57 invoice for native patron wings after a verified receipt; anonymous direct LNURL support remains available. The adapter has narrowly scoped provider HTTPS/DNS egress. See [the payment flow, settlement checks and qualification](../../docs/lightning-patrons.md). No private wallet or recipient signing key is deployed.
-
+[Nostr account behavior](../../docs/nostr-sign-in-backup.md) and
+[Lightning support](../../docs/lightning-patrons.md) are maintained in their
+feature guides. The private account-security regression requires an explicitly
+isolated fixture; it is not a command to test an existing public account.
 
 ## Security version inventory
 

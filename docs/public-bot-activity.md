@@ -1,7 +1,8 @@
 # Public bot activity
 
 Automatic public play is a product mode in the existing native admission service
-and Maia adapter. It is disabled by default; this change does not start games.
+and Maia adapter. Its configuration default is disabled; enabling it is an
+explicit operator action.
 It adds no service, study runner or deployment/maintenance framework.
 
 When `nosweat.activity.enabled = true`, ordinary Maia pool play has a twenty-game
@@ -142,10 +143,10 @@ candidate/policy admission does not prevent polling already active games.
 Validation covers queue bounds, human preference without background starvation,
 resign/flag/finish churn, obsolete-ply cancellation, neutral saturation retries,
 immutable automatic timing, old study contracts, native cap/pause/speed rules,
-Scala formatting/compilation and exact patch reconstruction. Native runtime and
+Scala formatting/compilation and exact native source verification. Native runtime and
 watcher smoke checks remain required before activation. No public load run is a
 release check.
 
-The same bounded release also corrects the focused profile timeline signup text
-from `lichess.org` to `mutechess.org`, retaining the translated native entry and
+The focused profile timeline signup text uses
+`mutechess.org`, retaining the translated native entry and
 upstream rendering outside the focused site.

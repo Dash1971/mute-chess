@@ -38,7 +38,7 @@ The original 44 profiles retain their named sampling settings: Full (temperature
 
 The original sampling increments and the exact Mobile Maia measurements are compared in [the sampling-reference audit](records/sampling-reference-audit.md). The historical reference-as-Full assumption remains recorded; #100 tracks the owner-confirmed p95 reference baseline. Earned perfs are never reset to that estimate.
 
-The new `personality` object is stored in the roster. [`assignedPersonality`](../lila-adapter/personality.mjs) reproducibly assigns it using SHA-256 of `mute-pool-personality-v1:<bot-id>:<field>`. Independent field labels select history on/off (50/50), timing on/off (50/50), and one of five equally weighted timing styles. These are assignment probabilities, not quotas: the 44-account sample has 20 history-on and 27 timing-on accounts. Future generators must preserve existing assignments rather than reroll them. No inference is needed to create an identity.
+The `personality` object is stored in the roster. [`assignedPersonality`](../lila-adapter/personality.mjs) reproducibly assigns it using SHA-256 of `mute-pool-personality-v1:<bot-id>:<field>`. Independent field labels select history on/off (50/50), timing on/off (50/50), and one of five equally weighted timing styles. These are assignment probabilities, not quotas: the 44-account sample has 20 history-on and 27 timing-on accounts. Future generators must preserve existing assignments rather than reroll them. No inference is needed to create an identity.
 
 The older descriptive `history_policy` and `timing_policy` fields remain unchanged solely to reproduce version-2 hashes and frozen games. For version-3 games, the explicit `personality.history` and `personality.humanTiming` values take precedence; the legacy prose does not control those games.
 
@@ -60,7 +60,10 @@ Total targets are capped at 3 seconds for 1+0, 4.5 seconds for 2+1 / 3+0 / 3+2, 
 
 Move sampling gets its own fresh per-game seed. Timing randomness and assignment hashes never consume the move sampler's random stream. Each game freezes the model hash, policy version and personality settings. Previously frozen version-2 games still use their original per-game history choice and version-2 timing; adding personality fields does not invalidate them.
 
-For the initial Blitz/Rapid experiment in #73, the owner has chosen **no added human-timing waits**. Retain native clocks, actual inference/queue time, sampling settings and history. Record this as a separately versioned study policy/override, rather than presenting the games as unchanged production timing policies. The production roster's stored timing switches/styles stay intact. This speeds the baseline and gives a useful engine-capacity workload; a later production-like timing check and 1+0 Bullet validation can follow. The separately gated study override is implemented in #80 and defaults off; see [the trial methodology](records/native-bot-trial.md).
+Historical Blitz/Rapid trials disabled added human-timing waits under a separately
+versioned study policy, preserving native clocks and inference/queue time. That
+completed experiment does not change stored production timing preferences or
+authorize another run. See the [trial record](records/native-bot-trial.md).
 
 ## Presence and matching
 
@@ -70,11 +73,16 @@ The pool keeps a derived, in-memory index of native ratings by speed and rating 
 
 The index is not another rating system or persistent rating authority. Restart rebuilds it from native records. Existing seed-version markers prevent resetting earned ratings. Idle identities do not allocate their own engine processes; the shared worker and global game limit are unchanged.
 
-## Population distribution and rating/capacity work
+## Population distribution and completed research
 
-Lichess publishes separate [Bullet](https://lichess.org/stat/rating/distribution/bullet), [Blitz](https://lichess.org/stat/rating/distribution/blitz) and [Rapid](https://lichess.org/stat/rating/distribution/rapid) weekly distributions. The eventual roster generator should target these separately, document finite-roster rounding and unsupported strength ranges, and publish dated source frequencies. A model conditioning number must not be substituted for measured strength to force a desired histogram.
-
-[#73](https://github.com/Dash1971/mute-chess/issues/73) tracks the owner-authorized bounded trial of the existing **44 public bots**. Its real native games update public perfs and remain in game histories. Preserve earned ratings; original priors initialize only absent accounts and disposable qualification data. Ten appearances per bot in each of Blitz and Rapid would mean **440 games total**; the first batch is limited to 100 admitted games / 90 minutes, ramping to ten concurrent games as approved. See [the exact budget, safeguards and interpretation](records/native-bot-trial.md). Self-play needs external anchors for Lichess-scale alignment; native provisional status and uncertainty remain honest.
+The current generator uses archived Lichess Blitz/Rapid distributions and measured
+policy references, as explained in [catalog methodology](catalog-roster.md).
+Conditioning input is not substituted for measured strength to force a histogram.
+The original #73 trial completed 400 rated games; its budgets and earlier 44-bot
+cohort are [historical evidence](records/native-bot-trial.md), not the current
+population or authorization for further games. Native earned ratings and public
+game histories remain intact. Human-facing Lichess alignment still needs external
+reference validation; a closed bot pool alone does not establish that scale.
 
 ## Speed-specific priors
 

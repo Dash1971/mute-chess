@@ -90,6 +90,21 @@ communication/product prose while retaining native locale identifiers.
   existing-classifier `inventory_verified=true`. No report predicate/schedule
   changes. Follow [security maintenance](docs/security-maintenance.md).
 
+## Documentation maintenance
+
+Keep living guides focused on current behavior and standing procedures. During
+PR review, remove temporary phrases such as "this PR" and move dated validation,
+experiments and superseded decisions to `docs/records/` or their existing evidence
+location. Preserve original receipts and immutable records. Repoint internal
+links and retain compatibility pages/heading anchors for published URLs.
+
+A merge proves source integration, not deployment. Clearly label unreleased
+behavior and use actual matching release/runtime evidence before calling a fix
+deployed. Do not remove a legitimate pending-deployment statement merely because
+its PR merged. Update current wording after verified activation, and retain the
+dated evidence separately. Documentation work does not authorize a release or
+new maintenance/check tooling.
+
 ## Historical owner instructions
 
 Every section from the former long AGENTS.md is retained, with relative links

@@ -1,197 +1,98 @@
 # Focused Mute Chess experience
 
-Owner decision, October 29, 2026 (#55/#56). The visible flow is Nostr login,
-choose a time control, play Maia, browse games on your profile, and analyze.
-Keep the native quick-pair grid and Custom dialog. Pair directly through the
-existing bot pool; no lobby listing, opponent picker, invented availability or
-fake activity. Anonymous games remain casual. Keep Puzzles, Community, Tools, Donate, profile and settings. Play includes
-Arena tournaments, and Learn is limited to Chess basics and Practice. Approved
-public host Arenas can appear in the native homepage spotlight. Watch and
-unsupported feeds remain hidden. See the [site manual](site-manual.md) for the
-current navigation and [Arena guide](arena-plan.md) for event discovery.
+Quick pairing and Custom Play assign a Maia opponent through the existing native
+pool, without a public human lobby or manual bot chooser. Anonymous games are
+casual; signed-in Nostr accounts can play rated games with native Glicko behavior.
+The pool contains 10,000 persistent identities and shares a twenty-game Maia cap.
+See the [site manual](site-manual.md) and [catalog](catalog-roster.md).
 
-Moves by Rating belongs on the analysis board and uses the audited candidate
-union and adaptive scale in [the source guide](maia-rating-chart.md). It retains
-raw Maia probabilities, bounded browser inference and cancellation on context
-changes. [Maia Lab](maia-lab.md) offers the expanded comparison view.
+## Navigation and homepage
 
-The donation page needs a visible close link to the home grid, concise copy and
-properly spaced form/QR/actions. Payment matching, invoices and receipt validation
-are unchanged. Signed-in humans can post in the forum immediately (#81), with
-native category permissions, moderation and anti-spam controls.
+Play includes Arena tournaments. Learn is limited to Chess basics and Practice;
+Puzzles, Community, Tools, Donate, profile and settings retain their supported
+functions. Approved public host Arenas use native discovery and the homepage
+spotlight. Watch, the opening explorer and unsupported feeds remain hidden.
 
-The footer offers About, FAQ, Contact, Terms and Privacy, plus actual source and
-social links. The owner explicitly chose the official Nostr identity as the contact
-channel, without email, corporate identity or chosen jurisdiction. Do not invent
-those details or present this copy as jurisdiction-specific legal advice/review.
-Document actual data storage and third-party services without fabricated retention
-periods, deletion guarantees or organization claims from Lichess. Remove Mobile App
-and Block ads links. The opening explorer remains deferred (#42).
+The homepage keeps native quick-pair controls and live online/game counters.
+Finished-game New opponent returns through the native homepage pool route;
+pairing starts after lobby initialization and uses the native game-start sound.
+Header search and hide-on-scroll behavior remain native. Public-name search
+retains bounded results, escaping, rate limits and canonical profile URLs.
 
-The owner's final correction (#57) retains native Friends, follow/block controls,
-and the challenge dropdown. Signed-in players can invite one another to standard
-chess through profiles/hovercards. These invitations use native challenge ownership,
-preferences, blocks, round/clock/rating/history logic, not the Maia admission queue.
-Reject anonymous/open challenges, self challenges, variant challenges and manually
-selected bot opponents. Native API-token/challenge endpoints remain unavailable.
-The quick-pair grid and Custom Play stay bot-only; no public human matchmaking.
-The compact profile menu retains profile editing, game export and Friends, without
-advertising the deferred opening explorer or unsupported inbox/gifting features.
+## Identity and sign-in
 
+Nostr keys provide stable identity. Create a key and play, saved-key return,
+existing-key import and browser signers use the same verified account. Back up
+private keys locally; no `nsec` belongs in a public profile or search request.
+Second-factor input follows verified signed-login state and cannot reveal an
+unverified account's security settings. See [sign-in and backup](nostr-sign-in-backup.md).
 
-Nostr sign-in starts with Create a key and play. Show the masked nsec backup with
-Copy/Show controls, explain saving it in a password manager, then save locally and
-play. Retain existing-nsec import, the saved-key return path and a secondary NIP-07
-signer button/recommendation. Do not show 2FA until a verified signed login reports
-`two_factor_required`; a generic error must not reveal account security state. Each
-retry signs a fresh challenge bound to the code, and local keys are saved only
-after successful authentication. Clear pending key copies/codes on account switch
-and page exit. Existing identities remain stable and do not become new accounts
-when their nsec or signer is used again. See #59.
+Chosen public names are editable and case-insensitively unique under the native
+reservation rules. Permanent canonical IDs, stored keys, ratings and histories
+do not change. Human profiles/hovercards link the public npub; bot accounts retain
+native BOT labels and have no Nostr identity. Chat, statistics and game metadata
+render public names as escaped presentation while keeping canonical IDs for
+links, ownership and stored history.
 
-## October 31 header corrections (#122/#124)
+## Friends and invitations
 
-Restore native header search for finding friends. Keep the native autocomplete,
-profile navigation and invitation behavior; quick pairing stays Maia-only. The
-Mute Chess header opts into an enabled-account public-name/handle prefix query,
-limited to ten results. Terms are 2–30 characters, with controls rejected and
-regex punctuation escaped; Unicode and spaces in public names are supported.
-The native NoTor boundary remains. Labels use escaped display names while links
-keep canonical handles. Native autocomplete elsewhere is unchanged.
+Signed-in humans can follow/block and challenge other humans through native
+profiles and hovercards. Native ownership, preferences, blocks, clocks and rating
+rules remain authoritative. Anonymous/open challenges, self/variant challenges,
+manual bot opponents and public API tokens remain unavailable.
 
-Search being absent must skip only CLI setup, not the later native scroll
-listener. Restore native hide-on-down/reveal-on-up behavior rather than styling
-a permanently pinned header.
+Friend routes and challenge room updates pass through the existing gateway
+allowlist and authentication. Online-friend labels show public names while
+presence keys, counts and links remain canonical; old payloads retain safe
+fallback. Existing cached friend metadata can take up to ten minutes to refresh.
+A follow does not force presence or add a new per-friend polling service.
 
-## Native live counters (#181)
+## Analysis, community and footer
 
-The focused homepage retains the original Lichess players-online and
-games-in-progress counters below quick pairing. They use the existing native
-socket updates and number spreaders, with no separate counting or polling.
-The removed lobby buttons and homepage feeds remain hidden.
+[Analysis](analysis-presentation.md) preserves native review and adds Maia,
+stacked premoves, [Brilliant detection](brilliant-moves.md) and
+[Maia Lab](maia-lab.md). Forum posting is available immediately to signed-in
+humans, with native moderation, permissions and anti-spam controls.
 
-## New opponent pool bootstrap (#196)
+The footer offers About, FAQ, Contact, Terms, Privacy, source and social links.
+Public questions use the forum; vulnerabilities use [private GitHub reporting](../SECURITY.md).
+Official Nostr contact remains available for sensitive account/privacy/payment
+matters. Do not invent an email, company, jurisdiction or legal guarantees.
+[Donate](lightning-patrons.md) retains explicit invoice and verified receipt flows.
 
-Retain Lichess's finished-game New opponent link to the homepage `#pool` route.
-Mute's automatic Maia join previously called its immediate redraw from inside
-the lobby constructor, before native `main()` initialized its Snabbdom VNodes.
-That threw `Cannot access appVNode before initialization` before `/club/play`
-was sent; the selected pool could remain on its spinner after the hash was
-consumed. Starting from the now-playing tab could fail even earlier in `setTab`.
+## Maintained boundaries
 
-Queue the existing Maia hash-join callback as a microtask, so the constructor and
-initial native render complete first. This adds no intentional wait or page,
-retains native navigation and leaves human pool timing, manual pool clicks,
-server pairing, capacity, clocks, ratings and game completion unchanged. The
-regression runs the real controller, initial Snabbdom render and pool view for
-signed-in, anonymous and initially-now-playing cases, then verifies the existing
-request and redirect. No public games are created by these tests.
+Keep native rules, clocks, game completion, ratings, identities and anti-abuse
+behavior. Unsupported links use the translated native notice; hidden upstream
+implementation need not be deleted. All new or changed UI text uses the ten
+native catalogs. [Implementation history](records/focused-play-history.md)
+retains detailed hooks and regression evidence without making old approvals new.
 
-## Native Maia game-start sound (#206)
+<details>
+<summary>Historical section links</summary>
 
-Successful Maia pairing now passes the same sound flag to `site.redirect` as
-Lichess's native lobby socket redirect. The original Maia adapter omitted it.
-Quick pairing, the native New opponent homepage flow and Custom Play all reuse
-this call. Native themes, volume, autoplay checks and the existing one-second
-sound timeout remain unchanged; pairing requests, clocks and ratings are intact.
-The real lobby regression covers signed-in, anonymous, initially-now-playing and
-custom-clock entry, verifying the existing request and the sound-enabled redirect.
+<a id="october-31-header-corrections-122124"></a>
+- [October 31 header corrections (#122/#124)](records/focused-play-history.md#october-31-header-corrections-122124)
 
-## Public names in native game metadata (#210)
+<a id="native-live-counters-181"></a>
+- [Native live counters (#181)](records/focused-play-history.md#native-live-counters-181)
 
-The native game-player label helper now renders `LightUser.publicName`, as the
-other native user helpers already do. This resolves the analysis-side metadata
-card showing a Nostr-derived account username after a public name is chosen.
-Existing display-name fallback and Scalatags escaping apply; profile URLs still
-use the canonical username. No game snapshots, IDs, ratings or histories change.
+<a id="new-opponent-pool-bootstrap-196"></a>
+- [New opponent pool bootstrap (#196)](records/focused-play-history.md#new-opponent-pool-bootstrap-196)
 
-## Nostr as the public human identity (#212)
+<a id="native-maia-game-start-sound-206"></a>
+- [Native Maia game-start sound (#206)](records/focused-play-history.md#native-maia-game-start-sound-206)
 
-The owner subsequently chose editable, case-insensitively unique public names
-(#217), superseding the earlier duplicate-name policy. The permanent public identity is the npub.
-Human profiles retain their existing name/internal-ID header and add the full
-public npub as subtle text: ordinary activation copies the npub, while its
-permanent `/@/npub…` href retains native copy-link and modified-click behavior (#216).
-A small inline `Copied` status appears only after successful copying and clears
-after 900 ms; its reserved space avoids shifting the npub (#223). Native
-hovercards also show a compact npub link with the full key in its accessible
-label, so identity stays visible beside a chosen display name. Bots remain
-native named accounts with their BOT label; they receive no Nostr keys.
+<a id="public-names-in-native-game-metadata-210"></a>
+- [Public names in native game metadata (#210)](records/focused-play-history.md#public-names-in-native-game-metadata-210)
 
-The profile link validates NIP-19 checksum/type and resolves the existing stored
-public key through its existing unique index, then redirects to the native
-profile. No account is created by lookup. Closed accounts and unknown keys are
-not exposed. Header search accepts full npub and NIP-21 `nostr:npub…` input;
-ordinary display-name/canonical-account search remains unchanged. Frontend search
-blocks nsec-prefixed input locally, including partial private keys, while server public lookup rejects private
-keys, invalid checksums and other entity types. Native account IDs, URLs, perfs,
-sessions, game histories and Nostr sign-in remain unchanged. No cooldown is introduced.
+<a id="nostr-as-the-public-human-identity-212"></a>
+- [Nostr as the public human identity (#212)](records/focused-play-history.md#nostr-as-the-public-human-identity-212)
 
-Names reserve a normalized NFKC/trim/lowercase key alongside the canonical
-account ID. A unique multikey index on `user4.nameKeys` arbitrates simultaneous
-claims; profile and keys update atomically in the same document. Renaming or
-clearing a name releases its former chosen key and retains the canonical key.
-Bot aliases and canonical names are reserved too. Account creation and native
-deletion tombstones retain their canonical reservation. Conflicts return a
-native profile-form error without saving the rejected profile.
+<a id="native-friend-and-challenge-routing-253"></a>
+- [Native friend and challenge routing (#253)](records/focused-play-history.md#native-friend-and-challenge-routing-253)
 
-For the existing population, `deploy/public/reserve-usernames.js` audits all
-claims before writing and backfills only this derived field, then creates the
-unique index. Run it with admissions paused and the native app stopped as part
-of the existing release cutover, before the new app starts. It does not rename
-users or modify keys, perfs, histories or games. The pre-release read-only audit
-found no collisions across all 10,026 accounts. Preserve the index and derived
-keys on subsequent releases; an old app that does not maintain these keys must
-not be used for ordinary profile writes after rollback without resolving that
-specific compatibility issue.
+<a id="online-friend-public-names-259"></a>
+- [Online-friend public names (#259)](records/focused-play-history.md#online-friend-public-names-259)
 
-References: [NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md)
-defines public-key encoding and hex storage; [NIP-21](https://github.com/nostr-protocol/nips/blob/master/21.md)
-defines the public `nostr:` URI. Existing known vectors plus checksum, padding,
-case/type negatives, search validation and header routing tests cover this adapter.
-
-
-## Native friend and challenge routing (#253)
-
-The public gateway forwards native `POST /api/rel/{follow,unfollow,block,unblock}/:user`
-as well as the existing legacy `/rel/` aliases. The native UI uses the API paths;
-blocking them prevented follow records from being saved and left the online-friends
-count at zero. The same stable account identifiers, authentication, preferences,
-blocks and native rate limits remain authoritative. The online count continues to
-mean connected followed accounts; a follow does not force presence.
-
-Direct challenge pages use `/challenge/:id/socket/v5` for room reload events after
-cancel/decline/accept. That exact room socket family is now included in the gateway
-allowlist. The existing native page can receive its canceled state rather than
-waiting indefinitely with its AJAX loader. Foreign origins, malformed IDs and
-unrelated paths remain denied; no socket port or service exposure changes.
-
-Focused handler tests use mocked HTTP transports without binding ports or changing
-live relations/challenges. No native game, challenge ownership or friendship
-semantics are replaced. This correction is PR-only until separately released.
-
-
-## Online-friend public names (#259)
-
-The WebSocket friend-data reader now loads the existing optional
-`profile.displayName` and applies the same nonempty public-name/canonical-name
-fallback as `LightUser.publicName`. The initial `following_onlines` message
-carries a separate `displayNames` map keyed by canonical account ID; live
-`following_enters` carries `displayName`. Existing `d` title/name strings and
-presence/playing IDs remain canonical. Older clients ignore the additive fields,
-and the updated UI falls back to the native name when metadata is absent/empty.
-
-Friend labels use the existing HTML escape helper. Public names with spaces,
-punctuation or HTML-like text cannot change links or presence identity. Native
-profile/TV links, BOT titles and aliases, patron colors, counts and leave/playing
-updates remain intact. No new copy, endpoint, per-friend lookup or account writes
-are introduced. The existing WS friend-data cache lifetime (up to ten minutes)
-is unchanged; this does not add immediate name-change push notifications.
-
-Focused DOM regressions exercise initial/enter events, renames, escaping, old
-payloads and canonical presence/link behavior. The existing automatic CI checks
-native UI tests/types and applies the exact WS patch; it does not compile
-lila-ws. No local full native/UI build, release build, merge or deployment is
-part of this PR.
-
-Issue #264 corrects the live-enter JSON builder: the required display-name string belongs in native `Json.obj`, because the upstream `add` helper accepts only booleans/options. Two WS payload regressions retain canonical identity/playing IDs, chosen-name metadata and empty/missing-name fallback. The exact patched WS source is compiled and tested before the release retry.
+</details>

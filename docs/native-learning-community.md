@@ -17,7 +17,7 @@ models and controllers, with standard chess only; no replacement chess applicati
   and study search are hidden until a search backend is configured. Blog, coaches,
   teams and other unsupported navigation entries are removed. Approved owner-hosted
   Arenas are available through Play → Arena tournaments; see the
-  [Arena guide](arena-plan.md).
+  [Arena guide](arenas.md).
 - The footer links to the native forum for questions and feedback. The owner
   removed the external Flotilla link on November 4, 2026 (#240). Private Nostr
   contact remains available for sensitive account, privacy, payment or security matters.
