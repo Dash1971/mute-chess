@@ -86,8 +86,9 @@ the change and how to check it after a merge. Our checks fail if a file
 differs from Lichess and is not on the list.
 
 The fewer files we change, the easier each merge is. Shrinking that list is
-ongoing work: see
-[issue 366](https://github.com/Dash1971/mute-chess/issues/366).
+a standing goal. The first extraction in
+[issue #366](https://github.com/Dash1971/mute-chess/issues/366) is complete; future
+reductions need their own reviewed scope.
 
 ## Security fixes
 

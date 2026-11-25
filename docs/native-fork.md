@@ -1,10 +1,10 @@
 # Native source in the Lila fork
 
-[Architecture proposal #362](https://github.com/Dash1971/mute-chess/issues/362)
-and [phase 1 #363](https://github.com/Dash1971/mute-chess/issues/363) moved our
-native application changes from an opaque patch into normal Git history in
-[Dash1971/lila](https://github.com/Dash1971/lila). Product behavior and the
-[upstream policy](upstream-alignment.md) stay the same.
+Native application source lives in [Dash1971/lila](https://github.com/Dash1971/lila),
+with the exact fork commit and upstream base selected by Mute's native pin.
+The [upstream policy](upstream-alignment.md) defines the maintained departures;
+[implementation history](records/docs398-native-fork-history.md) retains the
+completed move from patch snapshots into ordinary Git history.
 
 ## Source and review
 
@@ -27,7 +27,7 @@ The fork improves three-way merging and review; conflicts still need human
 decisions. `cherry-pick -x` records a fix's source, rather than guaranteeing a
 conflict-free later merge. Upstream changes remain separate reviewed work.
 
-## Pinned builds and releases (#364)
+## Pinned builds and releases
 
 The pin contains exactly `repository`, `commit` and `upstreamBase`, with full
 commit SHAs. Build directly from that fork commit. Current release metadata,
@@ -36,7 +36,7 @@ with `nativeCommit` and `nativeTree`. The reviewed security inventory records
 the fork repository/commit/tree alongside the original upstream base and
 unchanged backport decisions.
 
-Builds now check out the pinned fork with `native-fork.py checkout`, rather than
+Builds check out the pinned fork with `native-fork.py checkout`, rather than
 applying the large patch. `native-fork.py verify` requires that exact HEAD and
 rejects tracked, staged or untracked source changes. Git-ignored native build
 output remains governed by upstream's ignore rules. The only additional allowed
@@ -65,7 +65,7 @@ missing identities fail. The collector already carries complete metadata and
 needs no code change. All other classifier predicates, advisory decisions,
 schedules, control hashes and isolation remain unchanged.
 
-The #366 catalog extraction stages `public/nosweat-roster.json` and
+Release assembly stages `public/nosweat-roster.json` and
 `public/nosweat-bot-aliases.json` from the adapter into the assembled release,
 after native source verification. They are runtime data, not native Git source.
 The installer uses `lila-adapter/stage-catalog.mjs` and verifies both outputs
@@ -76,70 +76,27 @@ generated files after stopping the fixture stack before verifying source again.
 
 `nativeTree` is the fork commit's complete Git tree, including the approved CI
 file; application equality retains the single metadata exception described below.
-For this bootstrap those identities are fork tree
-`4e5bf5bb963f86c50451e03590f17eb9d3603658` and application tree
-`35f172f31e25747cd4c5370e0950c404f0be1632`.
-
-The departure inventory now reads the pinned base-to-fork Git diff, excluding
+The departure inventory reads the pinned base-to-fork Git diff, excluding
 only the approved workflow, while retaining every exact application path and
 rationale. The footer source package includes `git archive` output of the fork,
 the matching Mute main tree, and the retained small patches. Historical releases keep
 all original receipts. Git history retains the bootstrap compatibility
 artifact; current builds and release verification use the fork identity.
 
-### Staged migration evidence
+## Metadata and historical migration
 
-The November 23, 2026 migration used a compatibility release (Release A) with
-both identities, followed by Release B using native commit/tree identity only.
-The active release checked on November 24 contains `nativeCommit` and
-`nativeTree`, with no retired patch identity. Its matching security verification
-is recorded in the [documentation review evidence](records/documentation-review-evidence-2026-11-24.md).
-Historical receipts remain unchanged. The
-[identity-only classifier diff](data/native-fork-phase2-2026-11-23/identity.diff)
-records the bounded external change; its collector remained unchanged. The
-normal runtime, monitor and security verification requirements still apply to
-all subsequent releases.
+Only `.github/workflows/mute.yml` is excluded from the application-departure
+inventory as approved metadata; it remains part of the complete `nativeTree`.
+Other workflow paths are not exempt. Review the exception if upstream gains the
+same path. The fork keeps native UI/Scala checks, and its pinned Mute companion
+supplies integration fixtures rather than overwriting native source.
 
-## One explicit metadata exception
+The completed migration and 107 imported snapshots are retained in
+[bootstrap history](records/docs398-native-fork-history.md#bootstrap-evidence),
+with the original commit/tree/checksum mapping and compatibility-release evidence.
+They are historical provenance, not a current release hold.
 
-The owner approved adding `.github/workflows/mute.yml` while preserving every
-application file. A repository containing that extra file necessarily has a
-different overall Git tree hash. For application equality, remove **only that
-path from a temporary Git index**, then compare the resulting tree hash with
-the original application tree. The departure inventory omits exactly that test file;
-other `.github` files remain part of the comparison. Review the exception if a future upstream base owns the same path.
-
-The fork workflow retains the existing native UI and Scala checks. Its pinned
-Mute companion snapshot supplies the adapter roster and puzzle validator; it
-does not supply or overwrite native source. Update that companion reference
-through review when the integration fixtures change. Inherited upstream
-workflows are disabled through repository Actions settings, preserving their
-files for upstream merges.
-
-## Bootstrap evidence
-
-The import replays all **107** first-parent commits on Mute `main` that changed
-the native patch, through `910c329fc79286162797e5908a57b2b3b3e97984`.
-Every snapshot used upstream base
-`b551752d2a0e7a63459d9812825d95a633a98737`; no upstream merge was needed.
-All 107 patches applied, with **zero skipped or folded snapshots**. Each imported
-commit preserves its original author, author date, committer, committer date and
-message, with a `Mute-Chess-Commit: <sha>` trailer for the original Mute commit.
-
-The last imported application commit is
-`752d6a9161368be8cfab44d0bb40a68e542bc498`. Its tree is exactly
-`35f172f31e25747cd4c5370e0950c404f0be1632`, independently matching the original
-pinned Lila plus the patch. The subsequent bootstrap commit adds only the
-approved test file. The phase-1 exported artifact retained SHA-256
-`916d236030f7ec0467fe27b90485d0d8a8c73bcc2d7cd302d8e32cb1e7cbe2a5`.
-
-The [snapshot mapping](data/native-fork-phase1-2026-11-23.json) records every
-original/imported commit, tree and patch checksum. This is snapshot-level history,
-not a claim that mixed changes within old PRs were split into new feature commits.
-No current upstream merge, semantic refactor, data extraction, engine build or
-live release is part of this bootstrap.
-
-## Small rendering hooks (#366)
+## Small rendering hooks
 
 The focused navigation, profile actions, homepage and Mute organization metadata
 live in NoSweat-owned renderers. Upstream entry points delegate to them in Mute
@@ -148,7 +105,7 @@ not change their active markup, labels, routes, translations or preferences.
 This limits future upstream conflicts to the entry hooks; independent Mute
 renderers still need comparison when upstream behavior changes.
 
-## Reviewed feature boundary (#366)
+## Reviewed feature boundary
 
 `conf/noSweatFeatures.json` in the native fork lists reviewed method, path and
 native action triples. In Mute mode the existing HTTP request handler rejects
@@ -165,3 +122,26 @@ stale entries and disagreement. The gateway module is staged beside the gateway
 by the existing installer. These source checks are not runtime or browser-test
 evidence. Existing controller-level authentication, Arena owner checks and
 admission rules remain authoritative; the allowlist grants no permission itself.
+
+<details>
+<summary>Historical section links</summary>
+
+<a id="pinned-builds-and-releases-364"></a>
+- [Pinned builds and releases (#364)](records/docs398-native-fork-history.md#pinned-builds-and-releases-364)
+
+<a id="staged-migration-evidence"></a>
+- [Staged migration evidence](records/docs398-native-fork-history.md#staged-migration-evidence)
+
+<a id="one-explicit-metadata-exception"></a>
+- [One explicit metadata exception](records/docs398-native-fork-history.md#one-explicit-metadata-exception)
+
+<a id="bootstrap-evidence"></a>
+- [Bootstrap evidence](records/docs398-native-fork-history.md#bootstrap-evidence)
+
+<a id="small-rendering-hooks-366"></a>
+- [Small rendering hooks (#366)](records/docs398-native-fork-history.md#small-rendering-hooks-366)
+
+<a id="reviewed-feature-boundary-366"></a>
+- [Reviewed feature boundary (#366)](records/docs398-native-fork-history.md#reviewed-feature-boundary-366)
+
+</details>

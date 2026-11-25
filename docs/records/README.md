@@ -35,3 +35,27 @@ existing citations and relative links:
 - [23 November trial merge](../upstream-merge-2026-11-23.md)
 - [23 November integrated merge](../upstream-integration-2026-11-23.md)
 - [Frozen datasets](../data/)
+
+## November 25 follow-up
+
+- [Runtime-security maintenance record](runtime-security-2026-11-25.md) and
+  [reported completion result](runtime-security-completion-2026-11-25.md).
+- [Documentation follow-up evidence](documentation-follow-up-2026-11-25.md).
+- Guide snapshots: [renderer](docs398-gif-renderer-history.md),
+  [analysis export](docs398-analysis-export-history.md),
+  [Lightning/QR investigation](docs398-lightning-patrons-history.md),
+  [Nostr sign-in](docs398-nostr-sign-in-backup-history.md),
+  [chat/languages/flairs](docs398-native-chat-languages-flairs-history.md),
+  [Maia Lab](docs398-maia-lab-history.md),
+  [Moves by Rating](docs398-maia-rating-chart-history.md),
+  [bot population](docs398-bot-population-history.md),
+  [public activity](docs398-public-bot-activity-history.md),
+  [native fork](docs398-native-fork-history.md) and
+  [account presentation](docs398-site-manual-implementation-history.md) and
+  [real-time feature validation](docs398-real-time-feature-surface-history.md).
+
+Accepted scope decisions from #389/#390: retain the upstream Lila README;
+identify the fork through repository metadata and Mute's source guides instead
+of adding a README departure solely for branding. Keep old stub links inside
+immutable `docs/decisions/` and `docs/data/` records unchanged; their compatibility
+pages remain available while the current index links directly to real guides.

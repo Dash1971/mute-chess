@@ -48,8 +48,8 @@ THIRD_PARTY.md, the complete `third-party` directory and deployment scripts.
 Include the pinned renderer artifact at `PAYLOAD/gif-renderer`, with official
 source, exact moss-theme overlay and verified build receipt described in
 [gif-renderer.md](gif-renderer.md). Keep the renderer build receipt with the matching release.
-Renderer build and installation follow the owner's current release authorization;
-this guide does not lift any active hold. The October 31 study restriction remains
+Renderer changes follow the current release authorization and verification
+procedure. The completed October 31 study restriction is historical, as
 recorded in the [dated owner decision](../../docs/decisions/analysis-and-learning.md#native-analysis-board-export-and-initial-import-october-31-2026).
 Include `design/quiet-signal` and `design/logo-explorations/final` (excluding
 `node_modules` and Python environments). The installer checks for the brand sources

@@ -2,6 +2,10 @@ Describe the problem, resulting behavior and linked issue.
 
 Validation: list relevant automated checks and distinguish automated browser checks from human testing.
 
+Documentation:
+
+- [ ] Update affected living guides; distinguish merged source from verified deployment. After actual activation, update `docs/releases.md` with matching release evidence. Documentation-only changes require no application deployment.
+
 Upstream alignment:
 
 - [ ] The change stays within the requested scope and uses native behavior wherever possible.

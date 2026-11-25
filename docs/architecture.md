@@ -13,7 +13,7 @@ flowchart LR
   Tunnel --> Gateway[Loopback gateway]
   Gateway --> Lila[Native Lila HTTP]
   Gateway --> WS[lila-ws]
-  Gateway --> GIF[Image and GIF renderer]
+  Lila --> GIF[Image and GIF renderer]
   Lila --> Mongo[(MongoDB)]
   Lila --> Redis[(Redis)]
   WS --> Redis

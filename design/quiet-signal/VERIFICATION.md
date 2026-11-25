@@ -1,3 +1,7 @@
+> Historical review evidence from October 29, 2026. Test counts, patch-based
+> provenance and PR limitations below apply to that review, not today's release.
+> See [current design](../../docs/design.md) for the maintained guide.
+
 # Quiet Signal review evidence
 
 Automated checks on 29 October 2026:

@@ -46,7 +46,7 @@ Glicko updates. No ratings are reseeded or recalculated outside native results.
 Random activity across 10,000 accounts gives uneven, gradual rating refresh; it
 is not a new calibration or establishment experiment.
 
-## Abandoned human games (#302)
+## Abandoned human games
 
 New human-versus-Maia pool games allow the native disconnect claim. During the
 existing authenticated, healthy adapter poll, only a managed bot in an admitted
@@ -150,3 +150,13 @@ release check.
 The focused profile timeline signup text uses
 `mutechess.org`, retaining the translated native entry and
 upstream rendering outside the focused site.
+
+[Implementation history](records/docs398-public-bot-activity-history.md) retains dated decisions and validation.
+
+<details>
+<summary>Historical section links</summary>
+
+<a id="abandoned-human-games-302"></a>
+- [Abandoned human games (#302)](records/docs398-public-bot-activity-history.md#abandoned-human-games-302)
+
+</details>
