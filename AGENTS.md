@@ -53,13 +53,15 @@ expand a feature into deployment, backup or test orchestration.
 
 Every added or changed user-facing string, including help, titles, accessibility,
 errors and transient feedback, must use native catalogs and ship translated in
-all ten locales: en-GB, de-DE, es-ES, fr-FR, hi-IN, ja-JP, ko-KR, pt-BR, ru-RU,
+all ten locales: en-US, de-DE, es-ES, fr-FR, hi-IN, ja-JP, ko-KR, pt-BR, ru-RU,
 zh-CN. English fallback is incomplete. Check keys, placeholders and localized
 rendering. Reuse the existing translation system; use American English in
-communication/product prose while retaining native locale identifiers.
+communication/product prose while retaining native message/protocol identifiers.
 English means US English throughout the application UI, including inherited
-Lichess strings, help and accessibility text. The retained `en-GB` catalog ID is
-a compatibility identifier, not an exception to this spelling policy.
+Lichess strings, help and accessibility text. Use native `en-US` catalogs; legacy
+English preferences (including `en-GB`) normalize to `en-US`. Source English
+remains the native fallback for Mute messages. Correct upstream US catalog gaps
+in `translation/dest/*/en-US.xml`, keeping inherited source catalogs intact.
 
 ## Review and releases
 

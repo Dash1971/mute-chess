@@ -1,48 +1,46 @@
 # English UI policy
 
-**English means US English in Mute Chess.** This is an intentional difference
-from inherited Lichess wording. It applies to labels, help, titles, accessibility
-announcements and other application display text, including the English catalog
-source. Native `en-GB` remains a compatibility identifier for existing preferences,
-sessions and translation handling; it does not select British spelling.
+**English means US English in Mute Chess.** This applies to inherited UI labels,
+help, titles, accessibility announcements and Mute-specific text. It is an
+intentional difference from Lichess's source-English wording.
 
-## Draft implementation
+## Native locale selection
 
-[Issue #400](https://github.com/Dash1971/mute-chess/issues/400) is implemented in
-[draft native PR #11](https://github.com/Dash1971/lila/pull/11), with this companion
-pin/register update. **Both remain unmerged and undeployed for a future batch.**
-The current site can still show inherited British spelling until that release.
+Use Lichess's existing `en-US` catalogs. Mute's English picker choice is
+**English (US)**. Saved English preferences and sessions, including `en-GB`,
+normalize to `en-US`; requests without a supported preference also select US
+English. The other nine supported languages are unchanged. No separate language
+setting or migration is needed.
 
-The audit corrects 50 existing messages across 19 English catalogs. Examples:
-Color/Results by color in Insights, Analyze, favorite, behavior, center, defense,
-Practice and canceled. It also localizes three exposed inherited literals:
-analysis-board metadata, the replay/analyze hint and screen-reader promotion
-cancellation. Existing equivalent translations are retained; 14 missing Hindi
-entries are supplied. All 53 changed/new keys are present in all ten supported
-catalogs with matching argument signatures.
+Keep the upstream source catalogs intact. Native server and browser translation
+handling already falls back to source English for Mute messages absent from
+`en-US`. Write those Mute-owned source messages in US English. Fix inherited US
+translation gaps in `translation/dest/*/en-US.xml`, rather than maintaining a
+second rewrite of the source catalogs. Preserve native keys such as
+`premoveCancelled`, `/analyse` routes, protocol values, proper names and quotes.
 
-Do not rename translation keys such as `premoveCancelled`, `/analyse` routes,
-module/CSS names, internal cancellation sentinels or saved preferences to change
-spelling. Proper names, user content and attributed quotations retain their text.
-The audit excludes raw prose in unsupported upstream-only views (moderation,
-Tutor and legacy legal pages) and the unfocused Insights presets; Mute uses its
-localized focused presets. Those surfaces must meet this policy before any
-future request to expose them. No hidden feature is enabled here.
+New or substantively changed Mute messages still need translations in all ten
+supported languages. Spelling-only corrections retain equivalent translations.
+Existing English-only metadata keeps its whole-sentence construction; changing
+one word must not produce a sentence that mixes languages.
 
-## Verification and future stacking
+## Checks and release status
 
-XML parsing, key/argument parity and source-key/attribute checks cover the changes.
-A source-derived localized catalog layout preview is separate from native/live
-page verification. The existing companion CI builds and tests the actual pinned
-native source. Workflow availability is tracked in the PR checks.
-No human or deployed-application acceptance is claimed.
+`NoSweatLanguagesTest` checks English normalization, fallback, the picker label,
+and representative translations. A focused word-list check scans compiled US
+English overlaid on source fallback, so upstream merges can expose common British
+spellings that need a US correction. It is a regression guard, not an exhaustive
+language audit. Existing native locale tests cover Insights, Arenas and rematches;
+the native build compiles the client catalogs and their typings.
 
-Before the future batch, integrate the native PR through normal review, refresh
-the companion pin/tree against the combined reviewed native main, and resolve
-any overlap with other pending PRs. The draft inventory is a source target, not
-an update to the active host's inventory or security verification. The eventual
-application deployment needs the normal current-release verification.
+The locale switch is proposed in [native draft PR #11](https://github.com/Dash1971/lila/pull/11)
+and [companion draft PR #401](https://github.com/Dash1971/mute-chess/pull/401),
+tracking [issue #400](https://github.com/Dash1971/mute-chess/issues/400).
+**It remains unmerged and undeployed.** Before the future batch, refresh the
+companion pin against the combined reviewed native main and perform the normal
+localized page acceptance and release verification. A source pin or passing CI
+does not establish deployment.
 
-The change is recorded in the [upstream differences](upstream-alignment.md#supported-differences),
+See the [upstream differences](upstream-alignment.md#supported-differences),
 [maintenance overview](maintenance.md#what-we-keep-different) and
 [exact departure register](../deploy/lila/upstream-departures.json).

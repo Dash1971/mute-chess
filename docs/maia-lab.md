@@ -118,7 +118,7 @@ list up to three similar-strength continuations, describe the overall outcome
 and indicate how often an acceptable move is the model's first choice. They do
 not assert measured human difficulty, recompute game classifications or invent
 engine evidence. Whole sentences, controls, help, errors and accessibility labels
-ship in en-GB, de-DE, es-ES, fr-FR, hi-IN, ja-JP, ko-KR, pt-BR, ru-RU and zh-CN.
+ship in en-US, de-DE, es-ES, fr-FR, hi-IN, ja-JP, ko-KR, pt-BR, ru-RU and zh-CN.
 
 A description waits for every legal root to have finite depth-12 evidence and
 for every rating sample to arrive. Game analysis retains its usual depth-10
