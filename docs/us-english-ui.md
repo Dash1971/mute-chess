@@ -34,7 +34,7 @@ future request to expose them. No hidden feature is enabled here.
 XML parsing, key/argument parity and source-key/attribute checks cover the changes.
 A source-derived localized catalog layout preview is separate from native/live
 page verification. The existing companion CI builds and tests the actual pinned
-native source; the fork's Actions setting is disabled and is not changed here.
+native source. Workflow availability is tracked in the PR checks.
 No human or deployed-application acceptance is claimed.
 
 Before the future batch, integrate the native PR through normal review, refresh

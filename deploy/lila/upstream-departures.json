@@ -844,7 +844,7 @@
         },
         {
           "id": "us-english-interface",
-          "rationale": "Owner policy #400: English means US English in Mute Chess, including inherited native catalog text. Correct English display spelling without changing locale IDs, message identifiers, placeholders, routes, stored values, quotes or chess behavior. Three exposed inherited literals use native catalog keys with all ten translations; existing equivalent translations remain and missing Hindi entries are supplied. Keep screen-reader promotion handling and native metadata formats; no hidden routes/features are exposed. Recheck wording after upstream translation updates rather than renaming technical identifiers.",
+          "rationale": "Owner policy #400: English means US English in Mute Chess, including inherited native catalog text. Correct English display spelling without changing locale IDs, message identifiers, placeholders, routes, stored values, quotes or chess behavior. Three exposed inherited literals use native catalog keys with all ten translations; existing equivalent translations remain and missing Hindi entries are supplied. Keep screen-reader promotion handling and native metadata formats; no hidden routes/features are exposed. Recheck wording after upstream translation updates rather than renaming technical identifiers. The tracked i18n bootstrap retains existing keys with source-matching US English comments; new mute-prefixed site keys remain generated at build time under the unchanged restoration guard.",
           "verification": [
             "Parse all affected XML; verify 53 changed/new keys in all ten supported catalogs with normalized argument parity, unchanged existing source key/attribute/type identity and no duplicate keys.",
             "Review English Insights Color/Results by color, Analyze and the three new localized messages in a source-derived desktop/narrow catalog layout fixture; distinguish this from native/live rendering. Existing companion CI compiles/types/formats/tests the actual native UI/Scala/catalog integration.",
@@ -853,15 +853,7 @@
           "files": [
             "modules/round/src/main/ui/RoundUi.scala",
             "translation/dest/localAnalysis/hi-IN.xml",
-            "translation/dest/nvui/de-DE.xml",
-            "translation/dest/nvui/es-ES.xml",
-            "translation/dest/nvui/fr-FR.xml",
             "translation/dest/nvui/hi-IN.xml",
-            "translation/dest/nvui/ja-JP.xml",
-            "translation/dest/nvui/ko-KR.xml",
-            "translation/dest/nvui/pt-BR.xml",
-            "translation/dest/nvui/ru-RU.xml",
-            "translation/dest/nvui/zh-CN.xml",
             "translation/dest/puzzle/hi-IN.xml",
             "translation/dest/recap/hi-IN.xml",
             "translation/dest/report/hi-IN.xml",
@@ -885,6 +877,7 @@
             "translation/source/swiss.xml",
             "translation/source/variant.xml",
             "translation/source/voiceCommands.xml",
+            "ui/@types/lichess/i18n.d.ts",
             "ui/lib/src/nvui/handler.ts"
           ]
         }
