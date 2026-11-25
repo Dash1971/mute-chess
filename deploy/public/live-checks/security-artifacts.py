@@ -252,6 +252,19 @@ def main():
    with zipfile.ZipFile(jar) as z:
     if name in z.namelist():matches.append(hashlib.sha256(z.read(name)).hexdigest())
   assert matches==[digest],(name,matches)
+ # New guard targets require matching rebuilt WS classes and browser bundles.
+ guards=inv['upstreamPins']['lila-ws'].get('securityBackports',[])
+ if any(g.get('advisory')=='GHSA-rxpx-6m5g-qm2w' for g in guards):
+  assert build['wsRebuilt'] and build['sriValidationRegressionsPassed'] and build['racerMarkerIntegrationPassed']
+  assert set(build['wsClasses'])>={'lila/ws/Auth.class','lila/ws/Controller.class','lila/ws/Mongo.class','lila/ws/model$package$Sri$.class'}
+  for name,digest in build['wsClasses'].items():
+   matches=[]
+   for jar in (root/'ws/lib').glob('*.jar'):
+    with zipfile.ZipFile(jar) as z:
+     if name in z.namelist():matches.append(hashlib.sha256(z.read(name)).hexdigest())
+   assert matches==[digest],(name,matches)
+  assert build['lobbyIdRegressionsPassed'] and build['securityGuardArtifacts']
+  for name,digest in build['securityGuardArtifacts'].items():assert sha(root/name)==digest,name
  assert Path('/opt/nosweatchess/current').resolve()==root
  assert archived.read_bytes()==original
  print(json.dumps({'passed':True,'class':'critical','readOnly':True,'main':release['gitCommit'],'nativeCommit':release['nativeCommit'],'nativeTree':release['nativeTree'],'inventorySha256':invsha,'matchingBuildReceipt':buildpath.name,'classesVerified':len(build['classes']),'historicalReceiptPreserved':True,'compiledDOMPurify':inv['browser']['dompurify']['version'],'verificationOperationRebuiltApplication':False}))
