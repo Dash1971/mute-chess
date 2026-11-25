@@ -24,6 +24,10 @@ Redis and GIF patches remain patches.
 - A focused feature surface: no Watch navigation or opening explorer; Learn contains only Chess basics and Practice, standard chess only, and the previously approved Puzzles, Community, Tools and profile functions. Hidden upstream implementation can remain; do not delete large native subsystems merely to hide a feature.
 - Owner-hosted native Arenas with managed Maia filler seats, as implemented in #313/#320 and described in [the Arena guide](arenas.md). Issue #324 restores native discovery and spotlight presentation around the approved-host event filter.
 - Mute Chess branding, with clear upstream credits and licenses.
+- **US English for the English UI**, including inherited catalog text, help,
+  titles and accessibility labels, through native `en-US` catalogs. Older English
+  preferences normalize to US English; translation keys and protocol identifiers
+  remain intact. See the [English policy](us-english-ui.md).
 - Nostr login, public names and the approved account/security integration.
 
 Other explicitly requested adapters, such as Lightning patronage and fixed bot personalities, are documented departures too. Their approval is not permission to redesign unrelated native behavior. New differences need a concrete product reason and a documented maintenance cost.

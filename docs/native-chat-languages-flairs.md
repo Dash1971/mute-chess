@@ -14,7 +14,7 @@ Source of truth: [Mobile Maia’s language catalog at 695c66df](https://github.c
 
 | Mobile Maia | Native locale |
 | --- | --- |
-| English | en-GB |
+| English | en-US |
 | Deutsch | de-DE |
 | Français | fr-FR |
 | Русский | ru-RU |
@@ -26,6 +26,10 @@ Source of truth: [Mobile Maia’s language catalog at 695c66df](https://github.c
 | Español | es-ES |
 
 The native picker shows exactly these ten choices. `/translation/select` is permitted through the public gateway for POST only; native session/account preferences and request protection remain in use. Unsupported selections are rejected. Supported regional browser preferences normalize to these locales; unsupported languages fall back through the next supported preference to English. Traditional Chinese browser preferences are not silently substituted with Simplified Chinese. Explicitly choosing 简体中文 still works. None of these ten languages requires a right-to-left layout.
+
+The English choice uses native US English. Older English preferences, including
+`en-GB`, normalize to `en-US` without a separate migration. This change is pending
+in [draft PR #401](https://github.com/Dash1971/mute-chess/pull/401) until the next reviewed application release.
 
 Native Lichess supplies the chess experience translations. Mute-specific sign-in actions, profile/settings labels, engine controls, quality choices and Maia card labels use additive native site messages. Core Maia terminology is reused from Mobile Maia’s ARB catalogs. Added or changed Mute UI text must use these ten catalogs, with key/placeholder parity and localized rendering checked; historical coverage notes are not permission to ship English fallback. No English-text DOM replacement, external translation service or separate language preference is introduced.
 

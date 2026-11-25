@@ -22,6 +22,8 @@ down why it exists. Then we merge new Lichess code on a regular schedule.
   [Open Brilly Finder](https://github.com/Dash1971/open-brilly-finder).
 - A simpler interface: standard chess only, with fewer menus. No variants.
 - Mute Chess branding, with Lichess credits and licenses kept.
+- US English for the English UI, including inherited wording, through native
+  `en-US` catalogs; older English preferences normalize to that locale. See [the English policy](us-english-ui.md).
 
 Anything not on this list should behave as it does on Lichess. The full policy
 is in [Staying aligned with Lichess](upstream-alignment.md).
