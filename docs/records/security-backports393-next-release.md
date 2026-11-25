@@ -1,7 +1,8 @@
-# Lobby-ID, Racer and SRI guard backports — draft for the next release
+# Lobby-ID, Racer and SRI guard backports — release preparation
 
-Issue [#393](https://github.com/Dash1971/mute-chess/issues/393) is draft-only.
-None of these changes is deployed or eligible to clear the live advisories yet.
+The owner authorized the combined waiting-PR release on November 26, 2026.
+These source targets are not deployed or eligible to clear live advisories until
+activation, exact runtime verification and the fresh existing classifier pass.
 
 - Native [PR #10](https://github.com/Dash1971/lila/pull/10) cherry-picks
   c45261e09272b6fb78f6884419ecccdf8705ee09 for GHSA-3m7f-j2c6-6x4x.
@@ -40,13 +41,17 @@ retains the current deployed native pin rather than presenting unmerged code
 as the application's authority. Complete the normal source checks and real
 build, then deploy the three changes together with the planned application release.
 
-Before marking ready: validate Racer missing/valid/expired markers and cache
-failure without opening public Racer routes. Re-run lobby regressions and the
-existing release checks. After deployment match actual native commit/tree,
+November 26 isolated integration validation used the actual Mongo cache and
+Controller.racer with a task-owned loopback Mongo process/database. Missing and
+TTL-expired markers return 404; a valid marker constructs the endpoint; stopping
+the isolated cache fails the request closed. Ordinary anonymous authentication
+and its existing SID fallback remain intact. The test passed; the fixture
+process and data were removed. No public Racer route was opened. Re-run lobby
+regressions and the existing release checks. After deployment match actual native commit/tree,
 patched WS source and compiled classes, refresh both current security readers
 and the reviewed OpenClaw inventory, and require inventory_verified=true before
 clearing any of the three live advisories. Do not change classifier predicates or schedules.
 
 AI assistance: Codex prepared the upstream backports and focused validation;
-human review is pending. The scope is these three guards, without new tooling,
+existing owner review and focused CI findings were addressed. The scope is these three guards, without new tooling,
 route exposure, user strings or unrelated dependency changes.

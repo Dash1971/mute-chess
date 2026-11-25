@@ -61,13 +61,41 @@
           "file": "modules/ui/src/main/ui/bits.scala",
           "fix": "Escape script tag-openers in native serialized JSON, preserving parseable metadata, and retain disabled Ublog structured data. Keep the Mute organization renderer with the new Frag return type.",
           "provenance": "Cherry-picked with -x for #381; the Mute StaticContent hook and renderer retain branding. A bounded follow-up retains the helper API and uses native Json.stringify with JSON Unicode escaping for HTML tag-openers; context: upstream safe JSON script rendering 44695041c92372a2a4ec33f153a37e1df48af943. Verify actual compiled classes and JSON round-trip regressions."
+        },
+        {
+          "commit": "c45261e09272b6fb78f6884419ecccdf8705ee09",
+          "advisory": "GHSA-3m7f-j2c6-6x4x",
+          "file": "ui/lobby/src/lobby.ts",
+          "fix": "Validate eight-character native GameId before either lobby request branch; preserve mixed-case IDs and the fixed Mute endpoint.",
+          "provenance": "Cherry-picked with -x in native PR #10, with explicit exported RegExp type for isolated declarations. Both real lobby-init regressions pass; require the merged pin, full UI build and deployed bundle hashes before claiming installation."
         }
       ]
     },
     "lila-ws": {
       "repository": "https://github.com/lichess-org/lila-ws",
       "commit": "5089b84b5fe2da3f3e9e69d29363115cfddfc758",
-      "localPatch": "deploy/lila/patches/lila-ws-bind-address.patch"
+      "localPatch": "deploy/lila/patches/lila-ws-bind-address.patch",
+      "securityBackports": [
+        {
+          "commit": "257e811ea70e1f39fe9ec0d01f08caca363f1674",
+          "advisory": "GHSA-2rpf-mmrc-v68p",
+          "files": [
+            "src/main/scala/Controller.scala",
+            "src/main/scala/Mongo.scala"
+          ],
+          "fix": "Require the native racer.race.<id> cache marker before constructing a Racer endpoint; retain public gateway denial."
+        },
+        {
+          "commit": "bee9229a6d75f97386a9194bd5ca06eaa508076f",
+          "advisory": "GHSA-rxpx-6m5g-qm2w",
+          "files": [
+            "src/main/scala/Auth.scala",
+            "src/main/scala/Controller.scala",
+            "src/main/scala/model.scala"
+          ],
+          "fix": "Explicitly flatMap Sri.read in controller and anonymous fallback to avoid inherited Option overload bypass; retain native accepted SRI semantics."
+        }
+      ]
     },
     "lila-gif": {
       "repository": "https://github.com/lichess-org/lila-gif",
@@ -340,8 +368,8 @@
       "ids": [
         "GHSA-2rpf-mmrc-v68p"
       ],
-      "status": "mitigated-blocked-public-route",
-      "evidence": "The separately pinned lila-ws is not claimed patched by the Lila commit listed in the advisory. Its Racer WebSocket endpoint is excluded by the public gateway websocketPaths allowlist. The real gateway regression attempts both Racer upgrade URL forms, asserts neither reaches upstream, and checks the supported analysis upgrade still works. Recheck on gateway or WebSocket changes; retain the raw pending advisory with the unchanged classifier."
+      "status": "fixed-in-pinned-source",
+      "evidence": "Release target applies upstream WS 257e811ea70e1f39fe9ec0d01f08caca363f1674 through the retained patch; the Lila cache-marker writer is already in upstream ancestry. Require isolated missing/valid/expired/cache-failure validation and exact deployed WS class hashes before claiming installation. Public gateway Racer denial remains in place."
     },
     {
       "ids": [
@@ -356,6 +384,20 @@
       ],
       "status": "fixed-in-pinned-source",
       "evidence": "Upstream fix 6a5a37a660524254cfb838608775ffe5ef59584a is an ancestor of pinned b071608bc4ce71b31cda36ffa493100e3dc3580f. Deployed Auth.loginWithToken renders tokenLoginConfirmation using the supplied token without renewing it. Verify deployed Auth bytecode against this source and record its observed class fingerprint alongside the unchanged full-build receipt; no valid account token is generated or exposed during verification."
+    },
+    {
+      "ids": [
+        "GHSA-3m7f-j2c6-6x4x"
+      ],
+      "status": "fixed-in-pinned-source",
+      "evidence": "Release target applies native upstream c45261e09272b6fb78f6884419ecccdf8705ee09, adapted to the pinned native eight-character mixed-case GameId contract. Actual lobby-init regressions cover both request branches; require merged pin, full UI build and actual deployed bundle hashes."
+    },
+    {
+      "ids": [
+        "GHSA-rxpx-6m5g-qm2w"
+      ],
+      "status": "fixed-in-pinned-source",
+      "evidence": "Release target applies upstream WS bee9229a6d75f97386a9194bd5ca06eaa508076f. Four regressions exercise the inherited Option bypass, real request parsing, browser/mobile SRIs and real anonymous Auth fallback. Require exact patched source, compiled Auth/Controller/Sri hashes and runtime verification before claiming installation."
     }
   ],
   "dailyReportRules": [
