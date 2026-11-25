@@ -76,7 +76,16 @@ python3 public-health.py advisory "$EXPECTED_MAIN"
 python3 about-locales.py
 ```
 
-On the controller: `python3 monitor-check.py --expected-path /opt/nosweatchess/current/RELEASE.json`.
+On the controller, baseline the serving release with
+`python3 monitor-check.py --baseline --expected-path /opt/nosweatchess/current/RELEASE.json`.
+Baseline mode still requires all control hashes (including the active release),
+isolation, containment and critical-drift checks to pass. The previous operation's
+path list is historical: runtime-only maintenance can legitimately record no
+protected file changes. It does not describe the upcoming release.
+
+After deployment use
+`python3 monitor-check.py --expected-path /opt/nosweatchess/current/RELEASE.json`
+without `--baseline`; the recorded changed paths must then match exactly.
 Repeat `--expected-path` for every additional path explicitly declared before
 maintenance; the actual and expected lists must match exactly (order does not
 matter). The release path remains required. Never derive the expected list from

@@ -68,3 +68,28 @@ class LiveExpectationsTests(unittest.TestCase):
             monitor.verify_planned_paths([release], [release, extra])
         with self.assertRaises(AssertionError):
             monitor.verify_planned_paths([extra], [extra])
+
+    def test_baseline_accepts_runtime_only_history_but_post_deployment_requires_release(self):
+        release = '/opt/nosweatchess/current/RELEASE.json'
+        result = dict(allControlHashesMatch=True, isolationUnchanged=True, containment=False,
+                      criticalDrift=[], plannedPaths=[])
+        monitor.verify_result(result, [release], baseline=True)
+        with self.assertRaises(AssertionError):
+            monitor.verify_result(result, [release])
+        with self.assertRaises(AssertionError):
+            monitor.verify_result(result, [], baseline=True)
+        result['plannedPaths'] = [release]
+        monitor.verify_result(result, [release])
+        result['plannedPaths'].append('/etc/nosweatchess/application.conf')
+        with self.assertRaises(AssertionError):
+            monitor.verify_result(result, [release])
+
+    def test_both_phases_reject_security_drift_or_containment(self):
+        release = '/opt/nosweatchess/current/RELEASE.json'
+        healthy = dict(allControlHashesMatch=True, isolationUnchanged=True, containment=False,
+                       criticalDrift=[], plannedPaths=[release])
+        for baseline in (True, False):
+            for field, bad in [('allControlHashesMatch', False), ('isolationUnchanged', False),
+                               ('containment', True), ('criticalDrift', ['unexpected change'])]:
+                with self.subTest(baseline=baseline, field=field), self.assertRaises(AssertionError):
+                    monitor.verify_result(dict(healthy, **{field: bad}), [release], baseline)
