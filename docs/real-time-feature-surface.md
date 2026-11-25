@@ -10,7 +10,7 @@ Public Import game navigation and its GET/POST endpoints are disabled. Its Reque
 
 Trade-off: users can no longer create a new public, saved game URL through the old importer; the analysis board and studies remain the supported import destinations. Existing correspondence/unlimited history stays readable, but new games and rematches in those modes are rejected. No accounts, ratings, scores or histories are deleted.
 
-Validation: 13 native UI regressions cover setup normalization plus the existing real lobby/bootstrap/game-start-sound flow. Existing gateway boundary tests exercise the actual handler and deny import/Racer/correspondence routes while retaining analysis/study/learn/practice routes. Native formatting and exact patch/departure coverage are checked; new messages and reused Learn labels are verified in all ten supported catalogs. This is PR preparation only: no merge or deployment.
+Validation: 13 native UI regressions cover setup normalization plus the existing real lobby/bootstrap/game-start-sound flow. Existing gateway boundary tests exercise the actual handler and deny import/Racer/correspondence routes while retaining analysis/study/learn/practice routes. Native formatting and exact patch/departure coverage are checked; new messages and reused Learn labels are verified in all ten supported catalogs.
 
 ## Bot profile UltraBullet and 404 recovery
 
@@ -96,3 +96,6 @@ and socket handling are unchanged.
 Arena berserk reduces a player's available time but retains the original game
 clock configuration. A berserked `1+0` game therefore still uses the **Bullet**
 rating, never UltraBullet. Native clock/speed/performance-key tests cover this.
+
+[Historical implementation and validation notes](records/docs398-real-time-feature-surface-history.md)
+retain the original preparation context.

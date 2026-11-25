@@ -14,10 +14,10 @@ including inspiration from its MoveMap component. The
 [Maia3 engine and models](https://github.com/CSSLab/maia3) supply the move
 predictions. These are separate upstream repositories and contributions.
 
-The About-page change in [#359](https://github.com/Dash1971/mute-chess/issues/359)
-gives maiachess.com and its frontend repository their own linked credit, separate
-from Maia3, in all ten supported locales. It is pending review and has not been
-deployed.
+About gives maiachess.com and its frontend repository their own linked credit,
+separate from Maia3, through the ten supported native catalogs. The
+[follow-up evidence](records/documentation-follow-up-2026-11-25.md) confirms the
+separate credits on the live page.
 
 1. Pick a position on the analysis board, then open **Maia Lab**.
 2. Use **Show candidates** to compare six or eight moves. The list includes the
@@ -155,61 +155,20 @@ full-range descriptions, native catalog functions/placeholder order, dialog
 updates/closure and sampling cancellation. Existing chart, quality, snapshot,
 review, classification and native UI regressions run unchanged. The native UI
 build compiles both entry bundles, shared dialog CSS and all locale catalogs.
-Browser/render evidence is recorded with the PR; fixtures are distinguished from
-live engine analysis.
+Browser/render evidence distinguishes deterministic fixtures from live engine
+analysis.
 
-### November 18 browser evidence
+The [historical browser evidence](records/docs398-maia-lab-history.md#november-18-browser-evidence)
+retains the November 18/19 deterministic fixtures, lifecycle observations and
+presentation review. These are distinct from the dated live examples above.
 
-These screenshots render the **actual shared component and compiled native locale
-catalogs/styles**, with deterministic legal-position/engine/policy test fixtures.
-They are UI/lifecycle evidence, **not live model predictions or three separate
-full native pages**. Native controller integration tests separately cover puzzle
-review, standalone and post-game providers and assistance gates.
+<details>
+<summary>Historical section links</summary>
 
-- [Desktop dialog](maia-lab/desktop.jpg)
-- [Move map](maia-lab/move-map.jpg)
-- [German narrow layout](maia-lab/german-narrow.jpg)
-- [All ten compiled locales](maia-lab/locales.json): localized labels, no unresolved
-  placeholders, no horizontal dialog overflow and no overflowing detail labels.
+<a id="november-18-browser-evidence"></a>
+- [November 18 browser evidence](records/docs398-maia-lab-history.md#november-18-browser-evidence)
 
-Also exercised eight candidates, linked source/destination highlights, returning
-between chart/map, a 320px map, and native Escape cleanup. Modal control keys
-cannot invoke the underlying board shortcuts. Forced mates retain signed mate
-notation; pawn-loss metrics are withheld when they would compare a CP value
-with a mate proxy. Empirical win-rate lookup percentages are labeled explicitly
-and are not forced-mate probabilities. Native UI suite: 462 passing tests.
+<a id="november-19-presentation-correction-340"></a>
+- [November 19 presentation correction (#340)](records/docs398-maia-lab-history.md#november-19-presentation-correction-340)
 
-Live standalone testing caught a missing native theme scope on the body-mounted
-preview. The initial fixture supplied piece/board images directly, which masked
-this integration gap. The preview now declares its own native `is2d` scope.
-The dialog regression checks this with an unthemed body, and the corrected
-[browser fixture](maia-lab/native-preview-theme.jpg) uses the actual native theme
-stylesheet and variables: all 14 pieces and the board background resolve without
-an inherited page theme class. The fixture still uses deterministic engine inputs.
-
-
-### November 19 presentation correction (#340)
-
-The entry is a small localized **Maia Lab** action. The dialog keeps SAN casing
-unchanged (including `a3`, `Rb3+` and `Kc5`), places its local rating slider below
-the chart on both tabs, and removes text-input padding that inset the native
-range thumb. The range has an explicit localized label and retains keyboard
-Home/End navigation over 600–2600. The move-count selector sits beside the view
-tabs. Inline moves no longer inherit tab selection styling; completed sampling
-progress and the fixed narrative-height spacer are omitted. Engine outputs,
-probabilities, classifications and assistance gates are unchanged.
-
-These are screenshots of the actual native rendering functions, shared dialog,
-and compiled native styles/catalogs with deterministic test inputs. Entry
-fixtures omit the analysis card bodies; they are not screenshots of full live
-native pages or fresh engine predictions.
-
-- [Corrected dialog](maia-lab/polish/polished-dialog.jpg)
-- [Analysis, post-game and puzzle entry actions](maia-lab/polish/entry-points.jpg)
-- [SAN and maximum endpoint](maia-lab/polish/notation-2600.jpg)
-- [Minimum endpoint](maia-lab/polish/notation-600.jpg)
-- [German narrow layout](maia-lab/polish/de-DE-narrow.jpg)
-- [All ten locales](maia-lab/polish/locales.json): actual rendered text and
-  computed casing, header bounds, labeled range, zero input padding, plot/slider
-  order, 600/2600 values and no horizontal dialog overflow at 375px. German also
-  checked at 320px. Browser viewport overrides were reset after checks.
+</details>

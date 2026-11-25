@@ -6,6 +6,7 @@
 - [Site manual](site-manual.md): play, engine settings, accounts and supported features.
 - [Installation](installation.md): an isolated instance from source.
 - [Architecture](architecture.md): services, source authority and directory map.
+- [Chess foundation](chess-foundation.md): native behavior and supported differences.
 - [Contributing](../CONTRIBUTING.md): setup, relevant checks and the two-PR native flow.
 - [Security reporting](../SECURITY.md): report vulnerabilities privately.
 
@@ -26,7 +27,7 @@
 - [Community and learning](native-learning-community.md).
 - [Chat, languages and flairs](native-chat-languages-flairs.md).
 - [Design overview](design.md), [Quiet Signal artwork](../design/quiet-signal/README.md)
-  and [design verification](../design/quiet-signal/VERIFICATION.md).
+  and [October 29 design verification](../design/quiet-signal/VERIFICATION.md).
 - [Analysis export](analysis-export.md) and [Moves by Rating source audit](maia-rating-chart.md).
 
 ## Development, operations and security
@@ -47,8 +48,7 @@
 
 - [Source inventory](chess-sources.json), [third-party notices](../THIRD_PARTY.md)
   and [analysis provenance](../analysis/PROVENANCE.md).
-- [Public names in chat](chat-public-names.md) and [statistics](stats-public-names.md).
-- [Key-copy feedback](key-copy-feedback.md).
+
 - [Feature screenshots and capture details](screenshots/README.md).
 
 ## Decisions, research and history

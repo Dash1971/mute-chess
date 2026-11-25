@@ -20,7 +20,8 @@ models and controllers, with standard chess only; no replacement chess applicati
   [Arena guide](arenas.md).
 - The footer links to the native forum for questions and feedback. The owner
   removed the external Flotilla link on November 4, 2026 (#240). Private Nostr
-  contact remains available for sensitive account, privacy, payment or security matters.
+  contact remains available for sensitive account, privacy or payment matters.
+  Report vulnerabilities through [private GitHub reporting](../SECURITY.md).
 - Puzzle Storm and Streak use the existing verified CC0 puzzle catalog and native
   selection, clocks, scoring, validation and progress. They receive no solving hints
   from Maia. Ordinary puzzle review keeps the Maia integration after completion.

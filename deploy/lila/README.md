@@ -68,6 +68,8 @@ export PATH="/opt/club-maia/node-v24.22.1-linux-x64/bin:$PATH"
 tools/mongosh/node_modules/.bin/mongosh \
   mongodb://127.0.0.1:27018/nosweat_lila_dev --quiet \
   --file sources/lila/bin/mongodb/indexes.js
+node /path/to/mute-chess/lila-adapter/stage-catalog.mjs "$PWD/sources/lila"
+node /path/to/mute-chess/lila-adapter/stage-catalog.mjs --verify "$PWD/sources/lila"
 bash start-private.sh "$PWD" app
 node smoke.mjs
 ```
@@ -129,4 +131,6 @@ tests and `test/integration.mjs`; `--worker-failure` kills only that private
 worker and checks native failure handling. Live moves, both clocks/colors,
 reconnect, Nostr replay protection, resignation, PGN and crash recovery pass.
 The deployed shared Maia-driven cap is twenty games; background activity tops up to five total games, counting human games. One game per player is retained. Anonymous games are casual; Nostr accounts use native provisional 1500 and Glicko updates. The native quick-pair grid and custom time controls assign an available opponent within ±200, with no manual challenges. Build `lila-adapter/browser/login.mjs` with `node build-browser.mjs /path/to/lila/public/nosweat/nostr.js` before packaging assets.
-The native stacked-premove and browser analysis extensions are documented in `../../analysis/PROVENANCE.md` and `../public/README.md`. Run `prepare-analysis.py` from the main repository to prepare pinned browser assets. Whole-game review uses the native Lichess Analysis editor, accuracy and persistence, with additive verified brilliants, classified graph circles and Maia current-position expected scores. Saved bot ratings and the distinction between measured and reference-derived priors are documented in `../../docs/catalog-roster.md`; historical capacity trials are not new permission to run calibration.
+The native stacked-premove and browser analysis extensions are documented in
+[analysis provenance](../../analysis/PROVENANCE.md) and
+[analysis presentation](../../docs/analysis-presentation.md). Run `prepare-analysis.py` from the main repository to prepare pinned browser assets. Whole-game review uses the native Lichess Analysis editor, accuracy and persistence, with additive verified brilliants, classified graph circles and Maia current-position expected scores. Saved bot ratings and the distinction between measured and reference-derived priors are documented in `../../docs/catalog-roster.md`; historical capacity trials are not new permission to run calibration.

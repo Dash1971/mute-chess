@@ -1,9 +1,10 @@
-# Nostr sign-in and key backup (#94)
+# Nostr sign-in and key backup
 
-The owner authorized implementation and a PR stacked on forum PR #83 on October
-30, 2026, superseding the issue's original idea-only hold.
+Use the same Nostr identity across generated/saved keys, imports and browser
+signers. Private keys stay in the browser or signer; back up the original key
+explicitly if you want to retain access.
 
-## Consistent signup identity (#256)
+## Consistent signup identity
 
 Every new human Nostr account uses `n` followed by the first 19 hexadecimal
 characters of its verified public key as its native ID, whether or not a name
@@ -14,21 +15,20 @@ account keeps its identity and does not get recreated when a name is supplied.
 Bots retain their native named identities. The full npub remains the public
 identity and collision checks remain authoritative for shortened native IDs.
 
-The owner instead approved deleting the disposable Test1 account. No account-ID
-migration or previous-ID redirect is introduced. Other existing accounts remain
-unchanged pending an owner decision.
+Existing accounts retain their IDs and stored history; signup does not migrate
+old identities or introduce previous-ID redirects.
 
-## Reserved account-ID names (#348)
+## Reserved account-ID names
 
 New chosen names cannot use the permanent account-ID format: `n` followed by
 19 hexadecimal characters. Signup and profile editing check the normalized name
 (NFKC, trimmed and case-folded), so equivalent spellings are reserved too. An
 unchanged historical name remains valid for unrelated profile edits. The native
 unique name-claim index still decides concurrent conflicts; no IDs, keys, ratings
-or history are migrated. Before release, check existing matching display names
-against their owners and obtain an owner decision before changing any conflict.
+or history are migrated. Any future name-rule change must check historical
+conflicts before changing existing accounts.
 
-## Sign-in limits and challenge lifetime (#349/#354)
+## Sign-in limits and challenge lifetime
 
 The native app permits 30 challenge requests and 30 sign-in submissions per
 client network per minute. Only creation of a new identity uses the native signup
@@ -115,7 +115,7 @@ requested only on the user's optional button click and does not replace backup.
 and [persist()](https://developer.mozilla.org/en-US/docs/Web/API/StorageManager/persist)
 describe browser permission, eviction and private-browsing limits.
 
-## Backup choices and platform investigation
+## Backup choices
 
 | Option | What it keeps | Recovery and effort |
 | --- | --- | --- |
@@ -136,37 +136,30 @@ a password. Its support is limited, with Safari and Firefox unsupported in the
 [MDN compatibility data](https://github.com/mdn/browser-compat-data/blob/main/api/PasswordCredential.json).
 The [Credential Management API](https://developer.mozilla.org/en-US/docs/Web/API/CredentialsContainer/store)
 therefore does not provide a dependable cross-browser/iCloud save action here.
-Keep the portable copy/manual-save approach for this release; do not replace
+The site uses portable copy/manual-save controls; do not replace
 Nostr sign-in with a passkey or invent another password or recovery system.
-
-## Verified nos2x destination
-
-Checked October 30, 2026: the [maintainer's README](https://github.com/fiatjaf/nos2x)
-links the Chrome extension ID `kpgefcfmnafjgpblomihpgmejjdanjjp`. Its old store URL
-redirects to the [current Chrome Web Store listing](https://chromewebstore.google.com/detail/nos2x/kpgefcfmnafjgpblomihpgmejjdanjjp),
-which is the URL used in the view. External links use `noopener noreferrer`.
 
 ## Boundaries and verification
 
-Only the existing namespaced login view and its CSS change in the native fork.
-The adapter handles backup and storage requests; native sessions, server proof
+The browser handles local backup and storage actions; native sessions, server proof
 verification, challenge-bound retries, 2FA and signer ownership remain intact.
 Private keys are never added to request bodies, URLs, filenames, logs or analytics.
 Downloads use a temporary blob URL, removed link and revoked URL, and contain only
 the nsec plus a newline. Saved-key copies are cleared from temporary byte arrays.
 Export does not overwrite storage, authenticate or change the selected identity.
 
-Run the adapter tests, browser bundle build, upstream register/patch reconstruction
+Run the adapter tests, browser bundle build, native source/departure
 checks and native view formatting/compilation. Browser regressions cover exact
 exports, no automatic export, clipboard failure, persistence refusal/unavailability,
 independence from sign-in, saved-key reuse and unchanged signed 2FA retries. Check
 closed/open disclosures and the key actions at desktop and narrow browser widths.
 
-## Private account Nostr section (#125)
+## Private account Nostr section
 
 `/club/nostr` requires the authenticated owner and sends Cache-Control: no-store.
-Account settings and the owner's profile action menu link to it. Remove the
-inline npub field from public profiles. The page receives only the public key.
+Account settings and the owner's profile action menu link to it. Public-profile
+npub copying remains separate from the private-key controls. The page receives
+only the public key.
 Public npub copy never decrypts a private key. Reveal requires acknowledging the
 private-key warning and an explicit click; the browser reads the existing store,
 checks its derived public key against the current account, and wipes the byte
@@ -181,5 +174,32 @@ A separate Chess on Nostr introduction links to Primal and the existing official
 Mute Chess npub from docs/nostr.md. Following/signing is the user's action in the
 client. Explain signer sign-in and #chess discovery; pass no private key or
 current-user identifier in outbound links. Primal is a recommended web option,
-not a measured popularity ranking. References checked October 31, 2026:
-https://github.com/PrimalHQ/primal-web-app and https://nostr.how/en/clients.
+not a measured popularity ranking. See the [Nostr identity guide](nostr.md).
+
+[Implementation history](records/docs398-nostr-sign-in-backup-history.md) retains dated decisions and validation.
+
+<details>
+<summary>Historical section links</summary>
+
+<a id="nostr-sign-in-and-key-backup-94"></a>
+- [Nostr sign-in and key backup (#94)](records/docs398-nostr-sign-in-backup-history.md#nostr-sign-in-and-key-backup-94)
+
+<a id="consistent-signup-identity-256"></a>
+- [Consistent signup identity (#256)](records/docs398-nostr-sign-in-backup-history.md#consistent-signup-identity-256)
+
+<a id="reserved-account-id-names-348"></a>
+- [Reserved account-ID names (#348)](records/docs398-nostr-sign-in-backup-history.md#reserved-account-id-names-348)
+
+<a id="sign-in-limits-and-challenge-lifetime-349354"></a>
+- [Sign-in limits and challenge lifetime (#349/#354)](records/docs398-nostr-sign-in-backup-history.md#sign-in-limits-and-challenge-lifetime-349354)
+
+<a id="backup-choices-and-platform-investigation"></a>
+- [Backup choices and platform investigation](records/docs398-nostr-sign-in-backup-history.md#backup-choices-and-platform-investigation)
+
+<a id="verified-nos2x-destination"></a>
+- [Verified nos2x destination](records/docs398-nostr-sign-in-backup-history.md#verified-nos2x-destination)
+
+<a id="private-account-nostr-section-125"></a>
+- [Private account Nostr section (#125)](records/docs398-nostr-sign-in-backup-history.md#private-account-nostr-section-125)
+
+</details>

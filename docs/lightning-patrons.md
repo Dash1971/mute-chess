@@ -1,6 +1,7 @@
 # Lightning patron support
 
-The owner confirmed `dash@walletofsatoshi.com` and the official Mute Chess account `npub1w6l8e4mqa4ruqs2vdvwhdxhp9ke9ax8kpncy2wy26tja3d7rzpgq06c9jl`. These replace the earlier on-chain/mempool settlement proposal and Mobile Maia address lookup. No Mobile Maia or Zapstore configuration is changed.
+The donation recipient is `dash@walletofsatoshi.com`, with official Mute Chess
+identity `npub1w6l8e4mqa4ruqs2vdvwhdxhp9ke9ax8kpncy2wy26tja3d7rzpgq06c9jl`.
 
 The header Donate link opens a native-styled support page. Anonymous visitors can scan the direct LNURL or open their wallet. Signed-in Nostr users choose sats or USD (a current browser-side mempool.space quote), sign a NIP-57 profile zap request using NIP-07 or their saved browser key, then scan the returned Lightning invoice. Creating/signing an invoice never pays it. The donation UI uses its invoice/QR and Open wallet actions; direct Nostr-zap and wallet-address links are omitted to keep the flow clear. The lower Lichess Patron promotion is removed.
 
@@ -14,21 +15,16 @@ Paid-at-based expiry and Mongo `$max` make duplicate receipts and interrupted re
 
 The adapter alone receives limited outbound TLS to public IPs resolved for the two fixed provider hosts during installation, plus local stub DNS. All other service egress boundaries remain unchanged. Systemd IP restrictions and the nftables UID/port rules both enforce this allowlist. Provider DNS changes fail closed until the reviewed installer refreshes the addresses during maintenance. Certificate verification and redirect rejection remain enabled.
 
-Qualification includes a real unpaid 100-sat zap invoice, an independent unpaid provider invoice signature fixture, cryptographic negative cases and provider callback/redirect boundary tests. Disposable signed receipt fixtures cover the verifier without spending funds. A real settled donation is still needed to exercise the complete provider-receipt delivery path; no test payment or real patron grant is claimed.
-
-On October 30, 2026 the owner changed the receiving address to
-`dash@walletofsatoshi.com` (#64). Fresh LNURL metadata confirms that address
-supports NIP-57 and retains the pinned Wallet of Satoshi receipt-signing public
-key. The donation link, QR/LNURL and new invoice requests use this destination.
-The official Nostr public identity remains unchanged; its external profile should
-use this address as `lud16`. No Nostr event or Mobile Maia/Zapstore update is
-published by the website deployment.
+New donation requests use `dash@walletofsatoshi.com`. Previously issued invoices
+retain their original receipt binding; a new request cannot use the retired
+recipient. The website does not publish Nostr profile edits or alter Mobile Maia
+or Zapstore configuration.
 
 Receipt verification retains the retired LNURL solely for previously issued
 invoices. New requests reject it; wings still require the exact invoice, donor
 and request ID already recorded in the native ledger.
 
-## Donation priority and credits (owner decision, October 30, 2026)
+## Donation priority and credits
 
 The top of Donate asks visitors to support Lichess first, with a direct link to
 https://lichess.org/patron. If someone has not yet supported Lichess, or can afford
@@ -39,12 +35,11 @@ the Maia platform, En Croissant, Mobile Maia and Stockfish, with links to the
 third-party notices and complete corresponding-source archive. Payment and
 patron-wing behavior is unchanged.
 
-## Wallet invoice description compatibility (#108)
+## Wallet invoice descriptions
 
 Wallet of Satoshi can return either BOLT-11's inline UTF-8 `d` description or
 its SHA-256 `h` description hash. Short browser-signed zap requests can fit
-inline, while longer diagnostic requests may use a hash. Rejecting all inline
-invoices made the real browser flow fail even when longer test requests passed.
+inline, while longer diagnostic requests may use a hash. Both representations are supported.
 
 Both forms must authenticate the exact serialized signed zap request: inline
 text must match byte-for-byte, or the hash must equal SHA-256 of that text.
@@ -60,7 +55,7 @@ suggest a safe retry; adapter logs retain only a bounded error code, without
 signed requests, donor IDs, invoices, tokens or provider payloads.
 
 
-## Payment completion and patron presentation (#252)
+## Payment completion and patron presentation
 
 The pending response remains an array of all active unpaid invoices. Its
 additive authenticated `X-Mute-Patron-Paid-At` header identifies the latest
@@ -92,34 +87,9 @@ ID copies the full permanent profile URL with the same 900ms feedback as the npu
 Both help dialogs are retained. The donation UI omits the direct wallet/Nostr links
 and the address suffix under an invoice; the fixed amount remains visible.
 Native trophy content, packing and non-Nostr layout remain intact.
-No deployment is included in this PR.
 
 
-## QR scanning and display resolution (#247)
-
-The native QR renderer uses a four-module quiet zone, as required by
-[DENSO's QR guidance](https://www.qrcode.com/en/howto/code.html/index.html).
-It renders its backing canvas at device-pixel resolution and retains the
-requested CSS width (320px by default), with automatic height so existing
-max-width rules preserve the square on narrow screens. The same rule applies
-to authenticator QR codes; payloads and requested display sizes are unchanged.
-
-The donation browser already uppercases `LIGHTNING:` plus its invoice/LNURL
-for compact QR encoding. Phoenix's [native parser](https://github.com/ACINQ/phoenix/blob/master/phoenix-shared/src/commonMain/kotlin/fr.acinq.phoenix/utils/Parser.kt)
-accepts that prefix case-insensitively. This correction addresses rendering,
-not invoice content, provider routing or settlement. In particular, replacing
-an invoice with a direct LNURL could lose the recorded donation identity and
-is not part of the fix.
-
-Focused native tests check replacement invoices and dense payment/authenticator
-payloads, clear borders, backing resolution and displayed dimensions. The
-owner confirmed the camera does not recognize the current QR. The corrected
-rendering still needs a scan test on a Phoenix device;
-no wallet payment or end-to-end compatibility claim is made. This PR remains
-undeployed pending the owner's instruction.
-
-
-## Dismissing an outstanding invoice (#260)
+## Dismissing an outstanding invoice
 
 Signed-in donors can choose **Dismiss invoice** to hide an unpaid donation
 request, including after reloading. The adjacent help and result explain that
@@ -149,8 +119,31 @@ restoring the hidden request; a server-confirmed payment wins over an in-flight
 dismissal. The full QR payload, invoice amount, signer validation and receiving
 address are unchanged.
 
-Four new native translation keys cover the action, help, success and failure
-feedback in all ten supported locales. Focused browser tests use mocked invoice
-fixtures and the existing cryptographic receipt suite; no real invoice is
-created or paid. Native selector tests run in the existing CI test command.
-This PR does not merge, build a release or deploy.
+Action, help, success and failure feedback use the native catalogs in all ten
+supported locales. Verification uses mocked invoice fixtures and cryptographic
+receipt tests; fixture results are separate from real payment/device acceptance.
+
+[Implementation and QR investigation history](records/docs398-lightning-patrons-history.md)
+is retained separately. The [follow-up evidence](records/documentation-follow-up-2026-11-25.md)
+confirms the QR rendering code is already shipped; it is not a new wallet/device
+compatibility or payment test.
+
+<details>
+<summary>Historical section links</summary>
+
+<a id="donation-priority-and-credits-owner-decision-october-30-2026"></a>
+- [Donation priority and credits (owner decision, October 30, 2026)](records/docs398-lightning-patrons-history.md#donation-priority-and-credits-owner-decision-october-30-2026)
+
+<a id="wallet-invoice-description-compatibility-108"></a>
+- [Wallet invoice description compatibility (#108)](records/docs398-lightning-patrons-history.md#wallet-invoice-description-compatibility-108)
+
+<a id="payment-completion-and-patron-presentation-252"></a>
+- [Payment completion and patron presentation (#252)](records/docs398-lightning-patrons-history.md#payment-completion-and-patron-presentation-252)
+
+<a id="qr-scanning-and-display-resolution-247"></a>
+- [QR scanning and display resolution (#247)](records/docs398-lightning-patrons-history.md#qr-scanning-and-display-resolution-247)
+
+<a id="dismissing-an-outstanding-invoice-260"></a>
+- [Dismissing an outstanding invoice (#260)](records/docs398-lightning-patrons-history.md#dismissing-an-outstanding-invoice-260)
+
+</details>

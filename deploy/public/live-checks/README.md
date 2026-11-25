@@ -1,9 +1,8 @@
 # Live release checks
 
-These are the existing 23 November 2026 checks committed for [#383](https://github.com/Dash1971/mute-chess/issues/383),
-with the false homepage JSON-LD requirement corrected. They are standalone
-operator checks, not a new deployment runner. No service starts/stops, admission
-changes, record publisher, scheduler, monitor or classifier changes are included.
+These are the standing release-acceptance checks. They separate critical gates
+from advisory checks and use explicit release/build evidence. They are standalone
+operator checks, not a deployment runner, service controller or classifier.
 
 Commit and merge every release-acceptance check before maintenance. Never add or
 edit checks during a window. Before pausing admissions, write each expected
@@ -33,8 +32,8 @@ expected identity.
 The signed smoke exercises rejection/replay, **not a successful returning-user
 session**. Do not report successful sign-in from this result. Preserve the
 existing browser sign-in check with an authorized test identity when validating
-sign-in; never obtain or log an owner's private key. This issue does not add an
-account fixture or authentication framework.
+sign-in; never obtain or log an owner's private key. Rejection/replay fixtures
+do not substitute for a successful sign-in check.
 
 After activation, health/auth/authorization, frozen continuity and deployed
 source-identity gates control reopening. Reopen immediately when they pass.
@@ -97,7 +96,7 @@ baseline, counts/ratings can legitimately change as games finish: successful
 capture does not establish equality or prove an activation occurred.
 
 `security-artifacts.py` retains the existing deployed-artifact assertions, takes
-explicit release/evidence inputs instead of the deleted task directory, and
+explicit release/evidence paths and
 verifies every build-receipt class hash. Version expectations come from that
 release's reviewed inventory, independently pinned by `--expected-inventory`,
 rather than a second set of version literals in the checker. Review candidate

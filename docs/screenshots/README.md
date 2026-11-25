@@ -45,7 +45,7 @@ Maia 1500/2400 channel settings remained unchanged.
 
 The JPEGs are direct browser screenshots, with no repainted UI or compositing.
 The gallery in `flairs/` contains the six existing 60 × 60 lossless WebP assets
-extracted unchanged from the checked-in native patch. They are artwork examples,
+retained unchanged in the native fork. They are artwork examples,
 not screenshots or newly generated assets. Original source art and attribution:
 [design/bot-flairs](../../design/bot-flairs/README.md).
 

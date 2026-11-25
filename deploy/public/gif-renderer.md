@@ -1,9 +1,10 @@
-# Native image and GIF dependency (#155)
+# Native image and GIF renderer
 
-Deployment is **HELD during the active study**. This source change does not build,
-install, start or verify a live renderer. Follow the existing verified-main release
-workflow and checked maintenance window after the hold is explicitly lifted. Do
-not restart services or interrupt games to test this dependency during the study.
+The image/GIF renderer is deployed as the private `nosweatchess-gif` service.
+A read-only check on November 25, 2026 confirmed the unit was active; see the
+[follow-up evidence](../../docs/records/documentation-follow-up-2026-11-25.md).
+The original study hold and preparation notes are
+[historical](../../docs/records/docs398-gif-renderer-history.md).
 
 The native Lila image/GIF endpoints stream responses from official
 [lichess-org/lila-gif](https://github.com/lichess-org/lila-gif), with the bounded
@@ -29,7 +30,7 @@ dependencies, or a separately hash-verified official binary. Prepare
 those build tools through the reviewed operations workflow; this helper does not
 install toolchains or packages.
 
-After the hold, build as an **unprivileged operator** in a clean Ubuntu 24.04
+Build as an **unprivileged operator** in a clean Ubuntu 24.04
 x86-64 environment compatible with the deployment host. Example, with reviewed
 source checkout and artifact paths:
 
@@ -96,7 +97,7 @@ non-root-owned or group/world writable.
 The provisional **768M memory cap** includes headroom above a source-derived
 363.37 MiB of eagerly decoded sprite pixels (280 sprites, each 720 × 1890 bytes),
 plus embedded GIFs, allocator, font and request buffers. This is not measured RSS
-or capacity evidence. Measure startup/one-export RSS after the hold before changing
+or capacity evidence. Measure startup/one-export RSS before changing
 the cap. The runtime needs no Python, resvg, browser, ffmpeg or writable data.
 
 Upstream supports six board themes and its listed aliases. The source extension
@@ -107,9 +108,9 @@ filtering and preservation of the original six themes are part of the renderer
 patch's tests. Native board preferences, orientation, annotations and generation
 semantics otherwise remain unchanged.
 
-## Verification after the hold
+## Release verification
 
-Do not call source integration a working production service until these pass:
+For each renderer release, verify the actual artifacts and deployed integration:
 
 1. Build/tests and ELF/native-library compatibility on the actual target host;
    retain receipt and a verified-main source archive.
@@ -130,3 +131,14 @@ Rollback must restore the matching app configuration, renderer dependency and
 network policy together; switching only the app symlink is insufficient when
 moving back across this service addition. Do not resume/extend a study as part of
 this installation.
+
+<details>
+<summary>Historical section links</summary>
+
+<a id="native-image-and-gif-dependency-155"></a>
+- [Native image and GIF dependency (#155)](../../docs/records/docs398-gif-renderer-history.md#native-image-and-gif-dependency-155)
+
+<a id="verification-after-the-hold"></a>
+- [Verification after the hold](../../docs/records/docs398-gif-renderer-history.md#verification-after-the-hold)
+
+</details>
