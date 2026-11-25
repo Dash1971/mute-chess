@@ -7,8 +7,21 @@ index 7183ff2..e655a3d 100644
  http.port = 9664
  http.use-nginx-forwarded-ip = no
  mongo.uri = "mongodb://localhost:27017/lichess?appName=lila-ws"
+diff --git a/src/main/scala/Auth.scala b/src/main/scala/Auth.scala
+index bcc9765..c700a2c 100644
+--- a/src/main/scala/Auth.scala
++++ b/src/main/scala/Auth.scala
+@@ -39,7 +39,7 @@ final class Auth(mongo: Mongo, seenAt: SeenAtUpdate, config: Config)(using Execu
+         case _ => None
+ 
+   private def sriFromReq(req: RequestHeader): Option[Sri] =
+-    Sri.from(req.uncheckedSri)
++    req.uncheckedSri.flatMap(Sri.read)
+ 
+   def anonSecretFromReq(req: RequestHeader): Option[String] =
+     sidFromReq(req) orElse sriFromReq(req).map(_.value)
 diff --git a/src/main/scala/Controller.scala b/src/main/scala/Controller.scala
-index 6ca7370..398ed82 100644
+index 6ca7370..08306b2 100644
 --- a/src/main/scala/Controller.scala
 +++ b/src/main/scala/Controller.scala
 @@ -228,14 +228,15 @@ final class Controller(
@@ -35,6 +48,15 @@ index 6ca7370..398ed82 100644
                endpoint(
                  name = "racer",
                  behavior = emit =>
+@@ -269,7 +270,7 @@ final class Controller(
+           f(Req(req, sri, authResult))
+ 
+   private def ValidSri(header: RequestHeader)(f: Sri => Response): Response =
+-    Sri.from(header.uncheckedSri) match
++    header.uncheckedSri.flatMap(Sri.read) match
+       case Some(validSri) => f(validSri)
+       case None => Future.successful(Left(HttpResponseStatus.BAD_REQUEST))
+ 
 diff --git a/src/main/scala/FriendList.scala b/src/main/scala/FriendList.scala
 index 3ce3dda..8c1c615 100644
 --- a/src/main/scala/FriendList.scala
@@ -116,6 +138,19 @@ index a7524f9..a8599a6 100644
            )
            .add("patron" -> user.data.patron.isDefined) // # app BC
            .add("patronColor" -> user.data.patron)
+diff --git a/src/main/scala/model.scala b/src/main/scala/model.scala
+index 1964951..7fd03cc 100644
+--- a/src/main/scala/model.scala
++++ b/src/main/scala/model.scala
+@@ -94,7 +94,7 @@ object Racer:
+ opaque type Sri = String
+ object Sri extends OpaqueString[Sri]:
+   def random() = Sri(SecureRandom.nextString(12))
+-  def from(str: String): Option[Sri] = Option.unless(str.contains(' '))(str)
++  def read(str: String): Option[Sri] = Option.unless(str.contains(' '))(str)
+ 
+ opaque type Flag = String
+ object Flag extends OpaqueString[Flag]:
 diff --git a/src/main/scala/netty/NettyServer.scala b/src/main/scala/netty/NettyServer.scala
 index c9bd110..a7279ae 100644
 --- a/src/main/scala/netty/NettyServer.scala
@@ -207,3 +242,54 @@ index 0000000..9178981
 +    List(None, Some("")).foreach: name =>
 +      val entered = Json.parse(ipc.ClientIn.following.Enters(friend(name)).write)
 +      assertEquals((entered \ "displayName").as[String], "n123")
+diff --git a/src/test/scala/SriValidationTest.scala b/src/test/scala/SriValidationTest.scala
+new file mode 100644
+index 0000000..20e15f0
+--- /dev/null
++++ b/src/test/scala/SriValidationTest.scala
+@@ -0,0 +1,45 @@
++package lila.ws
++
++import java.net.URLEncoder
++import java.nio.charset.StandardCharsets.UTF_8
++
++import com.typesafe.config.ConfigFactory
++
++class SriValidationTest extends munit.FunSuite:
++
++  private def request(sri: Option[String], mobile: Boolean = false) =
++    val query = sri.fold("")(s => "?sri=" + URLEncoder.encode(s, UTF_8))
++    new util.RequestHeader(
++      util.RequestUri("/lobby/socket/v5" + (if mobile then "" else query)),
++      IpAddress("127.0.0.1"),
++      util.RequestHeader.Headers(
++        "https://mutechess.org",
++        if mobile then "Lichess Mobile/test sri:" + sri.getOrElse("") else "test",
++        None,
++        None
++      )
++    )
++
++  test("old Option overload bypassed string validation; explicit reader rejects it"):
++    val payload = "testsocket01 syntheticUser,testsocket02 anotherUser"
++    val header = request(Some(payload))
++    assertEquals(header.uncheckedSri, Some(payload))
++    assert(Sri.from(header.uncheckedSri).nonEmpty)
++    assertEquals(header.uncheckedSri.flatMap(Sri.read), None)
++
++  test("query strings cannot smuggle account bindings through encoded spaces"):
++    List("testsocket01 syntheticUser", "testsocket01 syntheticUser,testsocket02 anotherUser").foreach:
++      payload => assertEquals(request(Some(payload)).uncheckedSri.flatMap(Sri.read), None)
++
++  test("ordinary browser and mobile SRIs remain unchanged; missing stays absent"):
++    List(false, true).foreach: mobile =>
++      val header = request(Some("normalSRI_12"), mobile)
++      assertEquals(header.uncheckedSri.flatMap(Sri.read).map(_.value), Some("normalSRI_12"))
++    assertEquals(request(None).uncheckedSri.flatMap(Sri.read), None)
++
++  test("anonymous secret fallback uses the same validating reader without database access"):
++    given Executor = parasitic
++    val auth = new Auth(null, null, ConfigFactory.parseString("cookie.name=testCookie\noauth.secrets=[]"))
++    assertEquals(auth.anonSecretFromReq(request(Some("normalSRI_12"))), Some("normalSRI_12"))
++    assertEquals(auth.anonSecretFromReq(request(Some("testsocket01 syntheticUser"))), None)
++    assertEquals(auth.anonSecretFromReq(request(None)), None)
