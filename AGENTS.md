@@ -57,6 +57,9 @@ all ten locales: en-GB, de-DE, es-ES, fr-FR, hi-IN, ja-JP, ko-KR, pt-BR, ru-RU,
 zh-CN. English fallback is incomplete. Check keys, placeholders and localized
 rendering. Reuse the existing translation system; use American English in
 communication/product prose while retaining native locale identifiers.
+English means US English throughout the application UI, including inherited
+Lichess strings, help and accessibility text. The retained `en-GB` catalog ID is
+a compatibility identifier, not an exception to this spelling policy.
 
 ## Review and releases
 
