@@ -179,7 +179,7 @@ No canonical account identity is renamed or regenerated.
 <summary>Preserved earlier section URLs</summary>
 
 <a id="the-strongest20-names"></a>
-- [The strongest20 names](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/catalog-roster.md#the-strongest20-names)
+- [The strongest 20 names](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/catalog-roster.md#the-strongest20-names)
 
 <a id="legacy-public-name-follow-up-322-draft"></a>
 - [Legacy public-name follow-up (#322, draft)](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/catalog-roster.md#legacy-public-name-follow-up-322-draft)

@@ -54,6 +54,7 @@ defect. A security release is not rolled back for a suspected test defect.
 4. Preserve the original security build receipt byte-for-byte as `corresponding-source/SECURITY279_ORIGINAL_BUILD.json` (and in its original historical release). Write a **new** `corresponding-source/SECURITY_VERIFICATION.json` with `kind: current-release-security-verification`, `verifiedAtUTC`, `main`, `nativeCommit`, `nativeTree`, `inventorySha256`, source-build filename/hash, original-security-build filename/hash, and observed checks. Keep real build provenance: a fresh verification is not a new build. Never invent successful rebuild flags for reused artifacts.
 5. The existing OpenClaw collector reads `corresponding-source/SECURITY279_BUILD.json`. For compatibility, publish the same new verification object at that existing path, with the legacy fields `fullBackendRebuildPassed`, `fullUiBuildPassed`, `redisVersion`, `redisBackport` and `redisServerSha256` supported by the actual matching build/runtime evidence. The preserved original remains separate; the legacy filename now carries explicitly labeled current verification. Keep both current copies identical and include the generated evidence in the existing corresponding-source archive. Do not change RELEASE.json merely to refresh this record.
 6. Use OpenClaw's existing `collect_host.py` and `reconcile.classify` on the fresh host collection and existing advisory scan. Require `inventory_verified: true`; unresolved or newly applicable findings remain visible. Do not send an extra scheduled report as a test. Do not edit reviewer reference inventory, bypass identity checks or reset intrusion-monitor baselines just to clear a warning. If reviewed security inputs changed, obtain the appropriate new applicability review and update the maintained inventory through the normal PR procedure.
+7. After verified activation, update living feature/status documentation and [release history](releases.md) with the actual deployed Mute/native identities and linked evidence. Preserve dated receipts; label source-only changes as unreleased. A docs-only merge without application activation is not a release-history entry.
 
 The controller paths are private operational details documented in its existing Mute Chess daily-report README. This policy adds no scanner, scheduler, deployment framework or broader access. A documentation-only repository change that is not deployed does not change the running application identity; the next application deployment must carry this policy and matching current evidence.
 
@@ -69,14 +70,20 @@ If an earlier deployment missed this step, first verify the active commit agains
 ## Current evidence and open findings
 
 The [November 25 runtime maintenance](records/runtime-security-2026-11-25.md)
-records the Cloudflared/SQLite update and two already-pinned advisory fixes.
+records the Cloudflared/SQLite update and two already-pinned advisory fixes; its
+[completion addendum](records/runtime-security-completion-2026-11-25.md) records
+the published maintenance result without rewriting the original note.
 The [November 24 evidence review](records/documentation-review-evidence-2026-11-24.md)
 identifies the observed active release and retained verification, including the
 installed translation-generation parser 5.12.0 and deployed native security fixes.
 It is not a fresh classifier run or permission to reuse verification for a new
-release. Racer remains mitigated by public gateway denial rather than a patched
-WebSocket pin. Keep unresolved/new findings visible and use the actual matching
-inventory and evidence instead of inferring status from issue closure.
+release. The lobby hook_like ID advisory (GHSA-3m7f-j2c6-6x4x) and Racer room advisory
+(GHSA-2rpf-mmrc-v68p) remain pending under
+[#393](https://github.com/Dash1971/mute-chess/issues/393). Mute's fixed `/club/play`
+JSON endpoint bounds the former exposure, and the gateway denies public Racer
+WebSocket upgrades. These boundaries are not claims that the pending backports
+are deployed. Keep both findings visible until actual matching patched-release
+verification; issue closure alone is not deployment evidence.
 
 Private operator tools and access boundaries are listed in
 [operations](operations.md); no replacement monitor, update or release framework

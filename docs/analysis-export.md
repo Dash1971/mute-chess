@@ -1,4 +1,4 @@
-# Native analysis-board export (#155/#158)
+# Native analysis-board export
 
 The reference is the existing post-game Lichess panel at pinned Lila
 `b551752d2a0e7a63459d9812825d95a633a98737`:
@@ -71,10 +71,15 @@ renderer and checks actual image/GIF responses, exact moss colors and orientatio
 Local browser evidence covers default Import, export row labels/native controls
 and native GIF dialog. CI/browser evidence is not human acceptance testing.
 
-Do not merge this required renderer dependency into the active #157 continuation
-release. Merge/deploy remains HELD until the bot experiment’s verified FINAL
-cleanup handoff. No public runtime, data, configuration, or shared server build
-path is changed by source preparation or CI. A release must include the qualified
-renderer artifact, verified clean main, successful push CI and normal native
-runtime preflight. The post-hold live verification must test actual app/gateway
-image and GIF downloads; source/CI does not claim deployment.
+The renderer is deployed; the old experiment-specific hold is retained in
+[implementation history](records/docs398-analysis-export-history.md). Each later
+release still needs the qualified renderer artifact, verified source and actual
+app/gateway image/GIF checks. Source or CI alone is not deployment evidence.
+
+<details>
+<summary>Historical section links</summary>
+
+<a id="native-analysis-board-export-155158"></a>
+- [Native analysis-board export (#155/#158)](records/docs398-analysis-export-history.md#native-analysis-board-export-155158)
+
+</details>

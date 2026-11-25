@@ -1,7 +1,7 @@
-# Moves by Rating source audit (#146)
+# Moves by Rating source audit
 
-The original chart scope is extended by the November 1 owner request to audit
-current-position colors and add Maia's move-hover details. The native board/tree,
+Moves by Rating includes current-position quality colors and Maia's move-hover
+details. The native board/tree,
 graph, accuracy, ACPL, whole-game classifications and review controls remain intact.
 
 Reference: [CSSLab/maia-platform-frontend](https://github.com/CSSLab/maia-platform-frontend/tree/325b85c3b6427f2e8e691e1dcf4ab9d4dbf94ec3),
@@ -43,9 +43,8 @@ One move uses the same color in its curve, translucent area, points, legend,
 endpoint and tooltip. Unknown scores stay neutral. These are quick current-
 position estimates, separate from full-game classifications and raw likelihoods.
 
-The November 1 audit found that our visible-candidate search shortcut changed the
-shade-ranking pool when Others opened. This was a behavioral departure from Maia;
-a palette-only replacement would hide the cause. Preserve Maia's exact palettes.
+Shade ranking uses the complete legal-root pool rather than changing when Others
+opens. Preserve Maia's exact palettes.
 
 Follow Maia's `staged-root-probe` strategy: screen **every legal root** to depth 10,
 publishing only complete MultiPV iterations. Then deepen up to four Maia moves
@@ -100,29 +99,24 @@ and departure-register checks. Regressions cover uncapped union order, raw
 probabilities, 60/100 boundaries, gaps, tooltip/keyboard behavior, quality shades,
 complete all-root protocol publication, exact matched inputs, cancellation,
 castling normalization, expansion-independent shading, merged-root ordering,
-mate/Black parity, popup metrics/lifecycle, watchdog recovery and hover ownership. Independently reviewed by a second
-Codex agent; automated/browser evidence is not human acceptance testing.
+mate/Black parity, popup metrics/lifecycle, watchdog recovery and hover ownership. Automated/browser evidence is distinct from human acceptance testing.
 
 After an upstream merge, compare opt-in all-root screening with native worker handling,
 `ceval.hovering` ownership and key propagation. No private Maia API, remote
 inference, new dependency, rules, ratings or classification change is involved.
 
 
-### October 31 local evidence
+The [October 31 validation record](records/docs398-maia-rating-chart-history.md#october-31-local-evidence)
+retains the original test counts, source footprint, screenshots and study hold.
+Those dated notes do not place the deployed chart on hold.
 
-The full native UI suite passes 358 tests in 37 suites; the full UI build/type
-check, formatting, typed lint and SCSS lint pass. The exact-path/pin check covers
-245 Lila files and two lila-ws files; five register regressions pass.
+<details>
+<summary>Historical section links</summary>
 
-A local native-browser build at the reference FEN shows four uncapped series,
-a 60% domain and a raw-probability tooltip at keyboard-focused Maia 1600. A second
-position exceeding 60% switches to 100%. Both card frames measure 184px and the
-chart frame 190px. The six-move annotated fixture exercises imported glyphs,
-actual native review/metrics and count-button jumps. All six summary symbol/name
-gaps measure 7.77px with approximately 30px rows. Computed board brilliant fill
-and unselected tree glyph are `rgb(21,170,191)`; the Good badge remains native
-`rgb(34,172,56)`. Imported fixture labels are test annotations, not classifier
-awards. Screenshots and logs are retained locally under
-`maia-rating-chart-2026-10-31/`; this is automated browser evidence, not human
-acceptance or a claim of deployment. Public deployment is held until the active
-bot experiment’s verified final cleanup handoff.
+<a id="moves-by-rating-source-audit-146"></a>
+- [Moves by Rating source audit (#146)](records/docs398-maia-rating-chart-history.md#moves-by-rating-source-audit-146)
+
+<a id="october-31-local-evidence"></a>
+- [October 31 local evidence](records/docs398-maia-rating-chart-history.md#october-31-local-evidence)
+
+</details>

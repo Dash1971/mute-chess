@@ -41,4 +41,3 @@ Current earned ratings can differ from that historical snapshot.
 The alias mapping is included in the deployed source. A read-only check on
 November 24, 2026 confirmed the representative `SignalTrain029` profile displays
 Elon Musk; see the [documentation review evidence](records/documentation-review-evidence-2026-11-24.md).
-This documentation does not reapply aliases or modify accounts.

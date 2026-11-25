@@ -15,7 +15,7 @@ We do not maintain a parallel chess server or clock engine.
   window. Signed-in humans can invite each other directly. The pool has
   [10,000 managed identities](catalog-roster.md), preserving earned histories.
 - Background games top up to five total games; the shared Maia-driven ceiling is
-  twenty. [Owner-hosted Arenas](arena-plan.md) use native pairing and scoring,
+  twenty. [Owner-hosted Arenas](arenas.md) use native pairing and scoring,
   configurable Maia fillers and unlimited human entry.
 - Native puzzles, Chess basics, Practice and the forum are exposed. Hidden
   inherited features stay hidden or show the translated unsupported notice.
@@ -27,12 +27,9 @@ We do not maintain a parallel chess server or clock engine.
 
 ## Source and maintenance
 
-Native code lives in [Dash1971/lila](https://github.com/Dash1971/lila).
-The Mute repository contains the adapter, deployment inputs, research and docs.
-[The native pin](../deploy/lila/native-pin.json) identifies the exact application
-commit and upstream base. Upstream arrives by merge; Mute departures remain
-small, documented and tested. See [the fork contract](native-fork.md) and
-[maintenance guide](maintenance.md).
+The [architecture guide](architecture.md#source-authority) explains the two
+repositories and native pin. Follow [maintenance](maintenance.md) and the
+[fork contract](native-fork.md) for reviewed upstream integration.
 
 The retired Node/Fastify prototype is retained in
 [`archive/node-prototype/`](../archive/node-prototype/README.md). It is not a

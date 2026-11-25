@@ -229,12 +229,12 @@ outputs, cache entries or score presentation.
 
 ## 79M browser execution (#184)
 
-Use the already pinned ONNX Runtime1.31.1 WebGPU bundle and asyncify loader,
-renamed from.mjs to.js without byte changes for native Play MIME compatibility.
+Use the already pinned ONNX Runtime 1.31.1 WebGPU bundle and asyncify loader,
+renamed from `.mjs` to `.js` without byte changes for native Play MIME compatibility.
 Original hashes, sizes and source URLs are in browser/config.json. The GPU WASM
 asset is fetched once during existing asset preparation, verified and served
-same-origin. Runtime selection tries GPU for79M, then at most4CPU threads when
-isolated, then1;5M retains its bounded1-thread loader. No model conversion,
+same-origin. Runtime selection tries GPU for 79M, then at most 4 CPU threads when
+isolated, then 1; 5M retains its bounded 1-thread loader. No model conversion,
 retraining, provider-specific policy changes or reduced rating samples occur.
 Task-specific tests exercise backend fallbacks, unchanged input/output contracts
 and the existing watchdog; they are not device performance or accuracy evidence.

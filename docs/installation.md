@@ -245,6 +245,5 @@ domains. Review those assumptions and the site's Nostr/donation identity before
 publishing your own fork; do not expose the private development listeners.
 
 For build details, see the [native development notes](../deploy/lila/README.md).
-This guide documents the existing helpers; command paths and pins were checked
-against the repository, but this documentation change did not perform a new
-end-to-end installation on a fresh Ubuntu VM.
+The guide documents the existing helpers; the fresh-install qualification
+boundary is stated at the start of this page.

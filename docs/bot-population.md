@@ -106,14 +106,7 @@ absolute Lichess rating scale; human/reference validation remains necessary.
 Public profiles describe current policies, while historical games retain their
 frozen policy versions.
 
-## Continuous experiment and Easter egg identities (#137/#92)
-
-The exact approved ranges, endpoint aliasing, training-only model selection,
-prospective held-out tests and October31 hard stop are in
-[strength-experiment.md](records/strength-experiment.md). New configurations use full
-sampling for five full opening moves and then fixed temperature/top-p. Original
-policies, seeds and earned perfs are never overwritten. Repeated identities with
-the same effective configuration are not independent evidence about the mapping.
+## Bot identities
 
 Upper-input identities include Wintermute/Neuromancer (Neuromancer), HAL9000
 (2001: A Space Odyssey), SHODAN (System Shock), Durandal (Marathon), WalterWobot
@@ -121,33 +114,13 @@ Upper-input identities include Wintermute/Neuromancer (Neuromancer), HAL9000
 (Colossus: The Forbin Project), DeepThought (The Hitchhiker's Guide to the Galaxy),
 Joshua (WarGames) and Mycroft (The Moon Is a Harsh Mistress), as included by the
 seeded generator. These are character references, not affiliations. Wintermute
-is fixed at conditioning2600/argmax/history-on/very-fast human timing; Neuromancer
+is fixed at conditioning 2600/argmax/history-on/very-fast human timing; Neuromancer
 is the separate history-off comparison. Measured ratings determine the leader;
 no rating is manufactured to place a character first.
 
-### October 31 first-phase results
-
-The completed study contains 2,623 native rated games: 200 original-roster
-warmup games, 1,800 additional training games and 623 held-out games. The
-remaining 377 were not admitted after isolated continuation qualification failed;
-the study workers were stopped and earned ratings retained. Of the original 44,
-43 had nonprovisional Blitz ratings and all 44 had nonprovisional Rapid
-ratings at that stage. The 50 held-out configurations remained provisional after 6–7 games per
-speed.
-
-Primary held-out native-label MAE was 131.4 Blitz / 127.3 Rapid; the preregistered
-secondary procedure gave 127.7 / 127.3, against 124.0 / 119.5 for the unchanged
-seed baseline. These measurements did not demonstrate an improvement over
-the existing heuristic. These uncertain closed-pool
-labels do not establish alignment with human Lichess strength. New identities
-must retain honest uncertainty and learn through native Glicko; no established
-history or RD is copied from another bot.
-
-The canonical [methods, results, complete games and reproduction tools](https://github.com/Dash1971/mobile-maia-research/tree/4800b4e6f5e68d55e64d8c15fa07efe4a4e3c7de/studies/bot-strength-seeding-2026-10-31)
-live in Mobile Maia Research. They also document capacity measurements and the
-limits of extrapolating them to human games or VPS hardware. This report
-introduces no new common rating adjustment or production capacity increase.
-
+The [research history](records/docs398-bot-population-history.md#october-31-first-phase-results)
+retains the dated experiments, limits and measured outcomes. It authorizes no
+new games or common rating adjustment.
 
 ### Reference calibration and the live expanded pool
 
@@ -167,7 +140,7 @@ Native Glicko continues updating ratings normally. Matching human Lichess
 strength remains a project goal that we will monitor through actual play;
 bot-only calibration does not independently guarantee that correspondence.
 
-## Human opponent conditioning (#176)
+## Human opponent conditioning
 
 New signed-in human-versus-Maia admissions pass the same native speed rating
 already used for pool matching to the private adapter. For example, a human with
@@ -175,8 +148,8 @@ Blitz 1737 and Rapid 1881 supplies 1737 for Blitz and 1881 for Rapid. The bot's
 configured self input remains fixed. The adapter keeps the exact integer human
 rating within 600–2600 and clamps outside that model range. Anonymous play
 assumes equal strength and matches the bot self input; the native 1500
-matchmaking default does not become a model input. Native correspondence and
-unlimited admission retain their existing perf-key selection.
+matchmaking default does not become a model input. Only the supported real-time controls are admitted; conditioning does not
+enable correspondence or unlimited games.
 
 For signed-in humans, `freezeForHuman` records `human-speed-rating-v1` and a
 separate v4 policy version bound to the bot policy and opponent input. Rating
@@ -205,5 +178,19 @@ selected rating for both inputs, as documented in
 
 <a id="applied-anchor-correction--october-30-2026"></a>
 - [Applied anchor correction — October 30, 2026](https://github.com/Dash1971/mute-chess/blob/699d101af78934ed29f9beba5794191c7d2504e9/docs/bot-population.md#applied-anchor-correction--october-30-2026)
+
+</details>
+
+<details>
+<summary>Historical section links</summary>
+
+<a id="continuous-experiment-and-easter-egg-identities-13792"></a>
+- [Continuous experiment and Easter egg identities (#137/#92)](records/docs398-bot-population-history.md#continuous-experiment-and-easter-egg-identities-13792)
+
+<a id="october-31-first-phase-results"></a>
+- [October 31 first-phase results](records/docs398-bot-population-history.md#october-31-first-phase-results)
+
+<a id="human-opponent-conditioning-176"></a>
+- [Human opponent conditioning (#176)](records/docs398-bot-population-history.md#human-opponent-conditioning-176)
 
 </details>
