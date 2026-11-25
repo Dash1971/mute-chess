@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "release-targets",
-  "reviewedAt": "2026-11-25",
+  "reviewedAt": "2026-11-26",
   "deploymentIdentity": "Read RELEASE.json from the SAME current release. These targets are not proof of installation; compare with SECURITY279_BUILD.json and actual running versions. Recheck after every release or host/tool update.",
   "upstreamPins": {
     "lila": {
@@ -88,7 +88,8 @@
         "USN-9156-1"
       ],
       "maintenance": "APT-managed host targets. Verify installed packages, the booted kernel and both running Java services; repository pocket labels alone do not identify every security fix. Current operational verification supplies installation evidence.",
-      "libsqlite3-0": "3.46.1-9ubuntu0.4"
+      "libsqlite3-0": "3.46.1-9ubuntu0.4",
+      "libexpat1": "2.7.4-1ubuntu0.3"
     },
     "node": {
       "version": "24.22.1",
