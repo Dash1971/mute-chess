@@ -32,7 +32,7 @@ shows `/@/PearlDrifter/perf/ultraBullet` as a 404 and downloads `index.html` fro
 `/assets/vendor/ChessPursuit/bin-release/index.html`. After the fix the bot profile
 has no UltraBullet link, and direct visits to unsupported URLs retain a plain
 404 with a working home link and no mini-game request. Verify the title and link
-in en-GB, de-DE, es-ES, fr-FR, hi-IN, ja-JP, ko-KR, pt-BR, ru-RU and zh-CN.
+in en-US, de-DE, es-ES, fr-FR, hi-IN, ja-JP, ko-KR, pt-BR, ru-RU and zh-CN.
 
 ## Temporarily hidden Study entry points
 

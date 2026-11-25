@@ -42,7 +42,7 @@
 - [Exact departure register](../deploy/lila/upstream-departures.json).
 - [Image/GIF renderer](../deploy/public/gif-renderer.md).
 - [Learning content](../learning/README.md) and [puzzle validation](../puzzles/VALIDATION.md).
-- [Technical names](glossary.md).
+- [Technical names](glossary.md) and [English UI policy](us-english-ui.md).
 
 ## Sources and detailed references
 

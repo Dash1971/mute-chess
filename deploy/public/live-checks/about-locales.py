@@ -19,13 +19,15 @@ class Items(HTMLParser):
  def handle_data(self,data):
   if self.depth:self.cur+=data
 norm=lambda s:' '.join(s.split())
-for locale in ['en-GB','de-DE','es-ES','fr-FR','hi-IN','ja-JP','ko-KR','pt-BR','ru-RU','zh-CN']:
+for locale in ['en-US','de-DE','es-ES','fr-FR','hi-IN','ja-JP','ko-KR','pt-BR','ru-RU','zh-CN']:
  catalog=root/'lila/translation/dest/site'/f'{locale}.xml'
- if not catalog.exists():
-  assert locale=='en-GB';catalog=root/'lila/translation/source/site.xml'
  keys={x.attrib['name']:''.join(x.itertext()) for x in ET.parse(catalog).getroot() if x.tag=='string'}
+ if locale=='en-US':
+  source={x.attrib['name']:''.join(x.itertext()) for x in ET.parse(root/'lila/translation/source/site.xml').getroot() if x.tag=='string'}
+  keys={**source,**keys}
  c=http.client.HTTPConnection('127.0.0.1',29660,timeout=20);c.request('GET','/about',headers={'Host':'mutechess.org','Accept-Language':locale});r=c.getresponse();html=r.read().decode();c.close();assert r.status==200,(locale,r.status)
  page=Items();page.feed(html)
+ assert page.lang==locale,(locale,page.lang)
  frontend=[x for x in page.items if 'maiachess.com' in x];engine=[x for x in page.items if 'Maia3 by CSSLab' in x]
  assert len(frontend)==len(engine)==1 and frontend[0]!=engine[0],locale
  source=keys['muteAboutMaiaFrontendSource'];expected=keys['muteAboutMaiaFrontendCredit'].replace('%1$s','maiachess.com').replace('%2$s',source)

@@ -5,6 +5,11 @@ first; later owner instructions supersede earlier conflicting entries.
 
 ## Required translations for user-facing text (November 4, 2026, #242)
 
+**Locale update (November 25, 2026, #400):** The English locale identifier in
+this historical instruction is superseded by the [English UI policy](../us-english-ui.md).
+The English choice is `en-US`, with legacy `en-GB` preferences normalized to it.
+See that policy for the pending implementation and release status.
+
 Every added or changed user-facing string must use the existing native i18n
 catalogs and be translated into all ten supported locales: en-GB, de-DE, es-ES,
 fr-FR, hi-IN, ja-JP, ko-KR, pt-BR, ru-RU and zh-CN. This includes help text,

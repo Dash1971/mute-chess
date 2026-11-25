@@ -33,13 +33,11 @@ activation, exact runtime verification and the fresh existing classifier pass.
   tests pass; exact WS compilation and Scala formatting pass. The source
   changes preserve the upstream validator's accepted alphabet and auth flow.
 
-Merge order for the next release: review and merge native PR #10 first; then
-update the companion's native-pin.json to that actual merged commit/tree,
-register its exact new native paths in upstream-departures.json and update
-security-inventory.json targets/provenance together. The draft deliberately
-retains the current deployed native pin rather than presenting unmerged code
-as the application's authority. Complete the normal source checks and real
-build, then deploy the three changes together with the planned application release.
+Both native PRs #11 (US English) and #10 (lobby guard) are merged. The companion
+pins their actual combined native main, `f042367d18dac287dbfde5f9d20a0be088b3a11a`,
+tree `6f338e6d31a325cad77171400ce2e9fd0b5ff29c`. Exact new native paths and
+reviewed security target provenance move together. Complete normal companion
+checks and the real full build before activating the combined application release.
 
 November 26 isolated integration validation used the actual Mongo cache and
 Controller.racer with a task-owned loopback Mongo process/database. Missing and
