@@ -33,13 +33,14 @@ spellings that need a US correction. It is a regression guard, not an exhaustive
 language audit. Existing native locale tests cover Insights, Arenas and rematches;
 the native build compiles the client catalogs and their typings.
 
-The locale switch is proposed in [native draft PR #11](https://github.com/Dash1971/lila/pull/11)
-and [companion draft PR #401](https://github.com/Dash1971/mute-chess/pull/401),
+The locale switch is tracked in [native PR #11](https://github.com/Dash1971/lila/pull/11)
+and [companion PR #401](https://github.com/Dash1971/mute-chess/pull/401),
 tracking [issue #400](https://github.com/Dash1971/mute-chess/issues/400).
-**It remains unmerged and undeployed.** Before the future batch, refresh the
-companion pin against the combined reviewed native main and perform the normal
-localized page acceptance and release verification. A source pin or passing CI
-does not establish deployment.
+The companion pin follows reviewed native main; the final combined release must
+include both this change and the security guards. A source merge or passing CI
+does not establish deployment. Verify actual localized pages, serving identity
+and matching current security evidence through the normal release procedure;
+confirmed activations are indexed in [release history](releases.md).
 
 See the [upstream differences](upstream-alignment.md#supported-differences),
 [maintenance overview](maintenance.md#what-we-keep-different) and
