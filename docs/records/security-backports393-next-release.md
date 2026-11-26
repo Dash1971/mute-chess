@@ -1,5 +1,9 @@
 # Lobby-ID, Racer and SRI guard backports — release preparation
 
+Completion addendum: the [November 26 verified deployment](release-2026-11-26.md)
+activated these targets and passed matching runtime/security classification.
+The preparation and validation notes below retain their original scope.
+
 The owner authorized the combined waiting-PR release on November 26, 2026.
 These source targets are not deployed or eligible to clear live advisories until
 activation, exact runtime verification and the fresh existing classifier pass.

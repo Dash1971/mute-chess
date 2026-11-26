@@ -77,13 +77,17 @@ The [November 24 evidence review](records/documentation-review-evidence-2026-11-
 identifies the observed active release and retained verification, including the
 installed translation-generation parser 5.12.0 and deployed native security fixes.
 It is not a fresh classifier run or permission to reuse verification for a new
-release. The lobby hook_like ID advisory (GHSA-3m7f-j2c6-6x4x) and Racer room advisory
-(GHSA-2rpf-mmrc-v68p) remain pending under
-[#393](https://github.com/Dash1971/mute-chess/issues/393). Mute's fixed `/club/play`
-JSON endpoint bounds the former exposure, and the gateway denies public Racer
-WebSocket upgrades. These boundaries are not claims that the pending backports
-are deployed. Keep both findings visible until actual matching patched-release
-verification; issue closure alone is not deployment evidence.
+release.
+
+The [November 26 deployment](records/release-2026-11-26.md) verifies the active
+lobby hook_like ID guard (GHSA-3m7f-j2c6-6x4x), Racer cache-marker guard
+(GHSA-2rpf-mmrc-v68p), and SRI validation guard (GHSA-rxpx-6m5g-qm2w).
+The matching full build, deployed source/classes, both current verification
+readers and fresh existing OpenClaw classifier passed with
+`inventory_verified=true`. That collection had no pending upstream findings,
+dependency alerts, OS updates or scan errors. This is a dated observation;
+future findings still require review. The gateway continues denying public
+Racer WebSocket upgrades, and Mute's fixed `/club/play` JSON endpoint remains.
 
 Private operator tools and access boundaries are listed in
 [operations](operations.md); no replacement monitor, update or release framework
