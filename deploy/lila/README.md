@@ -13,7 +13,9 @@ public deployment is described in [../public](../public/README.md).
 - WebSockets: `lichess-org/lila-ws` at `5089b84b5fe2da3f3e9e69d29363115cfddfc758`.
 - Check out native Lila with `python3 native-fork.py checkout SOURCE_DIRECTORY`.
   Apply only `patches/lila-ws-bind-address.patch` to the pinned lila-ws source;
-  it adds configurable `http.host`, preserving the upstream default.
+  it covers configurable loopback binding, Netty/Jackson dependency fixes, friend
+  public names, Racer room-existence checks and SRI validation; see the
+  [exact departure register](upstream-departures.json).
   Verify the exact fork HEAD/tree and documented clean-source status before
   and after building. The remaining WebSocket patch is checked by `ws-source.py`.
   The native fork and WebSocket patch retain `security-dependencies.sbt`: Lila's Netty modules resolve
@@ -34,8 +36,9 @@ public deployment is described in [../public](../public/README.md).
 
 Upstream licenses and notices remain in the retained source checkouts. Lila and
 lila-ws retain their AGPL licenses; third-party tools/assets retain their own
-terms. These scripts and the transport bind patch were authored with OpenAI
-Codex assistance. Automated validation is recorded separately from human manual
+terms. The integration scripts and retained WebSocket patch were prepared with
+OpenAI Codex assistance; upstream fixes retain their original provenance.
+Automated validation is recorded separately from human manual
 testing; no upstream contribution or claim of human testing is implied.
 
 ## Prepare and build

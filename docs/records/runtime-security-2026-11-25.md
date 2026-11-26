@@ -30,3 +30,9 @@ this runtime maintenance neither ships nor clears those backports.
 Source: [Cloudflared dependency fixes](https://github.com/cloudflare/cloudflared/commit/40553f3b6d8e0adc62c5a3c9f4f2ca41978259cc).
 No classifier predicates, monitoring controls, schedules, credentials or
 application release fingerprints change.
+
+## Correction note — November 26, 2026
+
+PR #395 amended the restart sentence above from “Only the tunnel restarted” to
+include the fwupd restart. This note makes that later correction explicit;
+the recorded application process IDs were unchanged.

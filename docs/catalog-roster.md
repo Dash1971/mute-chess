@@ -31,7 +31,7 @@ See the [public bot name guide](bot-names.md).
 
 The [research report](https://github.com/Dash1971/mobile-maia-research/blob/140e2eb411923930fb0d5950b92abf6f3c0166dd/studies/bot-rating-establishment-2026-10-31/REPORT.md)
 explains the Lichess starting reference, native rated games and sampling effects.
-For this release, we can use direct measured-policy evidence rather than
+The roster uses direct measured-policy evidence rather than
 extrapolating the report's smooth planning formula to thousands of new settings.
 
 Equivalent effective policies are grouped (including argmax aliases), retaining

@@ -1,5 +1,22 @@
 # Names used in the technical docs
 
+- **Native:** the Lichess server and browser interface in our
+  [Lila fork](https://github.com/Dash1971/lila). The
+  [native pin](../deploy/lila/native-pin.json) selects the exact fork commit used
+  by a Mute release. Native chess rules, clocks and game history remain the
+  foundation; see [the architecture](architecture.md).
+- **Companion PR:** the pull request in this repository that follows a reviewed
+  change in the Lila fork, updates its source pin and includes related adapter,
+  integration and documentation changes. See [the source workflow](native-fork.md).
+- **Focused:** Mute's supported subset of Lichess features and navigation. Hidden
+  features can remain in the source without being exposed on the site; see
+  [the feature boundary](real-time-feature-surface.md).
+- **Quiet Signal:** Mute's visual theme: graphite, chalk and mint interface
+  colors, with a moss-colored chessboard. See [the design guide](design.md).
+- **Departure register:** the [file-by-file list](../deploy/lila/upstream-departures.json)
+  of intentional differences from the pinned upstream sources, their reasons and
+  verification requirements. It helps reviewers keep upstream merges bounded;
+  see [the maintenance overview](maintenance.md#keeping-track-of-every-difference).
 - **OpenClaw:** the existing private operations/reporting system that collects
   host evidence and classifies it against the reviewed security inventory.
   `inventory_verified=true` means that collection passed the existing release

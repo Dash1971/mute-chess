@@ -8,7 +8,8 @@ first; later owner instructions supersede earlier conflicting entries.
 **Locale update (November 25, 2026, #400):** The English locale identifier in
 this historical instruction is superseded by the [English UI policy](../us-english-ui.md).
 The English choice is `en-US`, with legacy `en-GB` preferences normalized to it.
-See that policy for the pending implementation and release status.
+**Deployment addendum (November 26, 2026):** US English is live; see the
+[verified deployment record](../records/release-2026-11-26.md).
 
 Every added or changed user-facing string must use the existing native i18n
 catalogs and be translated into all ten supported locales: en-GB, de-DE, es-ES,

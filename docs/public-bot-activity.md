@@ -68,7 +68,7 @@ retain native manual claims. Missing/restarted adapter polls do not request an
 automatic claim, and existing server/worker-failure handling remains separate.
 There is no new timer, inactivity cutoff, direct result write or record deletion.
 No-start games and already persisted games with `noClaimWin` do not gain an early
-disconnect claim; this change does not migrate their stored rules. All
+disconnect claim; their stored rules are not migrated. All
 visible claim/result messages use the existing native translated UI.
 
 Clock expiry (#304) is checked separately in the same healthy poll, for both

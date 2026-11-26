@@ -19,7 +19,7 @@ analysis, with a familiar interface for desktop and mobile browsers.
   work behind it.
 - Maintain a fun cyberpunk theme and vibe.
 - Tightly integrate Maia for both play and analysis.
-- Keep it simple: games, puzzles, analysis and a forum. No variants.
+- Keep it simple: games, owner-hosted Arenas, puzzles, analysis and a forum. No variants.
 - **100% FOSS.** Play at [mutechess.org](https://mutechess.org/), fork the project,
   or [run your own instance](https://github.com/Dash1971/mute-chess/blob/main/docs/installation.md).
 

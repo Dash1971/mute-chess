@@ -33,14 +33,11 @@ spellings that need a US correction. It is a regression guard, not an exhaustive
 language audit. Existing native locale tests cover Insights, Arenas and rematches;
 the native build compiles the client catalogs and their typings.
 
-The locale switch is tracked in [native PR #11](https://github.com/Dash1971/lila/pull/11)
-and [companion PR #401](https://github.com/Dash1971/mute-chess/pull/401),
-tracking [issue #400](https://github.com/Dash1971/mute-chess/issues/400).
-The companion pin follows reviewed native main; the final combined release must
-include both this change and the security guards. A source merge or passing CI
-does not establish deployment. Verify actual localized pages, serving identity
-and matching current security evidence through the normal release procedure;
-confirmed activations are indexed in [release history](releases.md).
+US English has been live since November 26, 2026. The
+[verified deployment record](records/release-2026-11-26.md) records the serving
+identities, legacy-preference normalization and successful About-page checks in
+all ten locales, including `en-US`. See [release history](releases.md) for the
+indexed deployment evidence.
 
 See the [upstream differences](upstream-alignment.md#supported-differences),
 [maintenance overview](maintenance.md#what-we-keep-different) and

@@ -30,9 +30,11 @@ dependencies, or a separately hash-verified official binary. Prepare
 those build tools through the reviewed operations workflow; this helper does not
 install toolchains or packages.
 
-Build as an **unprivileged operator** in a clean Ubuntu 24.04
-x86-64 environment compatible with the deployment host. Example, with reviewed
-source checkout and artifact paths:
+CI builds and smoke-tests the renderer on Ubuntu 24.04 x86-64. The maintained
+application host runs Ubuntu 26.04.1 x86-64. Build as an **unprivileged operator**
+in a clean environment compatible with the deployment target; the CI host label
+does not establish compatibility with every Ubuntu release. Example, with
+reviewed source checkout and artifact paths:
 
 ```sh
 git clone https://github.com/lichess-org/lila-gif.git /BUILD/lila-gif
@@ -52,9 +54,10 @@ that no existing upstream sprite changed. The extension retains exact native
 square colors **#c7cfba / #668478**. It then runs `cargo +1.99.1 test --locked --target
 x86_64-unknown-linux-gnu --jobs 2` followed by the corresponding release build.
 Cargo fetches dependencies with the checksums in the pinned lockfile; the runtime
-does not fetch dependencies. Do not copy a binary out of upstream's current
-Debian Trixie image onto Ubuntu 24.04: its dynamic libc requirements may be newer.
-Check `ldd`/version requirements on the actual built artifact before deployment.
+does not fetch dependencies. Do not assume a binary from upstream's Debian
+Trixie image or another builder has compatible dynamic libc requirements.
+Run `ldd` on the actual deployment target and check the artifact's required
+library versions before deployment.
 
 The resulting directory contains exactly:
 
@@ -129,8 +132,7 @@ For each renderer release, verify the actual artifacts and deployed integration:
 Keep the previous application release, units and isolation policy for rollback.
 Rollback must restore the matching app configuration, renderer dependency and
 network policy together; switching only the app symlink is insufficient when
-moving back across this service addition. Do not resume/extend a study as part of
-this installation.
+moving back across this service addition.
 
 <details>
 <summary>Historical section links</summary>

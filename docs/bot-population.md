@@ -1,17 +1,11 @@
-> **The 10,000-bot pool is live.** See [the calibrated roster](catalog-roster.md)
-> for its rating distribution, persistent settings and Research-seeded profiles.
-> The original 250 accounts keep their earned ratings and histories; 9,750 new
-> identities start with assigned nonprovisional ratings and zero completed games.
-> Historical experiment descriptions below preserve the earlier methodology.
-
 # Bot population and persistent personalities
 
-The original population infrastructure ([#69](https://github.com/Dash1971/mute-chess/issues/69),
-implemented in #72) retained 44 existing identities. Subsequent research expanded
-that reference cohort to 250 and established their native Blitz and Rapid
-ratings. The current pool adds 9,750 identities using those measured policies;
-see [the calibrated roster](catalog-roster.md). Country personas and scheduled
-breaks remain deferred in #71.
+The live pool contains **10,000 persistent opponents**: 250 reference accounts
+and 9,750 additional identities using their measured playing policies. The
+reference accounts retain their earned ratings and histories. At creation,
+additional identities receive Research-seeded ratings and zero completed games.
+See [the calibrated roster](catalog-roster.md) for the rating distribution and
+initialization policy. Country personas and scheduled breaks remain deferred in #71.
 
 ## Human rating goal
 
