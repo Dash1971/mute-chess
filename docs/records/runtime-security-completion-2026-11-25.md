@@ -22,3 +22,9 @@ was clear. No classifier predicates, monitoring controls or schedules changed.
 The pending lobby-ID and Racer advisories remained visible under #393. This is a
 dated maintenance result, not a promise that later collections have identical
 counts or permission to mark the queued application backports deployed.
+
+## Correction note — November 26, 2026
+
+The reference to an “unchanged original” above predates the restart wording
+correction documented in the [original record](runtime-security-2026-11-25.md#correction-note--november-26-2026).
+The completion results retain their November 25 scope.

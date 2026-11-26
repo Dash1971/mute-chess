@@ -18,6 +18,8 @@ down why it exists. Then we merge new Lichess code on a regular schedule.
 - Maia beside Stockfish in analysis, including Maia Lab.
 - Sign-in with a Nostr key instead of email and password.
 - Multiple stacked premoves.
+- Owner-hosted Arenas with Maia filler opponents.
+- Lightning patronage through the native support page.
 - Brilliant-move detection from
   [Open Brilly Finder](https://github.com/Dash1971/open-brilly-finder).
 - A simpler interface: standard chess only, with fewer menus. No variants.
@@ -25,8 +27,8 @@ down why it exists. Then we merge new Lichess code on a regular schedule.
 - US English for the English UI, including inherited wording, through native
   `en-US` catalogs; older English preferences normalize to that locale. See [the English policy](us-english-ui.md).
 
-Anything not on this list should behave as it does on Lichess. The full policy
-is in [Staying aligned with Lichess](upstream-alignment.md).
+These are the main product differences. The full list and maintenance boundaries
+are in [Staying aligned with Lichess](upstream-alignment.md).
 
 ## Two repositories
 

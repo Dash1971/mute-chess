@@ -17,7 +17,7 @@ expected identity.
 
 | Check | Class | What it establishes |
 | --- | --- | --- |
-| `service-health.py` | Critical | Existing app, WS, adapter, gateway, database, tunnel and isolation units active; authenticated adapter health |
+| `service-health.py` | Critical | Existing app, WS, adapter, gateway, MongoDB, Redis, GIF renderer, tunnel and isolation units active; authenticated adapter health |
 | `public-health.py critical EXPECTED_MAIN` | Critical | Public HTTP/revision, real WS upgrade, anonymous Arena creation refused, blocked export/moderator/Racer paths |
 | `account-auth-smoke.mjs` | Critical | Real signed Nostr challenge, reserved-name rejection and replay refusal; no account created |
 | `study-http-check.py` | Critical | Anonymous private config/division refused, public allowed, missing refused; temporary fixture removed |
@@ -27,7 +27,7 @@ expected identity.
 | `bot-live-state.py` | Critical | Admissions open and the **same existing real game** advances within 60 seconds; never starts a game |
 | `public-health.py advisory EXPECTED_MAIN` | Advisory | Existing stylesheet/content/Arena discovery checks; parses any homepage JSON-LD without requiring a block |
 | `account-auth-smoke.mjs --advisory-copy` | Advisory | Exact translated ja-JP rejection copy; independent of the critical signed guard |
-| `about-locales.py` | Advisory | About-page credits render against all ten native locale catalogs |
+| `about-locales.py` | Advisory | About-page credits match all ten native catalogs with source fallback for US English; each page's `<html lang>` matches the requested locale |
 
 The signed smoke exercises rejection/replay, **not a successful returning-user
 session**. Do not report successful sign-in from this result. Preserve the

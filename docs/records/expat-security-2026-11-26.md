@@ -25,3 +25,21 @@ is being added to draft #395 for the next application release. No live
 impersonation or load test is authorized or performed. All three undeployed
 upstream advisories remain visible; no report predicates, monitoring controls
 or schedules change.
+
+## Completion addendum — November 26, 2026
+
+The [PR #403 maintenance receipt](https://github.com/Dash1971/mute-chess/pull/403)
+reports that no process retained a deleted old Expat mapping and package integrity
+matched. Critical health, HTTP/WebSocket, authentication rejection/replay, Study
+access and real-game progress checks passed. The unchanged application/native
+identity and 28 compiled classes matched the real SECURITY381 build/source
+receipts. Both current security readers and the corresponding-source archive
+were refreshed without an application rebuild or reboot. Fresh existing
+OpenClaw classification returned `inventory_verified=true`, with all three
+then-undeployed upstream advisories still visible.
+
+The later [November 26 application deployment](release-2026-11-26.md) completed
+the lobby-ID, Racer and SRI backports, including the SRI fix described above.
+That record supplies the matching deployed identities and runtime verification.
+The preparation text above retains its original date and scope; this addendum
+records published results and does not rerun maintenance or host checks.

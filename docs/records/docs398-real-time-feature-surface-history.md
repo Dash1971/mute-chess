@@ -99,3 +99,19 @@ and socket handling are unchanged.
 Arena berserk reduces a player's available time but retains the original game
 clock configuration. A berserked `1+0` game therefore still uses the **Bullet**
 rating, never UltraBullet. Native clock/speed/performance-key tests cover this.
+
+## Guide cleanup addendum — November 26, 2026
+
+The following validation and reproduction paragraphs were removed from the living
+guide at main `d64100a` during documentation review #408. They retain the earlier
+implementation context; this documentation task did not repeat these application
+checks. The current behavior remains in the [feature guide](../real-time-feature-surface.md).
+
+Validation: 13 native UI regressions cover setup normalization plus the existing real lobby/bootstrap/game-start-sound flow. Existing gateway boundary tests exercise the actual handler and deny import/Racer/correspondence routes while retaining analysis/study/learn/practice routes. Native formatting and exact patch/departure coverage are checked; new messages and reused Learn labels are verified in all ten supported catalogs.
+
+Reproduction: open `/@/PearlDrifter`, then UltraBullet. Before this fix Chrome
+shows `/@/PearlDrifter/perf/ultraBullet` as a 404 and downloads `index.html` from
+`/assets/vendor/ChessPursuit/bin-release/index.html`. After the fix the bot profile
+has no UltraBullet link, and direct visits to unsupported URLs retain a plain
+404 with a working home link and no mini-game request. Verify the title and link
+in en-US, de-DE, es-ES, fr-FR, hi-IN, ja-JP, ko-KR, pt-BR, ru-RU and zh-CN.

@@ -59,3 +59,12 @@ identify the fork through repository metadata and Mute's source guides instead
 of adding a README departure solely for branding. Keep old stub links inside
 immutable `docs/decisions/` and `docs/data/` records unchanged; their compatibility
 pages remain available while the current index links directly to real guides.
+
+## November 26 follow-up
+
+- [Expat maintenance and socket-backport preparation](expat-security-2026-11-26.md),
+  including the maintenance completion addendum.
+- [Lobby-ID, Racer and SRI backport preparation and validation](security-backports393-next-release.md).
+- [Verified stacked-PR deployment](release-2026-11-26.md).
+- [Post-release documentation review](documentation-review-2026-11-26.md),
+  including wording deferred to the next inventory update.
