@@ -50,6 +50,17 @@ Move map, use the candidate list to select each move. The preview board highligh
 the selected move's source and destination; hover or keyboard focus can also
 preview a move through the analysis board's normal preview behavior.
 
+### November chart presentation (unreleased)
+
+The candidate update for [#413](https://github.com/Dash1971/mute-chess/issues/413)
+shares the lighter line/fill rendering, standard 20/40/60/80/100% axes,
+collision-aware move names and selected-rating shares described in
+[Moves by Rating](maia-rating-chart.md#november-presentation-update-unreleased).
+It retains Lab's independent six/eight candidate control, best-three-engine-root
+inclusion and raw probabilities. Crowded share labels are omitted; hover/focus
+still exposes the exact values. The slider remains below the chart. This update
+has not been deployed; the live examples below show the earlier rendering.
+
 ## Understand the position description
 
 The short description can identify tempting mistakes, suggest up to three strong
