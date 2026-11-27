@@ -1,0 +1,52 @@
+[
+  {
+    "locale": "en-US",
+    "axis": "Maia probability",
+    "inside": true
+  },
+  {
+    "locale": "de-DE",
+    "axis": "Maia-Wahrscheinlichkeit",
+    "inside": true
+  },
+  {
+    "locale": "es-ES",
+    "axis": "Probabilidad de Maia",
+    "inside": true
+  },
+  {
+    "locale": "fr-FR",
+    "axis": "Probabilité Maia",
+    "inside": true
+  },
+  {
+    "locale": "hi-IN",
+    "axis": "Maia की संभावना",
+    "inside": true
+  },
+  {
+    "locale": "ja-JP",
+    "axis": "Maiaの選択確率",
+    "inside": true
+  },
+  {
+    "locale": "ko-KR",
+    "axis": "Maia 선택 확률",
+    "inside": true
+  },
+  {
+    "locale": "pt-BR",
+    "axis": "Probabilidade da Maia",
+    "inside": true
+  },
+  {
+    "locale": "ru-RU",
+    "axis": "Вероятность Maia",
+    "inside": true
+  },
+  {
+    "locale": "zh-CN",
+    "axis": "Maia 选择概率",
+    "inside": true
+  }
+]
