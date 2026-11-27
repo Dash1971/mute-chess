@@ -19,6 +19,8 @@ Moves by Rating samples 600–2600 and uses the adapted candidate union and adap
 are not renormalized to the displayed candidates. Move-quality colors use
 Stockfish evidence, not move popularity. The current-position expected score is
 win plus half draw for the side to move, distinct from game accuracy.
+[Maia score percentage](maia-score-percentage.md) gives an example, model context
+and upstream references.
 [Maia Lab](maia-lab.md) expands this into rating curves, a Move map and rule-based
 position descriptions. Assistance stays unavailable during puzzle/practice solving.
 

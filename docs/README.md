@@ -14,6 +14,7 @@
 
 - [Nostr sign-in and backup](nostr-sign-in-backup.md) and [official identity](nostr.md).
 - [Analysis presentation and settings](analysis-presentation.md).
+- [Maia score percentage](maia-score-percentage.md): what the number means and how it is calculated.
 - [Maia Lab](maia-lab.md).
 - [Engine arrows and badges](arrow-behavior.md), with the [comparison gallery](arrow-behavior/gallery.md).
 - [Brilliant moves: Mute Exchange](brilliant-moves.md).

@@ -95,8 +95,9 @@ for the overlap rules, retained Lichess tapering and cross-app screenshot compar
 
 **Moves by Rating** shows how a move's likelihood changes from Maia 600 to 2600.
 Review a whole game with the familiar Lichess graph, accuracy and mistake-review
-controls. Maia likelihood, expected score and Stockfish evaluation describe
-different things; a popular human move is not automatically the best move.
+controls. Maia likelihood, [expected score](docs/maia-score-percentage.md) and
+Stockfish evaluation describe different things; a popular human move is not
+automatically the best move.
 
 <p align="center">
   <img src="docs/screenshots/2026-11-02-maia-analysis.jpg" width="1100" alt="Ruy Lopez analysis with Maia 1500 and Maia 2400 probability cards, the Moves by Rating chart, Stockfish and board arrows">
